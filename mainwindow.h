@@ -30,6 +30,9 @@ private slots:
     // 向数据库添加管脚
     bool addPinsToDatabase(const QList<QString> &pinNames);
 
+    // 显示TimeSet对话框
+    bool showTimeSetDialog();
+
 private:
     void setupUI();
     void setupMenu();

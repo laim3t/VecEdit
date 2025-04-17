@@ -21,6 +21,10 @@ set(PROJECT_SOURCES
         databaseviewdialog.h
         pinlistdialog.cpp
         pinlistdialog.h
+        timesetdialog.cpp
+        timesetdialog.h
+        timesetedgedialog.cpp
+        timesetedgedialog.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

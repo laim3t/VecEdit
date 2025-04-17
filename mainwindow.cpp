@@ -2,6 +2,7 @@
 #include "databasemanager.h"
 #include "databaseviewdialog.h"
 #include "pinlistdialog.h"
+#include "timesetdialog.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -123,16 +124,31 @@ void MainWindow::createNewProject()
         statusBar()->showMessage(tr("数据库创建成功: %1").arg(dbPath));
 
         // 显示管脚添加对话框
-        if (showAddPinsDialog())
+        bool pinsAdded = showAddPinsDialog();
+
+        // 如果成功添加了管脚，则显示TimeSet对话框
+        bool timeSetAdded = false;
+        if (pinsAdded)
         {
-            QMessageBox::information(this, tr("成功"),
-                                     tr("项目数据库创建成功！管脚已添加。\n您可以通过\"查看\"菜单打开数据库查看器"));
+            timeSetAdded = showTimeSetDialog();
+        }
+
+        // 显示创建成功的消息
+        QString message;
+        if (pinsAdded && timeSetAdded)
+        {
+            message = tr("项目数据库创建成功！管脚和TimeSet已添加。\n您可以通过\"查看\"菜单打开数据库查看器");
+        }
+        else if (pinsAdded)
+        {
+            message = tr("项目数据库创建成功！管脚已添加。\n您可以通过\"查看\"菜单打开数据库查看器");
         }
         else
         {
-            QMessageBox::information(this, tr("成功"),
-                                     tr("项目数据库创建成功！\n您可以通过\"查看\"菜单打开数据库查看器"));
+            message = tr("项目数据库创建成功！\n您可以通过\"查看\"菜单打开数据库查看器");
         }
+
+        QMessageBox::information(this, tr("成功"), message);
     }
     else
     {
@@ -275,4 +291,24 @@ bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
     }
 
     return success;
+}
+
+bool MainWindow::showTimeSetDialog()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        return false;
+    }
+
+    // 创建并显示TimeSet对话框
+    TimeSetDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        statusBar()->showMessage(tr("TimeSet已成功添加"));
+        return true;
+    }
+
+    return false;
 }

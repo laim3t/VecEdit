@@ -1,0 +1,109 @@
+#ifndef TIMESETDIALOG_H
+#define TIMESETDIALOG_H
+
+#include <QDialog>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QPushButton>
+#include <QDialogButtonBox>
+#include <QComboBox>
+#include <QLabel>
+#include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QGroupBox>
+#include <QListWidget>
+#include <QSplitter>
+#include <QStandardItemModel>
+#include <QList>
+#include <QMap>
+
+// TimeSet数据结构
+struct TimeSetData
+{
+    QString name;      // TimeSet名称
+    double period;     // 周期，单位ns
+    QList<int> pinIds; // 关联的管脚ID列表
+};
+
+// TimeSet边沿参数条目数据结构
+struct TimeSetEdgeData
+{
+    int timesetId; // 关联的TimeSet ID
+    int pinId;     // 关联的管脚ID
+    double t1r;    // T1R值，默认250
+    double t1f;    // T1F值，默认750
+    double stbr;   // STBR值，默认500
+    int waveId;    // 波形ID，关联wave_options表
+};
+
+class TimeSetDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    explicit TimeSetDialog(QWidget *parent = nullptr);
+    ~TimeSetDialog();
+
+private slots:
+    // TimeSet操作
+    void addTimeSet();
+    void removeTimeSet();
+    void renameTimeSet(QTreeWidgetItem *item, int column);
+    void updatePeriod(double value);
+    void timeSetSelectionChanged();
+
+    // 边沿参数条目操作
+    void addEdgeItem();
+    void removeEdgeItem();
+    void editEdgeItem(QTreeWidgetItem *item, int column);
+
+    // 管脚选择
+    void onPinSelectionChanged();
+    void updatePinSelection(QTreeWidgetItem *item, int column);
+
+    // 对话框按钮
+    void onAccepted();
+    void onRejected();
+
+private:
+    void setupUI();
+    void setupMainLayout();
+    void setupTreeWidget();
+    void setupPinSelection();
+    void setupButtonBox();
+    void loadWaveOptions();
+    void loadPins();
+
+    // 更新边沿项显示文本
+    void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);
+
+    // 保存到数据库
+    bool saveToDatabase();
+    bool saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTimeSetId);
+    bool saveTimeSetEdgesToDatabase(int timeSetId, const QList<TimeSetEdgeData> &edges);
+
+    // UI组件
+    QSplitter *mainSplitter;
+    QTreeWidget *timeSetTree;
+    QGroupBox *pinSelectionGroup;
+    QListWidget *pinListWidget;
+    QPushButton *addTimeSetButton;
+    QPushButton *removeTimeSetButton;
+    QPushButton *addEdgeButton;
+    QPushButton *removeEdgeButton;
+    QDialogButtonBox *buttonBox;
+    QDoubleSpinBox *periodSpinBox;
+
+    // 数据
+    QList<TimeSetData> timeSetDataList;
+    QMap<int, QString> waveOptions; // 波形ID -> 名称映射
+    QMap<int, QString> pinList;     // 管脚ID -> 名称映射
+    QList<TimeSetEdgeData> edgeDataList;
+
+    // 当前选中的TimeSet项
+    QTreeWidgetItem *currentTimeSetItem;
+    int currentTimeSetIndex;
+};
+
+#endif // TIMESETDIALOG_H
