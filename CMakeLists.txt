@@ -19,6 +19,8 @@ set(PROJECT_SOURCES
         databasemanager.h
         databaseviewdialog.cpp
         databaseviewdialog.h
+        pinlistdialog.cpp
+        pinlistdialog.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

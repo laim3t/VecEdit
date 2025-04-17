@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "databasemanager.h"
 #include "databaseviewdialog.h"
+#include "pinlistdialog.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -120,8 +121,18 @@ void MainWindow::createNewProject()
         m_currentDbPath = dbPath;
         setWindowTitle(QString("VecEdit - 矢量测试编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
         statusBar()->showMessage(tr("数据库创建成功: %1").arg(dbPath));
-        QMessageBox::information(this, tr("成功"),
-                                 tr("项目数据库创建成功！\n您可以通过\"查看\"菜单打开数据库查看器"));
+
+        // 显示管脚添加对话框
+        if (showAddPinsDialog())
+        {
+            QMessageBox::information(this, tr("成功"),
+                                     tr("项目数据库创建成功！管脚已添加。\n您可以通过\"查看\"菜单打开数据库查看器"));
+        }
+        else
+        {
+            QMessageBox::information(this, tr("成功"),
+                                     tr("项目数据库创建成功！\n您可以通过\"查看\"菜单打开数据库查看器"));
+        }
     }
     else
     {
@@ -191,4 +202,77 @@ void MainWindow::showDatabaseViewDialog()
     DatabaseViewDialog *dialog = new DatabaseViewDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose); // 关闭时自动删除
     dialog->exec();
+}
+
+bool MainWindow::showAddPinsDialog()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        return false;
+    }
+
+    // 创建并显示管脚添加对话框
+    PinListDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        // 获取用户设置的管脚列表
+        QList<QString> pinNames = dialog.getPinNames();
+
+        // 添加到数据库
+        if (!pinNames.isEmpty())
+        {
+            return addPinsToDatabase(pinNames);
+        }
+    }
+
+    return false;
+}
+
+bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        return false;
+    }
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // 开始事务
+    db.transaction();
+
+    // 循环添加每个管脚
+    bool success = true;
+    for (const QString &pinName : pinNames)
+    {
+        QSqlQuery query(db);
+        query.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+        query.addBindValue(pinName);
+        query.addBindValue(""); // pin_note为空
+        query.addBindValue(""); // pin_nav_note为空
+
+        if (!query.exec())
+        {
+            qDebug() << "添加管脚失败:" << query.lastError().text();
+            success = false;
+            break;
+        }
+    }
+
+    // 提交或回滚事务
+    if (success)
+    {
+        db.commit();
+        statusBar()->showMessage(tr("已成功添加 %1 个管脚").arg(pinNames.count()));
+    }
+    else
+    {
+        db.rollback();
+        statusBar()->showMessage(tr("添加管脚失败"));
+    }
+
+    return success;
 }

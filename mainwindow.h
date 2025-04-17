@@ -24,6 +24,12 @@ private slots:
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
 
+    // 显示添加管脚对话框
+    bool showAddPinsDialog();
+
+    // 向数据库添加管脚
+    bool addPinsToDatabase(const QList<QString> &pinNames);
+
 private:
     void setupUI();
     void setupMenu();
