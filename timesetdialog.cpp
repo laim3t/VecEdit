@@ -996,6 +996,99 @@ void TimeSetDialog::onAccepted()
     // 保存数据到数据库
     if (saveToDatabase())
     {
+        // 弹出向量表命名对话框
+        QDialog vectorNameDialog(this);
+        vectorNameDialog.setWindowTitle("创建向量表向导");
+        vectorNameDialog.setFixedSize(320, 120);
+
+        QVBoxLayout *layout = new QVBoxLayout(&vectorNameDialog);
+
+        // 名称标签和输入框
+        QHBoxLayout *nameLayout = new QHBoxLayout();
+        QLabel *nameLabel = new QLabel("名称:", &vectorNameDialog);
+        QLineEdit *nameEdit = new QLineEdit(&vectorNameDialog);
+        nameEdit->setMinimumWidth(200);
+        nameLayout->addWidget(nameLabel);
+        nameLayout->addWidget(nameEdit);
+        layout->addLayout(nameLayout);
+
+        // 按钮布局
+        QHBoxLayout *buttonLayout = new QHBoxLayout();
+        buttonLayout->addStretch();
+        QPushButton *okButton = new QPushButton("确定", &vectorNameDialog);
+        QPushButton *cancelButton = new QPushButton("取消向导", &vectorNameDialog);
+        buttonLayout->addWidget(okButton);
+        buttonLayout->addWidget(cancelButton);
+        layout->addLayout(buttonLayout);
+
+        // 连接信号槽
+        connect(okButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::accept);
+        connect(cancelButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::reject);
+
+        // 显示对话框
+        if (vectorNameDialog.exec() == QDialog::Accepted)
+        {
+            QString tableName = nameEdit->text().trimmed();
+            if (!tableName.isEmpty())
+            {
+                // 保存到数据库
+                QSqlDatabase db = DatabaseManager::instance()->database();
+                QSqlQuery query(db);
+
+                // 检查vector_tables表是否存在，如不存在则创建
+                bool tableExists = false;
+                QStringList tables = db.tables();
+                if (tables.contains("vector_tables"))
+                {
+                    tableExists = true;
+                }
+                else
+                {
+                    // 创建表
+                    QString createTableSql = "CREATE TABLE vector_tables ("
+                                             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                             "table_name TEXT NOT NULL UNIQUE,"
+                                             "table_nav_note TEXT"
+                                             ")";
+                    if (query.exec(createTableSql))
+                    {
+                        tableExists = true;
+                    }
+                    else
+                    {
+                        QMessageBox::critical(this, "数据库错误", "创建vector_tables表失败：" + query.lastError().text());
+                    }
+                }
+
+                // 如果表存在则插入数据
+                if (tableExists)
+                {
+                    // 检查是否已存在同名向量表
+                    query.prepare("SELECT id FROM vector_tables WHERE table_name = ?");
+                    query.addBindValue(tableName);
+
+                    if (query.exec() && query.next())
+                    {
+                        QMessageBox::warning(this, "名称重复", "已存在同名的向量表，请使用其他名称。");
+                    }
+                    else
+                    {
+                        query.prepare("INSERT INTO vector_tables (table_name, table_nav_note) VALUES (?, '')");
+                        query.addBindValue(tableName);
+
+                        if (!query.exec())
+                        {
+                            QMessageBox::critical(this, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
+                        }
+                        else
+                        {
+                            QMessageBox::information(this, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+                        }
+                    }
+                }
+            }
+        }
+
         accept();
     }
 }
