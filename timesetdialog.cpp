@@ -996,8 +996,15 @@ void TimeSetDialog::onAccepted()
     // 保存数据到数据库
     if (saveToDatabase())
     {
+        // 先保存tableId以便后续使用
+        int tableId = -1;
+        QString tableName;
+
+        // 先隐藏TimeSet对话框，避免它一直显示在背景中
+        this->hide();
+
         // 弹出向量表命名对话框
-        QDialog vectorNameDialog(this);
+        QDialog vectorNameDialog(nullptr); // 使用nullptr而不是this作为父窗口
         vectorNameDialog.setWindowTitle("创建向量表向导");
         vectorNameDialog.setFixedSize(320, 120);
 
@@ -1028,7 +1035,7 @@ void TimeSetDialog::onAccepted()
         // 显示对话框
         if (vectorNameDialog.exec() == QDialog::Accepted)
         {
-            QString tableName = nameEdit->text().trimmed();
+            tableName = nameEdit->text().trimmed();
             if (!tableName.isEmpty())
             {
                 // 保存到数据库
@@ -1056,7 +1063,7 @@ void TimeSetDialog::onAccepted()
                     }
                     else
                     {
-                        QMessageBox::critical(this, "数据库错误", "创建vector_tables表失败：" + query.lastError().text());
+                        QMessageBox::critical(nullptr, "数据库错误", "创建vector_tables表失败：" + query.lastError().text());
                     }
                 }
 
@@ -1069,7 +1076,7 @@ void TimeSetDialog::onAccepted()
 
                     if (query.exec() && query.next())
                     {
-                        QMessageBox::warning(this, "名称重复", "已存在同名的向量表，请使用其他名称。");
+                        QMessageBox::warning(nullptr, "名称重复", "已存在同名的向量表，请使用其他名称。");
                     }
                     else
                     {
@@ -1078,17 +1085,55 @@ void TimeSetDialog::onAccepted()
 
                         if (!query.exec())
                         {
-                            QMessageBox::critical(this, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
+                            QMessageBox::critical(nullptr, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
                         }
                         else
                         {
-                            QMessageBox::information(this, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+                            // 获取新插入记录的ID
+                            tableId = query.lastInsertId().toInt();
+
+                            QMessageBox::information(nullptr, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+
+                            // 检查vector_table_pins表是否存在，如不存在则创建
+                            bool pinsTableExists = false;
+                            if (tables.contains("vector_table_pins"))
+                            {
+                                pinsTableExists = true;
+                            }
+                            else
+                            {
+                                // 创建表
+                                QString createPinsTableSql = "CREATE TABLE vector_table_pins ("
+                                                             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                                             "table_id INTEGER NOT NULL,"
+                                                             "pin_id INTEGER NOT NULL,"
+                                                             "pin_type INTEGER NOT NULL,"
+                                                             "pin_channel_count INTEGER DEFAULT 1,"
+                                                             "FOREIGN KEY(table_id) REFERENCES vector_tables(id),"
+                                                             "FOREIGN KEY(pin_id) REFERENCES pin_list(id)"
+                                                             ")";
+                                if (query.exec(createPinsTableSql))
+                                {
+                                    pinsTableExists = true;
+                                }
+                                else
+                                {
+                                    QMessageBox::critical(nullptr, "数据库错误", "创建vector_table_pins表失败：" + query.lastError().text());
+                                }
+                            }
+
+                            // 如果pins表创建成功，使用独立对话框函数显示管脚选择对话框
+                            if (pinsTableExists && tableId > 0)
+                            {
+                                showPinSelectionDialogStandalone(tableId, tableName);
+                            }
                         }
                     }
                 }
             }
         }
 
+        // 在所有操作完成后接受对话框（这实际上只是为了完成整个流程，因为对话框已经隐藏）
         accept();
     }
 }
@@ -1490,6 +1535,484 @@ void TimeSetDialog::onPropertyItemChanged(QTreeWidgetItem *item, int column)
                     break;
                 }
             }
+        }
+    }
+}
+
+// 添加一个独立的函数来显示管脚选择对话框，不依赖于TimeSetDialog实例
+void TimeSetDialog::showPinSelectionDialogStandalone(int tableId, const QString &tableName)
+{
+    // 创建管脚选择对话框
+    QDialog pinDialog(nullptr); // 使用nullptr而不是this作为父窗口
+    pinDialog.setWindowTitle(tableName);
+    pinDialog.setMinimumWidth(400);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&pinDialog);
+
+    // 添加一个标签用于显示"管脚组"
+    QLabel *groupLabel = new QLabel("管脚组", &pinDialog);
+    QFont boldFont = groupLabel->font();
+    boldFont.setBold(true);
+    groupLabel->setFont(boldFont);
+    mainLayout->addWidget(groupLabel);
+
+    // 创建一个白色背景的widget来包含表格
+    QWidget *tableWidget = new QWidget(&pinDialog);
+    tableWidget->setStyleSheet("background-color: white;");
+    QVBoxLayout *tableLayout = new QVBoxLayout(tableWidget);
+    tableLayout->setContentsMargins(10, 10, 10, 10);
+
+    // 添加表格布局用于显示管脚、类型和数据流
+    QGridLayout *gridLayout = new QGridLayout();
+    gridLayout->setSpacing(15);
+
+    // 添加表头
+    QLabel *pinHeader = new QLabel("Pins", tableWidget);
+    QLabel *typeHeader = new QLabel("Type", tableWidget);
+    QLabel *dataStreamHeader = new QLabel("Data Stream", tableWidget);
+
+    // 设置表头样式
+    QFont headerFont = pinHeader->font();
+    headerFont.setBold(true);
+    pinHeader->setFont(headerFont);
+    typeHeader->setFont(headerFont);
+    dataStreamHeader->setFont(headerFont);
+
+    pinHeader->setAlignment(Qt::AlignLeft);
+    typeHeader->setAlignment(Qt::AlignLeft);
+    dataStreamHeader->setAlignment(Qt::AlignLeft);
+
+    gridLayout->addWidget(pinHeader, 0, 0);
+    gridLayout->addWidget(typeHeader, 0, 1);
+    gridLayout->addWidget(dataStreamHeader, 0, 2);
+
+    // 添加表头分隔线
+    QFrame *headerLine = new QFrame(tableWidget);
+    headerLine->setFrameShape(QFrame::HLine);
+    headerLine->setFrameShadow(QFrame::Sunken);
+    gridLayout->addWidget(headerLine, 1, 0, 1, 3);
+
+    // 从数据库加载类型选项
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+
+    // 首先确保type_options表存在
+    if (!db.tables().contains("type_options"))
+    {
+        query.exec("CREATE TABLE type_options ("
+                   "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                   "type_name TEXT NOT NULL UNIQUE"
+                   ")");
+
+        // 添加默认类型
+        query.exec("INSERT INTO type_options (type_name) VALUES ('InOut')");
+        query.exec("INSERT INTO type_options (type_name) VALUES ('Input')");
+        query.exec("INSERT INTO type_options (type_name) VALUES ('Output')");
+    }
+
+    // 确保vector_table_pins表存在
+    if (!db.tables().contains("vector_table_pins"))
+    {
+        // 创建表
+        QString createTableSql = "CREATE TABLE vector_table_pins ("
+                                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                 "table_id INTEGER NOT NULL REFERENCES vector_tables(id),"
+                                 "pin_id INTEGER NOT NULL REFERENCES pin_list(id),"
+                                 "pin_channel_count INT NOT NULL DEFAULT 1,"
+                                 "pin_type INTEGER NOT NULL DEFAULT 3 REFERENCES type_options(id)"
+                                 ")";
+        if (!query.exec(createTableSql))
+        {
+            QMessageBox::critical(nullptr, "数据库错误", "创建vector_table_pins表失败：" + query.lastError().text());
+        }
+
+        // 创建唯一索引
+        QString createIndexSql = "CREATE UNIQUE INDEX idx_table_pin_unique "
+                                 "ON vector_table_pins(table_id, pin_id)";
+        if (!query.exec(createIndexSql))
+        {
+            QMessageBox::critical(nullptr, "数据库错误", "创建vector_table_pins索引失败：" + query.lastError().text());
+        }
+    }
+
+    // 获取所有类型选项
+    QMap<int, QString> typeOptions;
+    if (query.exec("SELECT id, type_name FROM type_options"))
+    {
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString typeName = query.value(1).toString();
+            typeOptions[id] = typeName;
+        }
+    }
+
+    // 如果类型选项为空，添加一个默认选项
+    if (typeOptions.isEmpty())
+    {
+        typeOptions[1] = "InOut";
+    }
+
+    // 获取所有管脚列表
+    QMap<int, QString> localPinList;
+    if (query.exec("SELECT id, pin_name FROM pin_list"))
+    {
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString pinName = query.value(1).toString();
+            localPinList[id] = pinName;
+        }
+    }
+
+    // 创建一个映射来存储每个管脚的复选框、类型选择框和数据流标签
+    QMap<int, QCheckBox *> pinCheckboxes;
+    QMap<int, QComboBox *> pinTypeComboBoxes;
+    QMap<int, QLabel *> pinDataStreamLabels;
+
+    // 添加管脚和对应的控件
+    int row = 2; // 从第2行开始（0是表头，1是分隔线）
+    for (auto it = localPinList.begin(); it != localPinList.end(); ++it)
+    {
+        int pinId = it.key();
+        QString pinName = it.value();
+
+        // 创建复选框
+        QCheckBox *checkbox = new QCheckBox(pinName, tableWidget);
+        pinCheckboxes[pinId] = checkbox;
+
+        // 创建类型下拉框
+        QComboBox *typeCombo = new QComboBox(tableWidget);
+        for (auto typeIt = typeOptions.begin(); typeIt != typeOptions.end(); ++typeIt)
+        {
+            typeCombo->addItem(typeIt.value(), typeIt.key());
+        }
+        pinTypeComboBoxes[pinId] = typeCombo;
+
+        // 创建数据流标签
+        QLabel *dataStreamLabel = new QLabel("x1", tableWidget);
+        dataStreamLabel->setAlignment(Qt::AlignCenter);
+        pinDataStreamLabels[pinId] = dataStreamLabel;
+
+        // 添加到表格
+        gridLayout->addWidget(checkbox, row, 0);
+        gridLayout->addWidget(typeCombo, row, 1);
+        gridLayout->addWidget(dataStreamLabel, row, 2);
+
+        row++;
+    }
+
+    tableLayout->addLayout(gridLayout);
+    mainLayout->addWidget(tableWidget);
+
+    // 添加底部按钮区域
+    QWidget *buttonContainer = new QWidget(&pinDialog);
+    buttonContainer->setStyleSheet("background-color: #f0f0f0;");
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonContainer);
+    buttonLayout->setContentsMargins(10, 5, 10, 5);
+    buttonLayout->addStretch();
+
+    QPushButton *okButton = new QPushButton("确定", buttonContainer);
+    QPushButton *cancelButton = new QPushButton("取消向导", buttonContainer);
+
+    okButton->setMinimumWidth(100);
+    cancelButton->setMinimumWidth(100);
+
+    buttonLayout->addWidget(okButton);
+    buttonLayout->addWidget(cancelButton);
+
+    mainLayout->addWidget(buttonContainer);
+
+    // 连接信号槽
+    connect(okButton, &QPushButton::clicked, &pinDialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &pinDialog, &QDialog::reject);
+
+    // 显示对话框
+    if (pinDialog.exec() == QDialog::Accepted)
+    {
+        // 获取选中的管脚并保存到数据库
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+
+        // 开始事务
+        db.transaction();
+
+        bool success = true;
+
+        for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
+        {
+            int pinId = it.key();
+            QCheckBox *checkbox = it.value();
+
+            // 如果勾选了该管脚
+            if (checkbox->isChecked())
+            {
+                // 获取选择的类型
+                QComboBox *typeCombo = pinTypeComboBoxes[pinId];
+                int typeId = typeCombo->currentData().toInt();
+
+                // 固定使用1作为channel_count
+                int channelCount = 1;
+
+                // 保存到数据库
+                query.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
+                              "VALUES (?, ?, ?, ?)");
+                query.addBindValue(tableId);
+                query.addBindValue(pinId);
+                query.addBindValue(typeId);
+                query.addBindValue(channelCount);
+
+                if (!query.exec())
+                {
+                    QMessageBox::critical(nullptr, "数据库错误", "保存管脚信息失败：" + query.lastError().text());
+                    success = false;
+                    break;
+                }
+            }
+        }
+
+        // 提交或回滚事务
+        if (success)
+        {
+            db.commit();
+            QMessageBox::information(nullptr, "保存成功", "管脚信息已成功保存！");
+        }
+        else
+        {
+            db.rollback();
+        }
+    }
+}
+
+// 添加一个新函数用于显示管脚选择对话框
+void TimeSetDialog::showPinSelectionDialog(int tableId, const QString &tableName)
+{
+    // 创建管脚选择对话框
+    QDialog pinDialog(this);
+    pinDialog.setWindowTitle(tableName);
+    pinDialog.setMinimumWidth(400);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&pinDialog);
+
+    // 添加一个标签用于显示"管脚组"
+    QLabel *groupLabel = new QLabel("管脚组", &pinDialog);
+    QFont boldFont = groupLabel->font();
+    boldFont.setBold(true);
+    groupLabel->setFont(boldFont);
+    mainLayout->addWidget(groupLabel);
+
+    // 创建一个白色背景的widget来包含表格
+    QWidget *tableWidget = new QWidget(&pinDialog);
+    tableWidget->setStyleSheet("background-color: white;");
+    QVBoxLayout *tableLayout = new QVBoxLayout(tableWidget);
+    tableLayout->setContentsMargins(10, 10, 10, 10);
+
+    // 添加表格布局用于显示管脚、类型和数据流
+    QGridLayout *gridLayout = new QGridLayout();
+    gridLayout->setSpacing(15);
+
+    // 添加表头
+    QLabel *pinHeader = new QLabel("Pins", tableWidget);
+    QLabel *typeHeader = new QLabel("Type", tableWidget);
+    QLabel *dataStreamHeader = new QLabel("Data Stream", tableWidget);
+
+    // 设置表头样式
+    QFont headerFont = pinHeader->font();
+    headerFont.setBold(true);
+    pinHeader->setFont(headerFont);
+    typeHeader->setFont(headerFont);
+    dataStreamHeader->setFont(headerFont);
+
+    pinHeader->setAlignment(Qt::AlignLeft);
+    typeHeader->setAlignment(Qt::AlignLeft);
+    dataStreamHeader->setAlignment(Qt::AlignLeft);
+
+    gridLayout->addWidget(pinHeader, 0, 0);
+    gridLayout->addWidget(typeHeader, 0, 1);
+    gridLayout->addWidget(dataStreamHeader, 0, 2);
+
+    // 添加表头分隔线
+    QFrame *headerLine = new QFrame(tableWidget);
+    headerLine->setFrameShape(QFrame::HLine);
+    headerLine->setFrameShadow(QFrame::Sunken);
+    gridLayout->addWidget(headerLine, 1, 0, 1, 3);
+
+    // 从数据库加载类型选项
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+
+    // 首先确保type_options表存在
+    if (!db.tables().contains("type_options"))
+    {
+        query.exec("CREATE TABLE type_options ("
+                   "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                   "type_name TEXT NOT NULL UNIQUE"
+                   ")");
+
+        // 添加默认类型
+        query.exec("INSERT INTO type_options (type_name) VALUES ('InOut')");
+        query.exec("INSERT INTO type_options (type_name) VALUES ('Input')");
+        query.exec("INSERT INTO type_options (type_name) VALUES ('Output')");
+    }
+
+    // 确保vector_table_pins表存在
+    if (!db.tables().contains("vector_table_pins"))
+    {
+        // 创建表
+        QString createTableSql = "CREATE TABLE vector_table_pins ("
+                                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                 "table_id INTEGER NOT NULL REFERENCES vector_tables(id),"
+                                 "pin_id INTEGER NOT NULL REFERENCES pin_list(id),"
+                                 "pin_channel_count INT NOT NULL DEFAULT 1,"
+                                 "pin_type INTEGER NOT NULL DEFAULT 3 REFERENCES type_options(id)"
+                                 ")";
+        if (!query.exec(createTableSql))
+        {
+            QMessageBox::critical(this, "数据库错误", "创建vector_table_pins表失败：" + query.lastError().text());
+        }
+
+        // 创建唯一索引
+        QString createIndexSql = "CREATE UNIQUE INDEX idx_table_pin_unique "
+                                 "ON vector_table_pins(table_id, pin_id)";
+        if (!query.exec(createIndexSql))
+        {
+            QMessageBox::critical(this, "数据库错误", "创建vector_table_pins索引失败：" + query.lastError().text());
+        }
+    }
+
+    // 获取所有类型选项
+    QMap<int, QString> typeOptions;
+    if (query.exec("SELECT id, type_name FROM type_options"))
+    {
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString typeName = query.value(1).toString();
+            typeOptions[id] = typeName;
+        }
+    }
+
+    // 如果类型选项为空，添加一个默认选项
+    if (typeOptions.isEmpty())
+    {
+        typeOptions[1] = "InOut";
+    }
+
+    // 创建一个映射来存储每个管脚的复选框、类型选择框和数据流标签
+    QMap<int, QCheckBox *> pinCheckboxes;
+    QMap<int, QComboBox *> pinTypeComboBoxes;
+    QMap<int, QLabel *> pinDataStreamLabels;
+
+    // 添加管脚和对应的控件
+    int row = 2; // 从第2行开始（0是表头，1是分隔线）
+    for (auto it = pinList.begin(); it != pinList.end(); ++it)
+    {
+        int pinId = it.key();
+        QString pinName = it.value();
+
+        // 创建复选框
+        QCheckBox *checkbox = new QCheckBox(pinName, tableWidget);
+        pinCheckboxes[pinId] = checkbox;
+
+        // 创建类型下拉框
+        QComboBox *typeCombo = new QComboBox(tableWidget);
+        for (auto typeIt = typeOptions.begin(); typeIt != typeOptions.end(); ++typeIt)
+        {
+            typeCombo->addItem(typeIt.value(), typeIt.key());
+        }
+        pinTypeComboBoxes[pinId] = typeCombo;
+
+        // 创建数据流标签
+        QLabel *dataStreamLabel = new QLabel("x1", tableWidget);
+        dataStreamLabel->setAlignment(Qt::AlignCenter);
+        pinDataStreamLabels[pinId] = dataStreamLabel;
+
+        // 添加到表格
+        gridLayout->addWidget(checkbox, row, 0);
+        gridLayout->addWidget(typeCombo, row, 1);
+        gridLayout->addWidget(dataStreamLabel, row, 2);
+
+        row++;
+    }
+
+    tableLayout->addLayout(gridLayout);
+    mainLayout->addWidget(tableWidget);
+
+    // 添加底部按钮区域
+    QWidget *buttonContainer = new QWidget(&pinDialog);
+    buttonContainer->setStyleSheet("background-color: #f0f0f0;");
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonContainer);
+    buttonLayout->setContentsMargins(10, 5, 10, 5);
+    buttonLayout->addStretch();
+
+    QPushButton *okButton = new QPushButton("确定", buttonContainer);
+    QPushButton *cancelButton = new QPushButton("取消向导", buttonContainer);
+
+    okButton->setMinimumWidth(100);
+    cancelButton->setMinimumWidth(100);
+
+    buttonLayout->addWidget(okButton);
+    buttonLayout->addWidget(cancelButton);
+
+    mainLayout->addWidget(buttonContainer);
+
+    // 连接信号槽
+    connect(okButton, &QPushButton::clicked, &pinDialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &pinDialog, &QDialog::reject);
+
+    // 显示对话框
+    if (pinDialog.exec() == QDialog::Accepted)
+    {
+        // 获取选中的管脚并保存到数据库
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+
+        // 开始事务
+        db.transaction();
+
+        bool success = true;
+
+        for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
+        {
+            int pinId = it.key();
+            QCheckBox *checkbox = it.value();
+
+            // 如果勾选了该管脚
+            if (checkbox->isChecked())
+            {
+                // 获取选择的类型
+                QComboBox *typeCombo = pinTypeComboBoxes[pinId];
+                int typeId = typeCombo->currentData().toInt();
+
+                // 固定使用1作为channel_count
+                int channelCount = 1;
+
+                // 保存到数据库
+                query.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
+                              "VALUES (?, ?, ?, ?)");
+                query.addBindValue(tableId);
+                query.addBindValue(pinId);
+                query.addBindValue(typeId);
+                query.addBindValue(channelCount);
+
+                if (!query.exec())
+                {
+                    QMessageBox::critical(this, "数据库错误", "保存管脚信息失败：" + query.lastError().text());
+                    success = false;
+                    break;
+                }
+            }
+        }
+
+        // 提交或回滚事务
+        if (success)
+        {
+            db.commit();
+            QMessageBox::information(this, "保存成功", "管脚信息已成功保存！");
+        }
+        else
+        {
+            db.rollback();
         }
     }
 }

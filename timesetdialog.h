@@ -106,6 +106,8 @@ private:
     void setupButtonBox();
     void loadWaveOptions();
     void loadPins();
+    void showPinSelectionDialog(int tableId, const QString &tableName);
+    void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
 
     // 更新边沿项显示文本
     void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);
