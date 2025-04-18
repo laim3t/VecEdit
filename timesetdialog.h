@@ -17,6 +17,35 @@
 #include <QStandardItemModel>
 #include <QList>
 #include <QMap>
+#include <QStyledItemDelegate>
+
+// 波形下拉框委托类
+class WaveComboDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+
+public:
+    WaveComboDelegate(const QMap<int, QString> &waveOptions, QObject *parent = nullptr)
+        : QStyledItemDelegate(parent), m_waveOptions(waveOptions) {}
+
+    // 创建编辑器
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                          const QModelIndex &index) const override;
+
+    // 设置编辑器数据
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+
+    // 获取编辑器数据
+    void setModelData(QWidget *editor, QAbstractItemModel *model,
+                      const QModelIndex &index) const override;
+
+    // 更新编辑器几何形状
+    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
+                              const QModelIndex &index) const override;
+
+private:
+    QMap<int, QString> m_waveOptions;
+};
 
 // TimeSet数据结构
 struct TimeSetData
@@ -52,11 +81,14 @@ private slots:
     void renameTimeSet(QTreeWidgetItem *item, int column);
     void updatePeriod(double value);
     void timeSetSelectionChanged();
+    void editTimeSetProperties(QTreeWidgetItem *item, int column);
 
     // 边沿参数条目操作
     void addEdgeItem();
     void removeEdgeItem();
     void editEdgeItem(QTreeWidgetItem *item, int column);
+    void onItemDoubleClicked(QTreeWidgetItem *item, int column);
+    void onPropertyItemChanged(QTreeWidgetItem *item, int column);
 
     // 管脚选择
     void onPinSelectionChanged();
@@ -93,7 +125,7 @@ private:
     QPushButton *addEdgeButton;
     QPushButton *removeEdgeButton;
     QDialogButtonBox *buttonBox;
-    QDoubleSpinBox *periodSpinBox;
+    WaveComboDelegate *waveDelegate;
 
     // 数据
     QList<TimeSetData> timeSetDataList;
