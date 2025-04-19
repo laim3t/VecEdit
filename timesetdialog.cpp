@@ -2047,12 +2047,27 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
                 QString pinLevel = levelCombo->currentText();
                 int pinId = selectedPins[col].first;
                 
+                // 查询pin_level对应的ID
+                int pinLevelId = 0;
+                if (pinLevel == "X") {
+                    // X对应ID为5
+                    pinLevelId = 5;
+                } else {
+                    // 查询其他值对应的ID
+                    QSqlQuery pinLevelQuery(db);
+                    pinLevelQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
+                    pinLevelQuery.addBindValue(pinLevel);
+                    if (pinLevelQuery.exec() && pinLevelQuery.next()) {
+                        pinLevelId = pinLevelQuery.value(0).toInt();
+                    }
+                }
+                
                 QSqlQuery valueQuery(db);
                 valueQuery.prepare("INSERT INTO vector_table_pin_values (vector_data_id, vector_pin_id, pin_level) "
                                   "VALUES (?, ?, ?)");
                 valueQuery.addBindValue(vectorDataId);
                 valueQuery.addBindValue(pinId);
-                valueQuery.addBindValue(pinLevel);
+                valueQuery.addBindValue(pinLevelId);
                 
                 if (!valueQuery.exec())
                 {

@@ -6,6 +6,8 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QDir>
+#include <QTableWidget>
+#include <QComboBox>
 
 class MainWindow : public QMainWindow
 {
@@ -33,11 +35,25 @@ private slots:
     // 显示TimeSet对话框
     bool showTimeSetDialog();
 
+    // 加载并显示向量表
+    void loadVectorTable();
+
+    // 选择向量表
+    void onVectorTableSelectionChanged(int index);
+
 private:
     void setupUI();
     void setupMenu();
+    void setupVectorTableUI();
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
+
+    // 向量表显示相关的UI组件
+    QTableWidget *m_vectorTableWidget;
+    QComboBox *m_vectorTableSelector;
+    QWidget *m_centralWidget;
+    QWidget *m_welcomeWidget;
+    QWidget *m_vectorTableContainer;
 };
 #endif // MAINWINDOW_H
