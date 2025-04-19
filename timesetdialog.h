@@ -18,6 +18,9 @@
 #include <QList>
 #include <QMap>
 #include <QStyledItemDelegate>
+#include <QSqlDatabase>
+#include <QTableWidget>
+#include <QTableWidgetItem>
 
 // 波形下拉框委托类
 class WaveComboDelegate : public QStyledItemDelegate
@@ -108,6 +111,10 @@ private:
     void loadPins();
     void showPinSelectionDialog(int tableId, const QString &tableName);
     void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
+    void showVectorDataDialog(int tableId, const QString &tableName);
+
+    // 辅助函数：添加向量行
+    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
     // 更新边沿项显示文本
     void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);
@@ -138,6 +145,8 @@ private:
     // 当前选中的TimeSet项
     QTreeWidgetItem *currentTimeSetItem;
     int currentTimeSetIndex;
+
+    QSqlDatabase db;
 };
 
 #endif // TIMESETDIALOG_H
