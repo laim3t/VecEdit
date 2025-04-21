@@ -90,7 +90,10 @@ private slots:
     void showPinSelectionDialog(int tableId, const QString &tableName);
 
     // 显示向量行数据录入对话框
-    void showVectorDataDialog(int tableId, const QString &tableName);
+    void showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
+
+    // 为当前选中的向量表添加行
+    void addRowToCurrentVectorTable();
 
 private:
     void setupUI();

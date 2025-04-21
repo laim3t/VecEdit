@@ -545,6 +545,7 @@ void MainWindow::setupVectorTableUI()
     QPushButton *refreshButton = new QPushButton("刷新", m_vectorTableContainer);
     QPushButton *saveButton = new QPushButton("保存", m_vectorTableContainer);
     QPushButton *addVectorTableButton = new QPushButton("新增向量表", m_vectorTableContainer);
+    QPushButton *addRowButton = new QPushButton("添加行", m_vectorTableContainer);
 
     controlLayout->addWidget(tableLabel);
     controlLayout->addWidget(m_vectorTableSelector);
@@ -552,6 +553,7 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addWidget(refreshButton);
     controlLayout->addWidget(saveButton);
     controlLayout->addWidget(addVectorTableButton);
+    controlLayout->addWidget(addRowButton);
 
     // 向量表
     m_vectorTableWidget = new QTableWidget(m_vectorTableContainer);
@@ -583,6 +585,7 @@ void MainWindow::setupVectorTableUI()
     connect(refreshButton, &QPushButton::clicked, this, &MainWindow::loadVectorTable);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
     connect(addVectorTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
+    connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
 }
 
 void MainWindow::loadVectorTable()
@@ -1350,7 +1353,7 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 }
 
 // 向量行数据录入对话框
-void MainWindow::showVectorDataDialog(int tableId, const QString &tableName)
+void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
     // 创建向量行数据录入对话框
     QDialog vectorDataDialog(this);
@@ -1506,7 +1509,7 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName)
             dataQuery.addBindValue(0); // capture默认为0
             dataQuery.addBindValue(""); // ext默认为空
             dataQuery.addBindValue(""); // comment默认为空
-            dataQuery.addBindValue(row); // sort_index使用行号
+            dataQuery.addBindValue(startIndex + row); // 使用起始索引加上行索引作为sort_index
             
             if (!dataQuery.exec())
             {
@@ -1603,4 +1606,41 @@ void MainWindow::addVectorRow(QTableWidget *table, const QStringList &pinOptions
 
         table->setCellWidget(rowIdx, col, levelCombo);
     }
+}
+
+// 为当前选中的向量表添加行
+void MainWindow::addRowToCurrentVectorTable()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中的向量表ID和名称
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    // 查询当前表中最大的排序索引
+    int maxSortIndex = -1;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT MAX(sort_index) FROM vector_table_data WHERE table_id = ?");
+    query.addBindValue(tableId);
+
+    if (query.exec() && query.next())
+    {
+        maxSortIndex = query.value(0).toInt();
+    }
+
+    // 显示向量行数据录入对话框，传递最大排序索引
+    showVectorDataDialog(tableId, tableName, maxSortIndex + 1);
 }
