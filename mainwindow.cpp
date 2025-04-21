@@ -545,7 +545,9 @@ void MainWindow::setupVectorTableUI()
     QPushButton *refreshButton = new QPushButton("刷新", m_vectorTableContainer);
     QPushButton *saveButton = new QPushButton("保存", m_vectorTableContainer);
     QPushButton *addVectorTableButton = new QPushButton("新增向量表", m_vectorTableContainer);
-    QPushButton *addRowButton = new QPushButton("添加行", m_vectorTableContainer);
+    QPushButton *addRowButton = new QPushButton("添加向量行", m_vectorTableContainer);
+    QPushButton *deleteVectorTableButton = new QPushButton("删除向量表", m_vectorTableContainer);
+    QPushButton *deleteRowsButton = new QPushButton("删除向量行", m_vectorTableContainer);
 
     controlLayout->addWidget(tableLabel);
     controlLayout->addWidget(m_vectorTableSelector);
@@ -554,12 +556,14 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addWidget(saveButton);
     controlLayout->addWidget(addVectorTableButton);
     controlLayout->addWidget(addRowButton);
+    controlLayout->addWidget(deleteVectorTableButton);
+    controlLayout->addWidget(deleteRowsButton);
 
     // 向量表
     m_vectorTableWidget = new QTableWidget(m_vectorTableContainer);
     m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_vectorTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
@@ -586,6 +590,8 @@ void MainWindow::setupVectorTableUI()
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
     connect(addVectorTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
     connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
+    connect(deleteVectorTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
+    connect(deleteRowsButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
 }
 
 void MainWindow::loadVectorTable()
@@ -1469,7 +1475,7 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
 
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    QPushButton *addRowButton = new QPushButton("添加行", &vectorDataDialog);
+    QPushButton *addRowButton = new QPushButton("添加向量行", &vectorDataDialog);
     QPushButton *saveButton = new QPushButton("保存", &vectorDataDialog);
     QPushButton *cancelButton = new QPushButton("取消", &vectorDataDialog);
 
@@ -1643,4 +1649,220 @@ void MainWindow::addRowToCurrentVectorTable()
 
     // 显示向量行数据录入对话框，传递最大排序索引
     showVectorDataDialog(tableId, tableName, maxSortIndex + 1);
+}
+
+// 删除当前选中的向量表
+void MainWindow::deleteCurrentVectorTable()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中的向量表ID和名称
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    // 弹出确认对话框
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "确认删除",
+                                  "确定要删除向量表 \"" + tableName + "\" 吗？\n此操作不可撤销。",
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+    {
+        return;
+    }
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    db.transaction();
+
+    bool success = true;
+    QSqlQuery query(db);
+
+    try
+    {
+        // 先删除与该表关联的管脚值数据
+        query.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id IN "
+                      "(SELECT id FROM vector_table_data WHERE table_id = ?)");
+        query.addBindValue(tableId);
+        if (!query.exec())
+        {
+            throw QString("删除管脚值数据失败: " + query.lastError().text());
+        }
+
+        // 删除向量表数据
+        query.prepare("DELETE FROM vector_table_data WHERE table_id = ?");
+        query.addBindValue(tableId);
+        if (!query.exec())
+        {
+            throw QString("删除向量表数据失败: " + query.lastError().text());
+        }
+
+        // 删除向量表管脚配置
+        query.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
+        query.addBindValue(tableId);
+        if (!query.exec())
+        {
+            throw QString("删除向量表管脚配置失败: " + query.lastError().text());
+        }
+
+        // 最后删除向量表记录
+        query.prepare("DELETE FROM vector_tables WHERE id = ?");
+        query.addBindValue(tableId);
+        if (!query.exec())
+        {
+            throw QString("删除向量表记录失败: " + query.lastError().text());
+        }
+
+        // 提交事务
+        db.commit();
+        QMessageBox::information(this, "删除成功", "向量表 \"" + tableName + "\" 已成功删除");
+
+        // 重新加载向量表列表
+        loadVectorTable();
+    }
+    catch (const QString &errorMsg)
+    {
+        // 回滚事务
+        db.rollback();
+        QMessageBox::critical(this, "删除失败", errorMsg);
+        statusBar()->showMessage("删除向量表失败: " + errorMsg);
+    }
+}
+
+// 删除选中的向量行
+void MainWindow::deleteSelectedVectorRows()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取选中的行
+    QList<int> selectedRows;
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (selectedIndexes.isEmpty())
+    {
+        QMessageBox::warning(this, "警告", "请先选择要删除的行");
+        return;
+    }
+
+    for (const QModelIndex &index : selectedIndexes)
+    {
+        selectedRows.append(index.row());
+    }
+
+    // 弹出确认对话框
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "确认删除",
+                                  "确定要删除选中的 " + QString::number(selectedRows.size()) + " 行数据吗？\n此操作不可撤销。",
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+    {
+        return;
+    }
+
+    // 获取数据库连接和表ID
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    db.transaction();
+    bool success = true;
+
+    try
+    {
+        // 查询表中所有数据行，按排序索引顺序
+        QList<int> allDataIds;
+        QSqlQuery dataQuery(db);
+        dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index");
+        dataQuery.addBindValue(tableId);
+
+        if (!dataQuery.exec())
+        {
+            throw QString("获取向量数据ID失败: " + dataQuery.lastError().text());
+        }
+
+        // 将所有数据ID按顺序放入列表
+        while (dataQuery.next())
+        {
+            allDataIds.append(dataQuery.value(0).toInt());
+        }
+
+        // 检查是否有足够的数据行
+        if (allDataIds.isEmpty())
+        {
+            throw QString("没有找到可删除的数据行");
+        }
+
+        // 根据选中的行索引获取对应的数据ID
+        QList<int> dataIdsToDelete;
+        for (int row : selectedRows)
+        {
+            if (row >= 0 && row < allDataIds.size())
+            {
+                dataIdsToDelete.append(allDataIds[row]);
+            }
+        }
+
+        if (dataIdsToDelete.isEmpty())
+        {
+            throw QString("没有找到对应选中行的数据ID");
+        }
+
+        // 删除选中行的数据
+        QSqlQuery deleteQuery(db);
+        for (int dataId : dataIdsToDelete)
+        {
+            // 先删除关联的管脚值
+            deleteQuery.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id = ?");
+            deleteQuery.addBindValue(dataId);
+            if (!deleteQuery.exec())
+            {
+                throw QString("删除数据ID " + QString::number(dataId) + " 的管脚值失败: " + deleteQuery.lastError().text());
+            }
+
+            // 再删除向量数据行
+            deleteQuery.prepare("DELETE FROM vector_table_data WHERE id = ?");
+            deleteQuery.addBindValue(dataId);
+            if (!deleteQuery.exec())
+            {
+                throw QString("删除数据ID " + QString::number(dataId) + " 失败: " + deleteQuery.lastError().text());
+            }
+        }
+
+        // 提交事务
+        db.commit();
+        QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(dataIdsToDelete.size()) + " 行数据");
+
+        // 刷新表格
+        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+    }
+    catch (const QString &errorMsg)
+    {
+        // 回滚事务
+        db.rollback();
+        QMessageBox::critical(this, "删除失败", errorMsg);
+        statusBar()->showMessage("删除行失败: " + errorMsg);
+    }
 }

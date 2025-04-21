@@ -95,6 +95,12 @@ private slots:
     // 为当前选中的向量表添加行
     void addRowToCurrentVectorTable();
 
+    // 删除当前选中的向量表
+    void deleteCurrentVectorTable();
+
+    // 删除选中的向量行
+    void deleteSelectedVectorRows();
+
 private:
     void setupUI();
     void setupMenu();

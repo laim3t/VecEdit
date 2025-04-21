@@ -1990,7 +1990,7 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
 
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    QPushButton *addRowButton = new QPushButton("添加行", &vectorDataDialog);
+    QPushButton *addRowButton = new QPushButton("添加向量行", &vectorDataDialog);
     QPushButton *saveButton = new QPushButton("保存", &vectorDataDialog);
     QPushButton *cancelButton = new QPushButton("取消", &vectorDataDialog);
 
