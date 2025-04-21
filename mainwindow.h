@@ -83,10 +83,22 @@ private slots:
     // 保存向量表数据
     void saveVectorTableData();
 
+    // 添加新向量表
+    void addNewVectorTable();
+
+    // 显示管脚选择对话框
+    void showPinSelectionDialog(int tableId, const QString &tableName);
+
+    // 显示向量行数据录入对话框
+    void showVectorDataDialog(int tableId, const QString &tableName);
+
 private:
     void setupUI();
     void setupMenu();
     void setupVectorTableUI();
+
+    // 辅助函数：添加向量行
+    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
