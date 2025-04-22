@@ -25,6 +25,7 @@ set(PROJECT_SOURCES
         timesetdialog.h
         timesetedgedialog.cpp
         timesetedgedialog.h
+        icons.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

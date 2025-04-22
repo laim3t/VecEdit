@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/resources/icons">
+        <file alias="x-circle.svg">resources/icons/x-circle.svg</file>
+        <file alias="plus-circle.svg">resources/icons/plus-circle.svg</file>
+    </qresource>
+</RCC>

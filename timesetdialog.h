@@ -58,6 +58,9 @@ struct TimeSetData
     QList<int> pinIds; // 关联的管脚ID列表
 };
 
+// 前向声明MainWindow类
+class MainWindow;
+
 // TimeSet边沿参数条目数据结构
 struct TimeSetEdgeData
 {
@@ -113,16 +116,16 @@ private:
     void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
     void showVectorDataDialog(int tableId, const QString &tableName);
 
-    // 辅助函数：添加向量行
-    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
-
     // 更新边沿项显示文本
     void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);
 
     // 保存到数据库
     bool saveToDatabase();
-    bool saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTimeSetId);
     bool saveTimeSetEdgesToDatabase(int timeSetId, const QList<TimeSetEdgeData> &edges);
+    bool saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTimeSetId);
+
+    // MainWindow指针，用于访问共享方法
+    MainWindow *m_mainWindow;
 
     // UI组件
     QSplitter *mainSplitter;

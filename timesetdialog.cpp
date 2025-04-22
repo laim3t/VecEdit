@@ -1,6 +1,8 @@
 #include "timesetdialog.h"
 #include "timesetedgedialog.h"
 #include "databasemanager.h"
+#include "mainwindow.h" // 添加MainWindow头文件
+#include <QApplication> // 添加QApplication头文件
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -15,6 +17,8 @@
 #include <QDebug>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QStyle>
+#include <QIcon>
 
 // 实现WaveComboDelegate的方法
 QWidget *WaveComboDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
@@ -67,9 +71,28 @@ void WaveComboDelegate::updateEditorGeometry(QWidget *editor, const QStyleOption
 
 TimeSetDialog::TimeSetDialog(QWidget *parent)
     : QDialog(parent),
+      m_mainWindow(nullptr),
       currentTimeSetItem(nullptr),
       currentTimeSetIndex(-1)
 {
+    // 尝试获取MainWindow指针
+    m_mainWindow = qobject_cast<MainWindow *>(parent);
+    if (!m_mainWindow)
+    {
+        // 如果父窗口不是MainWindow，则尝试找到应用程序中的MainWindow实例
+        QWidgetList widgets = QApplication::topLevelWidgets();
+        for (QWidget *widget : widgets)
+        {
+            MainWindow *mainWin = qobject_cast<MainWindow *>(widget);
+            if (mainWin)
+            {
+                m_mainWindow = mainWin;
+                break;
+            }
+        }
+    }
+
+    // 设置窗口属性
     setWindowTitle("TimeSet 设置");
     setMinimumSize(800, 600);
 
@@ -1789,28 +1812,6 @@ void TimeSetDialog::showPinSelectionDialogStandalone(int tableId, const QString 
     }
 }
 
-// 辅助函数：添加向量行
-void TimeSetDialog::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
-{
-    table->setRowCount(rowIdx + 1);
-
-    // 添加每个管脚的下拉框
-    for (int col = 0; col < table->columnCount(); col++)
-    {
-        QComboBox *levelCombo = new QComboBox(table);
-        levelCombo->addItems(pinOptions);
-
-        // 默认选择"X"
-        int defaultIndex = pinOptions.indexOf("X");
-        if (defaultIndex >= 0)
-        {
-            levelCombo->setCurrentIndex(defaultIndex);
-        }
-
-        table->setCellWidget(rowIdx, col, levelCombo);
-    }
-}
-
 // 添加一个新函数用于显示向量行数据录入对话框
 void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
 {
@@ -1821,6 +1822,11 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
     vectorDataDialog.setMinimumHeight(400);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(&vectorDataDialog);
+
+    // 添加注释标签
+    QLabel *noteLabel = new QLabel("<b>注释：</b>请确保添加的行数是下方表格中行数的倍数。", &vectorDataDialog);
+    noteLabel->setStyleSheet("color: black;");
+    mainLayout->addWidget(noteLabel);
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -1968,11 +1974,119 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
         vectorTable->setHorizontalHeaderItem(i, headerItem);
     }
 
+    // 设置表格选择模式为整行选择
+    vectorTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    vectorTable->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // 启用单元格点击选择整行
+    connect(vectorTable, &QTableWidget::cellClicked, [vectorTable](int row, int column)
+            { vectorTable->selectRow(row); });
+
     // 添加一行默认数据
-    this->addVectorRow(vectorTable, pinOptions, 0);
+    if (m_mainWindow)
+    {
+        m_mainWindow->addVectorRow(vectorTable, pinOptions, 0);
+    }
 
     // 添加表格到布局
     mainLayout->addWidget(vectorTable);
+
+    // 创建操作按钮区域（表格和底部区域之间的右侧）
+    QWidget *actionButtonsWidget = new QWidget(&vectorDataDialog);
+    QHBoxLayout *actionButtonsLayout = new QHBoxLayout(actionButtonsWidget);
+    actionButtonsLayout->setContentsMargins(0, 0, 0, 0);
+    actionButtonsLayout->setSpacing(8); // 增加按钮之间的间距
+
+    // 创建添加行和删除行按钮（使用SVG图标）
+    QPushButton *addRowButton = new QPushButton(actionButtonsWidget);
+    addRowButton->setToolTip("添加行");
+    addRowButton->setFixedSize(32, 32);                                // 增加按钮大小
+    addRowButton->setIcon(QIcon(":/resources/icons/plus-circle.svg")); // 使用正确的图标路径
+    addRowButton->setIconSize(QSize(24, 24));                          // 增加图标大小
+    addRowButton->setStyleSheet("QPushButton { border: none; background-color: transparent; }");
+
+    QPushButton *deleteRowButton = new QPushButton(actionButtonsWidget);
+    deleteRowButton->setToolTip("删除行");
+    deleteRowButton->setFixedSize(32, 32);                             // 增加按钮大小
+    deleteRowButton->setIcon(QIcon(":/resources/icons/x-circle.svg")); // 使用正确的图标路径
+    deleteRowButton->setIconSize(QSize(24, 24));                       // 增加图标大小
+    deleteRowButton->setStyleSheet("QPushButton { border: none; background-color: transparent; }");
+
+    actionButtonsLayout->addWidget(addRowButton);
+    actionButtonsLayout->addWidget(deleteRowButton);
+
+    // 添加按钮到右侧
+    QHBoxLayout *midButtonLayout = new QHBoxLayout();
+    midButtonLayout->addStretch();
+    midButtonLayout->addWidget(actionButtonsWidget);
+    mainLayout->addLayout(midButtonLayout);
+
+    // 查询当前向量表中的总行数
+    int totalRowsInFile = 0;
+    QSqlQuery rowCountQuery(db);
+    rowCountQuery.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
+    rowCountQuery.addBindValue(tableId);
+    if (rowCountQuery.exec() && rowCountQuery.next())
+    {
+        totalRowsInFile = rowCountQuery.value(0).toInt();
+    }
+
+    // 计算剩余可用行数（初始总数为8388608）
+    const int TOTAL_AVAILABLE_ROWS = 8388608;
+    int remainingRows = TOTAL_AVAILABLE_ROWS - totalRowsInFile;
+    if (remainingRows < 0)
+        remainingRows = 0;
+
+    // 创建水平布局容器，包含信息、行和设置
+    QHBoxLayout *sectionsLayout = new QHBoxLayout();
+
+    // 创建信息分组
+    QGroupBox *infoGroup = new QGroupBox("信息", &vectorDataDialog);
+    QFormLayout *infoLayout = new QFormLayout(infoGroup);
+
+    // 文件中总行数显示
+    QLineEdit *totalRowsEdit = new QLineEdit(infoGroup);
+    totalRowsEdit->setText(QString::number(totalRowsInFile));
+    totalRowsEdit->setReadOnly(true);
+    totalRowsEdit->setEnabled(false);                                                         // 禁用输入框
+    totalRowsEdit->setStyleSheet("QLineEdit { background-color: #F0F0F0; color: #808080; }"); // 设置灰色背景和文字颜色
+    infoLayout->addRow("文件中总行数:", totalRowsEdit);
+
+    // 剩余可用行数显示
+    QLineEdit *remainingRowsEdit = new QLineEdit(infoGroup);
+    remainingRowsEdit->setText(QString::number(remainingRows));
+    remainingRowsEdit->setReadOnly(true);
+    remainingRowsEdit->setEnabled(false);                                                         // 禁用输入框
+    remainingRowsEdit->setStyleSheet("QLineEdit { background-color: #F0F0F0; color: #808080; }"); // 设置灰色背景和文字颜色
+    infoLayout->addRow("剩余可用行数:", remainingRowsEdit);
+
+    // 新增"行"参数分组
+    QGroupBox *rowOptionsGroup = new QGroupBox("行", &vectorDataDialog);
+    QVBoxLayout *rowOptionsLayout = new QVBoxLayout(rowOptionsGroup);
+
+    // 添加到最后复选框
+    QCheckBox *appendToEndCheckbox = new QCheckBox("添加到最后", rowOptionsGroup);
+    appendToEndCheckbox->setChecked(true); // 默认勾选
+    rowOptionsLayout->addWidget(appendToEndCheckbox);
+
+    // 向前插入输入框
+    QHBoxLayout *insertAtLayout = new QHBoxLayout();
+    QLabel *insertAtLabel = new QLabel("向前插入：", rowOptionsGroup);
+    QLineEdit *insertAtEdit = new QLineEdit(rowOptionsGroup);
+    insertAtEdit->setText("1");      // 默认值为1
+    insertAtEdit->setEnabled(false); // 默认不可编辑(因为默认勾选了添加到最后)
+    insertAtLayout->addWidget(insertAtLabel);
+    insertAtLayout->addWidget(insertAtEdit);
+    rowOptionsLayout->addLayout(insertAtLayout);
+
+    // 行数输入框
+    QHBoxLayout *rowCountLayout = new QHBoxLayout();
+    QLabel *rowCountLabel = new QLabel("行数：", rowOptionsGroup);
+    QLineEdit *rowCountEdit = new QLineEdit(rowOptionsGroup);
+    rowCountEdit->setText("1"); // 默认值为1
+    rowCountLayout->addWidget(rowCountLabel);
+    rowCountLayout->addWidget(rowCountEdit);
+    rowOptionsLayout->addLayout(rowCountLayout);
 
     // 创建设置区域
     QGroupBox *settingsGroup = new QGroupBox("设置", &vectorDataDialog);
@@ -1986,25 +2100,141 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
     }
     settingsLayout->addRow("TimeSet:", timesetCombo);
 
-    mainLayout->addWidget(settingsGroup);
+    // 添加各个分组到水平布局
+    sectionsLayout->addWidget(infoGroup);
+    sectionsLayout->addWidget(rowOptionsGroup);
+    sectionsLayout->addWidget(settingsGroup);
+
+    // 将水平布局添加到主布局
+    mainLayout->addLayout(sectionsLayout);
+
+    // 连接勾选框状态改变信号
+    QObject::connect(appendToEndCheckbox, &QCheckBox::stateChanged, [insertAtEdit](int state)
+                     {
+                         insertAtEdit->setEnabled(state != Qt::Checked); // 当不勾选时启用向前插入输入框
+                     });
+
+    // 连接行数输入框变化信号，更新剩余可用行数
+    QObject::connect(rowCountEdit, &QLineEdit::textChanged, [remainingRowsEdit, totalRowsInFile, vectorTable](const QString &text)
+                     {
+                         int requestedRows = text.toInt();
+                         int dataRows = vectorTable->rowCount();
+                         int totalNewRows = 0;
+
+                         // 只有当输入的行数是有效的（大于等于数据行数且是数据行数的整数倍）时才更新
+                         if (requestedRows >= dataRows && requestedRows % dataRows == 0)
+                         {
+                             totalNewRows = requestedRows;
+                         }
+                         else
+                         {
+                             totalNewRows = dataRows; // 默认至少使用数据行数
+                         }
+
+                         const int TOTAL_AVAILABLE_ROWS = 8388608;
+                         int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - totalNewRows;
+                         if (updatedRemaining < 0)
+                             updatedRemaining = 0;
+                         remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
+                     });
 
     // 按钮区域
     QHBoxLayout *buttonLayout = new QHBoxLayout();
-    QPushButton *addRowButton = new QPushButton("添加向量行", &vectorDataDialog);
-    QPushButton *saveButton = new QPushButton("保存", &vectorDataDialog);
+    QPushButton *saveButton = new QPushButton("确定", &vectorDataDialog);
     QPushButton *cancelButton = new QPushButton("取消", &vectorDataDialog);
 
-    buttonLayout->addWidget(addRowButton);
     buttonLayout->addStretch();
     buttonLayout->addWidget(saveButton);
     buttonLayout->addWidget(cancelButton);
 
     mainLayout->addLayout(buttonLayout);
 
-    // 连接信号
+    // 连接添加行和删除行按钮信号
     connect(addRowButton, &QPushButton::clicked, [&]()
-            { this->addVectorRow(vectorTable, pinOptions, vectorTable->rowCount()); });
+            {
+                if (m_mainWindow)
+                {
+                    m_mainWindow->addVectorRow(vectorTable, pinOptions, vectorTable->rowCount());
+                }
 
+                // 更新行数输入框
+                int newRowCount = vectorTable->rowCount();
+                rowCountEdit->setText(QString::number(newRowCount));
+
+                // 计算并更新剩余可用行数
+                int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - newRowCount;
+                if (updatedRemaining < 0)
+                    updatedRemaining = 0;
+                remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
+            });
+
+    connect(deleteRowButton, &QPushButton::clicked, [&]()
+            {
+                // 获取当前选中的行
+                QList<int> selectedRows;
+                QModelIndexList selectedIndexes = vectorTable->selectionModel()->selectedRows();
+                if (selectedIndexes.isEmpty())
+                {
+                    // 如果没有选中整行，尝试获取选中的单元格
+                    QList<QTableWidgetItem *> selectedItems = vectorTable->selectedItems();
+                    if (selectedItems.isEmpty())
+                    {
+                        QMessageBox::warning(&vectorDataDialog, "警告", "请先选择要删除的行");
+                        return;
+                    }
+
+                    // 获取所有选中单元格所在的行
+                    QSet<int> rowSet;
+                    for (QTableWidgetItem *item : selectedItems)
+                    {
+                        rowSet.insert(item->row());
+                    }
+
+                    // 将行号添加到列表
+                    for (int row : rowSet)
+                    {
+                        selectedRows.append(row);
+                    }
+                }
+                else
+                {
+                    // 如果选中了整行，直接获取行号
+                    for (const QModelIndex &index : selectedIndexes)
+                    {
+                        selectedRows.append(index.row());
+                    }
+                }
+
+                // 从最大行号开始删除，避免索引变化
+                std::sort(selectedRows.begin(), selectedRows.end(), std::greater<int>());
+
+                for (int row : selectedRows)
+                {
+                    vectorTable->removeRow(row);
+                }
+
+                // 更新行数输入框和剩余可用行数
+                int newRowCount = vectorTable->rowCount();
+                if (newRowCount == 0)
+                {
+                    // 如果删除所有行，添加一个默认行
+                    if (m_mainWindow)
+                    {
+                        m_mainWindow->addVectorRow(vectorTable, pinOptions, 0);
+                    }
+                    newRowCount = 1;
+                }
+
+                rowCountEdit->setText(QString::number(newRowCount));
+
+                // 计算并更新剩余可用行数
+                int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - newRowCount;
+                if (updatedRemaining < 0)
+                    updatedRemaining = 0;
+                remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
+            });
+
+    // 连接保存和取消按钮信号
     connect(saveButton, &QPushButton::clicked, [&]()
             {
         // 保存向量行数据

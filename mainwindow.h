@@ -56,6 +56,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    // 辅助函数：添加向量行
+    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
+
 private slots:
     // 数据库操作
     void createNewProject();
@@ -105,9 +108,6 @@ private:
     void setupUI();
     void setupMenu();
     void setupVectorTableUI();
-
-    // 辅助函数：添加向量行
-    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
