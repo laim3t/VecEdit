@@ -3,6 +3,7 @@
 #include "databaseviewdialog.h"
 #include "pinlistdialog.h"
 #include "timesetdialog.h"
+#include "pinvalueedit.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -30,48 +31,6 @@
 #include <QLineEdit>
 #include <QKeyEvent>
 #include <QIcon>
-
-// 自定义LineEdit类，用于限制输入和自动转换大写
-class PinValueLineEdit : public QLineEdit
-{
-    Q_OBJECT
-
-public:
-    PinValueLineEdit(QWidget *parent = nullptr) : QLineEdit(parent)
-    {
-        setMaxLength(1);               // 限制输入一个字符
-        setAlignment(Qt::AlignCenter); // 文本居中显示
-        setToolTip("输入提示：0,1,L,l,H,h,X,x,；默认：X");
-
-        // 设置验证器
-        connect(this, &QLineEdit::textChanged, this, &PinValueLineEdit::validateAndConvert);
-    }
-
-protected:
-    void validateAndConvert(const QString &text)
-    {
-        if (text.isEmpty())
-            return;
-
-        QString validChars = "01LlHhXx";
-        QChar ch = text[0];
-
-        // 检查是否为有效字符
-        if (!validChars.contains(ch))
-        {
-            setText(""); // 无效字符，清空输入
-            return;
-        }
-
-        // 将小写字母转换为大写
-        if (ch == 'l' || ch == 'h' || ch == 'x')
-        {
-            blockSignals(true); // 阻止再次触发textChanged信号
-            setText(text.toUpper());
-            blockSignals(false);
-        }
-    }
-};
 
 // 需要添加Q_OBJECT宏的实现
 #include "mainwindow.moc"
@@ -1106,19 +1065,27 @@ void MainWindow::saveVectorTableData()
             for (int i = 0; i < pinIds.size(); ++i)
             {
                 int pinCol = i + 6; // 管脚从第6列开始
-                QString pinValue = m_vectorTableWidget->item(row, pinCol) ? m_vectorTableWidget->item(row, pinCol)->text() : "";
+                QString pinValue = m_vectorTableWidget->item(row, pinCol) ? m_vectorTableWidget->item(row, pinCol)->text() : "X";
+
+                // 如果值为空，使用默认值"X"
+                if (pinValue.isEmpty())
+                {
+                    pinValue = "X";
+                }
 
                 // 获取pin_option_id
                 int pinOptionId = 5; // 默认为X (id=5)
-                if (!pinValue.isEmpty())
+                QSqlQuery pinOptionQuery(db);
+                pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
+                pinOptionQuery.addBindValue(pinValue);
+                if (pinOptionQuery.exec() && pinOptionQuery.next())
                 {
-                    QSqlQuery pinOptionQuery(db);
-                    pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                    pinOptionQuery.addBindValue(pinValue);
-                    if (pinOptionQuery.exec() && pinOptionQuery.next())
-                    {
-                        pinOptionId = pinOptionQuery.value(0).toInt();
-                    }
+                    pinOptionId = pinOptionQuery.value(0).toInt();
+                }
+                else
+                {
+                    // 如果查询失败或没有找到对应的值，确保使用默认值X的ID
+                    pinOptionId = 5; // X的ID固定为5
                 }
 
                 // 插入管脚数据

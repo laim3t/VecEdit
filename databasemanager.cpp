@@ -515,7 +515,8 @@ bool DatabaseManager::initializePinOptions()
         {2, "1"},
         {3, "L"},
         {4, "H"},
-        {5, "X"}};
+        {5, "X"},
+        {6, "Z"}};
 
     // 插入数据
     for (const auto &option : pinOptions)

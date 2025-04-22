@@ -1,8 +1,9 @@
 #include "timesetdialog.h"
 #include "timesetedgedialog.h"
 #include "databasemanager.h"
-#include "mainwindow.h" // 添加MainWindow头文件
-#include <QApplication> // 添加QApplication头文件
+#include "mainwindow.h"   // 添加MainWindow头文件
+#include "pinvalueedit.h" // 添加PinValueLineEdit头文件
+#include <QApplication>   // 添加QApplication头文件
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -19,6 +20,9 @@
 #include <QTableWidgetItem>
 #include <QStyle>
 #include <QIcon>
+
+// 需要添加Q_OBJECT宏的实现
+#include "timesetdialog.moc"
 
 // 实现WaveComboDelegate的方法
 QWidget *WaveComboDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
@@ -77,20 +81,6 @@ TimeSetDialog::TimeSetDialog(QWidget *parent)
 {
     // 尝试获取MainWindow指针
     m_mainWindow = qobject_cast<MainWindow *>(parent);
-    if (!m_mainWindow)
-    {
-        // 如果父窗口不是MainWindow，则尝试找到应用程序中的MainWindow实例
-        QWidgetList widgets = QApplication::topLevelWidgets();
-        for (QWidget *widget : widgets)
-        {
-            MainWindow *mainWin = qobject_cast<MainWindow *>(widget);
-            if (mainWin)
-            {
-                m_mainWindow = mainWin;
-                break;
-            }
-        }
-    }
 
     // 设置窗口属性
     setWindowTitle("TimeSet 设置");
@@ -1886,7 +1876,7 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
                    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                    "vector_data_id INTEGER NOT NULL REFERENCES vector_table_data(id),"
                    "vector_pin_id INTEGER NOT NULL REFERENCES vector_table_pins(id),"
-                   "pin_level TEXT NOT NULL"
+                   "pin_level INTEGER NOT NULL REFERENCES pin_options(id)"
                    ")");
     }
 
@@ -1986,6 +1976,11 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
     if (m_mainWindow)
     {
         m_mainWindow->addVectorRow(vectorTable, pinOptions, 0);
+    }
+    else
+    {
+        // 如果m_mainWindow为空，确保仍然可以添加行
+        addVectorRow(vectorTable, pinOptions, 0);
     }
 
     // 添加表格到布局
@@ -2222,6 +2217,11 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
                     {
                         m_mainWindow->addVectorRow(vectorTable, pinOptions, 0);
                     }
+                    else
+                    {
+                        // 使用自己的方法添加行
+                        addVectorRow(vectorTable, pinOptions, 0);
+                    }
                     newRowCount = 1;
                 }
 
@@ -2269,39 +2269,35 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
             int vectorDataId = dataQuery.lastInsertId().toInt();
             
             // 为每个管脚添加vector_table_pin_values记录
-            for (int col = 0; col < selectedPins.size(); col++)
-            {
-                QComboBox *levelCombo = qobject_cast<QComboBox*>(vectorTable->cellWidget(row, col));
-                if (!levelCombo) continue;
-                
-                QString pinLevel = levelCombo->currentText();
+            for (int col = 0; col < selectedPins.size(); col++) {
                 int pinId = selectedPins[col].first;
                 
-                // 查询pin_level对应的ID
-                int pinLevelId = 0;
-                if (pinLevel == "X") {
-                    // X对应ID为5
-                    pinLevelId = 5;
-                } else {
-                    // 查询其他值对应的ID
-                    QSqlQuery pinLevelQuery(db);
-                    pinLevelQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                    pinLevelQuery.addBindValue(pinLevel);
-                    if (pinLevelQuery.exec() && pinLevelQuery.next()) {
-                        pinLevelId = pinLevelQuery.value(0).toInt();
-                    }
+                // 获取单元格中的输入框
+                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(vectorTable->cellWidget(row, col));
+                if (!pinEdit) continue;
+                
+                QString pinValue = pinEdit->text();
+                if (pinValue.isEmpty()) pinValue = "X"; // 如果为空，默认使用X
+                
+                // 获取pin_option_id
+                int pinOptionId = 5; // 默认为X (id=5)
+                QSqlQuery pinOptionQuery(db);
+                pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
+                pinOptionQuery.addBindValue(pinValue);
+                if (pinOptionQuery.exec() && pinOptionQuery.next()) {
+                    pinOptionId = pinOptionQuery.value(0).toInt();
                 }
                 
-                QSqlQuery valueQuery(db);
-                valueQuery.prepare("INSERT INTO vector_table_pin_values (vector_data_id, vector_pin_id, pin_level) "
-                                  "VALUES (?, ?, ?)");
-                valueQuery.addBindValue(vectorDataId);
-                valueQuery.addBindValue(pinId);
-                valueQuery.addBindValue(pinLevelId);
+                QSqlQuery pinValueQuery(db);
+                pinValueQuery.prepare("INSERT INTO vector_table_pin_values "
+                                      "(vector_data_id, vector_pin_id, pin_level) "
+                                      "VALUES (?, ?, ?)");
+                pinValueQuery.addBindValue(vectorDataId);
+                pinValueQuery.addBindValue(pinId);
+                pinValueQuery.addBindValue(pinOptionId);
                 
-                if (!valueQuery.exec())
-                {
-                    QMessageBox::critical(nullptr, "数据库错误", "添加管脚值失败：" + valueQuery.lastError().text());
+                if (!pinValueQuery.exec()) {
+                    QMessageBox::critical(&vectorDataDialog, "数据库错误", "保存管脚值失败：" + pinValueQuery.lastError().text());
                     success = false;
                     break;
                 }
@@ -2325,4 +2321,21 @@ void TimeSetDialog::showVectorDataDialog(int tableId, const QString &tableName)
 
     // 显示对话框
     vectorDataDialog.exec();
+}
+
+// 辅助函数：添加向量行
+void TimeSetDialog::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
+{
+    table->setRowCount(rowIdx + 1);
+
+    // 添加每个管脚的文本输入框
+    for (int col = 0; col < table->columnCount(); col++)
+    {
+        PinValueLineEdit *pinEdit = new PinValueLineEdit(table);
+
+        // 默认设置为"X"
+        pinEdit->setText("X");
+
+        table->setCellWidget(rowIdx, col, pinEdit);
+    }
 }

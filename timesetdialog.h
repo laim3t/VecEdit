@@ -104,17 +104,23 @@ private slots:
     void onAccepted();
     void onRejected();
 
-private:
+private: // 用private区域重新组织函数声明
+    // UI相关函数
     void setupUI();
     void setupMainLayout();
     void setupTreeWidget();
     void setupPinSelection();
     void setupButtonBox();
+
+    // 数据加载函数
     void loadWaveOptions();
     void loadPins();
+
+    // 显示对话框和表单
     void showPinSelectionDialog(int tableId, const QString &tableName);
     void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
     void showVectorDataDialog(int tableId, const QString &tableName);
+    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
     // 更新边沿项显示文本
     void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);

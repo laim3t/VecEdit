@@ -82,7 +82,7 @@ CREATE TABLE vector_table_pin_values(
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     vector_data_id NOT NULL REFERENCES vector_table_data(id), 
     vector_pin_id NOT NULL REFERENCES vector_table_pins(id), 
-    pin_level NOT NULL REFERENCES pin_options(id)
+    pin_level INTEGER NOT NULL REFERENCES pin_options(id)
 );
 
 CREATE UNIQUE INDEX idx_vector_pin_unique

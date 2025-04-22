@@ -25,6 +25,8 @@ set(PROJECT_SOURCES
         timesetdialog.h
         timesetedgedialog.cpp
         timesetedgedialog.h
+        pinvalueedit.h
+        pinvalueedit.cpp
         icons.qrc
 )
 
