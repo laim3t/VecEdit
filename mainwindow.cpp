@@ -4,6 +4,9 @@
 #include "pinlistdialog.h"
 #include "timesetdialog.h"
 #include "pinvalueedit.h"
+#include "vectortabledelegate.h"
+#include "vectordatahandler.h"
+#include "dialogmanager.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -31,219 +34,17 @@
 #include <QLineEdit>
 #include <QKeyEvent>
 #include <QIcon>
-
-// 需要添加Q_OBJECT宏的实现
-#include "mainwindow.moc"
-
-// 实现自定义代理类
-VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent)
-    : QStyledItemDelegate(parent)
-{
-    // 清空缓存，确保每次创建代理时都重新从数据库获取选项
-    m_instructionOptions.clear();
-    m_timesetOptions.clear();
-    m_pinOptions.clear();
-}
-
-QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
-{
-    // 根据列索引创建不同类型的编辑器
-    int column = index.column();
-
-    // 指令列
-    if (column == 1)
-    {
-        QComboBox *editor = new QComboBox(parent);
-        editor->addItems(getInstructionOptions());
-        return editor;
-    }
-    // 时间集列
-    else if (column == 2)
-    {
-        QComboBox *editor = new QComboBox(parent);
-        editor->addItems(getTimesetOptions());
-        return editor;
-    }
-    // 捕获列
-    else if (column == 3)
-    {
-        QComboBox *editor = new QComboBox(parent);
-        editor->addItem("");
-        editor->addItem("Y");
-        return editor;
-    }
-    // 管脚列 - 使用PinValueLineEdit代替QComboBox
-    else if (column >= 6)
-    {
-        PinValueLineEdit *editor = new PinValueLineEdit(parent);
-        return editor;
-    }
-
-    // 其他列（标签、Ext、注释）使用默认文本编辑器
-    return QStyledItemDelegate::createEditor(parent, option, index);
-}
-
-void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
-{
-    int column = index.column();
-    QString value = index.model()->data(index, Qt::EditRole).toString();
-
-    // 如果是下拉框编辑器
-    if ((column == 1) || (column == 2) || (column == 3))
-    {
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-
-        // 对于Capture列，特殊处理空值
-        if (column == 3 && value.isEmpty())
-        {
-            comboBox->setCurrentIndex(0); // 设置为第一项（空值）
-        }
-        else
-        {
-            int comboIndex = comboBox->findText(value);
-            if (comboIndex >= 0)
-            {
-                comboBox->setCurrentIndex(comboIndex);
-            }
-        }
-    }
-    // 如果是管脚列（使用PinValueLineEdit）
-    else if (column >= 6)
-    {
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
-        // 如果值为空，默认设置为X
-        if (value.isEmpty())
-        {
-            lineEdit->setText("X");
-        }
-        else
-        {
-            lineEdit->setText(value);
-        }
-    }
-    else
-    {
-        // 其他使用默认设置
-        QStyledItemDelegate::setEditorData(editor, index);
-    }
-}
-
-void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
-{
-    int column = index.column();
-
-    // 如果是下拉框编辑器
-    if ((column == 1) || (column == 2) || (column == 3))
-    {
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
-    }
-    // 如果是管脚列（使用PinValueLineEdit）
-    else if (column >= 6)
-    {
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
-        QString value = lineEdit->text();
-        // 如果为空，默认使用X
-        if (value.isEmpty())
-        {
-            value = "X";
-        }
-        model->setData(index, value, Qt::EditRole);
-    }
-    else
-    {
-        // 其他使用默认设置
-        QStyledItemDelegate::setModelData(editor, model, index);
-    }
-}
-
-QStringList VectorTableItemDelegate::getInstructionOptions() const
-{
-    // 如果已缓存，则直接返回
-    if (!m_instructionOptions.isEmpty())
-    {
-        return m_instructionOptions;
-    }
-
-    // 从数据库获取指令选项
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT instruction_value FROM instruction_options ORDER BY id");
-    if (query.exec())
-    {
-        while (query.next())
-        {
-            m_instructionOptions << query.value(0).toString();
-        }
-    }
-    else
-    {
-        qWarning() << "获取指令选项失败:" << query.lastError().text();
-    }
-
-    return m_instructionOptions;
-}
-
-QStringList VectorTableItemDelegate::getTimesetOptions() const
-{
-    // 如果已缓存，则直接返回
-    if (!m_timesetOptions.isEmpty())
-    {
-        return m_timesetOptions;
-    }
-
-    // 从数据库获取时间集选项
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT timeset_name FROM timeset_list ORDER BY id");
-    if (query.exec())
-    {
-        while (query.next())
-        {
-            m_timesetOptions << query.value(0).toString();
-        }
-    }
-    else
-    {
-        qWarning() << "获取TimeSet选项失败:" << query.lastError().text();
-    }
-
-    return m_timesetOptions;
-}
-
-QStringList VectorTableItemDelegate::getPinOptions() const
-{
-    // 如果已缓存，则直接返回
-    if (!m_pinOptions.isEmpty())
-    {
-        return m_pinOptions;
-    }
-
-    // 从数据库获取管脚选项
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT pin_value FROM pin_options ORDER BY id");
-    if (query.exec())
-    {
-        while (query.next())
-        {
-            m_pinOptions << query.value(0).toString();
-        }
-    }
-    else
-    {
-        qWarning() << "获取管脚选项失败:" << query.lastError().text();
-    }
-
-    return m_pinOptions;
-}
+#include <QFileInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setupUI();
     setupMenu();
+
+    // 创建数据处理器和对话框管理器
+    m_dataHandler = new VectorDataHandler();
+    m_dialogManager = new DialogManager(this);
 
     // 设置窗口标题和大小
     setWindowTitle("VecEdit - 矢量测试编辑器");
@@ -257,6 +58,13 @@ MainWindow::~MainWindow()
 {
     // Qt对象会自动清理
     closeCurrentProject();
+
+    // 释放我们创建的对象
+    if (m_dataHandler)
+        delete m_dataHandler;
+
+    if (m_dialogManager)
+        delete m_dialogManager;
 }
 
 void MainWindow::setupUI()
@@ -462,10 +270,8 @@ void MainWindow::showDatabaseViewDialog()
         return;
     }
 
-    // 创建并显示数据库视图对话框
-    DatabaseViewDialog *dialog = new DatabaseViewDialog(this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose); // 关闭时自动删除
-    dialog->exec();
+    // 使用对话框管理器显示数据库视图对话框
+    m_dialogManager->showDatabaseViewDialog();
 }
 
 bool MainWindow::showAddPinsDialog()
@@ -476,68 +282,12 @@ bool MainWindow::showAddPinsDialog()
         return false;
     }
 
-    // 创建并显示管脚添加对话框
-    PinListDialog dialog(this);
-
-    if (dialog.exec() == QDialog::Accepted)
-    {
-        // 获取用户设置的管脚列表
-        QList<QString> pinNames = dialog.getPinNames();
-
-        // 添加到数据库
-        if (!pinNames.isEmpty())
-        {
-            return addPinsToDatabase(pinNames);
-        }
-    }
-
-    return false;
-}
-
-bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
-{
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        return false;
-    }
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-
-    // 开始事务
-    db.transaction();
-
-    // 循环添加每个管脚
-    bool success = true;
-    for (const QString &pinName : pinNames)
-    {
-        QSqlQuery query(db);
-        query.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
-        query.addBindValue(pinName);
-        query.addBindValue(""); // pin_note为空
-        query.addBindValue(""); // pin_nav_note为空
-
-        if (!query.exec())
-        {
-            qDebug() << "添加管脚失败:" << query.lastError().text();
-            success = false;
-            break;
-        }
-    }
-
-    // 提交或回滚事务
+    // 使用对话框管理器显示添加管脚对话框
+    bool success = m_dialogManager->showAddPinsDialog();
     if (success)
     {
-        db.commit();
-        statusBar()->showMessage(tr("已成功添加 %1 个管脚").arg(pinNames.count()));
+        statusBar()->showMessage(tr("管脚添加成功"));
     }
-    else
-    {
-        db.rollback();
-        statusBar()->showMessage(tr("添加管脚失败"));
-    }
-
     return success;
 }
 
@@ -549,16 +299,13 @@ bool MainWindow::showTimeSetDialog()
         return false;
     }
 
-    // 创建并显示TimeSet对话框
-    TimeSetDialog dialog(this);
-
-    if (dialog.exec() == QDialog::Accepted)
+    // 使用对话框管理器显示TimeSet对话框
+    bool success = m_dialogManager->showTimeSetDialog();
+    if (success)
     {
         statusBar()->showMessage(tr("TimeSet已成功添加"));
-        return true;
     }
-
-    return false;
+    return success;
 }
 
 void MainWindow::setupVectorTableUI()
@@ -676,256 +423,15 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 获取当前选中表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
 
-    // 清空表格
-    m_vectorTableWidget->clear();
-    m_vectorTableWidget->setRowCount(0);
-    m_vectorTableWidget->setColumnCount(0);
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
+    // 使用数据处理器加载数据
+    if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
     {
-        statusBar()->showMessage("错误：数据库未打开");
-        return;
-    }
-
-    // 检查数据库中的TimeSet数据
-    QSqlQuery checkTimeSetQuery(db);
-    if (checkTimeSetQuery.exec("SELECT COUNT(*) FROM timeset_list"))
-    {
-        if (checkTimeSetQuery.next())
-        {
-            int count = checkTimeSetQuery.value(0).toInt();
-            qDebug() << "数据库中找到" << count << "个TimeSet记录";
-
-            // 如果存在TimeSet记录，显示它们
-            if (count > 0 && checkTimeSetQuery.exec("SELECT id, timeset_name FROM timeset_list"))
-            {
-                qDebug() << "TimeSet列表:";
-                while (checkTimeSetQuery.next())
-                {
-                    qDebug() << "ID:" << checkTimeSetQuery.value(0).toInt()
-                             << "名称:" << checkTimeSetQuery.value(1).toString();
-                }
-            }
-        }
+        statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
     }
     else
     {
-        qWarning() << "检查TimeSet数据失败:" << checkTimeSetQuery.lastError().text();
+        statusBar()->showMessage("加载向量表失败");
     }
-
-    // 1. 获取表的管脚信息以设置表头
-    QSqlQuery pinsQuery(db);
-    pinsQuery.prepare("SELECT vtp.id, pl.pin_name, vtp.pin_channel_count, topt.type_name "
-                      "FROM vector_table_pins vtp "
-                      "JOIN pin_list pl ON vtp.pin_id = pl.id "
-                      "JOIN type_options topt ON vtp.pin_type = topt.id "
-                      "WHERE vtp.table_id = ? "
-                      "ORDER BY pl.pin_name");
-    pinsQuery.addBindValue(tableId);
-
-    QList<int> pinIds;
-    QMap<int, int> pinIdToColumn; // 管脚ID到列索引的映射
-
-    int columnIndex = 0;
-
-    // 固定列: 标签，指令，TimeSet，Capture，Ext，Comment
-    m_vectorTableWidget->setColumnCount(6);
-    m_vectorTableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem("Label"));
-    m_vectorTableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem("Instruction"));
-    m_vectorTableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem("TimeSet"));
-    m_vectorTableWidget->setHorizontalHeaderItem(3, new QTableWidgetItem("Capture"));
-    m_vectorTableWidget->setHorizontalHeaderItem(4, new QTableWidgetItem("Ext"));
-    m_vectorTableWidget->setHorizontalHeaderItem(5, new QTableWidgetItem("Comment"));
-
-    columnIndex = 6;
-
-    if (pinsQuery.exec())
-    {
-        while (pinsQuery.next())
-        {
-            int pinId = pinsQuery.value(0).toInt();
-            QString pinName = pinsQuery.value(1).toString();
-            int channelCount = pinsQuery.value(2).toInt();
-            QString typeName = pinsQuery.value(3).toString();
-
-            pinIds.append(pinId);
-            pinIdToColumn[pinId] = columnIndex;
-
-            // 添加管脚列
-            m_vectorTableWidget->insertColumn(columnIndex);
-
-            // 创建自定义表头
-            QTableWidgetItem *headerItem = new QTableWidgetItem();
-            headerItem->setText(pinName + "\nx" + QString::number(channelCount) + "\n" + typeName);
-            headerItem->setTextAlignment(Qt::AlignCenter);
-            QFont headerFont = headerItem->font();
-            headerFont.setBold(true);
-            headerItem->setFont(headerFont);
-
-            m_vectorTableWidget->setHorizontalHeaderItem(columnIndex, headerItem);
-            columnIndex++;
-        }
-    }
-
-    // 2. 获取向量表数据
-    QSqlQuery dataQuery(db);
-    dataQuery.prepare("SELECT vtd.id, vtd.label, io.instruction_value, tl.timeset_name, "
-                      "vtd.capture, vtd.ext, vtd.comment, vtd.sort_index "
-                      "FROM vector_table_data vtd "
-                      "JOIN instruction_options io ON vtd.instruction_id = io.id "
-                      "LEFT JOIN timeset_list tl ON vtd.timeset_id = tl.id "
-                      "WHERE vtd.table_id = ? "
-                      "ORDER BY vtd.sort_index");
-    dataQuery.addBindValue(tableId);
-
-    if (dataQuery.exec())
-    {
-        QMap<int, int> vectorDataIdToRow; // 向量数据ID到行索引的映射
-        int rowIndex = 0;
-
-        while (dataQuery.next())
-        {
-            int vectorDataId = dataQuery.value(0).toInt();
-            QString label = dataQuery.value(1).toString();
-            QString instruction = dataQuery.value(2).toString();
-            QString timeset = dataQuery.value(3).toString();
-            QString capture = dataQuery.value(4).toString();
-            QString ext = dataQuery.value(5).toString();
-            QString comment = dataQuery.value(6).toString();
-
-            // 添加新行
-            m_vectorTableWidget->insertRow(rowIndex);
-
-            // 设置固定列数据
-            m_vectorTableWidget->setItem(rowIndex, 0, new QTableWidgetItem(label));
-            m_vectorTableWidget->setItem(rowIndex, 1, new QTableWidgetItem(instruction));
-            m_vectorTableWidget->setItem(rowIndex, 2, new QTableWidgetItem(timeset));
-
-            // 修改Capture列显示逻辑，当值为"0"时显示为空白
-            QString captureDisplay = (capture == "0") ? "" : capture;
-            m_vectorTableWidget->setItem(rowIndex, 3, new QTableWidgetItem(captureDisplay));
-
-            m_vectorTableWidget->setItem(rowIndex, 4, new QTableWidgetItem(ext));
-            m_vectorTableWidget->setItem(rowIndex, 5, new QTableWidgetItem(comment));
-
-            vectorDataIdToRow[vectorDataId] = rowIndex;
-            rowIndex++;
-        }
-
-        // 3. 获取管脚数值 - 直接从数据库中查询pin_options表获取值
-        QSqlQuery valueQuery(db);
-        QString valueQueryStr = QString(
-                                    "SELECT vtd.id AS vector_data_id, "
-                                    "       vtp.id AS vector_pin_id, "
-                                    "       po.pin_value "
-                                    "FROM vector_table_data vtd "
-                                    "JOIN vector_table_pin_values vtpv ON vtd.id = vtpv.vector_data_id "
-                                    "JOIN vector_table_pins vtp ON vtpv.vector_pin_id = vtp.id "
-                                    "JOIN pin_options po ON vtpv.pin_level = po.id "
-                                    "WHERE vtd.table_id = %1 "
-                                    "ORDER BY vtd.sort_index")
-                                    .arg(tableId);
-
-        if (valueQuery.exec(valueQueryStr))
-        {
-            int count = 0;
-            while (valueQuery.next())
-            {
-                int vectorDataId = valueQuery.value(0).toInt();
-                int vectorPinId = valueQuery.value(1).toInt();
-                QString pinValue = valueQuery.value(2).toString();
-                count++;
-
-                // 找到对应的行和列
-                if (vectorDataIdToRow.contains(vectorDataId) && pinIdToColumn.contains(vectorPinId))
-                {
-                    int row = vectorDataIdToRow[vectorDataId];
-                    int col = pinIdToColumn[vectorPinId];
-
-                    // 设置单元格值
-                    m_vectorTableWidget->setItem(row, col, new QTableWidgetItem(pinValue));
-                }
-            }
-
-            // 如果没有找到任何记录，尝试直接使用pin_level值
-            if (count == 0)
-            {
-                QSqlQuery fallbackQuery(db);
-                QString fallbackQueryStr = QString(
-                                               "SELECT vtd.id AS vector_data_id, "
-                                               "       vtp.id AS vector_pin_id, "
-                                               "       vtpv.pin_level "
-                                               "FROM vector_table_data vtd "
-                                               "JOIN vector_table_pin_values vtpv ON vtd.id = vtpv.vector_data_id "
-                                               "JOIN vector_table_pins vtp ON vtpv.vector_pin_id = vtp.id "
-                                               "WHERE vtd.table_id = %1 "
-                                               "ORDER BY vtd.sort_index")
-                                               .arg(tableId);
-
-                if (fallbackQuery.exec(fallbackQueryStr))
-                {
-                    while (fallbackQuery.next())
-                    {
-                        int vectorDataId = fallbackQuery.value(0).toInt();
-                        int vectorPinId = fallbackQuery.value(1).toInt();
-                        int pinLevelId = fallbackQuery.value(2).toInt();
-
-                        // 尝试从pin_options表获取实际值
-                        QSqlQuery getPinValue(db);
-                        QString pinValue;
-
-                        getPinValue.prepare("SELECT pin_value FROM pin_options WHERE id = ?");
-                        getPinValue.addBindValue(pinLevelId);
-
-                        if (getPinValue.exec() && getPinValue.next())
-                        {
-                            pinValue = getPinValue.value(0).toString();
-                        }
-                        else
-                        {
-                            // 如果获取失败，直接使用ID作为字符串
-                            pinValue = QString::number(pinLevelId);
-                        }
-
-                        // 找到对应的行和列
-                        if (vectorDataIdToRow.contains(vectorDataId) && pinIdToColumn.contains(vectorPinId))
-                        {
-                            int row = vectorDataIdToRow[vectorDataId];
-                            int col = pinIdToColumn[vectorPinId];
-
-                            // 设置单元格值
-                            m_vectorTableWidget->setItem(row, col, new QTableWidgetItem(pinValue));
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // 查询失败时输出错误信息
-            statusBar()->showMessage(QString("获取管脚值失败: %1").arg(valueQuery.lastError().text()));
-        }
-    }
-
-    // 调整列宽
-    m_vectorTableWidget->resizeColumnsToContents();
-
-    // 确保所有管脚单元格都有默认值"X"
-    for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
-    {
-        for (int col = 6; col < m_vectorTableWidget->columnCount(); ++col)
-        {
-            QTableWidgetItem *item = m_vectorTableWidget->item(row, col);
-            if (!item || item->text().isEmpty())
-            {
-                m_vectorTableWidget->setItem(row, col, new QTableWidgetItem("X"));
-            }
-        }
-    }
-
-    statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
 }
 
 // 保存向量表数据
@@ -939,182 +445,20 @@ void MainWindow::saveVectorTableData()
         return;
     }
 
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
+    // 获取表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 使用数据处理器保存数据
+    QString errorMessage;
+    if (m_dataHandler->saveVectorTableData(tableId, m_vectorTableWidget, errorMessage))
     {
-        QMessageBox::critical(this, "保存失败", "数据库未打开");
-        return;
-    }
-
-    // 开始事务
-    db.transaction();
-    QSqlQuery query(db);
-
-    try
-    {
-        // 获取向量表ID
-        int tableId = -1;
-        query.prepare("SELECT id FROM vector_tables WHERE table_name = ?");
-        query.addBindValue(currentTable);
-        if (!query.exec() || !query.next())
-        {
-            throw QString("无法获取向量表ID: " + query.lastError().text());
-        }
-        tableId = query.value(0).toInt();
-
-        // 清除现有数据 - 先删除关联的pin_values，再删除主数据
-        query.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id IN "
-                      "(SELECT id FROM vector_table_data WHERE table_id = ?)");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法清除关联的管脚值数据: " + query.lastError().text());
-        }
-
-        query.prepare("DELETE FROM vector_table_data WHERE table_id = ?");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法清除现有数据: " + query.lastError().text());
-        }
-
-        // 获取已选择的管脚列表
-        QList<int> pinIds;
-        QList<QString> pinNames;
-        query.prepare("SELECT vtp.id, pl.pin_name FROM vector_table_pins vtp "
-                      "JOIN pin_list pl ON vtp.pin_id = pl.id "
-                      "WHERE vtp.table_id = ? ORDER BY pl.pin_name");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法获取管脚列表: " + query.lastError().text());
-        }
-
-        while (query.next())
-        {
-            pinIds.append(query.value(0).toInt());
-            pinNames.append(query.value(1).toString());
-        }
-
-        if (pinIds.isEmpty())
-        {
-            throw QString("没有找到任何关联的管脚");
-        }
-
-        // 逐行保存数据
-        for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
-        {
-            // 获取基本信息
-            QString label = m_vectorTableWidget->item(row, 0) ? m_vectorTableWidget->item(row, 0)->text() : "";
-            QString instruction = m_vectorTableWidget->item(row, 1) ? m_vectorTableWidget->item(row, 1)->text() : "";
-            QString timeSet = m_vectorTableWidget->item(row, 2) ? m_vectorTableWidget->item(row, 2)->text() : "";
-            QString capture = m_vectorTableWidget->item(row, 3) ? m_vectorTableWidget->item(row, 3)->text() : "";
-            QString ext = m_vectorTableWidget->item(row, 4) ? m_vectorTableWidget->item(row, 4)->text() : "";
-            QString comment = m_vectorTableWidget->item(row, 5) ? m_vectorTableWidget->item(row, 5)->text() : "";
-
-            // 获取指令ID
-            int instructionId = 1; // 默认为1 (VECTOR)
-            if (!instruction.isEmpty())
-            {
-                QSqlQuery instrQuery(db);
-                instrQuery.prepare("SELECT id FROM instruction_options WHERE instruction_value = ?");
-                instrQuery.addBindValue(instruction);
-                if (instrQuery.exec() && instrQuery.next())
-                {
-                    instructionId = instrQuery.value(0).toInt();
-                }
-            }
-
-            // 获取时间集ID
-            int timeSetId = -1;
-            if (!timeSet.isEmpty())
-            {
-                QSqlQuery timeSetQuery(db);
-                timeSetQuery.prepare("SELECT id FROM timeset_list WHERE timeset_name = ?");
-                timeSetQuery.addBindValue(timeSet);
-                if (timeSetQuery.exec() && timeSetQuery.next())
-                {
-                    timeSetId = timeSetQuery.value(0).toInt();
-                }
-            }
-
-            // 插入行数据
-            QSqlQuery insertRowQuery(db);
-            insertRowQuery.prepare("INSERT INTO vector_table_data "
-                                   "(table_id, label, instruction_id, timeset_id, capture, ext, comment, sort_index) "
-                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            insertRowQuery.addBindValue(tableId);
-            insertRowQuery.addBindValue(label);
-            insertRowQuery.addBindValue(instructionId);
-            insertRowQuery.addBindValue(timeSetId > 0 ? timeSetId : QVariant(QVariant::Int));
-            insertRowQuery.addBindValue(capture == "Y" ? 1 : 0);
-            insertRowQuery.addBindValue(ext);
-            insertRowQuery.addBindValue(comment);
-            insertRowQuery.addBindValue(row);
-
-            if (!insertRowQuery.exec())
-            {
-                throw QString("保存行 " + QString::number(row + 1) + " 失败: " + insertRowQuery.lastError().text());
-            }
-
-            // 获取插入的行ID
-            int rowId = insertRowQuery.lastInsertId().toInt();
-
-            // 保存管脚数据
-            for (int i = 0; i < pinIds.size(); ++i)
-            {
-                int pinCol = i + 6; // 管脚从第6列开始
-                QString pinValue = m_vectorTableWidget->item(row, pinCol) ? m_vectorTableWidget->item(row, pinCol)->text() : "X";
-
-                // 如果值为空，使用默认值"X"
-                if (pinValue.isEmpty())
-                {
-                    pinValue = "X";
-                }
-
-                // 获取pin_option_id
-                int pinOptionId = 5; // 默认为X (id=5)
-                QSqlQuery pinOptionQuery(db);
-                pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                pinOptionQuery.addBindValue(pinValue);
-                if (pinOptionQuery.exec() && pinOptionQuery.next())
-                {
-                    pinOptionId = pinOptionQuery.value(0).toInt();
-                }
-                else
-                {
-                    // 如果查询失败或没有找到对应的值，确保使用默认值X的ID
-                    pinOptionId = 5; // X的ID固定为5
-                }
-
-                // 插入管脚数据
-                QSqlQuery pinDataQuery(db);
-                pinDataQuery.prepare("INSERT INTO vector_table_pin_values "
-                                     "(vector_data_id, vector_pin_id, pin_level) VALUES (?, ?, ?)");
-                pinDataQuery.addBindValue(rowId);
-                pinDataQuery.addBindValue(pinIds[i]);
-                pinDataQuery.addBindValue(pinOptionId);
-
-                if (!pinDataQuery.exec())
-                {
-                    throw QString("保存管脚 " + pinNames[i] + " 数据失败: " + pinDataQuery.lastError().text());
-                }
-            }
-        }
-
-        // 提交事务
-        db.commit();
         QMessageBox::information(this, "保存成功", "向量表数据已成功保存");
         statusBar()->showMessage("向量表数据已成功保存");
     }
-    catch (const QString &errorMsg)
+    else
     {
-        // 错误处理和回滚
-        db.rollback();
-        QMessageBox::critical(this, "保存失败", errorMsg);
-        statusBar()->showMessage("保存失败: " + errorMsg);
-        qDebug() << "保存失败: " << errorMsg;
+        QMessageBox::critical(this, "保存失败", errorMessage);
+        statusBar()->showMessage("保存失败: " + errorMessage);
     }
 }
 
@@ -1194,744 +538,11 @@ void MainWindow::addNewVectorTable()
         int tableId = query.lastInsertId().toInt();
         QMessageBox::information(this, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
 
-        // 显示管脚选择对话框
-        showPinSelectionDialog(tableId, tableName);
-    }
-}
-
-// 显示管脚选择对话框
-void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
-{
-    // 创建管脚选择对话框
-    QDialog pinDialog(this);
-    pinDialog.setWindowTitle("管脚选择 - " + tableName);
-    pinDialog.setMinimumWidth(400);
-
-    QVBoxLayout *mainLayout = new QVBoxLayout(&pinDialog);
-
-    // 添加一个标签用于显示"管脚组"
-    QLabel *groupLabel = new QLabel("管脚组", &pinDialog);
-    QFont boldFont = groupLabel->font();
-    boldFont.setBold(true);
-    groupLabel->setFont(boldFont);
-    mainLayout->addWidget(groupLabel);
-
-    // 创建一个白色背景的widget来包含表格
-    QWidget *tableWidget = new QWidget(&pinDialog);
-    tableWidget->setStyleSheet("background-color: white;");
-    QVBoxLayout *tableLayout = new QVBoxLayout(tableWidget);
-    tableLayout->setContentsMargins(10, 10, 10, 10);
-
-    // 添加表格布局用于显示管脚、类型和数据流
-    QGridLayout *gridLayout = new QGridLayout();
-    gridLayout->setSpacing(15);
-
-    // 添加表头
-    QLabel *pinHeader = new QLabel("Pins", tableWidget);
-    QLabel *typeHeader = new QLabel("Type", tableWidget);
-    QLabel *dataStreamHeader = new QLabel("Data Stream", tableWidget);
-
-    // 设置表头样式
-    QFont headerFont = pinHeader->font();
-    headerFont.setBold(true);
-    pinHeader->setFont(headerFont);
-    typeHeader->setFont(headerFont);
-    dataStreamHeader->setFont(headerFont);
-
-    pinHeader->setAlignment(Qt::AlignLeft);
-    typeHeader->setAlignment(Qt::AlignLeft);
-    dataStreamHeader->setAlignment(Qt::AlignLeft);
-
-    gridLayout->addWidget(pinHeader, 0, 0);
-    gridLayout->addWidget(typeHeader, 0, 1);
-    gridLayout->addWidget(dataStreamHeader, 0, 2);
-
-    // 添加表头分隔线
-    QFrame *headerLine = new QFrame(tableWidget);
-    headerLine->setFrameShape(QFrame::HLine);
-    headerLine->setFrameShadow(QFrame::Sunken);
-    gridLayout->addWidget(headerLine, 1, 0, 1, 3);
-
-    // 从数据库加载类型选项和管脚列表
-    QMap<int, QString> typeOptions;
-    QMap<int, QString> localPinList;
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-
-    // 加载类型选项
-    if (query.exec("SELECT id, type_name FROM type_options ORDER BY id"))
-    {
-        while (query.next())
-        {
-            int id = query.value(0).toInt();
-            QString typeName = query.value(1).toString();
-            typeOptions[id] = typeName;
-        }
-    }
-
-    // 加载管脚列表
-    if (query.exec("SELECT id, pin_name FROM pin_list ORDER BY pin_name"))
-    {
-        while (query.next())
-        {
-            int id = query.value(0).toInt();
-            QString pinName = query.value(1).toString();
-            localPinList[id] = pinName;
-        }
-    }
-
-    if (localPinList.isEmpty())
-    {
-        QMessageBox::warning(this, "警告", "没有找到管脚，请先添加管脚");
-        return;
-    }
-
-    // 添加管脚、类型和数据流控件
-    int row = 2; // 从第2行开始（表头和分隔线各占一行）
-    QMap<int, QCheckBox *> pinCheckboxes;
-    QMap<int, QComboBox *> pinTypeComboBoxes;
-    QMap<int, QLabel *> pinDataStreamLabels;
-
-    for (auto it = localPinList.begin(); it != localPinList.end(); ++it)
-    {
-        int pinId = it.key();
-        QString pinName = it.value();
-
-        // 创建复选框
-        QCheckBox *checkbox = new QCheckBox(pinName, tableWidget);
-        pinCheckboxes[pinId] = checkbox;
-
-        // 创建类型下拉框
-        QComboBox *typeCombo = new QComboBox(tableWidget);
-        for (auto typeIt = typeOptions.begin(); typeIt != typeOptions.end(); ++typeIt)
-        {
-            typeCombo->addItem(typeIt.value(), typeIt.key());
-        }
-        pinTypeComboBoxes[pinId] = typeCombo;
-
-        // 创建数据流标签
-        QLabel *dataStreamLabel = new QLabel("x1", tableWidget);
-        dataStreamLabel->setAlignment(Qt::AlignCenter);
-        pinDataStreamLabels[pinId] = dataStreamLabel;
-
-        // 添加到表格
-        gridLayout->addWidget(checkbox, row, 0);
-        gridLayout->addWidget(typeCombo, row, 1);
-        gridLayout->addWidget(dataStreamLabel, row, 2);
-
-        row++;
-    }
-
-    tableLayout->addLayout(gridLayout);
-    mainLayout->addWidget(tableWidget);
-
-    // 添加底部按钮区域
-    QWidget *buttonContainer = new QWidget(&pinDialog);
-    buttonContainer->setStyleSheet("background-color: #f0f0f0;");
-    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonContainer);
-    buttonLayout->setContentsMargins(10, 5, 10, 5);
-    buttonLayout->addStretch();
-
-    QPushButton *okButton = new QPushButton("确定", buttonContainer);
-    QPushButton *cancelButton = new QPushButton("取消向导", buttonContainer);
-
-    okButton->setMinimumWidth(100);
-    cancelButton->setMinimumWidth(100);
-
-    buttonLayout->addWidget(okButton);
-    buttonLayout->addWidget(cancelButton);
-
-    mainLayout->addWidget(buttonContainer);
-
-    // 连接信号槽
-    connect(okButton, &QPushButton::clicked, &pinDialog, &QDialog::accept);
-    connect(cancelButton, &QPushButton::clicked, &pinDialog, &QDialog::reject);
-
-    // 显示对话框
-    if (pinDialog.exec() == QDialog::Accepted)
-    {
-        // 获取选中的管脚并保存到数据库
-        db.transaction();
-        bool success = true;
-
-        for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
-        {
-            int pinId = it.key();
-            QCheckBox *checkbox = it.value();
-
-            // 如果勾选了该管脚
-            if (checkbox->isChecked())
-            {
-                // 获取选择的类型
-                QComboBox *typeCombo = pinTypeComboBoxes[pinId];
-                int typeId = typeCombo->currentData().toInt();
-
-                // 固定使用1作为channel_count
-                int channelCount = 1;
-
-                // 保存到数据库
-                QSqlQuery insertPinQuery(db);
-                insertPinQuery.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
-                                       "VALUES (?, ?, ?, ?)");
-                insertPinQuery.addBindValue(tableId);
-                insertPinQuery.addBindValue(pinId);
-                insertPinQuery.addBindValue(typeId);
-                insertPinQuery.addBindValue(channelCount);
-
-                if (!insertPinQuery.exec())
-                {
-                    QMessageBox::critical(this, "数据库错误", "保存管脚信息失败：" + insertPinQuery.lastError().text());
-                    success = false;
-                    break;
-                }
-            }
-        }
-
-        // 提交或回滚事务
-        if (success)
-        {
-            db.commit();
-            QMessageBox::information(this, "保存成功", "管脚信息已成功保存！");
-
-            // 显示向量行数据录入对话框
-            showVectorDataDialog(tableId, tableName, 0);
-        }
-        else
-        {
-            db.rollback();
-        }
-    }
-    else
-    {
-        // 用户取消，删除已创建的向量表
-        QSqlQuery deleteQuery(db);
-        deleteQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
-        deleteQuery.addBindValue(tableId);
-        deleteQuery.exec();
-    }
-}
-
-// 向量行数据录入对话框
-void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
-{
-    // 创建向量行数据录入对话框
-    QDialog vectorDataDialog(this);
-    vectorDataDialog.setWindowTitle("向量行数据录入 - " + tableName);
-    vectorDataDialog.setMinimumWidth(600);
-    vectorDataDialog.setMinimumHeight(400);
-
-    QVBoxLayout *mainLayout = new QVBoxLayout(&vectorDataDialog);
-
-    // 添加注释标签
-    QLabel *noteLabel = new QLabel("<b>注释:</b> 请确保添加的行数是下方表格中行数的倍数。", &vectorDataDialog);
-    noteLabel->setStyleSheet("color: black;");
-    mainLayout->addWidget(noteLabel);
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-
-    // 查询当前向量表中的总行数
-    int totalRowsInFile = 0;
-    QSqlQuery rowCountQuery(db);
-    rowCountQuery.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
-    rowCountQuery.addBindValue(tableId);
-    if (rowCountQuery.exec() && rowCountQuery.next())
-    {
-        totalRowsInFile = rowCountQuery.value(0).toInt();
-    }
-
-    // 计算剩余可用行数（初始总数为8388608）
-    const int TOTAL_AVAILABLE_ROWS = 8388608;
-    int remainingRows = TOTAL_AVAILABLE_ROWS - totalRowsInFile;
-    if (remainingRows < 0)
-        remainingRows = 0;
-
-    // 从数据库获取已选择的管脚
-    QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins; // pinId, <pinName, <channelCount, typeName>>
-
-    query.prepare("SELECT p.id, pl.pin_name, p.pin_channel_count, t.type_name, p.pin_type "
-                  "FROM vector_table_pins p "
-                  "JOIN pin_list pl ON p.pin_id = pl.id "
-                  "JOIN type_options t ON p.pin_type = t.id "
-                  "WHERE p.table_id = ?");
-    query.addBindValue(tableId);
-
-    if (query.exec())
-    {
-        while (query.next())
-        {
-            int pinId = query.value(0).toInt();
-            QString pinName = query.value(1).toString();
-            int channelCount = query.value(2).toInt();
-            QString typeName = query.value(3).toString();
-            int typeId = query.value(4).toInt();
-
-            selectedPins.append(qMakePair(pinId, qMakePair(pinName, qMakePair(channelCount, typeName))));
-        }
-    }
-    else
-    {
-        QMessageBox::critical(this, "数据库错误", "获取管脚信息失败：" + query.lastError().text());
-        return;
-    }
-
-    if (selectedPins.isEmpty())
-    {
-        QMessageBox::warning(this, "警告", "没有选择任何管脚，无法创建向量行");
-        return;
-    }
-
-    // 获取pin_options选项
-    QStringList pinOptions;
-    query.exec("SELECT pin_value FROM pin_options ORDER BY id");
-    while (query.next())
-    {
-        pinOptions << query.value(0).toString();
-    }
-
-    if (pinOptions.isEmpty())
-    {
-        pinOptions << "X"; // 默认值
-    }
-
-    // 获取timeset选项
-    QMap<int, QString> timesetOptions;
-    query.exec("SELECT id, timeset_name FROM timeset_list ORDER BY id");
-    while (query.next())
-    {
-        timesetOptions[query.value(0).toInt()] = query.value(1).toString();
-    }
-
-    // 创建表格
-    QTableWidget *vectorTable = new QTableWidget(&vectorDataDialog);
-    vectorTable->setColumnCount(selectedPins.size()); // 设置列数为选中的管脚数
-    vectorTable->setRowCount(0);                      // 初始没有行
-
-    // 设置表头
-    for (int i = 0; i < selectedPins.size(); i++)
-    {
-        const auto &pinInfo = selectedPins[i];
-        const auto &pinName = pinInfo.second.first;
-        const auto &channelCount = pinInfo.second.second.first;
-        const auto &typeName = pinInfo.second.second.second;
-
-        // 创建表头项
-        QString headerText = pinName + "\nx" + QString::number(channelCount) + "\n" + typeName;
-        QTableWidgetItem *headerItem = new QTableWidgetItem(headerText);
-        headerItem->setTextAlignment(Qt::AlignCenter);
-        QFont headerFont = headerItem->font();
-        headerFont.setBold(true);
-        headerItem->setFont(headerFont);
-
-        vectorTable->setHorizontalHeaderItem(i, headerItem);
-    }
-
-    // 设置表格选择模式为整行选择
-    vectorTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    vectorTable->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // 启用单元格点击选择整行
-    connect(vectorTable, &QTableWidget::cellClicked, [vectorTable](int row, int column)
-            { vectorTable->selectRow(row); });
-
-    // 添加一行默认数据
-    addVectorRow(vectorTable, pinOptions, 0);
-
-    // 添加表格到布局
-    mainLayout->addWidget(vectorTable);
-
-    // 创建操作按钮区域（表格和底部区域之间的右侧）
-    QWidget *actionButtonsWidget = new QWidget(&vectorDataDialog);
-    QHBoxLayout *actionButtonsLayout = new QHBoxLayout(actionButtonsWidget);
-    actionButtonsLayout->setContentsMargins(0, 0, 0, 0);
-    actionButtonsLayout->setSpacing(8); // 增加按钮之间的间距
-
-    // 创建添加行和删除行按钮（使用SVG图标）
-    QPushButton *addRowButton = new QPushButton(actionButtonsWidget);
-    addRowButton->setToolTip("添加行");
-    addRowButton->setFixedSize(32, 32); // 增加按钮大小
-    addRowButton->setIcon(QIcon(":/resources/icons/plus-circle.svg"));
-    addRowButton->setIconSize(QSize(24, 24)); // 增加图标大小
-    addRowButton->setStyleSheet("QPushButton { border: none; background-color: transparent; }");
-
-    QPushButton *deleteRowButton = new QPushButton(actionButtonsWidget);
-    deleteRowButton->setToolTip("删除行");
-    deleteRowButton->setFixedSize(32, 32); // 增加按钮大小
-    deleteRowButton->setIcon(QIcon(":/resources/icons/x-circle.svg"));
-    deleteRowButton->setIconSize(QSize(24, 24)); // 增加图标大小
-    deleteRowButton->setStyleSheet("QPushButton { border: none; background-color: transparent; }");
-
-    actionButtonsLayout->addWidget(addRowButton);
-    actionButtonsLayout->addWidget(deleteRowButton);
-
-    // 添加按钮到右侧
-    QHBoxLayout *midButtonLayout = new QHBoxLayout();
-    midButtonLayout->addStretch();
-    midButtonLayout->addWidget(actionButtonsWidget);
-    mainLayout->addLayout(midButtonLayout);
-
-    // 创建水平布局容器，包含信息、行和设置
-    QHBoxLayout *sectionsLayout = new QHBoxLayout();
-
-    // 创建信息分组
-    QGroupBox *infoGroup = new QGroupBox("信息", &vectorDataDialog);
-    QFormLayout *infoLayout = new QFormLayout(infoGroup);
-
-    // 文件中总行数显示
-    QLineEdit *totalRowsEdit = new QLineEdit(infoGroup);
-    totalRowsEdit->setText(QString::number(totalRowsInFile));
-    totalRowsEdit->setReadOnly(true);
-    totalRowsEdit->setEnabled(false);                                                         // 禁用输入框
-    totalRowsEdit->setStyleSheet("QLineEdit { background-color: #F0F0F0; color: #808080; }"); // 设置灰色背景和文字颜色
-    infoLayout->addRow("文件中总行数:", totalRowsEdit);
-
-    // 剩余可用行数显示
-    QLineEdit *remainingRowsEdit = new QLineEdit(infoGroup);
-    remainingRowsEdit->setText(QString::number(remainingRows));
-    remainingRowsEdit->setReadOnly(true);
-    remainingRowsEdit->setEnabled(false);                                                         // 禁用输入框
-    remainingRowsEdit->setStyleSheet("QLineEdit { background-color: #F0F0F0; color: #808080; }"); // 设置灰色背景和文字颜色
-    infoLayout->addRow("剩余可用行数:", remainingRowsEdit);
-
-    // 新增"行"参数分组
-    QGroupBox *rowOptionsGroup = new QGroupBox("行", &vectorDataDialog);
-    QVBoxLayout *rowOptionsLayout = new QVBoxLayout(rowOptionsGroup);
-
-    // 添加到最后复选框
-    QCheckBox *appendToEndCheckbox = new QCheckBox("添加到最后", rowOptionsGroup);
-    appendToEndCheckbox->setChecked(true); // 默认勾选
-    rowOptionsLayout->addWidget(appendToEndCheckbox);
-
-    // 向前插入输入框
-    QHBoxLayout *insertAtLayout = new QHBoxLayout();
-    QLabel *insertAtLabel = new QLabel("向前插入：", rowOptionsGroup);
-    QLineEdit *insertAtEdit = new QLineEdit(rowOptionsGroup);
-    insertAtEdit->setText("1");      // 默认值为1
-    insertAtEdit->setEnabled(false); // 默认不可编辑(因为默认勾选了添加到最后)
-    insertAtLayout->addWidget(insertAtLabel);
-    insertAtLayout->addWidget(insertAtEdit);
-    rowOptionsLayout->addLayout(insertAtLayout);
-
-    // 行数输入框
-    QHBoxLayout *rowCountLayout = new QHBoxLayout();
-    QLabel *rowCountLabel = new QLabel("行数：", rowOptionsGroup);
-    QLineEdit *rowCountEdit = new QLineEdit(rowOptionsGroup);
-    rowCountEdit->setText("1"); // 默认值为1
-    rowCountLayout->addWidget(rowCountLabel);
-    rowCountLayout->addWidget(rowCountEdit);
-    rowOptionsLayout->addLayout(rowCountLayout);
-
-    // 创建设置区域
-    QGroupBox *settingsGroup = new QGroupBox("设置", &vectorDataDialog);
-    QFormLayout *settingsLayout = new QFormLayout(settingsGroup);
-
-    // TimeSet 选择
-    QComboBox *timesetCombo = new QComboBox(settingsGroup);
-    for (auto it = timesetOptions.begin(); it != timesetOptions.end(); ++it)
-    {
-        timesetCombo->addItem(it.value(), it.key());
-    }
-    settingsLayout->addRow("TimeSet:", timesetCombo);
-
-    // 添加各个分组到水平布局
-    sectionsLayout->addWidget(infoGroup);
-    sectionsLayout->addWidget(rowOptionsGroup);
-    sectionsLayout->addWidget(settingsGroup);
-
-    // 将水平布局添加到主布局
-    mainLayout->addLayout(sectionsLayout);
-
-    // 连接勾选框状态改变信号
-    QObject::connect(appendToEndCheckbox, &QCheckBox::stateChanged, [insertAtEdit](int state)
-                     {
-                         insertAtEdit->setEnabled(state != Qt::Checked); // 当不勾选时启用向前插入输入框
-                     });
-
-    // 连接行数输入框变化信号，更新剩余可用行数
-    QObject::connect(rowCountEdit, &QLineEdit::textChanged, [remainingRowsEdit, totalRowsInFile, vectorTable](const QString &text)
-                     {
-                         int requestedRows = text.toInt();
-                         int dataRows = vectorTable->rowCount();
-                         int totalNewRows = 0;
-
-                         // 只有当输入的行数是有效的（大于等于数据行数且是数据行数的整数倍）时才更新
-                         if (requestedRows >= dataRows && requestedRows % dataRows == 0)
-                         {
-                             totalNewRows = requestedRows;
-                         }
-                         else
-                         {
-                             totalNewRows = dataRows; // 默认至少使用数据行数
-                         }
-
-                         const int TOTAL_AVAILABLE_ROWS = 8388608;
-                         int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - totalNewRows;
-                         if (updatedRemaining < 0)
-                             updatedRemaining = 0;
-                         remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
-                     });
-
-    // 按钮区域
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    QPushButton *saveButton = new QPushButton("确定", &vectorDataDialog);
-    QPushButton *cancelButton = new QPushButton("取消", &vectorDataDialog);
-
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(saveButton);
-    buttonLayout->addWidget(cancelButton);
-
-    mainLayout->addLayout(buttonLayout);
-
-    // 连接添加行和删除行按钮信号
-    connect(addRowButton, &QPushButton::clicked, [&]()
-            {
-                int rowCount = vectorTable->rowCount();
-                addVectorRow(vectorTable, pinOptions, rowCount);
-
-                // 更新行数输入框和剩余可用行数
-                int newRowCount = vectorTable->rowCount();
-                rowCountEdit->setText(QString::number(newRowCount));
-
-                // 计算并更新剩余可用行数
-                int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - newRowCount;
-                if (updatedRemaining < 0)
-                    updatedRemaining = 0;
-                remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
-            });
-
-    connect(deleteRowButton, &QPushButton::clicked, [&]()
-            {
-                // 获取当前选中的行
-                QList<int> selectedRows;
-                QModelIndexList selectedIndexes = vectorTable->selectionModel()->selectedRows();
-                if (selectedIndexes.isEmpty())
-                {
-                    // 如果没有选中整行，尝试获取选中的单元格
-                    QList<QTableWidgetItem *> selectedItems = vectorTable->selectedItems();
-                    if (selectedItems.isEmpty())
-                    {
-                        QMessageBox::warning(&vectorDataDialog, "警告", "请先选择要删除的行");
-                        return;
-                    }
-
-                    // 获取所有选中单元格所在的行
-                    QSet<int> rowSet;
-                    for (QTableWidgetItem *item : selectedItems)
-                    {
-                        rowSet.insert(item->row());
-                    }
-
-                    // 将行号添加到列表
-                    for (int row : rowSet)
-                    {
-                        selectedRows.append(row);
-                    }
-                }
-                else
-                {
-                    // 如果选中了整行，直接获取行号
-                    for (const QModelIndex &index : selectedIndexes)
-                    {
-                        selectedRows.append(index.row());
-                    }
-                }
-
-                // 从最大行号开始删除，避免索引变化
-                std::sort(selectedRows.begin(), selectedRows.end(), std::greater<int>());
-
-                for (int row : selectedRows)
-                {
-                    vectorTable->removeRow(row);
-                }
-
-                // 更新行数输入框和剩余可用行数
-                int newRowCount = vectorTable->rowCount();
-                if (newRowCount == 0)
-                {
-                    // 如果删除所有行，添加一个默认行
-                    addVectorRow(vectorTable, pinOptions, 0);
-                    newRowCount = 1;
-                }
-
-                rowCountEdit->setText(QString::number(newRowCount));
-
-                // 计算并更新剩余可用行数
-                int updatedRemaining = TOTAL_AVAILABLE_ROWS - totalRowsInFile - newRowCount;
-                if (updatedRemaining < 0)
-                    updatedRemaining = 0;
-                remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
-            });
-
-    // 连接保存和取消按钮信号
-    connect(saveButton, &QPushButton::clicked, [&]()
-            {
-        // 获取向量行和用户设置参数
-        int rowDataCount = vectorTable->rowCount();
-        int totalRowCount = rowCountEdit->text().toInt();
-        
-        // 检查行数设置
-        if (totalRowCount < rowDataCount) {
-            QMessageBox::warning(&vectorDataDialog, "参数错误", "设置的总行数小于实际添加的行数据数量！");
-            return;
-        }
-        
-        if (totalRowCount % rowDataCount != 0) {
-            QMessageBox::warning(&vectorDataDialog, "参数错误", "设置的总行数必须是行数据数量的整数倍！");
-            return;
-        }
-        
-        // 检查是否超出可用行数
-        if (totalRowCount > remainingRows) {
-            QMessageBox::warning(&vectorDataDialog, "参数错误", "添加的行数超出了可用行数！");
-            return;
-        }
-        
-        // 计算重复次数
-        int repeatTimes = totalRowCount / rowDataCount;
-        
-        // 获取插入位置
-        int actualStartIndex = startIndex;
-        if (!appendToEndCheckbox->isChecked()) {
-            actualStartIndex = insertAtEdit->text().toInt() - 1; // 转为0基索引
-            if (actualStartIndex < 0) {
-                actualStartIndex = 0;
-            }
-            
-            // 检查向量表中总行数
-            QSqlQuery countQuery(db);
-            countQuery.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
-            countQuery.addBindValue(tableId);
-            
-            if (countQuery.exec() && countQuery.next()) {
-                int existingRowCount = countQuery.value(0).toInt();
-                if (actualStartIndex > existingRowCount) {
-                    actualStartIndex = existingRowCount; // 如果超出范围，则放在最后
-                }
-            }
-        }
-        
-        // 保存向量行数据
-        QSqlDatabase db = DatabaseManager::instance()->database();
-        db.transaction();
-        
-        bool success = true;
-        int timesetId = timesetCombo->currentData().toInt();
-        
-        // 如果不是添加到最后，需要先将目标位置及之后的数据往后移动
-        if (!appendToEndCheckbox->isChecked()) {
-            QSqlQuery updateQuery(db);
-            updateQuery.prepare("UPDATE vector_table_data SET sort_index = sort_index + ? "
-                               "WHERE table_id = ? AND sort_index >= ?");
-            updateQuery.addBindValue(totalRowCount);
-            updateQuery.addBindValue(tableId);
-            updateQuery.addBindValue(actualStartIndex);
-            
-            if (!updateQuery.exec()) {
-                QMessageBox::critical(&vectorDataDialog, "数据库错误", "更新现有数据索引失败：" + updateQuery.lastError().text());
-                db.rollback();
-                return;
-            }
-        }
-        
-        // 根据重复次数添加行数据
-        for (int repeat = 0; repeat < repeatTimes; repeat++) {
-            for (int row = 0; row < rowDataCount; row++) {
-                // 添加vector_table_data记录
-                QSqlQuery dataQuery(db);
-                dataQuery.prepare("INSERT INTO vector_table_data "
-                                  "(table_id, instruction_id, timeset_id, label, capture, ext, comment, sort_index) "
-                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                dataQuery.addBindValue(tableId);
-                dataQuery.addBindValue(1); // 默认instruction_id为1
-                dataQuery.addBindValue(timesetId);
-                dataQuery.addBindValue(""); // label默认为空
-                dataQuery.addBindValue(0); // capture默认为0
-                dataQuery.addBindValue(""); // ext默认为空
-                dataQuery.addBindValue(""); // comment默认为空
-                dataQuery.addBindValue(actualStartIndex + repeat * rowDataCount + row); // 计算实际排序索引
-                
-                if (!dataQuery.exec()) {
-                    QMessageBox::critical(&vectorDataDialog, "数据库错误", "添加向量行数据失败：" + dataQuery.lastError().text());
-                    success = false;
-                    break;
-                }
-                
-                int vectorDataId = dataQuery.lastInsertId().toInt();
-                
-                // 为每个管脚添加vector_table_pin_values记录
-                for (int col = 0; col < selectedPins.size(); col++) {
-                    int pinId = selectedPins[col].first;
-                    
-                    // 获取单元格中的输入框
-                    PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(vectorTable->cellWidget(row, col));
-                    if (!pinEdit) continue;
-                    
-                    QString pinValue = pinEdit->text();
-                    if (pinValue.isEmpty()) pinValue = "X"; // 如果为空，默认使用X
-                    
-                    // 获取pin_option_id
-                    int pinOptionId = 5; // 默认为X (id=5)
-                    QSqlQuery pinOptionQuery(db);
-                    pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                    pinOptionQuery.addBindValue(pinValue);
-                    if (pinOptionQuery.exec() && pinOptionQuery.next()) {
-                        pinOptionId = pinOptionQuery.value(0).toInt();
-                    }
-                    
-                    QSqlQuery pinValueQuery(db);
-                    pinValueQuery.prepare("INSERT INTO vector_table_pin_values "
-                                          "(vector_data_id, vector_pin_id, pin_level) "
-                                          "VALUES (?, ?, ?)");
-                    pinValueQuery.addBindValue(vectorDataId);
-                    pinValueQuery.addBindValue(pinId);
-                    pinValueQuery.addBindValue(pinOptionId);
-                    
-                    if (!pinValueQuery.exec()) {
-                        QMessageBox::critical(&vectorDataDialog, "数据库错误", "保存管脚值失败：" + pinValueQuery.lastError().text());
-                        success = false;
-                        break;
-                    }
-                }
-                
-                if (!success) break;
-            }
-            
-            if (!success) break;
-        }
-        
-        if (success) {
-            db.commit();
-            QMessageBox::information(&vectorDataDialog, "保存成功", "向量行数据已成功保存！");
-            vectorDataDialog.accept();
-        } else {
-            db.rollback();
-        } });
-
-    connect(cancelButton, &QPushButton::clicked, &vectorDataDialog, &QDialog::reject);
-
-    // 显示对话框
-    if (vectorDataDialog.exec() == QDialog::Accepted)
-    {
-        // 重新加载向量表
-        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-    }
-}
-
-// 辅助函数：添加向量行
-void MainWindow::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
-{
-    table->setRowCount(rowIdx + 1);
-
-    // 添加每个管脚的文本输入框
-    for (int col = 0; col < table->columnCount(); col++)
-    {
-        PinValueLineEdit *pinEdit = new PinValueLineEdit(table);
-
-        // 默认设置为"X"
-        pinEdit->setText("X");
-
-        table->setCellWidget(rowIdx, col, pinEdit);
+        // 使用对话框管理器显示管脚选择对话框
+        m_dialogManager->showPinSelectionDialog(tableId, tableName);
+
+        // 刷新向量表列表
+        loadVectorTable();
     }
 }
 
@@ -1968,8 +579,12 @@ void MainWindow::addRowToCurrentVectorTable()
         maxSortIndex = query.value(0).toInt();
     }
 
-    // 显示向量行数据录入对话框，传递最大排序索引
-    showVectorDataDialog(tableId, tableName, maxSortIndex + 1);
+    // 使用对话框管理器显示向量行数据录入对话框
+    if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
+    {
+        // 刷新表格显示
+        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+    }
 }
 
 // 删除当前选中的向量表
@@ -2004,61 +619,19 @@ void MainWindow::deleteCurrentVectorTable()
         return;
     }
 
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    db.transaction();
-
-    bool success = true;
-    QSqlQuery query(db);
-
-    try
+    // 使用数据处理器删除向量表
+    QString errorMessage;
+    if (m_dataHandler->deleteVectorTable(tableId, errorMessage))
     {
-        // 先删除与该表关联的管脚值数据
-        query.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id IN "
-                      "(SELECT id FROM vector_table_data WHERE table_id = ?)");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("删除管脚值数据失败: " + query.lastError().text());
-        }
-
-        // 删除向量表数据
-        query.prepare("DELETE FROM vector_table_data WHERE table_id = ?");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("删除向量表数据失败: " + query.lastError().text());
-        }
-
-        // 删除向量表管脚配置
-        query.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("删除向量表管脚配置失败: " + query.lastError().text());
-        }
-
-        // 最后删除向量表记录
-        query.prepare("DELETE FROM vector_tables WHERE id = ?");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("删除向量表记录失败: " + query.lastError().text());
-        }
-
-        // 提交事务
-        db.commit();
         QMessageBox::information(this, "删除成功", "向量表 \"" + tableName + "\" 已成功删除");
 
         // 重新加载向量表列表
         loadVectorTable();
     }
-    catch (const QString &errorMsg)
+    else
     {
-        // 回滚事务
-        db.rollback();
-        QMessageBox::critical(this, "删除失败", errorMsg);
-        statusBar()->showMessage("删除向量表失败: " + errorMsg);
+        QMessageBox::critical(this, "删除失败", errorMessage);
+        statusBar()->showMessage("删除向量表失败: " + errorMessage);
     }
 }
 
@@ -2104,86 +677,87 @@ void MainWindow::deleteSelectedVectorRows()
         return;
     }
 
-    // 获取数据库连接和表ID
-    QSqlDatabase db = DatabaseManager::instance()->database();
+    // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
 
-    db.transaction();
-    bool success = true;
-
-    try
+    // 使用数据处理器删除选中的行
+    QString errorMessage;
+    if (m_dataHandler->deleteVectorRows(tableId, selectedRows, errorMessage))
     {
-        // 查询表中所有数据行，按排序索引顺序
-        QList<int> allDataIds;
-        QSqlQuery dataQuery(db);
-        dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index");
-        dataQuery.addBindValue(tableId);
-
-        if (!dataQuery.exec())
-        {
-            throw QString("获取向量数据ID失败: " + dataQuery.lastError().text());
-        }
-
-        // 将所有数据ID按顺序放入列表
-        while (dataQuery.next())
-        {
-            allDataIds.append(dataQuery.value(0).toInt());
-        }
-
-        // 检查是否有足够的数据行
-        if (allDataIds.isEmpty())
-        {
-            throw QString("没有找到可删除的数据行");
-        }
-
-        // 根据选中的行索引获取对应的数据ID
-        QList<int> dataIdsToDelete;
-        for (int row : selectedRows)
-        {
-            if (row >= 0 && row < allDataIds.size())
-            {
-                dataIdsToDelete.append(allDataIds[row]);
-            }
-        }
-
-        if (dataIdsToDelete.isEmpty())
-        {
-            throw QString("没有找到对应选中行的数据ID");
-        }
-
-        // 删除选中行的数据
-        QSqlQuery deleteQuery(db);
-        for (int dataId : dataIdsToDelete)
-        {
-            // 先删除关联的管脚值
-            deleteQuery.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 的管脚值失败: " + deleteQuery.lastError().text());
-            }
-
-            // 再删除向量数据行
-            deleteQuery.prepare("DELETE FROM vector_table_data WHERE id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 失败: " + deleteQuery.lastError().text());
-            }
-        }
-
-        // 提交事务
-        db.commit();
-        QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(dataIdsToDelete.size()) + " 行数据");
+        QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(selectedRows.size()) + " 行数据");
 
         // 刷新表格
         onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
     }
-    catch (const QString &errorMsg)
+    else
     {
-        // 回滚事务
+        QMessageBox::critical(this, "删除失败", errorMessage);
+        statusBar()->showMessage("删除行失败: " + errorMessage);
+    }
+}
+
+void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
+{
+    if (m_dialogManager)
+    {
+        m_dialogManager->showPinSelectionDialog(tableId, tableName);
+    }
+}
+
+void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
+{
+    if (m_dialogManager)
+    {
+        m_dialogManager->showVectorDataDialog(tableId, tableName, startIndex);
+    }
+}
+
+void MainWindow::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
+{
+    VectorDataHandler::addVectorRow(table, pinOptions, rowIdx);
+}
+
+bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        return false;
+    }
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // 开始事务
+    db.transaction();
+
+    // 循环添加每个管脚
+    bool success = true;
+    for (const QString &pinName : pinNames)
+    {
+        QSqlQuery query(db);
+        query.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+        query.addBindValue(pinName);
+        query.addBindValue(""); // pin_note为空
+        query.addBindValue(""); // pin_nav_note为空
+
+        if (!query.exec())
+        {
+            qDebug() << "添加管脚失败:" << query.lastError().text();
+            success = false;
+            break;
+        }
+    }
+
+    // 提交或回滚事务
+    if (success)
+    {
+        db.commit();
+        return true;
+    }
+    else
+    {
         db.rollback();
-        QMessageBox::critical(this, "删除失败", errorMsg);
-        statusBar()->showMessage("删除行失败: " + errorMsg);
+        return false;
     }
 }

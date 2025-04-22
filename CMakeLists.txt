@@ -27,6 +27,12 @@ set(PROJECT_SOURCES
         timesetedgedialog.h
         pinvalueedit.h
         pinvalueedit.cpp
+        vectortabledelegate.h
+        vectortabledelegate.cpp
+        vectordatahandler.h
+        vectordatahandler.cpp
+        dialogmanager.h
+        dialogmanager.cpp
         icons.qrc
 )
 

@@ -21,9 +21,6 @@
 #include <QStyle>
 #include <QIcon>
 
-// 需要添加Q_OBJECT宏的实现
-#include "timesetdialog.moc"
-
 // 实现WaveComboDelegate的方法
 QWidget *WaveComboDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
                                          const QModelIndex &index) const
