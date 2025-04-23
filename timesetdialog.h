@@ -116,6 +116,9 @@ private: // 用private区域重新组织函数声明
     void loadWaveOptions();
     void loadPins();
 
+    // 更新所有边沿项的显示格式
+    void updateAllEdgeItemsDisplay();
+
     // 显示对话框和表单
     void showPinSelectionDialog(int tableId, const QString &tableName);
     void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
