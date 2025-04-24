@@ -41,7 +41,7 @@ private slots:
     bool addPinsToDatabase(const QList<QString> &pinNames);
 
     // 显示TimeSet对话框
-    bool showTimeSetDialog();
+    bool showTimeSetDialog(bool isInitialSetup = false);
 
     // 加载并显示向量表
     void loadVectorTable();

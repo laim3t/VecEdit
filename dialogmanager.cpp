@@ -252,6 +252,19 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
 
     QVBoxLayout *mainLayout = new QVBoxLayout(&vectorDataDialog);
 
+    // 添加标题下方的控件区域
+    QHBoxLayout *headerLayout = new QHBoxLayout();
+
+    // 添加"TimeS设置"按钮
+    QPushButton *timeSetButton = new QPushButton("TimeS设置", &vectorDataDialog);
+    headerLayout->addWidget(timeSetButton);
+
+    // 在按钮右侧添加弹簧，推动按钮到左侧
+    headerLayout->addStretch();
+
+    // 将标题栏布局添加到主布局
+    mainLayout->addLayout(headerLayout);
+
     // 添加注释标签
     QLabel *noteLabel = new QLabel("<b>注释:</b> 请确保添加的行数是下方表格中行数的倍数。", &vectorDataDialog);
     noteLabel->setStyleSheet("color: black;");
@@ -586,6 +599,13 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                          remainingRowsEdit->setText(QString::number(updatedRemaining)); // 即使禁用也可以更新文本
                      });
 
+    // 连接TimeS设置按钮
+    QObject::connect(timeSetButton, &QPushButton::clicked, [this]()
+                     {
+        // 弹出TimeSet设置对话框
+        TimeSetDialog dialog(m_parent);
+        dialog.exec(); });
+
     // 连接保存和取消按钮信号
     QObject::connect(saveButton, &QPushButton::clicked, [&]()
                      {
@@ -707,10 +727,10 @@ bool DialogManager::showAddPinsDialog()
     return false;
 }
 
-bool DialogManager::showTimeSetDialog()
+bool DialogManager::showTimeSetDialog(bool isInitialSetup)
 {
     // 创建并显示TimeSet对话框
-    TimeSetDialog dialog(m_parent);
+    TimeSetDialog dialog(m_parent, isInitialSetup);
 
     if (dialog.exec() == QDialog::Accepted)
     {

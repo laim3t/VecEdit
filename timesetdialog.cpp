@@ -70,11 +70,12 @@ void WaveComboDelegate::updateEditorGeometry(QWidget *editor, const QStyleOption
     editor->setGeometry(option.rect);
 }
 
-TimeSetDialog::TimeSetDialog(QWidget *parent)
+TimeSetDialog::TimeSetDialog(QWidget *parent, bool isInitialSetup)
     : QDialog(parent),
       m_mainWindow(nullptr),
       currentTimeSetItem(nullptr),
-      currentTimeSetIndex(-1)
+      currentTimeSetIndex(-1),
+      m_isInitialSetup(isInitialSetup)
 {
     // 尝试获取MainWindow指针
     m_mainWindow = qobject_cast<MainWindow *>(parent);
@@ -123,6 +124,9 @@ TimeSetDialog::TimeSetDialog(QWidget *parent)
 
     // 设置UI
     setupUI();
+
+    // 加载现有TimeSet设置
+    loadExistingTimeSets();
 
     // 创建波形委托并设置到树控件
     waveDelegate = new WaveComboDelegate(waveOptions, this);
@@ -376,18 +380,29 @@ void TimeSetDialog::addTimeSet()
                                          "timeset_" + QString::number(timeSetDataList.size() + 1), &ok);
     if (ok && !name.isEmpty())
     {
-        // 检查名称是否已存在
-        for (const TimeSetData &timeSet : timeSetDataList)
+        // 只检查名称是否已存在于数据库中，不再检查内存中的timeSetDataList
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+        query.prepare("SELECT id FROM timeset_list WHERE timeset_name = ?");
+        query.addBindValue(name);
+
+        bool nameExists = false;
+        if (query.exec() && query.next())
         {
-            if (timeSet.name == name)
-            {
-                QMessageBox::warning(this, "名称重复", "TimeSet名称已存在，请使用其他名称。");
-                return;
-            }
+            nameExists = true;
+        }
+
+        // 移除检查内存中timeSetDataList的代码部分
+
+        if (nameExists)
+        {
+            QMessageBox::warning(this, "名称重复", "TimeSet名称已存在于数据库中，请使用其他名称。");
+            return;
         }
 
         // 创建新的TimeSet数据
         TimeSetData newTimeSet;
+        newTimeSet.dbId = 0; // 新添加的TimeSet，dbId设为0
         newTimeSet.name = name;
         newTimeSet.period = 1000.0; // 默认1000ns
 
@@ -489,20 +504,29 @@ void TimeSetDialog::renameTimeSet(QTreeWidgetItem *item, int column)
         int index = timeSetTree->indexOfTopLevelItem(item);
         if (index >= 0 && index < timeSetDataList.size())
         {
-            // 检查名称是否已存在
-            for (int i = 0; i < timeSetDataList.size(); i++)
+            // 只检查数据库中是否存在同名TimeSet
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            QSqlQuery query(db);
+            query.prepare("SELECT id FROM timeset_list WHERE timeset_name = ? AND id != ?");
+            query.addBindValue(newName);
+            query.addBindValue(timeSetDataList[index].dbId);
+
+            bool nameExists = false;
+            if (query.exec() && query.next())
             {
-                if (i != index && timeSetDataList[i].name == newName)
-                {
-                    QMessageBox::warning(this, "名称重复", "TimeSet名称已存在，请使用其他名称。");
+                nameExists = true;
+            }
 
-                    // 恢复原名称和格式，使用紧凑格式
-                    double period = timeSetDataList[index].period;
-                    double freq = 1000.0 / period;
-                    item->setText(0, timeSetDataList[index].name + "/" + QString::number(period) + "ns=" + QString::number(freq, 'f', 3) + "MHz");
+            if (nameExists)
+            {
+                QMessageBox::warning(this, "名称重复", "TimeSet名称已存在于数据库中，请使用其他名称。");
 
-                    return;
-                }
+                // 恢复原名称和格式，使用紧凑格式
+                double period = timeSetDataList[index].period;
+                double freq = 1000.0 / period;
+                item->setText(0, timeSetDataList[index].name + "/" + QString::number(period) + "ns=" + QString::number(freq, 'f', 3) + "MHz");
+
+                return;
             }
 
             // 更新数据
@@ -783,53 +807,59 @@ void TimeSetDialog::removeEdgeItem()
 
         // 获取管脚名称，从新格式"timeSetName(pinName)"中提取
         QString currentText = item->text(0);
-        QString pinName = "";
+        QStringList pinNames;
 
         if (currentText.contains("(") && currentText.contains(")"))
         {
-            // 提取括号内的管脚名称
-            pinName = currentText.mid(currentText.indexOf("(") + 1,
-                                      currentText.lastIndexOf(")") - currentText.indexOf("(") - 1);
+            // 提取括号内的管脚名称，可能包含多个用逗号分隔的管脚
+            QString pinsStr = currentText.mid(currentText.indexOf("(") + 1,
+                                              currentText.lastIndexOf(")") - currentText.indexOf("(") - 1);
+            pinNames = pinsStr.split("，"); // 注意这里使用中文逗号
         }
         else
         {
-            // 旧格式或纯管脚名称
-            pinName = currentText.trimmed();
+            // 旧格式，直接分割
+            pinNames = currentText.split("，"); // 注意这里使用中文逗号
         }
 
         // 确认删除
+        QString pinListStr = pinNames.join("、");
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, "确认删除",
-                                      "确定要删除边沿参数 \"" + pinName + "\" 吗？",
+                                      "确定要删除以下边沿参数吗？\n" + pinListStr,
                                       QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::Yes)
         {
-            // 查找管脚ID
-            int pinId = -1;
-            for (auto it = pinList.begin(); it != pinList.end(); ++it)
+            // 删除所有相关管脚的数据
+            for (const QString &pinName : pinNames)
             {
-                if (it.value() == pinName)
+                QString cleanPinName = pinName.trimmed();
+                // 查找管脚ID
+                int pinId = -1;
+                for (auto it = pinList.begin(); it != pinList.end(); ++it)
                 {
-                    pinId = it.key();
-                    break;
-                }
-            }
-
-            if (pinId != -1)
-            {
-                // 删除该管脚的边沿数据
-                for (int i = 0; i < edgeDataList.size(); i++)
-                {
-                    if (edgeDataList[i].timesetId == parentIndex && edgeDataList[i].pinId == pinId)
+                    if (it.value() == cleanPinName)
                     {
-                        edgeDataList.removeAt(i);
+                        pinId = it.key();
                         break;
                     }
                 }
 
-                // 删除树项
-                delete item;
+                if (pinId != -1)
+                {
+                    // 删除该管脚的边沿数据
+                    for (int i = edgeDataList.size() - 1; i >= 0; i--)
+                    {
+                        if (edgeDataList[i].timesetId == parentIndex && edgeDataList[i].pinId == pinId)
+                        {
+                            edgeDataList.removeAt(i);
+                        }
+                    }
+                }
             }
+
+            // 删除树项
+            delete item;
         }
     }
 }
@@ -990,144 +1020,153 @@ void TimeSetDialog::onAccepted()
     // 保存数据到数据库
     if (saveToDatabase())
     {
-        // 先保存tableId以便后续使用
-        int tableId = -1;
-        QString tableName;
-
-        // 先隐藏TimeSet对话框，避免它一直显示在背景中
-        this->hide();
-
-        // 弹出向量表命名对话框
-        QDialog vectorNameDialog(nullptr); // 使用nullptr而不是this作为父窗口
-        vectorNameDialog.setWindowTitle("创建向量表向导");
-        vectorNameDialog.setFixedSize(320, 120);
-
-        QVBoxLayout *layout = new QVBoxLayout(&vectorNameDialog);
-
-        // 名称标签和输入框
-        QHBoxLayout *nameLayout = new QHBoxLayout();
-        QLabel *nameLabel = new QLabel("名称:", &vectorNameDialog);
-        QLineEdit *nameEdit = new QLineEdit(&vectorNameDialog);
-        nameEdit->setMinimumWidth(200);
-        nameLayout->addWidget(nameLabel);
-        nameLayout->addWidget(nameEdit);
-        layout->addLayout(nameLayout);
-
-        // 按钮布局
-        QHBoxLayout *buttonLayout = new QHBoxLayout();
-        buttonLayout->addStretch();
-        QPushButton *okButton = new QPushButton("确定", &vectorNameDialog);
-        QPushButton *cancelButton = new QPushButton("取消向导", &vectorNameDialog);
-        buttonLayout->addWidget(okButton);
-        buttonLayout->addWidget(cancelButton);
-        layout->addLayout(buttonLayout);
-
-        // 连接信号槽
-        connect(okButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::accept);
-        connect(cancelButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::reject);
-
-        // 显示对话框
-        if (vectorNameDialog.exec() == QDialog::Accepted)
+        // 如果是初始设置过程，显示创建向量表对话框
+        if (m_isInitialSetup)
         {
-            tableName = nameEdit->text().trimmed();
-            if (!tableName.isEmpty())
-            {
-                // 保存到数据库
-                QSqlDatabase db = DatabaseManager::instance()->database();
-                QSqlQuery query(db);
+            // 先保存tableId以便后续使用
+            int tableId = -1;
+            QString tableName;
 
-                // 检查vector_tables表是否存在，如不存在则创建
-                bool tableExists = false;
-                QStringList tables = db.tables();
-                if (tables.contains("vector_tables"))
+            // 先隐藏TimeSet对话框，避免它一直显示在背景中
+            this->hide();
+
+            // 弹出向量表命名对话框
+            QDialog vectorNameDialog(nullptr); // 使用nullptr而不是this作为父窗口
+            vectorNameDialog.setWindowTitle("创建向量表向导");
+            vectorNameDialog.setFixedSize(320, 120);
+
+            QVBoxLayout *layout = new QVBoxLayout(&vectorNameDialog);
+
+            // 名称标签和输入框
+            QHBoxLayout *nameLayout = new QHBoxLayout();
+            QLabel *nameLabel = new QLabel("名称:", &vectorNameDialog);
+            QLineEdit *nameEdit = new QLineEdit(&vectorNameDialog);
+            nameEdit->setMinimumWidth(200);
+            nameLayout->addWidget(nameLabel);
+            nameLayout->addWidget(nameEdit);
+            layout->addLayout(nameLayout);
+
+            // 按钮布局
+            QHBoxLayout *buttonLayout = new QHBoxLayout();
+            buttonLayout->addStretch();
+            QPushButton *okButton = new QPushButton("确定", &vectorNameDialog);
+            QPushButton *cancelButton = new QPushButton("取消向导", &vectorNameDialog);
+            buttonLayout->addWidget(okButton);
+            buttonLayout->addWidget(cancelButton);
+            layout->addLayout(buttonLayout);
+
+            // 连接信号槽
+            connect(okButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::accept);
+            connect(cancelButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::reject);
+
+            // 显示对话框
+            if (vectorNameDialog.exec() == QDialog::Accepted)
+            {
+                tableName = nameEdit->text().trimmed();
+                if (!tableName.isEmpty())
                 {
-                    tableExists = true;
-                }
-                else
-                {
-                    // 创建表
-                    QString createTableSql = "CREATE TABLE vector_tables ("
-                                             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                                             "table_name TEXT NOT NULL UNIQUE,"
-                                             "table_nav_note TEXT"
-                                             ")";
-                    if (query.exec(createTableSql))
+                    // 保存到数据库
+                    QSqlDatabase db = DatabaseManager::instance()->database();
+                    QSqlQuery query(db);
+
+                    // 检查vector_tables表是否存在，如不存在则创建
+                    bool tableExists = false;
+                    QStringList tables = db.tables();
+                    if (tables.contains("vector_tables"))
                     {
                         tableExists = true;
                     }
                     else
                     {
-                        QMessageBox::critical(nullptr, "数据库错误", "创建vector_tables表失败：" + query.lastError().text());
-                    }
-                }
-
-                // 如果表存在则插入数据
-                if (tableExists)
-                {
-                    // 检查是否已存在同名向量表
-                    query.prepare("SELECT id FROM vector_tables WHERE table_name = ?");
-                    query.addBindValue(tableName);
-
-                    if (query.exec() && query.next())
-                    {
-                        QMessageBox::warning(nullptr, "名称重复", "已存在同名的向量表，请使用其他名称。");
-                    }
-                    else
-                    {
-                        query.prepare("INSERT INTO vector_tables (table_name, table_nav_note) VALUES (?, '')");
-                        query.addBindValue(tableName);
-
-                        if (!query.exec())
+                        // 创建表
+                        QString createTableSql = "CREATE TABLE vector_tables ("
+                                                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                                 "table_name TEXT NOT NULL UNIQUE,"
+                                                 "table_nav_note TEXT"
+                                                 ")";
+                        if (query.exec(createTableSql))
                         {
-                            QMessageBox::critical(nullptr, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
+                            tableExists = true;
                         }
                         else
                         {
-                            // 获取新插入记录的ID
-                            tableId = query.lastInsertId().toInt();
+                            QMessageBox::critical(nullptr, "数据库错误", "创建vector_tables表失败：" + query.lastError().text());
+                        }
+                    }
 
-                            QMessageBox::information(nullptr, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+                    // 如果表存在则插入数据
+                    if (tableExists)
+                    {
+                        // 检查是否已存在同名向量表
+                        query.prepare("SELECT id FROM vector_tables WHERE table_name = ?");
+                        query.addBindValue(tableName);
 
-                            // 检查vector_table_pins表是否存在，如不存在则创建
-                            bool pinsTableExists = false;
-                            if (tables.contains("vector_table_pins"))
+                        if (query.exec() && query.next())
+                        {
+                            QMessageBox::warning(nullptr, "名称重复", "已存在同名的向量表，请使用其他名称。");
+                        }
+                        else
+                        {
+                            query.prepare("INSERT INTO vector_tables (table_name, table_nav_note) VALUES (?, '')");
+                            query.addBindValue(tableName);
+
+                            if (!query.exec())
                             {
-                                pinsTableExists = true;
+                                QMessageBox::critical(nullptr, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
                             }
                             else
                             {
-                                // 创建表
-                                QString createPinsTableSql = "CREATE TABLE vector_table_pins ("
-                                                             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                                                             "table_id INTEGER NOT NULL,"
-                                                             "pin_id INTEGER NOT NULL,"
-                                                             "pin_type INTEGER NOT NULL,"
-                                                             "pin_channel_count INTEGER DEFAULT 1,"
-                                                             "FOREIGN KEY(table_id) REFERENCES vector_tables(id),"
-                                                             "FOREIGN KEY(pin_id) REFERENCES pin_list(id)"
-                                                             ")";
-                                if (query.exec(createPinsTableSql))
+                                // 获取新插入记录的ID
+                                tableId = query.lastInsertId().toInt();
+
+                                QMessageBox::information(nullptr, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+
+                                // 检查vector_table_pins表是否存在，如不存在则创建
+                                bool pinsTableExists = false;
+                                if (tables.contains("vector_table_pins"))
                                 {
                                     pinsTableExists = true;
                                 }
                                 else
                                 {
-                                    QMessageBox::critical(nullptr, "数据库错误", "创建vector_table_pins表失败：" + query.lastError().text());
+                                    // 创建表
+                                    QString createPinsTableSql = "CREATE TABLE vector_table_pins ("
+                                                                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                                                 "table_id INTEGER NOT NULL,"
+                                                                 "pin_id INTEGER NOT NULL,"
+                                                                 "pin_type INTEGER NOT NULL,"
+                                                                 "pin_channel_count INTEGER DEFAULT 1,"
+                                                                 "FOREIGN KEY(table_id) REFERENCES vector_tables(id),"
+                                                                 "FOREIGN KEY(pin_id) REFERENCES pin_list(id)"
+                                                                 ")";
+                                    if (query.exec(createPinsTableSql))
+                                    {
+                                        pinsTableExists = true;
+                                    }
+                                    else
+                                    {
+                                        QMessageBox::critical(nullptr, "数据库错误", "创建vector_table_pins表失败：" + query.lastError().text());
+                                    }
                                 }
-                            }
 
-                            // 如果pins表创建成功，使用独立对话框函数显示管脚选择对话框
-                            if (pinsTableExists && tableId > 0)
-                            {
-                                showPinSelectionDialogStandalone(tableId, tableName);
+                                // 如果pins表创建成功，使用独立对话框函数显示管脚选择对话框
+                                if (pinsTableExists && tableId > 0)
+                                {
+                                    showPinSelectionDialogStandalone(tableId, tableName);
+                                }
                             }
                         }
                     }
                 }
             }
         }
+        else
+        {
+            // 如果不是初始设置，只显示保存成功信息
+            QMessageBox::information(this, "保存成功", "TimeSet设置已成功保存！");
+        }
 
-        // 在所有操作完成后接受对话框（这实际上只是为了完成整个流程，因为对话框已经隐藏）
+        // 接受对话框，完成流程
         accept();
     }
 }
@@ -1204,7 +1243,25 @@ bool TimeSetDialog::saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTi
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
 
-    // 检查是否已存在
+    // 如果数据库ID大于0，这是一个已存在的记录，直接更新
+    if (timeSet.dbId > 0)
+    {
+        query.prepare("UPDATE timeset_list SET timeset_name = ?, period = ? WHERE id = ?");
+        query.addBindValue(timeSet.name);
+        query.addBindValue(timeSet.period);
+        query.addBindValue(timeSet.dbId);
+
+        if (!query.exec())
+        {
+            QMessageBox::critical(this, "数据库错误", "更新TimeSet失败：" + query.lastError().text());
+            return false;
+        }
+
+        outTimeSetId = timeSet.dbId;
+        return true;
+    }
+
+    // 否则，这是一个新记录，先检查名称是否已存在
     query.prepare("SELECT id FROM timeset_list WHERE timeset_name = ?");
     query.addBindValue(timeSet.name);
 
@@ -1216,19 +1273,9 @@ bool TimeSetDialog::saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTi
 
     if (query.next())
     {
-        // 更新现有记录
-        int id = query.value(0).toInt();
-        query.prepare("UPDATE timeset_list SET period = ? WHERE id = ?");
-        query.addBindValue(timeSet.period);
-        query.addBindValue(id);
-
-        if (!query.exec())
-        {
-            QMessageBox::critical(this, "数据库错误", "更新TimeSet失败：" + query.lastError().text());
-            return false;
-        }
-
-        outTimeSetId = id;
+        // 数据库中存在同名记录，但不是我们正在编辑的记录
+        QMessageBox::warning(this, "名称冲突", "数据库中已存在名为 '" + timeSet.name + "' 的TimeSet。请使用其他名称。");
+        return false;
     }
     else
     {
@@ -1254,7 +1301,7 @@ bool TimeSetDialog::saveTimeSetEdgesToDatabase(int timeSetId, const QList<TimeSe
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
 
-    // 首先删除此timeSetId的所有现有边沿参数
+    // 首先删除该timeSetId的所有现有边沿参数
     query.prepare("DELETE FROM timeset_settings WHERE timeset_id = ?");
     query.addBindValue(timeSetId);
 
@@ -1427,41 +1474,56 @@ void TimeSetDialog::onPropertyItemChanged(QTreeWidgetItem *item, int column)
             // 重新获取这个管脚的值
             int parentIndex = timeSetTree->indexOfTopLevelItem(item->parent());
             QString pinText = item->text(0);
-            QStringList pinNames = pinText.split(",");
-            if (!pinNames.isEmpty())
-            {
-                QString pinName = pinNames.first().trimmed();
-                int pinId = -1;
-                for (auto it = pinList.begin(); it != pinList.end(); ++it)
-                {
-                    if (it.value() == pinName)
-                    {
-                        pinId = it.key();
-                        break;
-                    }
-                }
+            QString pinName = "";
 
-                if (pinId != -1)
+            // 正确提取管脚名称，处理"timeSetName(pinName)"格式
+            if (pinText.contains("(") && pinText.contains(")"))
+            {
+                // 提取括号内的管脚名称
+                pinName = pinText.mid(pinText.indexOf("(") + 1,
+                                      pinText.lastIndexOf(")") - pinText.indexOf("(") - 1);
+            }
+            else if (pinText.contains(","))
+            {
+                // 处理逗号分隔的格式，取第一个
+                pinName = pinText.split(",").first().trimmed();
+            }
+            else
+            {
+                // 纯管脚名称
+                pinName = pinText.trimmed();
+            }
+
+            int pinId = -1;
+            for (auto it = pinList.begin(); it != pinList.end(); ++it)
+            {
+                if (it.value() == pinName)
                 {
-                    for (const TimeSetEdgeData &edge : edgeDataList)
+                    pinId = it.key();
+                    break;
+                }
+            }
+
+            if (pinId != -1)
+            {
+                for (const TimeSetEdgeData &edge : edgeDataList)
+                {
+                    if (edge.timesetId == parentIndex && edge.pinId == pinId)
                     {
-                        if (edge.timesetId == parentIndex && edge.pinId == pinId)
+                        // 恢复原来的值
+                        switch (column)
                         {
-                            // 恢复原来的值
-                            switch (column)
-                            {
-                            case 1:
-                                item->setText(column, QString::number(edge.t1r));
-                                break;
-                            case 2:
-                                item->setText(column, QString::number(edge.t1f));
-                                break;
-                            case 3:
-                                item->setText(column, QString::number(edge.stbr));
-                                break;
-                            }
+                        case 1:
+                            item->setText(column, QString::number(edge.t1r));
+                            break;
+                        case 2:
+                            item->setText(column, QString::number(edge.t1f));
+                            break;
+                        case 3:
+                            item->setText(column, QString::number(edge.stbr));
                             break;
                         }
+                        break;
                     }
                 }
             }
@@ -1472,18 +1534,18 @@ void TimeSetDialog::onPropertyItemChanged(QTreeWidgetItem *item, int column)
     // 获取父项索引
     int parentIndex = timeSetTree->indexOfTopLevelItem(item->parent());
 
-    // 获取管脚名称列表
+    // 获取管脚名称
     QString pinText = item->text(0);
-    QStringList pinNames = pinText.split(",");
-    for (int i = 0; i < pinNames.size(); i++)
-    {
-        pinNames[i] = pinNames[i].trimmed();
-    }
+    QString pinName = "";
 
-    // 更新所有管脚的对应属性
-    for (const QString &pinName : pinNames)
+    // 正确提取管脚名称，处理"timeSetName(pinName)"格式
+    if (pinText.contains("(") && pinText.contains(")"))
     {
-        // 查找管脚ID
+        // 提取括号内的管脚名称
+        pinName = pinText.mid(pinText.indexOf("(") + 1,
+                              pinText.lastIndexOf(")") - pinText.indexOf("(") - 1);
+
+        // 单独处理这一个管脚
         int pinId = -1;
         for (auto it = pinList.begin(); it != pinList.end(); ++it)
         {
@@ -1527,6 +1589,67 @@ void TimeSetDialog::onPropertyItemChanged(QTreeWidgetItem *item, int column)
                         break;
                     }
                     break;
+                }
+            }
+        }
+    }
+    else
+    {
+        // 处理旧格式的多个管脚名称
+        QStringList pinNames = pinText.split(",");
+        for (int i = 0; i < pinNames.size(); i++)
+        {
+            pinNames[i] = pinNames[i].trimmed();
+        }
+
+        // 更新所有管脚的对应属性
+        for (const QString &pName : pinNames)
+        {
+            // 查找管脚ID
+            int pinId = -1;
+            for (auto it = pinList.begin(); it != pinList.end(); ++it)
+            {
+                if (it.value() == pName)
+                {
+                    pinId = it.key();
+                    break;
+                }
+            }
+
+            if (pinId != -1)
+            {
+                // 更新这个管脚的属性
+                for (int i = 0; i < edgeDataList.size(); i++)
+                {
+                    TimeSetEdgeData &edge = edgeDataList[i];
+                    if (edge.timesetId == parentIndex && edge.pinId == pinId)
+                    {
+                        // 根据列更新不同的属性
+                        switch (column)
+                        {
+                        case 1: // T1R
+                            edge.t1r = newValue.toDouble();
+                            break;
+                        case 2: // T1F
+                            edge.t1f = newValue.toDouble();
+                            break;
+                        case 3: // STBR
+                            edge.stbr = newValue.toDouble();
+                            break;
+                        case 4: // WAVE
+                            // 查找波形ID
+                            for (auto it = waveOptions.begin(); it != waveOptions.end(); ++it)
+                            {
+                                if (it.value() == newValue)
+                                {
+                                    edge.waveId = it.key();
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -2449,5 +2572,133 @@ void TimeSetDialog::updateAllEdgeItemsDisplay()
                 edgeItem->setTextAlignment(4, Qt::AlignCenter);
             }
         }
+    }
+}
+
+// 添加在loadPins函数下方添加loadExistingTimeSets函数
+void TimeSetDialog::loadExistingTimeSets()
+{
+    // 从数据库加载现有的TimeSet设置
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "加载TimeSet设置失败: 数据库未打开";
+        return;
+    }
+
+    QSqlQuery query(db);
+    if (query.exec("SELECT id, timeset_name, period FROM timeset_list ORDER BY timeset_name"))
+    {
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString name = query.value(1).toString();
+            double period = query.value(2).toDouble();
+
+            // 创建TimeSet数据结构
+            TimeSetData timeSet;
+            timeSet.dbId = id; // 保存数据库ID
+            timeSet.name = name;
+            timeSet.period = period;
+
+            // 查询关联的管脚不再需要，因为timeset_pins表可能不存在
+            // timeSet.pinIds也不再需要填充
+
+            // 添加到列表
+            timeSetDataList.append(timeSet);
+
+            // 创建TreeWidget顶级项
+            QTreeWidgetItem *timeSetItem = new QTreeWidgetItem(timeSetTree);
+
+            // 计算频率，用于显示
+            double freq = 1000.0 / period;
+
+            // 设置显示文本
+            timeSetItem->setText(0, name + "/" + QString::number(period) + "ns=" + QString::number(freq, 'f', 3) + "MHz");
+
+            // 设置字体和背景样式
+            QFont boldFont = timeSetItem->font(0);
+            boldFont.setBold(true);
+            boldFont.setPointSize(boldFont.pointSize() + 1);
+            timeSetItem->setFont(0, boldFont);
+
+            // 设置背景色
+            QBrush brush(QColor(230, 240, 250));
+            for (int col = 0; col < 5; col++)
+            {
+                timeSetItem->setBackground(col, brush);
+            }
+
+            // 查询边沿参数
+            QSqlQuery edgeQuery(db);
+            edgeQuery.prepare("SELECT pin_id, t1r, t1f, stbr, wave_id FROM timeset_settings WHERE timeset_id = ?");
+            edgeQuery.addBindValue(id);
+
+            if (edgeQuery.exec())
+            {
+                while (edgeQuery.next())
+                {
+                    int pinId = edgeQuery.value(0).toInt();
+                    double t1r = edgeQuery.value(1).toDouble();
+                    double t1f = edgeQuery.value(2).toDouble();
+                    double stbr = edgeQuery.value(3).toDouble();
+                    int waveId = edgeQuery.value(4).toInt();
+
+                    // 创建边沿数据
+                    TimeSetEdgeData edgeData;
+                    edgeData.timesetId = timeSetDataList.size() - 1; // 使用内部索引
+                    edgeData.pinId = pinId;
+                    edgeData.t1r = t1r;
+                    edgeData.t1f = t1f;
+                    edgeData.stbr = stbr;
+                    edgeData.waveId = waveId;
+
+                    // 添加到列表
+                    edgeDataList.append(edgeData);
+
+                    // 创建子项
+                    QTreeWidgetItem *edgeItem = new QTreeWidgetItem(timeSetItem);
+
+                    // 获取管脚名称
+                    QString pinName = pinList.value(pinId, "未知管脚");
+
+                    // 获取波形名称
+                    QString waveName = waveOptions.value(waveId, "未知波形");
+
+                    // 设置显示文本
+                    edgeItem->setText(0, name + "(" + pinName + ")");
+                    edgeItem->setText(1, QString::number(t1r));
+                    edgeItem->setText(2, QString::number(t1f));
+                    edgeItem->setText(3, QString::number(stbr));
+                    edgeItem->setText(4, waveName);
+
+                    // 设置数值列为居中对齐
+                    edgeItem->setTextAlignment(1, Qt::AlignCenter);
+                    edgeItem->setTextAlignment(2, Qt::AlignCenter);
+                    edgeItem->setTextAlignment(3, Qt::AlignCenter);
+                    edgeItem->setTextAlignment(4, Qt::AlignCenter);
+
+                    // 为波形设置背景色
+                    if (waveId > 0)
+                    {
+                        QBrush backgroundBrush(QColor(245, 245, 245));
+                        edgeItem->setBackground(4, backgroundBrush);
+                    }
+
+                    // 设置所有列都可编辑
+                    for (int col = 0; col < 5; col++)
+                    {
+                        edgeItem->setFlags(edgeItem->flags() | Qt::ItemIsEditable);
+                    }
+                }
+            }
+
+            // 展开所有项
+            timeSetItem->setExpanded(true);
+        }
+    }
+    else
+    {
+        qWarning() << "加载TimeSet设置失败:" << query.lastError().text();
     }
 }

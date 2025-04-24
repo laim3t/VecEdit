@@ -53,6 +53,7 @@ private:
 // TimeSet数据结构
 struct TimeSetData
 {
+    int dbId;          // 数据库中的ID，用于更新时的精确匹配
     QString name;      // TimeSet名称
     double period;     // 周期，单位ns
     QList<int> pinIds; // 关联的管脚ID列表
@@ -77,7 +78,7 @@ class TimeSetDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit TimeSetDialog(QWidget *parent = nullptr);
+    explicit TimeSetDialog(QWidget *parent = nullptr, bool isInitialSetup = false);
     ~TimeSetDialog();
 
 private slots:
@@ -115,6 +116,7 @@ private: // 用private区域重新组织函数声明
     // 数据加载函数
     void loadWaveOptions();
     void loadPins();
+    void loadExistingTimeSets();
 
     // 更新所有边沿项的显示格式
     void updateAllEdgeItemsDisplay();
@@ -157,6 +159,9 @@ private: // 用private区域重新组织函数声明
     // 当前选中的TimeSet项
     QTreeWidgetItem *currentTimeSetItem;
     int currentTimeSetIndex;
+
+    // 标识是否是初始设置流程
+    bool m_isInitialSetup;
 
     QSqlDatabase db;
 };

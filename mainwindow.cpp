@@ -170,7 +170,7 @@ void MainWindow::createNewProject()
         bool timeSetAdded = false;
         if (pinsAdded)
         {
-            timeSetAdded = showTimeSetDialog();
+            timeSetAdded = showTimeSetDialog(true);
         }
 
         // 显示创建成功的消息
@@ -291,7 +291,7 @@ bool MainWindow::showAddPinsDialog()
     return success;
 }
 
-bool MainWindow::showTimeSetDialog()
+bool MainWindow::showTimeSetDialog(bool isInitialSetup)
 {
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
@@ -299,8 +299,8 @@ bool MainWindow::showTimeSetDialog()
         return false;
     }
 
-    // 使用对话框管理器显示TimeSet对话框
-    bool success = m_dialogManager->showTimeSetDialog();
+    // 使用对话框管理器显示TimeSet对话框，传递isInitialSetup参数
+    bool success = m_dialogManager->showTimeSetDialog(isInitialSetup);
     if (success)
     {
         statusBar()->showMessage(tr("TimeSet已成功添加"));
@@ -322,6 +322,7 @@ void MainWindow::setupVectorTableUI()
 
     QPushButton *refreshButton = new QPushButton("刷新", m_vectorTableContainer);
     QPushButton *saveButton = new QPushButton("保存", m_vectorTableContainer);
+    QPushButton *timeSetButton = new QPushButton("TimeSet设置", m_vectorTableContainer);
     QPushButton *addVectorTableButton = new QPushButton("新增向量表", m_vectorTableContainer);
     QPushButton *addRowButton = new QPushButton("添加向量行", m_vectorTableContainer);
 
@@ -333,6 +334,7 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addStretch();
     controlLayout->addWidget(refreshButton);
     controlLayout->addWidget(saveButton);
+    controlLayout->addWidget(timeSetButton);
     controlLayout->addWidget(addVectorTableButton);
     controlLayout->addWidget(addRowButton);
     controlLayout->addWidget(deleteVectorTableButton);
@@ -367,6 +369,8 @@ void MainWindow::setupVectorTableUI()
             this, &MainWindow::onVectorTableSelectionChanged);
     connect(refreshButton, &QPushButton::clicked, this, &MainWindow::loadVectorTable);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
+    connect(timeSetButton, &QPushButton::clicked, this, [this]()
+            { showTimeSetDialog(false); });
     connect(addVectorTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
     connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
     connect(deleteVectorTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);

@@ -22,7 +22,7 @@ public:
     bool showAddPinsDialog();
 
     // 显示TimeSet对话框
-    bool showTimeSetDialog();
+    bool showTimeSetDialog(bool isInitialSetup = false);
 
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
