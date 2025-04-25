@@ -12,38 +12,38 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        databasemanager.cpp
-        databasemanager.h
-        databaseviewdialog.cpp
-        databaseviewdialog.h
-        pinlistdialog.cpp
-        pinlistdialog.h
-        timesetdialog.cpp
-        timesetdialog.h
-        timesetedgedialog.cpp
-        timesetedgedialog.h
-        pinvalueedit.h
-        pinvalueedit.cpp
-        vectortabledelegate.h
-        vectortabledelegate.cpp
-        vectordatahandler.h
-        vectordatahandler.cpp
-        dialogmanager.h
-        dialogmanager.cpp
-        timesetdataaccess.h
-        timesetdataaccess.cpp
-        timesetui.h
-        timesetui.cpp
-        timesetedgemanager.h
-        timesetedgemanager.cpp
-        pinselectionmanager.h
-        pinselectionmanager.cpp
-        vectordatamanager.h
-        vectordatamanager.cpp
-        icons.qrc
+        app/main.cpp
+        app/mainwindow.cpp
+        app/mainwindow.h
+        database/databasemanager.cpp
+        database/databasemanager.h
+        database/databaseviewdialog.cpp
+        database/databaseviewdialog.h
+        pin/pinlistdialog.cpp
+        pin/pinlistdialog.h
+        timeset/timesetdialog.cpp
+        timeset/timesetdialog.h
+        timeset/timesetedgedialog.cpp
+        timeset/timesetedgedialog.h
+        pin/pinvalueedit.h
+        pin/pinvalueedit.cpp
+        vector/vectortabledelegate.h
+        vector/vectortabledelegate.cpp
+        vector/vectordatahandler.h
+        vector/vectordatahandler.cpp
+        common/dialogmanager.h
+        common/dialogmanager.cpp
+        timeset/timesetdataaccess.h
+        timeset/timesetdataaccess.cpp
+        timeset/timesetui.h
+        timeset/timesetui.cpp
+        timeset/timesetedgemanager.h
+        timeset/timesetedgemanager.cpp
+        pin/pinselectionmanager.h
+        pin/pinselectionmanager.cpp
+        vector/vectordatamanager.h
+        vector/vectordatamanager.cpp
+        resources/qt/icons.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -74,8 +74,19 @@ target_link_libraries(VecEdit PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql
 )
 
+# 添加包含目录
+target_include_directories(VecEdit PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} # 保持根目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/timeset
+    ${CMAKE_CURRENT_SOURCE_DIR}/pin
+    ${CMAKE_CURRENT_SOURCE_DIR}/vector
+    ${CMAKE_CURRENT_SOURCE_DIR}/database
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+)
+
 # 复制schema.sql到构建目录
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/schema.sql
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/db/schema.sql
                ${CMAKE_CURRENT_BINARY_DIR}/schema.sql COPYONLY)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

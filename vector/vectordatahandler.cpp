@@ -1,6 +1,6 @@
 #include "vectordatahandler.h"
-#include "databasemanager.h"
-#include "pinvalueedit.h"
+#include "database/databasemanager.h"
+#include "pin/pinvalueedit.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>

@@ -1,7 +1,7 @@
 #include "timesetdialog.h"
 #include "timesetedgedialog.h"
-#include "databasemanager.h"
-#include "mainwindow.h"
+#include "database/databasemanager.h"
+#include "app/mainwindow.h"
 #include <QApplication>
 
 #include <QMessageBox>

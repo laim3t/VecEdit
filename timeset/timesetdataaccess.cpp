@@ -1,5 +1,5 @@
 #include "timesetdataaccess.h"
-#include "databasemanager.h"
+#include "database/databasemanager.h"
 
 TimeSetDataAccess::TimeSetDataAccess(QSqlDatabase &db) : m_db(db)
 {
@@ -473,7 +473,7 @@ bool TimeSetDataAccess::deleteTimeSet(int timeSetId)
     }
     edgeQuery.finish(); // 添加 finish
 
-       // 删除TimeSet主条目
+    // 删除TimeSet主条目
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM timeset_list WHERE id = ?");
     query.addBindValue(timeSetId);

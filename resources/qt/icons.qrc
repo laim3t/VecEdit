@@ -1,0 +1,11 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/resources/icons">
+        <file alias="x-circle.svg">../icons/x-circle.svg</file>
+        <file alias="plus-circle.svg">../icons/plus-circle.svg</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="icons/branch-closed.png">../icons/branch-closed.svg</file>
+        <file alias="icons/branch-open.png">../icons/branch-open.svg</file>
+    </qresource>
+</RCC>

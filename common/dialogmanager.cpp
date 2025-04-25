@@ -1,10 +1,10 @@
 #include "dialogmanager.h"
-#include "databasemanager.h"
-#include "databaseviewdialog.h"
-#include "pinlistdialog.h"
-#include "timesetdialog.h"
-#include "pinvalueedit.h"
-#include "vectordatahandler.h"
+#include "database/databasemanager.h"
+#include "database/databaseviewdialog.h"
+#include "pin/pinlistdialog.h"
+#include "timeset/timesetdialog.h"
+#include "pin/pinvalueedit.h"
+#include "vector/vectordatahandler.h"
 #include <QObject>
 
 #include <QVBoxLayout>

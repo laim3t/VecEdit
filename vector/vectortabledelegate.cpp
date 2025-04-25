@@ -1,6 +1,6 @@
 #include "vectortabledelegate.h"
-#include "pinvalueedit.h"
-#include "databasemanager.h"
+#include "pin/pinvalueedit.h"
+#include "database/databasemanager.h"
 
 #include <QComboBox>
 #include <QSqlQuery>

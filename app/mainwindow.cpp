@@ -1,12 +1,12 @@
 #include "mainwindow.h"
-#include "databasemanager.h"
-#include "databaseviewdialog.h"
-#include "pinlistdialog.h"
-#include "timesetdialog.h"
-#include "pinvalueedit.h"
-#include "vectortabledelegate.h"
-#include "vectordatahandler.h"
-#include "dialogmanager.h"
+#include "database/databasemanager.h"
+#include "database/databaseviewdialog.h"
+#include "pin/pinlistdialog.h"
+#include "timeset/timesetdialog.h"
+#include "pin/pinvalueedit.h"
+#include "vector/vectortabledelegate.h"
+#include "vector/vectordatahandler.h"
+#include "common/dialogmanager.h"
 
 #include <QMenuBar>
 #include <QMenu>
