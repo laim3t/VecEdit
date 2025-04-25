@@ -35,6 +35,7 @@
 #include <QKeyEvent>
 #include <QIcon>
 #include <QFileInfo>
+#include <QDialogButtonBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -173,6 +174,27 @@ void MainWindow::createNewProject()
             timeSetAdded = showTimeSetDialog(true);
         }
 
+        // 检查是否有向量表，如果没有，自动弹出创建向量表对话框
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+        bool hasVectorTable = false;
+
+        if (query.exec("SELECT COUNT(*) FROM vector_tables"))
+        {
+            if (query.next())
+            {
+                int count = query.value(0).toInt();
+                hasVectorTable = (count > 0);
+                qDebug() << "MainWindow::createNewProject - 检查向量表数量:" << count;
+            }
+        }
+
+        if (!hasVectorTable && timeSetAdded)
+        {
+            qDebug() << "MainWindow::createNewProject - 未找到向量表，自动显示创建向量表对话框";
+            addNewVectorTable();
+        }
+
         // 显示创建成功的消息
         QString message;
         if (pinsAdded && timeSetAdded)
@@ -301,6 +323,14 @@ bool MainWindow::showTimeSetDialog(bool isInitialSetup)
 
     // 使用对话框管理器显示TimeSet对话框，传递isInitialSetup参数
     bool success = m_dialogManager->showTimeSetDialog(isInitialSetup);
+
+    // 无论是否成功，都刷新缓存，确保UI显示最新的TimeSet列表
+    if (m_itemDelegate)
+    {
+        qDebug() << "MainWindow::showTimeSetDialog - 刷新TimeSet选项缓存";
+        m_itemDelegate->refreshCache();
+    }
+
     if (success)
     {
         statusBar()->showMessage(tr("TimeSet已成功添加"));
@@ -379,6 +409,8 @@ void MainWindow::setupVectorTableUI()
 
 void MainWindow::loadVectorTable()
 {
+    qDebug() << "MainWindow::loadVectorTable - 开始加载向量表";
+
     // 清空当前选择框
     m_vectorTableSelector->clear();
 
@@ -386,25 +418,46 @@ void MainWindow::loadVectorTable()
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
+        qDebug() << "MainWindow::loadVectorTable - 错误：数据库未打开";
         statusBar()->showMessage("错误：数据库未打开");
         return;
+    }
+
+    qDebug() << "MainWindow::loadVectorTable - 数据库已打开，开始查询向量表";
+
+    // 刷新itemDelegate的缓存，确保TimeSet选项是最新的
+    if (m_itemDelegate)
+    {
+        qDebug() << "MainWindow::loadVectorTable - 刷新TimeSet选项缓存";
+        m_itemDelegate->refreshCache();
     }
 
     // 查询所有向量表
     QSqlQuery tableQuery(db);
     if (tableQuery.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
     {
+        qDebug() << "MainWindow::loadVectorTable - 向量表查询执行成功";
+        int count = 0;
         while (tableQuery.next())
         {
             int tableId = tableQuery.value(0).toInt();
             QString tableName = tableQuery.value(1).toString();
             m_vectorTableSelector->addItem(tableName, tableId);
+            count++;
+            qDebug() << "MainWindow::loadVectorTable - 找到向量表:" << tableName << "ID:" << tableId;
         }
+
+        qDebug() << "MainWindow::loadVectorTable - 总共找到" << count << "个向量表";
+    }
+    else
+    {
+        qDebug() << "MainWindow::loadVectorTable - 向量表查询失败:" << tableQuery.lastError().text();
     }
 
     // 如果有向量表，显示向量表窗口，否则显示欢迎窗口
     if (m_vectorTableSelector->count() > 0)
     {
+        qDebug() << "MainWindow::loadVectorTable - 有向量表，显示向量表窗口";
         m_welcomeWidget->setVisible(false);
         m_vectorTableContainer->setVisible(true);
 
@@ -413,6 +466,7 @@ void MainWindow::loadVectorTable()
     }
     else
     {
+        qDebug() << "MainWindow::loadVectorTable - 没有找到向量表，显示欢迎窗口";
         m_welcomeWidget->setVisible(true);
         m_vectorTableContainer->setVisible(false);
         QMessageBox::information(this, "提示", "没有找到向量表，请先创建向量表");
@@ -468,12 +522,17 @@ void MainWindow::saveVectorTableData()
 
 void MainWindow::addNewVectorTable()
 {
+    qDebug() << "MainWindow::addNewVectorTable - 开始添加新向量表";
+
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
+        qDebug() << "MainWindow::addNewVectorTable - 未打开数据库，操作取消";
         QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
         return;
     }
+
+    qDebug() << "MainWindow::addNewVectorTable - 数据库已连接，准备创建向量表";
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -492,61 +551,84 @@ void MainWindow::addNewVectorTable()
     nameEdit->setMinimumWidth(200);
     nameLayout->addWidget(nameLabel);
     nameLayout->addWidget(nameEdit);
+
+    // 按钮
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &vectorNameDialog);
+    connect(buttonBox, &QDialogButtonBox::accepted, &vectorNameDialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &vectorNameDialog, &QDialog::reject);
+
     layout->addLayout(nameLayout);
+    layout->addWidget(buttonBox);
 
-    // 按钮布局
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->addStretch();
-    QPushButton *okButton = new QPushButton("确定", &vectorNameDialog);
-    QPushButton *cancelButton = new QPushButton("取消向导", &vectorNameDialog);
-    buttonLayout->addWidget(okButton);
-    buttonLayout->addWidget(cancelButton);
-    layout->addLayout(buttonLayout);
-
-    // 连接信号槽
-    connect(okButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::accept);
-    connect(cancelButton, &QPushButton::clicked, &vectorNameDialog, &QDialog::reject);
-
-    // 显示对话框
+    // 执行对话框
     if (vectorNameDialog.exec() == QDialog::Accepted)
     {
         QString tableName = nameEdit->text().trimmed();
         if (tableName.isEmpty())
         {
-            QMessageBox::warning(this, "警告", "请输入向量表名称");
+            qDebug() << "MainWindow::addNewVectorTable - 表名为空，操作取消";
+            QMessageBox::warning(this, "错误", "表名不能为空");
             return;
         }
 
-        // 检查是否已存在同名向量表
-        QSqlQuery query(db);
-        query.prepare("SELECT id FROM vector_tables WHERE table_name = ?");
-        query.addBindValue(tableName);
+        qDebug() << "MainWindow::addNewVectorTable - 用户输入的表名:" << tableName;
 
+        // 检查表名是否已存在
+        QSqlQuery query(db);
+        query.prepare("SELECT COUNT(*) FROM vector_tables WHERE table_name = ?");
+        query.addBindValue(tableName);
         if (query.exec() && query.next())
         {
-            QMessageBox::warning(this, "名称重复", "已存在同名的向量表，请使用其他名称。");
-            return;
+            int count = query.value(0).toInt();
+            if (count > 0)
+            {
+                qDebug() << "MainWindow::addNewVectorTable - 表名已存在";
+                QMessageBox::warning(this, "错误", "该表名已存在，请使用其他名称");
+                return;
+            }
         }
-
-        // 保存新向量表到数据库
-        query.prepare("INSERT INTO vector_tables (table_name, table_nav_note) VALUES (?, '')");
-        query.addBindValue(tableName);
-
-        if (!query.exec())
+        else
         {
-            QMessageBox::critical(this, "数据库错误", "创建向量表记录失败：" + query.lastError().text());
-            return;
+            qDebug() << "MainWindow::addNewVectorTable - 检查表名失败:" << query.lastError().text();
         }
 
-        // 获取新插入记录的ID
-        int tableId = query.lastInsertId().toInt();
-        QMessageBox::information(this, "创建成功", "向量表 '" + tableName + "' 已成功创建！");
+        qDebug() << "MainWindow::addNewVectorTable - 表名检查通过，准备插入新表";
 
-        // 使用对话框管理器显示管脚选择对话框
-        m_dialogManager->showPinSelectionDialog(tableId, tableName);
+        // 向数据库添加新表
+        query.prepare("INSERT INTO vector_tables (table_name) VALUES (?)");
+        query.addBindValue(tableName);
+        if (query.exec())
+        {
+            int tableId = query.lastInsertId().toInt();
+            qDebug() << "MainWindow::addNewVectorTable - 添加表成功，新表ID:" << tableId;
 
-        // 刷新向量表列表
-        loadVectorTable();
+            // 显示管脚选择对话框
+            showPinSelectionDialog(tableId, tableName);
+
+            // 刷新向量表列表
+            loadVectorTable();
+
+            // 选择新添加的表
+            for (int i = 0; i < m_vectorTableSelector->count(); i++)
+            {
+                if (m_vectorTableSelector->itemData(i).toInt() == tableId)
+                {
+                    m_vectorTableSelector->setCurrentIndex(i);
+                    break;
+                }
+            }
+
+            QMessageBox::information(this, "成功", "向量表 '" + tableName + "' 已成功创建");
+        }
+        else
+        {
+            qDebug() << "MainWindow::addNewVectorTable - 添加表失败:" << query.lastError().text();
+            QMessageBox::critical(this, "错误", "创建向量表失败: " + query.lastError().text());
+        }
+    }
+    else
+    {
+        qDebug() << "MainWindow::addNewVectorTable - 用户取消操作";
     }
 }
 

@@ -22,6 +22,7 @@
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QDebug>
 
 DialogManager::DialogManager(QWidget *parent)
     : m_parent(parent)
@@ -729,14 +730,52 @@ bool DialogManager::showAddPinsDialog()
 
 bool DialogManager::showTimeSetDialog(bool isInitialSetup)
 {
+    qDebug() << "DialogManager::showTimeSetDialog - 开始显示TimeSet对话框，初始设置模式:" << isInitialSetup;
+
+    // 在非初始设置模式下，检查向量表是否存在
+    if (!isInitialSetup)
+    {
+        // 检查向量表是否存在
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+
+        if (query.exec("SELECT COUNT(*) FROM vector_tables"))
+        {
+            if (query.next())
+            {
+                int count = query.value(0).toInt();
+                qDebug() << "DialogManager::showTimeSetDialog - 检查向量表数量:" << count;
+
+                if (count <= 0)
+                {
+                    qDebug() << "DialogManager::showTimeSetDialog - 非初始设置模式下未找到向量表，提前终止";
+                    QMessageBox::information(m_parent, "提示", "没有找到向量表，请先创建向量表");
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            qDebug() << "DialogManager::showTimeSetDialog - 查询向量表失败:" << query.lastError().text();
+        }
+    }
+    else
+    {
+        qDebug() << "DialogManager::showTimeSetDialog - 初始设置模式，跳过向量表检查";
+    }
+
     // 创建并显示TimeSet对话框
+    qDebug() << "DialogManager::showTimeSetDialog - 创建TimeSet对话框实例";
     TimeSetDialog dialog(m_parent, isInitialSetup);
 
+    qDebug() << "DialogManager::showTimeSetDialog - 显示对话框";
     if (dialog.exec() == QDialog::Accepted)
     {
+        qDebug() << "DialogManager::showTimeSetDialog - 用户接受了对话框";
         return true;
     }
 
+    qDebug() << "DialogManager::showTimeSetDialog - 用户取消了对话框";
     return false;
 }
 

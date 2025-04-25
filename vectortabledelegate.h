@@ -24,6 +24,9 @@ public:
     // 获取编辑器数据
     void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
 
+    // 添加刷新缓存的方法
+    void refreshCache();
+
 private:
     // 缓存指令选项
     mutable QStringList m_instructionOptions;

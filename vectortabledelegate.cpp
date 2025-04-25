@@ -11,9 +11,17 @@ VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent)
     : QStyledItemDelegate(parent)
 {
     // 清空缓存，确保每次创建代理时都重新从数据库获取选项
+    refreshCache();
+}
+
+// 刷新缓存方法实现
+void VectorTableItemDelegate::refreshCache()
+{
     m_instructionOptions.clear();
     m_timesetOptions.clear();
     m_pinOptions.clear();
+
+    qDebug() << "VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载";
 }
 
 VectorTableItemDelegate::~VectorTableItemDelegate()
@@ -163,11 +171,8 @@ QStringList VectorTableItemDelegate::getInstructionOptions() const
 
 QStringList VectorTableItemDelegate::getTimesetOptions() const
 {
-    // 如果已缓存，则直接返回
-    if (!m_timesetOptions.isEmpty())
-    {
-        return m_timesetOptions;
-    }
+    // 不使用缓存，每次都从数据库获取最新的时间集选项
+    m_timesetOptions.clear();
 
     // 从数据库获取时间集选项
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -175,10 +180,15 @@ QStringList VectorTableItemDelegate::getTimesetOptions() const
     query.prepare("SELECT timeset_name FROM timeset_list ORDER BY id");
     if (query.exec())
     {
+        int count = 0;
         while (query.next())
         {
-            m_timesetOptions << query.value(0).toString();
+            QString timesetName = query.value(0).toString();
+            m_timesetOptions << timesetName;
+            count++;
+            qDebug() << "VectorTableItemDelegate::getTimesetOptions - 加载TimeSet:" << timesetName;
         }
+        qDebug() << "VectorTableItemDelegate::getTimesetOptions - 总共加载" << count << "个TimeSet选项";
     }
     else
     {

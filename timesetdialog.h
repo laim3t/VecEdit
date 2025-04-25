@@ -4,23 +4,18 @@
 #include <QDialog>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
-#include <QPushButton>
-#include <QDialogButtonBox>
-#include <QComboBox>
-#include <QLabel>
-#include <QCheckBox>
-#include <QDoubleSpinBox>
-#include <QLineEdit>
-#include <QGroupBox>
-#include <QListWidget>
-#include <QSplitter>
-#include <QStandardItemModel>
-#include <QList>
-#include <QMap>
-#include <QStyledItemDelegate>
 #include <QSqlDatabase>
-#include <QTableWidget>
-#include <QTableWidgetItem>
+#include <QMap>
+#include <QList>
+#include <QStyledItemDelegate>
+
+#include "timesetdataaccess.h"
+#include "timesetui.h"
+#include "timesetedgemanager.h"
+#include "pinselectionmanager.h"
+#include "vectordatamanager.h"
+
+class MainWindow;
 
 // 波形下拉框委托类
 class WaveComboDelegate : public QStyledItemDelegate
@@ -28,8 +23,7 @@ class WaveComboDelegate : public QStyledItemDelegate
     Q_OBJECT
 
 public:
-    WaveComboDelegate(const QMap<int, QString> &waveOptions, QObject *parent = nullptr)
-        : QStyledItemDelegate(parent), m_waveOptions(waveOptions) {}
+    WaveComboDelegate(const QMap<int, QString> &waveOptions, QObject *parent = nullptr);
 
     // 创建编辑器
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
@@ -50,28 +44,7 @@ private:
     QMap<int, QString> m_waveOptions;
 };
 
-// TimeSet数据结构
-struct TimeSetData
-{
-    int dbId;          // 数据库中的ID，用于更新时的精确匹配
-    QString name;      // TimeSet名称
-    double period;     // 周期，单位ns
-    QList<int> pinIds; // 关联的管脚ID列表
-};
-
-// 前向声明MainWindow类
-class MainWindow;
-
-// TimeSet边沿参数条目数据结构
-struct TimeSetEdgeData
-{
-    int timesetId; // 关联的TimeSet ID
-    int pinId;     // 关联的管脚ID
-    double t1r;    // T1R值，默认250
-    double t1f;    // T1F值，默认750
-    double stbr;   // STBR值，默认500
-    int waveId;    // 波形ID，关联wave_options表
-};
+// TimeSet数据结构和边沿参数条目数据结构已在timesetdataaccess.h中定义
 
 class TimeSetDialog : public QDialog
 {
@@ -85,7 +58,6 @@ private slots:
     // TimeSet操作
     void addTimeSet();
     void removeTimeSet();
-    void renameTimeSet(QTreeWidgetItem *item, int column);
     void updatePeriod(double value);
     void timeSetSelectionChanged();
     void editTimeSetProperties(QTreeWidgetItem *item, int column);
@@ -105,65 +77,45 @@ private slots:
     void onAccepted();
     void onRejected();
 
-private: // 用private区域重新组织函数声明
-    // UI相关函数
-    void setupUI();
-    void setupMainLayout();
-    void setupTreeWidget();
-    void setupPinSelection();
-    void setupButtonBox();
+private:
+    // 初始化方法
+    void initialize();
+    void setupConnections();
 
-    // 数据加载函数
-    void loadWaveOptions();
-    void loadPins();
-    void loadExistingTimeSets();
+    // 数据加载方法
+    bool loadExistingTimeSets();
 
-    // 更新所有边沿项的显示格式
-    void updateAllEdgeItemsDisplay();
-
-    // 显示对话框和表单
-    void showPinSelectionDialog(int tableId, const QString &tableName);
-    void showPinSelectionDialogStandalone(int tableId, const QString &tableName);
-    void showVectorDataDialog(int tableId, const QString &tableName);
-    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
-
-    // 更新边沿项显示文本
-    void updateEdgeItemText(QTreeWidgetItem *edgeItem, const TimeSetEdgeData &edgeData);
-
-    // 保存到数据库
-    bool saveToDatabase();
-    bool saveTimeSetEdgesToDatabase(int timeSetId, const QList<TimeSetEdgeData> &edges);
-    bool saveTimeSetToDatabase(const TimeSetData &timeSet, int &outTimeSetId);
+    // Helper to get TimeSet name by ID
+    QString getTimeSetNameById(int id) const;
 
     // MainWindow指针，用于访问共享方法
     MainWindow *m_mainWindow;
 
-    // UI组件
-    QSplitter *mainSplitter;
-    QTreeWidget *timeSetTree;
-    QGroupBox *pinSelectionGroup;
-    QListWidget *pinListWidget;
-    QPushButton *addTimeSetButton;
-    QPushButton *removeTimeSetButton;
-    QPushButton *addEdgeButton;
-    QPushButton *removeEdgeButton;
-    QDialogButtonBox *buttonBox;
-    WaveComboDelegate *waveDelegate;
+    // 模块管理器
+    TimeSetUIManager *m_uiManager;
+    TimeSetDataAccess *m_dataAccess;
+    TimeSetEdgeManager *m_edgeManager;
+    PinSelectionManager *m_pinManager;
+    VectorDataManager *m_vectorManager;
 
     // 数据
-    QList<TimeSetData> timeSetDataList;
-    QMap<int, QString> waveOptions; // 波形ID -> 名称映射
-    QMap<int, QString> pinList;     // 管脚ID -> 名称映射
-    QList<TimeSetEdgeData> edgeDataList;
+    QList<TimeSetData> m_timeSetDataList;
+    QMap<int, QString> m_waveOptions;
+    QMap<int, QString> m_pinList;
+    QList<int> m_timeSetIdsToDelete; // Track TimeSet IDs marked for deletion
 
     // 当前选中的TimeSet项
-    QTreeWidgetItem *currentTimeSetItem;
-    int currentTimeSetIndex;
+    QTreeWidgetItem *m_currentTimeSetItem;
+    int m_currentTimeSetIndex;
 
     // 标识是否是初始设置流程
     bool m_isInitialSetup;
 
-    QSqlDatabase db;
+    // 数据库连接
+    QSqlDatabase m_db;
+
+    // 委托
+    WaveComboDelegate *m_waveDelegate;
 };
 
 #endif // TIMESETDIALOG_H

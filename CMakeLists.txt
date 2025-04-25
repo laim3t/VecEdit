@@ -33,6 +33,16 @@ set(PROJECT_SOURCES
         vectordatahandler.cpp
         dialogmanager.h
         dialogmanager.cpp
+        timesetdataaccess.h
+        timesetdataaccess.cpp
+        timesetui.h
+        timesetui.cpp
+        timesetedgemanager.h
+        timesetedgemanager.cpp
+        pinselectionmanager.h
+        pinselectionmanager.cpp
+        vectordatamanager.h
+        vectordatamanager.cpp
         icons.qrc
 )
 
