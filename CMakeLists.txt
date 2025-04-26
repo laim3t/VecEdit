@@ -25,6 +25,8 @@ set(PROJECT_SOURCES
         timeset/timesetdialog.h
         timeset/timesetedgedialog.cpp
         timeset/timesetedgedialog.h
+        timeset/filltimesetdialog.cpp
+        timeset/filltimesetdialog.h
         pin/pinvalueedit.h
         pin/pinvalueedit.cpp
         vector/vectortabledelegate.h

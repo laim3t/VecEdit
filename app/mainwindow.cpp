@@ -3,6 +3,7 @@
 #include "database/databaseviewdialog.h"
 #include "pin/pinlistdialog.h"
 #include "timeset/timesetdialog.h"
+#include "timeset/filltimesetdialog.h"
 #include "pin/pinvalueedit.h"
 #include "vector/vectortabledelegate.h"
 #include "vector/vectordatahandler.h"
@@ -341,49 +342,71 @@ bool MainWindow::showTimeSetDialog(bool isInitialSetup)
 void MainWindow::setupVectorTableUI()
 {
     // 创建向量表容器
-    m_vectorTableContainer = new QWidget(m_centralWidget);
+    m_vectorTableContainer = new QWidget(this);
     QVBoxLayout *containerLayout = new QVBoxLayout(m_vectorTableContainer);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 顶部控制栏
+    // 创建顶部控制栏
     QHBoxLayout *controlLayout = new QHBoxLayout();
-    QLabel *tableLabel = new QLabel("向量表:", m_vectorTableContainer);
-    m_vectorTableSelector = new QComboBox(m_vectorTableContainer);
-    m_vectorTableSelector->setMinimumWidth(200);
 
-    QPushButton *refreshButton = new QPushButton("刷新", m_vectorTableContainer);
-    QPushButton *saveButton = new QPushButton("保存", m_vectorTableContainer);
-    QPushButton *timeSetButton = new QPushButton("TimeSet设置", m_vectorTableContainer);
-    QPushButton *addVectorTableButton = new QPushButton("新增向量表", m_vectorTableContainer);
-    QPushButton *addRowButton = new QPushButton("添加向量行", m_vectorTableContainer);
-
-    QPushButton *deleteVectorTableButton = new QPushButton("删除向量表", m_vectorTableContainer);
-    QPushButton *deleteRowsButton = new QPushButton("删除向量行", m_vectorTableContainer);
-
-    controlLayout->addWidget(tableLabel);
+    // 向量表选择下拉框
+    QLabel *selectLabel = new QLabel(tr("选择向量表:"), this);
+    m_vectorTableSelector = new QComboBox(this);
+    m_vectorTableSelector->setMinimumWidth(150);
+    controlLayout->addWidget(selectLabel);
     controlLayout->addWidget(m_vectorTableSelector);
-    controlLayout->addStretch();
-    controlLayout->addWidget(refreshButton);
-    controlLayout->addWidget(saveButton);
-    controlLayout->addWidget(timeSetButton);
-    controlLayout->addWidget(addVectorTableButton);
-    controlLayout->addWidget(addRowButton);
-    controlLayout->addWidget(deleteVectorTableButton);
-    controlLayout->addWidget(deleteRowsButton);
 
-    // 向量表
-    m_vectorTableWidget = new QTableWidget(m_vectorTableContainer);
-    m_vectorTableWidget->setAlternatingRowColors(true);
+    // 添加填充TimeSet按钮
+    m_fillTimeSetButton = new QPushButton(tr("填充TimeSet"), this);
+    connect(m_fillTimeSetButton, &QPushButton::clicked, this, &MainWindow::showFillTimeSetDialog);
+    controlLayout->addWidget(m_fillTimeSetButton);
+
+    // 添加刷新按钮
+    m_refreshButton = new QPushButton(tr("刷新"), this);
+    connect(m_refreshButton, &QPushButton::clicked, this, &MainWindow::refreshVectorTableData);
+    controlLayout->addWidget(m_refreshButton);
+
+    // 添加TimeSet设置按钮
+    m_timeSetSettingsButton = new QPushButton(tr("设置TimeSet"), this);
+    connect(m_timeSetSettingsButton, &QPushButton::clicked, this, &MainWindow::openTimeSetSettingsDialog);
+    controlLayout->addWidget(m_timeSetSettingsButton);
+
+    // 添加其他按钮
+    QPushButton *addRowButton = new QPushButton(tr("添加行"), this);
+    QPushButton *deleteRowButton = new QPushButton(tr("删除所选行"), this);
+    QPushButton *addTableButton = new QPushButton(tr("添加向量表"), this);
+    QPushButton *deleteTableButton = new QPushButton(tr("删除当前向量表"), this);
+    QPushButton *saveButton = new QPushButton(tr("保存"), this);
+
+    // 连接信号
+    connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
+    connect(deleteRowButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
+    connect(addTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
+    connect(deleteTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
+    connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
+    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onVectorTableSelectionChanged);
+
+    // 添加按钮到控制布局
+    controlLayout->addWidget(addRowButton);
+    controlLayout->addWidget(deleteRowButton);
+    controlLayout->addWidget(addTableButton);
+    controlLayout->addWidget(deleteTableButton);
+    controlLayout->addWidget(saveButton);
+    controlLayout->addStretch();
+
+    // 创建向量表控件
+    m_vectorTableWidget = new QTableWidget(this);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
+    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked | QAbstractItemView::EditKeyPressed);
 
-    // 创建并设置自定义代理
+    // 表格代理
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
-    // 将控件添加到容器布局
+    // 添加到容器布局
     containerLayout->addLayout(controlLayout);
     containerLayout->addWidget(m_vectorTableWidget);
 
@@ -393,18 +416,6 @@ void MainWindow::setupVectorTableUI()
     {
         mainLayout->addWidget(m_vectorTableContainer);
     }
-
-    // 连接信号槽
-    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onVectorTableSelectionChanged);
-    connect(refreshButton, &QPushButton::clicked, this, &MainWindow::loadVectorTable);
-    connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
-    connect(timeSetButton, &QPushButton::clicked, this, [this]()
-            { showTimeSetDialog(false); });
-    connect(addVectorTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
-    connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
-    connect(deleteVectorTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
-    connect(deleteRowsButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
 }
 
 void MainWindow::loadVectorTable()
@@ -798,6 +809,110 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
     }
 }
 
+void MainWindow::showFillTimeSetDialog()
+{
+    // 检查是否有向量表被选中
+    int currentIndex = m_vectorTableSelector->currentIndex();
+    if (currentIndex < 0)
+    {
+        QMessageBox::warning(this, tr("警告"), tr("请先选择一个向量表"));
+        return;
+    }
+
+    // 获取当前向量表ID
+    int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
+
+    // 获取向量表行数
+    int rowCount = m_dataHandler->getVectorTableRowCount(tableId);
+    if (rowCount <= 0)
+    {
+        QMessageBox::warning(this, tr("警告"), tr("当前向量表没有行数据"));
+        return;
+    }
+
+    // 创建并显示填充TimeSet对话框
+    FillTimeSetDialog dialog(this);
+    dialog.setVectorRowCount(rowCount);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        // 获取用户输入
+        int timeSetId = dialog.getSelectedTimeSetId();
+        int startRow = dialog.getStartRow();
+        int endRow = dialog.getEndRow();
+        int step = dialog.getStepValue();
+
+        // 填充TimeSet
+        fillTimeSetForVectorTable(timeSetId, startRow, endRow, step);
+    }
+}
+
+void MainWindow::fillTimeSetForVectorTable(int timeSetId, int startRow, int endRow, int step)
+{
+    // 检查参数有效性
+    if (timeSetId <= 0 || startRow < 0 || endRow < startRow || step <= 0)
+    {
+        QMessageBox::warning(this, tr("错误"), tr("填充TimeSet参数无效"));
+        return;
+    }
+
+    // 获取当前向量表ID
+    int currentIndex = m_vectorTableSelector->currentIndex();
+    if (currentIndex < 0)
+    {
+        return;
+    }
+    int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        QMessageBox::critical(this, tr("错误"), tr("数据库连接失败"));
+        return;
+    }
+
+    // 开始事务
+    db.transaction();
+
+    try
+    {
+        // 准备更新SQL
+        QSqlQuery query(db);
+        query.prepare("UPDATE vector_data SET timeset_id = :timesetId WHERE vector_table_id = :tableId AND row_index >= :startRow AND row_index <= :endRow AND (row_index - :startRow) % :step = 0");
+        query.bindValue(":timesetId", timeSetId);
+        query.bindValue(":tableId", tableId);
+        query.bindValue(":startRow", startRow);
+        query.bindValue(":endRow", endRow);
+        query.bindValue(":step", step);
+
+        if (!query.exec())
+        {
+            throw std::runtime_error(query.lastError().text().toStdString());
+        }
+
+        // 提交事务
+        if (!db.commit())
+        {
+            throw std::runtime_error(db.lastError().text().toStdString());
+        }
+
+        // 重新加载表格数据
+        loadVectorTable();
+
+        // 显示成功消息
+        QMessageBox::information(this, tr("成功"), tr("TimeSet填充完成"));
+    }
+    catch (const std::exception &e)
+    {
+        // 回滚事务
+        db.rollback();
+
+        // 显示错误消息
+        QMessageBox::critical(this, tr("错误"), tr("填充TimeSet失败: %1").arg(e.what()));
+    }
+}
+
 void MainWindow::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
 {
     VectorDataHandler::addVectorRow(table, pinOptions, rowIdx);
@@ -845,5 +960,68 @@ bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
     {
         db.rollback();
         return false;
+    }
+}
+
+// 刷新当前向量表数据
+void MainWindow::refreshVectorTableData()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    // 使用数据处理器重新加载数据
+    if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
+    {
+        statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
+    }
+    else
+    {
+        statusBar()->showMessage("刷新向量表失败");
+        QMessageBox::warning(this, "刷新失败", "无法刷新向量表数据，请检查数据库连接");
+    }
+}
+
+// 打开TimeSet设置对话框
+void MainWindow::openTimeSetSettingsDialog()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 显示TimeSet设置对话框
+    if (showTimeSetDialog(false))
+    {
+        // 如果有修改，刷新界面
+        if (m_itemDelegate)
+        {
+            m_itemDelegate->refreshCache();
+        }
+
+        // 重新加载当前向量表数据
+        int currentIndex = m_vectorTableSelector->currentIndex();
+        if (currentIndex >= 0)
+        {
+            onVectorTableSelectionChanged(currentIndex);
+        }
+
+        statusBar()->showMessage("TimeSet设置已更新");
     }
 }

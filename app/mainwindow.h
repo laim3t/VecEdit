@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QTableWidget>
 #include <QComboBox>
+#include <QPushButton>
 
 // 前置声明
 class VectorTableItemDelegate;
@@ -70,6 +71,16 @@ private slots:
     // 删除选中的向量行
     void deleteSelectedVectorRows();
 
+    // 填充TimeSet
+    void showFillTimeSetDialog();
+    void fillTimeSetForVectorTable(int timeSetId, int startRow, int endRow, int step);
+
+    // 刷新当前向量表数据
+    void refreshVectorTableData();
+
+    // 打开TimeSet设置对话框
+    void openTimeSetSettingsDialog();
+
 private:
     void setupUI();
     void setupMenu();
@@ -84,6 +95,9 @@ private:
     QWidget *m_centralWidget;
     QWidget *m_welcomeWidget;
     QWidget *m_vectorTableContainer;
+    QPushButton *m_fillTimeSetButton;
+    QPushButton *m_refreshButton;
+    QPushButton *m_timeSetSettingsButton;
 
     // 自定义代理
     VectorTableItemDelegate *m_itemDelegate;
