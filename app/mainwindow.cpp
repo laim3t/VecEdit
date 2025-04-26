@@ -830,29 +830,62 @@ void MainWindow::showFillTimeSetDialog()
         return;
     }
 
-    // 创建并显示填充TimeSet对话框
+    // 创建填充TimeSet对话框
     FillTimeSetDialog dialog(this);
     dialog.setVectorRowCount(rowCount);
+
+    // 获取选中的UI行 (0-based index)
+    QList<int> selectedUiRows;
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (!selectedIndexes.isEmpty())
+    {
+        int minRow = INT_MAX;
+        int maxRow = INT_MIN;
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            int uiRow = index.row();
+            selectedUiRows.append(uiRow);
+            minRow = qMin(minRow, uiRow);
+            maxRow = qMax(maxRow, uiRow);
+        }
+
+        // 设置对话框的起始行和结束行，主要为了显示，实际更新使用selectedUiRows
+        dialog.setSelectedRange(minRow + 1, maxRow + 1);
+    }
 
     if (dialog.exec() == QDialog::Accepted)
     {
         // 获取用户输入
         int timeSetId = dialog.getSelectedTimeSetId();
-        int startRow = dialog.getStartRow();
-        int endRow = dialog.getEndRow();
-        int step = dialog.getStepValue();
 
-        // 填充TimeSet
-        fillTimeSetForVectorTable(timeSetId, startRow, endRow, step);
+        // 填充TimeSet，传递选中的UI行列表
+        fillTimeSetForVectorTable(timeSetId, selectedUiRows);
     }
 }
 
-void MainWindow::fillTimeSetForVectorTable(int timeSetId, int startRow, int endRow, int step)
+void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &selectedUiRows)
 {
-    // 检查参数有效性
-    if (timeSetId <= 0 || startRow < 0 || endRow < startRow || step <= 0)
+    // 添加调试日志
+    qDebug() << "填充TimeSet开始 - TimeSet ID:" << timeSetId;
+    if (!selectedUiRows.isEmpty())
     {
-        QMessageBox::warning(this, tr("错误"), tr("填充TimeSet参数无效"));
+        QStringList rowList;
+        for (int row : selectedUiRows)
+        {
+            rowList << QString::number(row);
+        }
+        qDebug() << "填充TimeSet - 针对UI行:" << rowList.join(',');
+    }
+    else
+    {
+        qDebug() << "填充TimeSet - 未选择行，将应用于整个表";
+    }
+
+    // 检查TimeSet ID有效性
+    if (timeSetId <= 0)
+    {
+        QMessageBox::warning(this, tr("错误"), tr("TimeSet ID无效"));
+        qDebug() << "填充TimeSet参数无效 - TimeSet ID:" << timeSetId;
         return;
     }
 
@@ -860,53 +893,138 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, int startRow, int endR
     int currentIndex = m_vectorTableSelector->currentIndex();
     if (currentIndex < 0)
     {
+        qDebug() << "填充TimeSet失败 - 未选择向量表";
         return;
     }
     int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+    qDebug() << "填充TimeSet - 当前向量表ID:" << tableId << ", 名称:" << tableName;
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
         QMessageBox::critical(this, tr("错误"), tr("数据库连接失败"));
+        qDebug() << "填充TimeSet失败 - 数据库连接失败";
         return;
     }
+
+    // 获取TimeSet名称用于日志
+    QSqlQuery nameQuery(db);
+    nameQuery.prepare("SELECT timeset_name FROM timeset_list WHERE id = ?");
+    nameQuery.addBindValue(timeSetId);
+    QString timeSetName = "未知";
+    if (nameQuery.exec() && nameQuery.next())
+    {
+        timeSetName = nameQuery.value(0).toString();
+    }
+    qDebug() << "填充TimeSet - 使用TimeSet:" << timeSetName << "(" << timeSetId << ")";
 
     // 开始事务
     db.transaction();
 
     try
     {
+        QList<int> idsToUpdate; // 存储要更新的数据库行的ID
+
+        if (!selectedUiRows.isEmpty())
+        {
+            // 1. 获取表中所有行的ID，按sort_index排序
+            QList<int> allRowIds;
+            QSqlQuery idQuery(db);
+            QString idSql = QString("SELECT id FROM vector_table_data WHERE table_id = %1 ORDER BY sort_index").arg(tableId);
+            qDebug() << "填充TimeSet - 查询所有行ID:" << idSql;
+            if (!idQuery.exec(idSql))
+            {
+                throw std::runtime_error(("查询行ID失败: " + idQuery.lastError().text()).toStdString());
+            }
+            while (idQuery.next())
+            {
+                allRowIds.append(idQuery.value(0).toInt());
+            }
+            qDebug() << "填充TimeSet - 数据库中共有" << allRowIds.size() << "行";
+
+            // 2. 根据选中的UI行索引，找到对应的数据库ID
+            foreach (int uiRow, selectedUiRows)
+            {
+                if (uiRow >= 0 && uiRow < allRowIds.size())
+                {
+                    idsToUpdate.append(allRowIds[uiRow]);
+                }
+                else
+                {
+                    qDebug() << "填充TimeSet警告 - UI行索引" << uiRow << "无效，忽略";
+                }
+            }
+            if (idsToUpdate.isEmpty())
+            {
+                qDebug() << "填充TimeSet - 没有有效的数据库ID需要更新，操作取消";
+                db.rollback(); // 不需要执行事务，直接回滚
+                return;
+            }
+            qDebug() << "填充TimeSet - 准备更新的数据库ID:" << idsToUpdate;
+        }
+
         // 准备更新SQL
         QSqlQuery query(db);
-        query.prepare("UPDATE vector_data SET timeset_id = :timesetId WHERE vector_table_id = :tableId AND row_index >= :startRow AND row_index <= :endRow AND (row_index - :startRow) % :step = 0");
-        query.bindValue(":timesetId", timeSetId);
-        query.bindValue(":tableId", tableId);
-        query.bindValue(":startRow", startRow);
-        query.bindValue(":endRow", endRow);
-        query.bindValue(":step", step);
+        QString updateSQL;
+        if (!idsToUpdate.isEmpty())
+        {
+            // 如果有选定行，则基于ID更新
+            QString idPlaceholders = QString("?,").repeated(idsToUpdate.size());
+            idPlaceholders.chop(1); // 移除最后一个逗号
+            updateSQL = QString("UPDATE vector_table_data SET timeset_id = ? WHERE id IN (%1)").arg(idPlaceholders);
+            query.prepare(updateSQL);
+            query.addBindValue(timeSetId);
+            foreach (int id, idsToUpdate)
+            {
+                query.addBindValue(id);
+            }
+            qDebug() << "填充TimeSet - 执行SQL (按ID):" << updateSQL;
+            qDebug() << "参数: timesetId=" << timeSetId << ", IDs=" << idsToUpdate;
+        }
+        else
+        {
+            // 如果没有选定行，则更新整个表
+            updateSQL = "UPDATE vector_table_data SET timeset_id = :timesetId WHERE table_id = :tableId";
+            query.prepare(updateSQL);
+            query.bindValue(":timesetId", timeSetId);
+            query.bindValue(":tableId", tableId);
+            qDebug() << "填充TimeSet - 执行SQL (全表):" << updateSQL;
+            qDebug() << "参数: timesetId=" << timeSetId << ", tableId=" << tableId;
+        }
 
         if (!query.exec())
         {
-            throw std::runtime_error(query.lastError().text().toStdString());
+            QString errorText = query.lastError().text();
+            qDebug() << "填充TimeSet失败 - SQL错误:" << errorText;
+            throw std::runtime_error(errorText.toStdString());
         }
+
+        int rowsAffected = query.numRowsAffected();
+        qDebug() << "填充TimeSet - 已更新" << rowsAffected << "行";
 
         // 提交事务
         if (!db.commit())
         {
-            throw std::runtime_error(db.lastError().text().toStdString());
+            QString errorText = db.lastError().text();
+            qDebug() << "填充TimeSet失败 - 提交事务失败:" << errorText;
+            throw std::runtime_error(errorText.toStdString());
         }
 
         // 重新加载表格数据
-        loadVectorTable();
+        onVectorTableSelectionChanged(currentIndex);
+        qDebug() << "填充TimeSet - 已重新加载表格数据";
 
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("TimeSet填充完成"));
+        qDebug() << "填充TimeSet - 操作成功完成";
     }
     catch (const std::exception &e)
     {
         // 回滚事务
         db.rollback();
+        qDebug() << "填充TimeSet - 操作失败，已回滚事务:" << e.what();
 
         // 显示错误消息
         QMessageBox::critical(this, tr("错误"), tr("填充TimeSet失败: %1").arg(e.what()));

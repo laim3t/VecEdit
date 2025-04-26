@@ -13,7 +13,6 @@ FillTimeSetDialog::FillTimeSetDialog(QWidget *parent)
     // 连接信号和槽
     connect(m_startRowEdit, &QLineEdit::textChanged, this, &FillTimeSetDialog::validateInputs);
     connect(m_endRowEdit, &QLineEdit::textChanged, this, &FillTimeSetDialog::validateInputs);
-    connect(m_stepValueEdit, &QLineEdit::textChanged, this, &FillTimeSetDialog::validateInputs);
 }
 
 FillTimeSetDialog::~FillTimeSetDialog()
@@ -32,14 +31,14 @@ void FillTimeSetDialog::setupUI()
     m_timeSetComboBox = new QComboBox(this);
     formLayout->addRow(tr("TimeSet:"), m_timeSetComboBox);
 
-    // 从行输入框
+    // 从行输入框 (从1开始)
     m_startRowEdit = new QLineEdit(this);
-    m_startRowEdit->setValidator(new QIntValidator(0, 9999, this));
+    m_startRowEdit->setValidator(new QIntValidator(1, 9999, this));
     formLayout->addRow(tr("从:"), m_startRowEdit);
 
-    // 到行输入框
+    // 到行输入框 (从1开始)
     m_endRowEdit = new QLineEdit(this);
-    m_endRowEdit->setValidator(new QIntValidator(0, 9999, this));
+    m_endRowEdit->setValidator(new QIntValidator(1, 9999, this));
     formLayout->addRow(tr("到:"), m_endRowEdit);
 
     // 行数显示（只读）
@@ -47,12 +46,6 @@ void FillTimeSetDialog::setupUI()
     m_rowCountLabel->setReadOnly(true);
     m_rowCountLabel->setStyleSheet("background-color: #f0f0f0;");
     formLayout->addRow(tr("行数:"), m_rowCountLabel);
-
-    // 步长输入框
-    m_stepValueEdit = new QLineEdit(this);
-    m_stepValueEdit->setValidator(new QIntValidator(1, 9999, this));
-    m_stepValueEdit->setText("1"); // 默认值为1，表示每行都填充
-    formLayout->addRow(tr("步长:"), m_stepValueEdit);
 
     // 添加表单布局到主布局
     mainLayout->addLayout(formLayout);
@@ -72,7 +65,7 @@ void FillTimeSetDialog::setupUI()
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     // 设置固定大小
-    setFixedSize(300, 220);
+    setFixedSize(300, 190);
 }
 
 void FillTimeSetDialog::loadTimeSetData()
@@ -101,19 +94,17 @@ void FillTimeSetDialog::validateInputs()
 {
     bool startValid = false;
     bool endValid = false;
-    bool stepValid = false;
 
     int start = m_startRowEdit->text().toInt(&startValid);
     int end = m_endRowEdit->text().toInt(&endValid);
-    int step = m_stepValueEdit->text().toInt(&stepValid);
 
-    bool isValid = startValid && endValid && stepValid &&
-                   start >= 0 && end >= start &&
-                   step > 0 &&
+    // 验证用户输入的值（1-based）
+    bool isValid = startValid && endValid &&
+                   start >= 1 && end >= start &&
                    m_timeSetComboBox->count() > 0;
 
     // 如果行数超过向量表的行数，显示警告但不禁用确定按钮
-    if (m_vectorRowCount > 0 && end >= m_vectorRowCount)
+    if (m_vectorRowCount > 0 && end > m_vectorRowCount)
     {
         m_endRowEdit->setStyleSheet("background-color: #FFEEEE;");
     }
@@ -129,13 +120,34 @@ void FillTimeSetDialog::setVectorRowCount(int count)
 {
     m_vectorRowCount = count;
 
-    // 设置默认值
+    // 设置默认值（以用户友好的方式显示行号，从1开始）
     if (count > 0)
     {
-        m_startRowEdit->setText("0");
-        m_endRowEdit->setText(QString::number(count - 1));
+        m_startRowEdit->setText("1");                  // 从第1行开始（而不是0）
+        m_endRowEdit->setText(QString::number(count)); // 到第count行结束
         m_rowCountLabel->setText(QString::number(count));
     }
+
+    validateInputs();
+}
+
+void FillTimeSetDialog::setSelectedRange(int startRow, int endRow)
+{
+    // 设置选中的范围作为起始和结束行
+    // 注意：输入参数已经是1-based的行号
+
+    // 确保不超出范围
+    if (m_vectorRowCount > 0)
+    {
+        startRow = qMax(1, qMin(startRow, m_vectorRowCount));
+        endRow = qMax(startRow, qMin(endRow, m_vectorRowCount));
+    }
+
+    m_startRowEdit->setText(QString::number(startRow));
+    m_endRowEdit->setText(QString::number(endRow));
+
+    // 行数保持显示向量表总行数，不随选中行数变化
+    m_rowCountLabel->setText(QString::number(m_vectorRowCount));
 
     validateInputs();
 }
@@ -147,15 +159,12 @@ int FillTimeSetDialog::getSelectedTimeSetId() const
 
 int FillTimeSetDialog::getStartRow() const
 {
-    return m_startRowEdit->text().toInt();
+    // 将用户输入的行号（1-based）转换为数据库索引（0-based）
+    return m_startRowEdit->text().toInt() - 1;
 }
 
 int FillTimeSetDialog::getEndRow() const
 {
-    return m_endRowEdit->text().toInt();
-}
-
-int FillTimeSetDialog::getStepValue() const
-{
-    return m_stepValueEdit->text().toInt();
+    // 将用户输入的行号（1-based）转换为数据库索引（0-based）
+    return m_endRowEdit->text().toInt() - 1;
 }

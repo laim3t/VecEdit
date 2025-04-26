@@ -73,7 +73,7 @@ private slots:
 
     // 填充TimeSet
     void showFillTimeSetDialog();
-    void fillTimeSetForVectorTable(int timeSetId, int startRow, int endRow, int step);
+    void fillTimeSetForVectorTable(int timeSetId, const QList<int> &selectedUiRows);
 
     // 刷新当前向量表数据
     void refreshVectorTableData();

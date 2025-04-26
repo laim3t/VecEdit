@@ -23,11 +23,13 @@ public:
     // 设置向量表的行数
     void setVectorRowCount(int count);
 
+    // 设置选中范围（用于从选中行自动设置范围）
+    void setSelectedRange(int startRow, int endRow);
+
     // 获取用户选择的数据
     int getSelectedTimeSetId() const;
     int getStartRow() const;
     int getEndRow() const;
-    int getStepValue() const;
 
 private slots:
     void loadTimeSetData();
@@ -40,7 +42,6 @@ private:
     QLineEdit *m_startRowEdit;
     QLineEdit *m_endRowEdit;
     QLineEdit *m_rowCountLabel;
-    QLineEdit *m_stepValueEdit;
     QPushButton *m_okButton;
     QPushButton *m_cancelButton;
     QDialogButtonBox *m_buttonBox;
