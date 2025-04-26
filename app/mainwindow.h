@@ -75,6 +75,10 @@ private slots:
     void showFillTimeSetDialog();
     void fillTimeSetForVectorTable(int timeSetId, const QList<int> &selectedUiRows);
 
+    // 替换TimeSet
+    void showReplaceTimeSetDialog();
+    void replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId, const QList<int> &selectedUiRows);
+
     // 刷新当前向量表数据
     void refreshVectorTableData();
 
@@ -96,6 +100,7 @@ private:
     QWidget *m_welcomeWidget;
     QWidget *m_vectorTableContainer;
     QPushButton *m_fillTimeSetButton;
+    QPushButton *m_replaceTimeSetButton;
     QPushButton *m_refreshButton;
     QPushButton *m_timeSetSettingsButton;
 
