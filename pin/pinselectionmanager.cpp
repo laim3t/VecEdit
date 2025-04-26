@@ -97,9 +97,9 @@ void PinSelectionManager::showPinSelectionDialog(int tableId, const QString &tab
     QMap<int, QString> allPins;
     m_dataAccess->loadPins(allPins);
 
-    // 查询已选择的管脚
+    // 查询已选择的管脚 - 修改为使用vector_table_pins表
     QSqlQuery query;
-    query.prepare("SELECT pin_id FROM vector_pin_options WHERE table_id = ?");
+    query.prepare("SELECT pin_id FROM vector_table_pins WHERE table_id = ?");
     query.addBindValue(tableId);
 
     QSet<int> selectedPinIds;
@@ -158,9 +158,9 @@ void PinSelectionManager::showPinSelectionDialog(int tableId, const QString &tab
             }
         }
 
-        // 删除旧的管脚选项
+        // 删除旧的管脚选项 - 修改为使用vector_table_pins表
         QSqlQuery deleteQuery;
-        deleteQuery.prepare("DELETE FROM vector_pin_options WHERE table_id = ?");
+        deleteQuery.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
         deleteQuery.addBindValue(tableId);
 
         if (!deleteQuery.exec())
@@ -169,18 +169,16 @@ void PinSelectionManager::showPinSelectionDialog(int tableId, const QString &tab
             return;
         }
 
-        // 添加新的管脚选项
+        // 添加新的管脚选项 - 修改为使用vector_table_pins表
         for (int i = 0; i < newSelectedPinIds.size(); i++)
         {
             int pinId = newSelectedPinIds[i];
             QString pinName = allPins[pinId];
 
             QSqlQuery insertQuery;
-            insertQuery.prepare("INSERT INTO vector_pin_options (table_id, pin_id, pin_name, pin_order) VALUES (?, ?, ?, ?)");
+            insertQuery.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_channel_count, pin_type) VALUES (?, ?, 1, 3)");
             insertQuery.addBindValue(tableId);
             insertQuery.addBindValue(pinId);
-            insertQuery.addBindValue(pinName);
-            insertQuery.addBindValue(i); // 使用循环索引作为顺序
 
             if (!insertQuery.exec())
             {

@@ -521,18 +521,23 @@ bool TimeSetDataAccess::loadVectorData(int tableId, QTableWidget *vectorTable)
         maxRows = rowCountQuery.value(0).toInt() + 1; // 行ID从0开始
     }
 
-    // 查询所有管脚选项
+    // 查询所有管脚选项 - 修改为使用vector_table_pins表和pin_list表
     QSqlQuery pinOptionQuery(m_db);
-    pinOptionQuery.prepare("SELECT pin_id, pin_name FROM vector_pin_options WHERE table_id = ? ORDER BY pin_order");
+    pinOptionQuery.prepare("SELECT pl.id as pin_id, pl.pin_name FROM pin_list pl "
+                           "JOIN vector_table_pins vtp ON pl.id = vtp.pin_id "
+                           "WHERE vtp.table_id = ? ORDER BY vtp.id");
     pinOptionQuery.addBindValue(tableId);
 
     QStringList pinOptions;
+    QMap<int, QString> pinIdToName;
     if (pinOptionQuery.exec())
     {
         while (pinOptionQuery.next())
         {
+            int pinId = pinOptionQuery.value(0).toInt();
             QString pinName = pinOptionQuery.value(1).toString();
             pinOptions << pinName;
+            pinIdToName[pinId] = pinName;
         }
     }
 
@@ -543,13 +548,13 @@ bool TimeSetDataAccess::loadVectorData(int tableId, QTableWidget *vectorTable)
     // 设置行数
     vectorTable->setRowCount(maxRows);
 
-    // 加载数据
+    // 加载数据 - 修改为使用vector_table_pins表关联
     QSqlQuery dataQuery(m_db);
-    dataQuery.prepare("SELECT vd.row_id, vd.pin_id, vd.pin_value, vpo.pin_name "
+    dataQuery.prepare("SELECT vd.row_id, vd.pin_id, vd.pin_value "
                       "FROM vector_data vd "
-                      "JOIN vector_pin_options vpo ON vd.pin_id = vpo.pin_id AND vd.table_id = vpo.table_id "
+                      "JOIN vector_table_pins vtp ON vd.pin_id = vtp.pin_id AND vd.table_id = vtp.table_id "
                       "WHERE vd.table_id = ? "
-                      "ORDER BY vd.row_id, vpo.pin_order");
+                      "ORDER BY vd.row_id, vtp.id");
     dataQuery.addBindValue(tableId);
 
     if (dataQuery.exec())
@@ -557,8 +562,11 @@ bool TimeSetDataAccess::loadVectorData(int tableId, QTableWidget *vectorTable)
         while (dataQuery.next())
         {
             int rowId = dataQuery.value(0).toInt();
-            QString pinName = dataQuery.value(3).toString();
+            int pinId = dataQuery.value(1).toInt();
             QString pinValue = dataQuery.value(2).toString();
+
+            // 使用pinIdToName映射获取管脚名称
+            QString pinName = pinIdToName.value(pinId);
 
             // 找到对应的列
             int col = pinOptions.indexOf(pinName);
@@ -580,9 +588,11 @@ bool TimeSetDataAccess::loadVectorData(int tableId, QTableWidget *vectorTable)
 
 bool TimeSetDataAccess::saveVectorData(int tableId, QTableWidget *vectorTable, int insertPosition, bool appendToEnd)
 {
-    // 获取管脚ID映射
+    // 获取管脚ID映射 - 修改为使用vector_table_pins表和pin_list表
     QSqlQuery pinOptionQuery(m_db);
-    pinOptionQuery.prepare("SELECT pin_name, pin_id FROM vector_pin_options WHERE table_id = ? ORDER BY pin_order");
+    pinOptionQuery.prepare("SELECT pl.pin_name, pl.id as pin_id FROM pin_list pl "
+                           "JOIN vector_table_pins vtp ON pl.id = vtp.pin_id "
+                           "WHERE vtp.table_id = ? ORDER BY vtp.id");
     pinOptionQuery.addBindValue(tableId);
 
     QMap<QString, int> pinNameToId;

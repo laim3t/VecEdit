@@ -126,23 +126,6 @@ ON pin_group_members(
     pin_id
 );
 
-CREATE TABLE vector_pin_options(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    table_id INTEGER NOT NULL,
-    pin_id INTEGER NOT NULL,
-    pin_name TEXT NOT NULL,
-    pin_order INTEGER NOT NULL,
-    pin_type TEXT,
-    FOREIGN KEY (table_id) REFERENCES vector_tables(id),
-    FOREIGN KEY (pin_id) REFERENCES pin_list(id)
-);
-
-CREATE UNIQUE INDEX idx_vector_pin_options_unique
-ON vector_pin_options(
-    table_id,
-    pin_id
-);
-
 CREATE VIEW view_vector_table_data_display AS
 SELECT
     vtd.id AS vector_data_id,
