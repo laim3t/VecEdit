@@ -31,6 +31,8 @@ set(PROJECT_SOURCES
         timeset/replacetimesetdialog.h
         pin/pinvalueedit.h
         pin/pinvalueedit.cpp
+        pin/vectorpinsettingsdialog.h
+        pin/vectorpinsettingsdialog.cpp
         vector/vectortabledelegate.h
         vector/vectortabledelegate.cpp
         vector/vectordatahandler.h

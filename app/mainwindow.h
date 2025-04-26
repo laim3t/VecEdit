@@ -85,6 +85,9 @@ private slots:
     // 打开TimeSet设置对话框
     void openTimeSetSettingsDialog();
 
+    // 设置当前向量表的管脚
+    void setupVectorTablePins();
+
 private:
     void setupUI();
     void setupMenu();
@@ -103,6 +106,7 @@ private:
     QPushButton *m_replaceTimeSetButton;
     QPushButton *m_refreshButton;
     QPushButton *m_timeSetSettingsButton;
+    QPushButton *m_setupPinsButton; // 设置向量表管脚按钮
 
     // 自定义代理
     VectorTableItemDelegate *m_itemDelegate;

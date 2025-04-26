@@ -9,6 +9,7 @@
 #include "vector/vectortabledelegate.h"
 #include "vector/vectordatahandler.h"
 #include "common/dialogmanager.h"
+#include "pin/vectorpinsettingsdialog.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -356,6 +357,11 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableSelector->setMinimumWidth(150);
     controlLayout->addWidget(selectLabel);
     controlLayout->addWidget(m_vectorTableSelector);
+
+    // 添加设置向量表管脚按钮
+    m_setupPinsButton = new QPushButton(tr("设置向量表"), this);
+    connect(m_setupPinsButton, &QPushButton::clicked, this, &MainWindow::setupVectorTablePins);
+    controlLayout->addWidget(m_setupPinsButton);
 
     // 添加填充TimeSet按钮
     m_fillTimeSetButton = new QPushButton(tr("填充TimeSet"), this);
@@ -1381,5 +1387,41 @@ void MainWindow::openTimeSetSettingsDialog()
         }
 
         statusBar()->showMessage("TimeSet设置已更新");
+    }
+}
+
+void MainWindow::setupVectorTablePins()
+{
+    qDebug() << "MainWindow::setupVectorTablePins - 开始设置向量表管脚";
+
+    // 获取当前选择的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "错误", "请先选择一个向量表");
+        qDebug() << "MainWindow::setupVectorTablePins - 没有选择向量表";
+        return;
+    }
+
+    // 获取表ID和名称
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
+
+    // 创建并显示管脚设置对话框
+    VectorPinSettingsDialog dialog(tableId, tableName, this);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        qDebug() << "MainWindow::setupVectorTablePins - 管脚设置已更新，刷新表格";
+
+        // 刷新当前向量表
+        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+        QMessageBox::information(this, "成功", "向量表管脚设置已更新");
+    }
+    else
+    {
+        qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置";
     }
 }
