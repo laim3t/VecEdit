@@ -37,8 +37,12 @@ set(PROJECT_SOURCES
         vector/vectortabledelegate.cpp
         vector/vectordatahandler.h
         vector/vectordatahandler.cpp
+        vector/deleterangevectordialog.h
+        vector/deleterangevectordialog.cpp
         common/dialogmanager.h
         common/dialogmanager.cpp
+        common/tablestylemanager.h
+        common/tablestylemanager.cpp
         timeset/timesetdataaccess.h
         timeset/timesetdataaccess.cpp
         timeset/timesetui.h

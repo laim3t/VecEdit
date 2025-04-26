@@ -735,3 +735,116 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         return false;
     }
 }
+
+bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage)
+{
+    qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 开始删除范围内的向量行，表ID：" << tableId
+             << "，从行：" << fromRow << "，到行：" << toRow;
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未打开";
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 错误：" << errorMessage;
+        return false;
+    }
+
+    db.transaction();
+
+    try
+    {
+        // 查询表中所有数据行，按排序索引顺序
+        QList<int> allDataIds;
+        QSqlQuery dataQuery(db);
+        dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index");
+        dataQuery.addBindValue(tableId);
+
+        if (!dataQuery.exec())
+        {
+            throw QString("获取向量数据ID失败: " + dataQuery.lastError().text());
+        }
+
+        // 将所有数据ID按顺序放入列表
+        while (dataQuery.next())
+        {
+            allDataIds.append(dataQuery.value(0).toInt());
+        }
+
+        // 检查是否有足够的数据行
+        if (allDataIds.isEmpty())
+        {
+            throw QString("没有找到可删除的数据行");
+        }
+
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 总行数：" << allDataIds.size();
+
+        // 调整索引范围
+        if (fromRow < 1)
+            fromRow = 1;
+
+        if (toRow > allDataIds.size())
+            toRow = allDataIds.size();
+
+        if (fromRow > toRow)
+        {
+            int temp = fromRow;
+            fromRow = toRow;
+            toRow = temp;
+        }
+
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 调整后范围：" << fromRow << "到" << toRow;
+
+        // 获取要删除的行ID
+        QList<int> dataIdsToDelete;
+        for (int row = fromRow; row <= toRow; row++)
+        {
+            int index = row - 1; // 将1-based转换为0-based索引
+            if (index >= 0 && index < allDataIds.size())
+            {
+                dataIdsToDelete.append(allDataIds[index]);
+            }
+        }
+
+        if (dataIdsToDelete.isEmpty())
+        {
+            throw QString("没有找到对应选中范围的数据ID");
+        }
+
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 要删除的行数：" << dataIdsToDelete.size();
+
+        // 删除选中范围内的数据
+        QSqlQuery deleteQuery(db);
+        for (int dataId : dataIdsToDelete)
+        {
+            // 先删除关联的管脚值
+            deleteQuery.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id = ?");
+            deleteQuery.addBindValue(dataId);
+            if (!deleteQuery.exec())
+            {
+                throw QString("删除数据ID " + QString::number(dataId) + " 的管脚值失败: " + deleteQuery.lastError().text());
+            }
+
+            // 再删除向量数据行
+            deleteQuery.prepare("DELETE FROM vector_table_data WHERE id = ?");
+            deleteQuery.addBindValue(dataId);
+            if (!deleteQuery.exec())
+            {
+                throw QString("删除数据ID " + QString::number(dataId) + " 失败: " + deleteQuery.lastError().text());
+            }
+        }
+
+        // 提交事务
+        db.commit();
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 成功删除范围内的行";
+        return true;
+    }
+    catch (const QString &error)
+    {
+        // 回滚事务
+        db.rollback();
+        errorMessage = error;
+        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 错误：" << errorMessage;
+        return false;
+    }
+}

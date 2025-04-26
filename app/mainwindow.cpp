@@ -10,6 +10,8 @@
 #include "vector/vectordatahandler.h"
 #include "common/dialogmanager.h"
 #include "pin/vectorpinsettingsdialog.h"
+#include "vector/deleterangevectordialog.h"
+#include "common/tablestylemanager.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -379,20 +381,22 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addWidget(m_refreshButton);
 
     // 添加TimeSet设置按钮
-    m_timeSetSettingsButton = new QPushButton(tr("设置TimeSet"), this);
+    m_timeSetSettingsButton = new QPushButton(tr("TimeSet设置"), this);
     connect(m_timeSetSettingsButton, &QPushButton::clicked, this, &MainWindow::openTimeSetSettingsDialog);
     controlLayout->addWidget(m_timeSetSettingsButton);
 
     // 添加其他按钮
-    QPushButton *addRowButton = new QPushButton(tr("添加行"), this);
-    QPushButton *deleteRowButton = new QPushButton(tr("删除所选行"), this);
-    QPushButton *addTableButton = new QPushButton(tr("添加向量表"), this);
-    QPushButton *deleteTableButton = new QPushButton(tr("删除当前向量表"), this);
+    QPushButton *addRowButton = new QPushButton(tr("添加向量行"), this);
+    QPushButton *deleteRowButton = new QPushButton(tr("删除向量行"), this);
+    m_deleteRangeButton = new QPushButton(tr("删除指定范围内的向量行"), this);
+    QPushButton *addTableButton = new QPushButton(tr("新建向量表"), this);
+    QPushButton *deleteTableButton = new QPushButton(tr("删除向量表"), this);
     QPushButton *saveButton = new QPushButton(tr("保存"), this);
 
     // 连接信号
     connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
     connect(deleteRowButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
+    connect(m_deleteRangeButton, &QPushButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
     connect(addTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
     connect(deleteTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
@@ -401,6 +405,7 @@ void MainWindow::setupVectorTableUI()
     // 添加按钮到控制布局
     controlLayout->addWidget(addRowButton);
     controlLayout->addWidget(deleteRowButton);
+    controlLayout->addWidget(m_deleteRangeButton);
     controlLayout->addWidget(addTableButton);
     controlLayout->addWidget(deleteTableButton);
     controlLayout->addWidget(saveButton);
@@ -417,6 +422,9 @@ void MainWindow::setupVectorTableUI()
     // 表格代理
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
+
+    // 应用表格样式
+    TableStyleManager::applyTableStyle(m_vectorTableWidget);
 
     // 添加到容器布局
     containerLayout->addLayout(controlLayout);
@@ -507,6 +515,9 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 使用数据处理器加载数据
     if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
     {
+        // 应用表格样式
+        TableStyleManager::applyTableStyle(m_vectorTableWidget);
+
         statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
     }
     else
@@ -1423,5 +1434,137 @@ void MainWindow::setupVectorTablePins()
     else
     {
         qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置";
+    }
+}
+
+void MainWindow::deleteVectorRowsInRange()
+{
+    qDebug() << "MainWindow::deleteVectorRowsInRange - 开始处理删除指定范围内的向量行";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中的向量表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 获取向量表总行数
+    int totalRows = m_dataHandler->getVectorTableRowCount(tableId);
+    if (totalRows <= 0)
+    {
+        QMessageBox::warning(this, "警告", "当前向量表没有行数据");
+        return;
+    }
+
+    qDebug() << "MainWindow::deleteVectorRowsInRange - 当前向量表总行数：" << totalRows;
+
+    // 创建删除范围对话框
+    DeleteRangeVectorDialog dialog(this);
+    dialog.setMaxRow(totalRows);
+
+    // 获取当前选中的行
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (!selectedIndexes.isEmpty())
+    {
+        if (selectedIndexes.size() == 1)
+        {
+            // 只选中了一行
+            int row = selectedIndexes.first().row() + 1; // 将0-based转为1-based
+            dialog.setSelectedRange(row, row);
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了单行：" << row;
+        }
+        else
+        {
+            // 选中了多行，找出最小和最大行号
+            int minRow = INT_MAX;
+            int maxRow = INT_MIN;
+
+            for (const QModelIndex &index : selectedIndexes)
+            {
+                int row = index.row() + 1; // 将0-based转为1-based
+                minRow = qMin(minRow, row);
+                maxRow = qMax(maxRow, row);
+            }
+
+            dialog.setSelectedRange(minRow, maxRow);
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了多行，范围：" << minRow << "到" << maxRow;
+        }
+    }
+    else
+    {
+        // 没有选中行，文本框保持为空
+        dialog.clearSelectedRange();
+
+        qDebug() << "MainWindow::deleteVectorRowsInRange - 没有选中行，文本框保持为空";
+    }
+
+    // 显示对话框
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        // 获取用户输入的范围
+        int fromRow = dialog.getFromRow();
+        int toRow = dialog.getToRow();
+
+        // 验证用户输入是否有效
+        if (fromRow <= 0 || toRow <= 0)
+        {
+            QMessageBox::warning(this, "警告", "请输入有效的行范围");
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户输入的范围无效：" << fromRow << "到" << toRow;
+            return;
+        }
+
+        qDebug() << "MainWindow::deleteVectorRowsInRange - 用户确认删除范围：" << fromRow << "到" << toRow;
+
+        // 确认删除
+        QMessageBox::StandardButton reply;
+        int rowCount = toRow - fromRow + 1;
+        reply = QMessageBox::question(this, "确认删除",
+                                      "确定要删除第 " + QString::number(fromRow) + " 到 " +
+                                          QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）吗？\n此操作不可撤销。",
+                                      QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes)
+        {
+            // 执行删除操作
+            QString errorMessage;
+            if (m_dataHandler->deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
+            {
+                QMessageBox::information(this, "删除成功",
+                                         "已成功删除第 " + QString::number(fromRow) + " 到 " +
+                                             QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）");
+
+                // 刷新表格
+                onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+                qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
+            }
+            else
+            {
+                QMessageBox::critical(this, "删除失败", errorMessage);
+                statusBar()->showMessage("删除行失败: " + errorMessage);
+
+                qDebug() << "MainWindow::deleteVectorRowsInRange - 删除失败：" << errorMessage;
+            }
+        }
+        else
+        {
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消删除操作";
+        }
+    }
+    else
+    {
+        qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消对话框";
     }
 }

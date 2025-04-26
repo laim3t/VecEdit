@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <stdexcept>
+#include "../common/tablestylemanager.h"
 
 // 向量表管脚设置对话框
 class VectorPinSettingsDialog : public QDialog

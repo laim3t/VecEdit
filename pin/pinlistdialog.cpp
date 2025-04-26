@@ -41,6 +41,9 @@ void PinListDialog::setupUI()
     pinTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     pinTableView->verticalHeader()->setVisible(true);
 
+    // 应用表格样式
+    TableStyleManager::applyTableStyle(pinTableView);
+
     // 连接数据变化信号
     connect(pinModel, &QStandardItemModel::dataChanged, this, &PinListDialog::onDataChanged);
 

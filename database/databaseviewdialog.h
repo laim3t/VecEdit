@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QLineEdit>
+#include "../common/tablestylemanager.h"
 
 class DatabaseViewDialog : public QDialog
 {

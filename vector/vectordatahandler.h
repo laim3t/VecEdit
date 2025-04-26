@@ -27,6 +27,9 @@ public:
     // 删除向量行
     bool deleteVectorRows(int tableId, const QList<int> &rowIndexes, QString &errorMessage);
 
+    // 删除指定范围内的向量行
+    bool deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage);
+
     // 获取向量表总行数
     int getVectorTableRowCount(int tableId);
 

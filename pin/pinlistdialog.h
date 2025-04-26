@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QDialogButtonBox>
 #include <QList>
+#include "../common/tablestylemanager.h"
 
 // 管脚数据结构
 struct PinData

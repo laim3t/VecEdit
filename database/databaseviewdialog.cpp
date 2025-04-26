@@ -121,6 +121,9 @@ void DatabaseViewDialog::setupUI()
     tableView->setSortingEnabled(true);
     tableView->verticalHeader()->setVisible(false);
 
+    // 应用表格样式
+    TableStyleManager::applyTableStyle(tableView);
+
     viewLayout->addWidget(dataViewHeader);
     viewLayout->addWidget(tableView);
 

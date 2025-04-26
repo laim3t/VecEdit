@@ -7,6 +7,7 @@
 #include <QSqlError>
 #include <QDebug>
 #include <QSqlDatabase>
+#include "tablestylemanager.h"
 
 VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tableName, QWidget *parent)
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
@@ -50,6 +51,10 @@ void VectorPinSettingsDialog::setupUI()
     m_pinsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_pinsTable->setAlternatingRowColors(true);
     m_pinsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    // 应用表格样式
+    TableStyleManager::applyTableStyle(m_pinsTable);
+
     mainLayout->addWidget(m_pinsTable);
 
     // 创建按钮布局
