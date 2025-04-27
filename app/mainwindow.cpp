@@ -43,6 +43,9 @@
 #include <QFileInfo>
 #include <QDialogButtonBox>
 #include <QInputDialog>
+#include <QSpinBox>
+#include <QScrollArea>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -376,6 +379,11 @@ void MainWindow::setupVectorTableUI()
     m_addPinButton = new QPushButton(tr("添加管脚"), this);
     connect(m_addPinButton, &QPushButton::clicked, this, &MainWindow::addSinglePin);
     controlLayout->addWidget(m_addPinButton);
+
+    // 添加"删除管脚"按钮
+    m_deletePinButton = new QPushButton(tr("删除管脚"), this);
+    connect(m_deletePinButton, &QPushButton::clicked, this, &MainWindow::deletePins);
+    controlLayout->addWidget(m_deletePinButton);
 
     // 添加填充TimeSet按钮
     m_fillTimeSetButton = new QPushButton(tr("填充TimeSet"), this);
@@ -825,6 +833,8 @@ void MainWindow::deleteSelectedVectorRows()
     {
         QMessageBox::critical(this, "删除失败", errorMessage);
         statusBar()->showMessage("删除行失败: " + errorMessage);
+
+        qDebug() << "MainWindow::deleteSelectedVectorRows - 删除失败：" << errorMessage;
     }
 }
 
@@ -1680,4 +1690,27 @@ void MainWindow::addSinglePin()
 
     QMessageBox::information(this, "添加成功",
                              QString("成功添加管脚 '%1'，默认通道个数为1，请在管脚设置中配置工位信息").arg(pinName));
+}
+
+// 删除管脚功能实现
+void MainWindow::deletePins()
+{
+    qDebug() << "MainWindow::deletePins - 用户点击删除管脚按钮";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        qDebug() << "MainWindow::deletePins - 未打开数据库";
+        QMessageBox::warning(this, "错误", "请先打开或创建一个项目");
+        return;
+    }
+
+    // 创建管脚设置对话框实例，但不显示对话框本身
+    PinSettingsDialog dialog(this);
+
+    // 只显示删除管脚对话框
+    dialog.showDeletePinDialog();
+
+    // 删除操作完成后刷新当前数据
+    refreshVectorTableData();
 }

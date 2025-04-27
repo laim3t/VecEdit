@@ -46,6 +46,9 @@ private slots:
     // 添加单个管脚
     void addSinglePin();
 
+    // 删除管脚
+    void deletePins();
+
     // 向数据库添加管脚
     bool addPinsToDatabase(const QList<QString> &pinNames);
 
@@ -123,6 +126,7 @@ private:
     QPushButton *m_setupPinsButton;   // 设置向量表管脚按钮
     QPushButton *m_pinSettingsButton; // 管脚设置按钮
     QPushButton *m_addPinButton;      // 添加管脚按钮
+    QPushButton *m_deletePinButton;   // 删除管脚按钮
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
 
     // 自定义代理

@@ -14,6 +14,8 @@
 #include <QSqlDatabase>
 #include <QToolTip>
 #include <QInputDialog>
+#include <QCheckBox>
+#include <QScrollArea>
 
 PinSettingsDialog::PinSettingsDialog(QWidget *parent)
     : QDialog(parent), m_currentStationCount(1)
@@ -62,6 +64,11 @@ void PinSettingsDialog::setupUI()
     m_addPinButton->setToolTip("添加新的管脚到系统中");
     topLayout->addWidget(m_addPinButton);
 
+    // 添加"删除管脚"按钮
+    m_deletePinButton = new QPushButton("删除管脚", this);
+    m_deletePinButton->setToolTip("从系统中删除选定的管脚");
+    topLayout->addWidget(m_deletePinButton);
+
     topLayout->addStretch();
 
     mainLayout->addLayout(topLayout);
@@ -92,6 +99,7 @@ void PinSettingsDialog::setupUI()
     connect(m_okButton, &QPushButton::clicked, this, &PinSettingsDialog::onAccepted);
     connect(m_cancelButton, &QPushButton::clicked, this, &PinSettingsDialog::onRejected);
     connect(m_addPinButton, &QPushButton::clicked, this, &PinSettingsDialog::onAddPin);
+    connect(m_deletePinButton, &QPushButton::clicked, this, &PinSettingsDialog::onDeletePin);
 }
 
 void PinSettingsDialog::loadPinsData()
@@ -725,4 +733,201 @@ void PinSettingsDialog::onAddPin()
 
     QMessageBox::information(this, "添加成功",
                              QString("成功添加管脚 '%1'，默认通道个数为1").arg(pinName));
+}
+
+void PinSettingsDialog::showDeletePinDialog()
+{
+    qDebug() << "PinSettingsDialog::showDeletePinDialog - 显示删除管脚对话框";
+
+    // 确保数据已加载
+    loadPinsData();
+
+    // 创建删除管脚对话框
+    QDialog deleteDialog(this);
+    deleteDialog.setWindowTitle("选择删除管脚");
+    deleteDialog.setMinimumWidth(300);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&deleteDialog);
+
+    // 添加说明标签
+    QLabel *infoLabel = new QLabel("请选择要删除的管脚:", &deleteDialog);
+    mainLayout->addWidget(infoLabel);
+
+    // 创建复选框列表
+    QMap<int, QCheckBox *> checkBoxes;
+    QScrollArea *scrollArea = new QScrollArea(&deleteDialog);
+    scrollArea->setWidgetResizable(true);
+    QWidget *scrollContent = new QWidget(scrollArea);
+    QVBoxLayout *checkBoxLayout = new QVBoxLayout(scrollContent);
+
+    QMap<int, QString>::const_iterator it;
+    for (it = m_allPins.constBegin(); it != m_allPins.constEnd(); ++it)
+    {
+        QCheckBox *checkBox = new QCheckBox(it.value(), scrollContent);
+        checkBox->setObjectName(QString::number(it.key())); // 存储管脚ID
+        checkBoxes[it.key()] = checkBox;
+        checkBoxLayout->addWidget(checkBox);
+    }
+
+    scrollArea->setWidget(scrollContent);
+    mainLayout->addWidget(scrollArea);
+
+    // 添加对话框按钮
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    QPushButton *confirmButton = new QPushButton("确定", &deleteDialog);
+    QPushButton *cancelButton = new QPushButton("取消", &deleteDialog);
+
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(confirmButton);
+    buttonLayout->addWidget(cancelButton);
+
+    mainLayout->addLayout(buttonLayout);
+
+    // 连接信号和槽
+    connect(confirmButton, &QPushButton::clicked, &deleteDialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &deleteDialog, &QDialog::reject);
+
+    // 显示对话框
+    if (deleteDialog.exec() == QDialog::Rejected)
+    {
+        qDebug() << "PinSettingsDialog::showDeletePinDialog - 用户取消删除操作";
+        return;
+    }
+
+    // 收集选中的管脚ID
+    QList<int> selectedPinIds;
+    QStringList selectedPinNames;
+
+    for (it = m_allPins.constBegin(); it != m_allPins.constEnd(); ++it)
+    {
+        int pinId = it.key();
+        if (checkBoxes[pinId]->isChecked())
+        {
+            selectedPinIds.append(pinId);
+            selectedPinNames.append(it.value());
+        }
+    }
+
+    if (selectedPinIds.isEmpty())
+    {
+        qDebug() << "PinSettingsDialog::showDeletePinDialog - 未选择任何管脚";
+        QMessageBox::information(this, "提示", "您未选择任何管脚");
+        return;
+    }
+
+    // 二次确认删除
+    QString confirmMessage = QString("您确定要删除以下管脚吗？\n%1\n\n注意：这将同时删除所有关联的向量表数据！").arg(selectedPinNames.join("\n"));
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "确认删除",
+                                                              confirmMessage,
+                                                              QMessageBox::Yes | QMessageBox::No,
+                                                              QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+    {
+        qDebug() << "PinSettingsDialog::showDeletePinDialog - 用户取消二次确认";
+        return;
+    }
+
+    // 从数据库中删除管脚
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "PinSettingsDialog::showDeletePinDialog - 无法连接到数据库";
+        QMessageBox::critical(this, "错误", "数据库连接失败");
+        return;
+    }
+
+    // 开始事务
+    db.transaction();
+
+    try
+    {
+        QSqlQuery query(db);
+
+        // 处理每个选中的管脚
+        foreach (int pinId, selectedPinIds)
+        {
+            qDebug() << "PinSettingsDialog::showDeletePinDialog - 处理管脚ID:" << pinId;
+
+            // 1. 先删除vector_table_pin_values表中的相关数据
+            query.prepare("DELETE FROM vector_table_pin_values WHERE vector_pin_id IN "
+                          "(SELECT id FROM vector_table_pins WHERE pin_id = ?)");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除管脚值数据失败: %1").arg(query.lastError().text());
+            }
+
+            // 2. 删除vector_table_pins表中的记录
+            query.prepare("DELETE FROM vector_table_pins WHERE pin_id = ?");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除管脚关联失败: %1").arg(query.lastError().text());
+            }
+
+            // 3. 删除pin_settings表中的记录
+            query.prepare("DELETE FROM pin_settings WHERE pin_id = ?");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除管脚设置失败: %1").arg(query.lastError().text());
+            }
+
+            // 4. 删除pin_group_members表中的记录
+            query.prepare("DELETE FROM pin_group_members WHERE pin_id = ?");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除管脚组成员失败: %1").arg(query.lastError().text());
+            }
+
+            // 5. 删除timeset_settings表中的记录
+            query.prepare("DELETE FROM timeset_settings WHERE pin_id = ?");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除时序设置失败: %1").arg(query.lastError().text());
+            }
+
+            // 6. 最后删除pin_list表中的记录
+            query.prepare("DELETE FROM pin_list WHERE id = ?");
+            query.addBindValue(pinId);
+            if (!query.exec())
+            {
+                throw QString("删除管脚记录失败: %1").arg(query.lastError().text());
+            }
+
+            // 从内存中删除管脚
+            m_allPins.remove(pinId);
+            m_pinNotes.remove(pinId);
+            m_channelCounts.remove(pinId);
+            m_existingSettings.remove(pinId);
+
+            qDebug() << "PinSettingsDialog::showDeletePinDialog - 成功删除管脚ID:" << pinId;
+        }
+
+        // 提交事务
+        db.commit();
+
+        QMessageBox::information(this, "删除成功",
+                                 QString("成功删除 %1 个管脚").arg(selectedPinIds.size()));
+
+        // 发出信号通知其他组件刷新
+        emit accepted();
+    }
+    catch (const QString &errorMessage)
+    {
+        // 回滚事务
+        db.rollback();
+        qWarning() << "PinSettingsDialog::showDeletePinDialog - 删除操作失败:" << errorMessage;
+        QMessageBox::critical(this, "错误", QString("删除管脚失败: %1").arg(errorMessage));
+    }
+}
+
+// 删除管脚按钮点击处理
+void PinSettingsDialog::onDeletePin()
+{
+    qDebug() << "PinSettingsDialog::onDeletePin - 用户点击删除管脚按钮";
+    showDeletePinDialog();
 }
