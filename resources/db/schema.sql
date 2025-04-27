@@ -16,10 +16,10 @@ CREATE TABLE wave_options (
 
 CREATE TABLE "pin_settings" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pin_id INTEGER NOT NULL,
-    channel_index INTEGER NOT NULL,
+    pin_id INTEGER NOT NULL REFERENCES pin_list(id),
+    channel_count INTEGER NOT NULL,
     station_bit_index INTEGER NOT NULL,
-    FOREIGN KEY (pin_id) REFERENCES "pin_list"(id)
+    station_number INTEGER NOT NULL
 );
 
 CREATE TABLE vector_table_group_values(

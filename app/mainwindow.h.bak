@@ -96,9 +96,6 @@ private slots:
     // 设置当前向量表的管脚
     void setupVectorTablePins();
 
-    // 打开管脚设置对话框
-    void openPinSettingsDialog();
-
 private:
     void setupUI();
     void setupMenu();
@@ -118,7 +115,6 @@ private:
     QPushButton *m_refreshButton;
     QPushButton *m_timeSetSettingsButton;
     QPushButton *m_setupPinsButton;   // 设置向量表管脚按钮
-    QPushButton *m_pinSettingsButton; // 管脚设置按钮
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
 
     // 自定义代理

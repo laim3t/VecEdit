@@ -10,6 +10,7 @@
 #include "vector/vectordatahandler.h"
 #include "common/dialogmanager.h"
 #include "pin/vectorpinsettingsdialog.h"
+#include "pin/pinsettingsdialog.h"
 #include "vector/deleterangevectordialog.h"
 #include "common/tablestylemanager.h"
 
@@ -364,6 +365,11 @@ void MainWindow::setupVectorTableUI()
     m_setupPinsButton = new QPushButton(tr("设置向量表"), this);
     connect(m_setupPinsButton, &QPushButton::clicked, this, &MainWindow::setupVectorTablePins);
     controlLayout->addWidget(m_setupPinsButton);
+
+    // 添加管脚设置按钮
+    m_pinSettingsButton = new QPushButton(tr("管脚设置"), this);
+    connect(m_pinSettingsButton, &QPushButton::clicked, this, &MainWindow::openPinSettingsDialog);
+    controlLayout->addWidget(m_pinSettingsButton);
 
     // 添加填充TimeSet按钮
     m_fillTimeSetButton = new QPushButton(tr("填充TimeSet"), this);
@@ -1566,5 +1572,38 @@ void MainWindow::deleteVectorRowsInRange()
     else
     {
         qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消对话框";
+    }
+}
+
+void MainWindow::openPinSettingsDialog()
+{
+    qDebug() << "MainWindow::openPinSettingsDialog - 打开管脚设置对话框";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 创建并显示管脚设置对话框
+    PinSettingsDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        qDebug() << "MainWindow::openPinSettingsDialog - 管脚设置已更新";
+
+        // 如果当前有选中的向量表，刷新它的显示
+        if (m_vectorTableSelector->currentIndex() >= 0)
+        {
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+        }
+
+        QMessageBox::information(this, "成功", "管脚设置已更新");
+        statusBar()->showMessage("管脚设置已更新");
+    }
+    else
+    {
+        qDebug() << "MainWindow::openPinSettingsDialog - 用户取消了管脚设置";
     }
 }

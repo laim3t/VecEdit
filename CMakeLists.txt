@@ -33,6 +33,8 @@ set(PROJECT_SOURCES
         pin/pinvalueedit.cpp
         pin/vectorpinsettingsdialog.h
         pin/vectorpinsettingsdialog.cpp
+        pin/pinsettingsdialog.h
+        pin/pinsettingsdialog.cpp
         vector/vectortabledelegate.h
         vector/vectortabledelegate.cpp
         vector/vectordatahandler.h
