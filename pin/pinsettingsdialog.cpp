@@ -13,6 +13,7 @@
 #include <QTableWidgetItem>
 #include <QSqlDatabase>
 #include <QToolTip>
+#include <QInputDialog>
 
 PinSettingsDialog::PinSettingsDialog(QWidget *parent)
     : QDialog(parent), m_currentStationCount(1)
@@ -55,6 +56,12 @@ void PinSettingsDialog::setupUI()
     QLabel *infoLabel = new QLabel("在下表中设置每个管脚的通道个数、注释及各个工位的位索引", this);
     infoLabel->setStyleSheet("color: #666; font-style: italic;");
     topLayout->addWidget(infoLabel);
+
+    // 添加"添加管脚"按钮
+    m_addPinButton = new QPushButton("添加管脚", this);
+    m_addPinButton->setToolTip("添加新的管脚到系统中");
+    topLayout->addWidget(m_addPinButton);
+
     topLayout->addStretch();
 
     mainLayout->addLayout(topLayout);
@@ -84,6 +91,7 @@ void PinSettingsDialog::setupUI()
             this, &PinSettingsDialog::onStationCountChanged);
     connect(m_okButton, &QPushButton::clicked, this, &PinSettingsDialog::onAccepted);
     connect(m_cancelButton, &QPushButton::clicked, this, &PinSettingsDialog::onRejected);
+    connect(m_addPinButton, &QPushButton::clicked, this, &PinSettingsDialog::onAddPin);
 }
 
 void PinSettingsDialog::loadPinsData()
@@ -651,4 +659,70 @@ bool PinSettingsDialog::saveSettings()
         QMessageBox::critical(this, "错误", QString("保存管脚设置失败: %1").arg(e.what()));
         return false;
     }
+}
+
+void PinSettingsDialog::onAddPin()
+{
+    qDebug() << "PinSettingsDialog::onAddPin - 用户点击添加管脚按钮";
+
+    // 弹出对话框输入管脚名称
+    bool ok;
+    QString pinName = QInputDialog::getText(this, "添加管脚",
+                                            "请输入管脚名称:", QLineEdit::Normal,
+                                            "", &ok);
+
+    if (!ok || pinName.isEmpty())
+    {
+        qDebug() << "PinSettingsDialog::onAddPin - 用户取消添加或未输入名称";
+        return;
+    }
+
+    // 检查管脚名称是否已存在
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "PinSettingsDialog::onAddPin - 数据库未连接";
+        QMessageBox::critical(this, "错误", "数据库连接失败，无法添加管脚");
+        return;
+    }
+
+    // 检查管脚名称是否已存在
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT id FROM pin_list WHERE pin_name = ?");
+    checkQuery.addBindValue(pinName);
+
+    if (checkQuery.exec() && checkQuery.next())
+    {
+        qDebug() << "PinSettingsDialog::onAddPin - 管脚名称已存在:" << pinName;
+        QMessageBox::warning(this, "重复的管脚名称",
+                             QString("管脚名称 '%1' 已存在，请使用其他名称").arg(pinName));
+        return;
+    }
+
+    // 添加新管脚到pin_list表
+    QSqlQuery insertQuery(db);
+    insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note) VALUES (?, '')");
+    insertQuery.addBindValue(pinName);
+
+    if (!insertQuery.exec())
+    {
+        qWarning() << "PinSettingsDialog::onAddPin - 无法添加新管脚:" << insertQuery.lastError().text();
+        QMessageBox::critical(this, "错误",
+                              QString("添加管脚失败: %1").arg(insertQuery.lastError().text()));
+        return;
+    }
+
+    int newPinId = insertQuery.lastInsertId().toInt();
+    qDebug() << "PinSettingsDialog::onAddPin - 成功添加新管脚，ID=" << newPinId << "，名称=" << pinName;
+
+    // 将新管脚添加到内存中
+    m_allPins[newPinId] = pinName;
+    m_pinNotes[newPinId] = "";
+    m_channelCounts[newPinId] = 1; // 默认通道数为1
+
+    // 更新表格显示
+    updateTable();
+
+    QMessageBox::information(this, "添加成功",
+                             QString("成功添加管脚 '%1'，默认通道个数为1").arg(pinName));
 }
