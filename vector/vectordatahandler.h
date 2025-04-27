@@ -38,6 +38,9 @@ public:
                           QTableWidget *dataTable, bool appendToEnd,
                           const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
                           QString &errorMessage);
+
+    // 跳转到指定行
+    bool gotoLine(int tableId, int lineNumber);
 };
 
 #endif // VECTORDATAHANDLER_H

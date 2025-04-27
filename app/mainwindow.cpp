@@ -409,6 +409,7 @@ void MainWindow::setupVectorTableUI()
     QPushButton *addRowButton = new QPushButton(tr("添加向量行"), this);
     QPushButton *deleteRowButton = new QPushButton(tr("删除向量行"), this);
     m_deleteRangeButton = new QPushButton(tr("删除指定范围内的向量行"), this);
+    m_gotoLineButton = new QPushButton(tr("跳转到某行"), this);
     QPushButton *addTableButton = new QPushButton(tr("新建向量表"), this);
     QPushButton *deleteTableButton = new QPushButton(tr("删除向量表"), this);
     QPushButton *saveButton = new QPushButton(tr("保存"), this);
@@ -417,6 +418,7 @@ void MainWindow::setupVectorTableUI()
     connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
     connect(deleteRowButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
     connect(m_deleteRangeButton, &QPushButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
+    connect(m_gotoLineButton, &QPushButton::clicked, this, &MainWindow::gotoLine);
     connect(addTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
     connect(deleteTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
@@ -426,6 +428,7 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addWidget(addRowButton);
     controlLayout->addWidget(deleteRowButton);
     controlLayout->addWidget(m_deleteRangeButton);
+    controlLayout->addWidget(m_gotoLineButton);
     controlLayout->addWidget(addTableButton);
     controlLayout->addWidget(deleteTableButton);
     controlLayout->addWidget(saveButton);
@@ -1713,4 +1716,105 @@ void MainWindow::deletePins()
 
     // 删除操作完成后刷新当前数据
     refreshVectorTableData();
+}
+
+void MainWindow::gotoLine()
+{
+    qDebug() << "MainWindow::gotoLine - 用户点击了跳转到某行按钮";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        qDebug() << "MainWindow::gotoLine - 错误：数据库未连接";
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        qDebug() << "MainWindow::gotoLine - 错误：未选择向量表";
+        return;
+    }
+
+    // 获取当前选中的向量表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+    qDebug() << "MainWindow::gotoLine - 当前选中向量表:" << tableName << "ID:" << tableId;
+
+    // 获取向量表总行数
+    int totalRows = m_dataHandler->getVectorTableRowCount(tableId);
+    if (totalRows <= 0)
+    {
+        QMessageBox::warning(this, "警告", "当前向量表没有行数据");
+        qDebug() << "MainWindow::gotoLine - 错误：向量表没有行数据";
+        return;
+    }
+
+    // 创建跳转到某行对话框
+    QDialog dialog(this);
+    dialog.setWindowTitle("跳转到某行");
+    dialog.setFixedSize(300, 150);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    QLabel *label = new QLabel(QString("请输入要跳转的行号（1-%1）:").arg(totalRows), &dialog);
+    QSpinBox *spinBox = new QSpinBox(&dialog);
+    spinBox->setRange(1, totalRows);
+    spinBox->setValue(1);
+    spinBox->setFocus();
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    layout->addWidget(label);
+    layout->addWidget(spinBox);
+    layout->addStretch();
+    layout->addWidget(buttonBox);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        int row = spinBox->value();
+        qDebug() << "MainWindow::gotoLine - 用户输入的行号:" << row;
+
+        if (row >= 1 && row <= totalRows)
+        {
+            // 使用数据处理器获取行的信息（实际上只是进行验证）
+            if (m_dataHandler->gotoLine(tableId, row))
+            {
+                // 在UI上选中并滚动到指定行
+                // 注意：表格UI中的行号从0开始，所以需要减1
+                if (m_vectorTableWidget && m_vectorTableWidget->rowCount() >= row)
+                {
+                    m_vectorTableWidget->clearSelection();
+                    m_vectorTableWidget->selectRow(row - 1);
+                    m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(row - 1, 0), QAbstractItemView::PositionAtCenter);
+
+                    statusBar()->showMessage(QString("已跳转到第 %1 行").arg(row), 3000);
+                    qDebug() << "MainWindow::gotoLine - 成功跳转到第" << row << "行";
+                }
+                else
+                {
+                    QMessageBox::warning(this, "警告", "无法在表格中定位到指定行，请尝试刷新表格");
+                    qDebug() << "MainWindow::gotoLine - 错误：表格中找不到指定行 " << row;
+                }
+            }
+            else
+            {
+                QMessageBox::warning(this, "警告", "无法跳转到指定行，请检查数据库连接");
+                qDebug() << "MainWindow::gotoLine - 错误：数据处理器无法跳转到指定行";
+            }
+        }
+        else
+        {
+            QMessageBox::warning(this, "警告", "请输入有效的行号");
+            qDebug() << "MainWindow::gotoLine - 错误：无效的行号 " << row;
+        }
+    }
+    else
+    {
+        qDebug() << "MainWindow::gotoLine - 用户取消了操作";
+    }
 }

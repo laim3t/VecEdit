@@ -105,6 +105,9 @@ private slots:
     // 打开管脚设置对话框
     void openPinSettingsDialog();
 
+    // 跳转到指定行
+    void gotoLine();
+
 private:
     void setupUI();
     void setupMenu();
@@ -128,6 +131,7 @@ private:
     QPushButton *m_addPinButton;      // 添加管脚按钮
     QPushButton *m_deletePinButton;   // 删除管脚按钮
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
+    QPushButton *m_gotoLineButton;    // 跳转到某行按钮
 
     // 自定义代理
     VectorTableItemDelegate *m_itemDelegate;

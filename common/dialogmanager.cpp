@@ -316,7 +316,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
 
     if (selectedPins.isEmpty())
     {
-        QMessageBox::warning(m_parent, "警告", "没有选择任何管脚，无法创建向量行");
+        QMessageBox::warning(m_parent, "警告", "插入向量行前请先引用管脚。");
         return false;
     }
 

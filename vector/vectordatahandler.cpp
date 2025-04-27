@@ -848,3 +848,60 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
         return false;
     }
 }
+
+bool VectorDataHandler::gotoLine(int tableId, int lineNumber)
+{
+    qDebug() << "VectorDataHandler::gotoLine - 准备跳转到向量表" << tableId << "的第" << lineNumber << "行";
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qDebug() << "VectorDataHandler::gotoLine - 错误：数据库未打开";
+        return false;
+    }
+
+    // 首先检查表格是否存在
+    QSqlQuery tableCheckQuery(db);
+    tableCheckQuery.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
+    tableCheckQuery.addBindValue(tableId);
+
+    if (!tableCheckQuery.exec() || !tableCheckQuery.next())
+    {
+        qDebug() << "VectorDataHandler::gotoLine - 错误：找不到指定的向量表 ID:" << tableId;
+        return false;
+    }
+
+    QString tableName = tableCheckQuery.value(0).toString();
+    qDebug() << "VectorDataHandler::gotoLine - 向量表名称:" << tableName;
+
+    // 检查行号是否有效
+    int totalRows = getVectorTableRowCount(tableId);
+    if (lineNumber < 1 || lineNumber > totalRows)
+    {
+        qDebug() << "VectorDataHandler::gotoLine - 错误：行号" << lineNumber << "超出范围（1-" << totalRows << "）";
+        return false;
+    }
+
+    // 找到对应的向量数据ID
+    QSqlQuery dataQuery(db);
+    dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index LIMIT 1 OFFSET ?");
+    dataQuery.addBindValue(tableId);
+    dataQuery.addBindValue(lineNumber - 1); // 数据库OFFSET是0-based，而行号是1-based
+
+    if (!dataQuery.exec() || !dataQuery.next())
+    {
+        qDebug() << "VectorDataHandler::gotoLine - 错误：无法获取第" << lineNumber << "行的数据 ID";
+        qDebug() << "SQL错误：" << dataQuery.lastError().text();
+        return false;
+    }
+
+    int dataId = dataQuery.value(0).toInt();
+    qDebug() << "VectorDataHandler::gotoLine - 找到第" << lineNumber << "行的数据 ID:" << dataId;
+
+    // 如果需要滚动到指定行，可以在这里记录dataId，然后通过UI组件使用这个ID来定位和滚动
+    // 但在大多数情况下，我们只需要知道行数，因为我们会在UI层面使用selectRow方法来选中行
+
+    qDebug() << "VectorDataHandler::gotoLine - 跳转成功：表" << tableName << "的第" << lineNumber << "行";
+    return true;
+}
