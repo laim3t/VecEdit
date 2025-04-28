@@ -46,9 +46,11 @@
 #include <QSpinBox>
 #include <QScrollArea>
 #include <QTimer>
+#include <QListWidget>
+#include <QListWidgetItem>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent), m_isUpdatingUI(false)
 {
     setupUI();
     setupMenu();
@@ -449,9 +451,13 @@ void MainWindow::setupVectorTableUI()
     // 应用表格样式
     TableStyleManager::applyTableStyle(m_vectorTableWidget);
 
+    // 创建底部Tab页签
+    setupTabBar();
+
     // 添加到容器布局
     containerLayout->addLayout(controlLayout);
     containerLayout->addWidget(m_vectorTableWidget);
+    containerLayout->addWidget(m_vectorTabWidget);
 
     // 将容器添加到主布局
     QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
@@ -461,12 +467,68 @@ void MainWindow::setupVectorTableUI()
     }
 }
 
+void MainWindow::setupTabBar()
+{
+    qDebug() << "MainWindow::setupTabBar() - 初始化Tab栏";
+    m_vectorTabWidget = new QTabWidget(this);
+
+    // 设置Tab不可关闭，移除关闭按钮
+    m_vectorTabWidget->setTabsClosable(false);
+
+    // 设置早期Windows风格的Tab栏样式
+    QString tabStyle = R"(
+        QTabWidget::pane { 
+            border: 1px solid #A0A0A0;
+            background: #F0F0F0;
+        }
+        QTabBar::tab {
+            background: #E0E0E0;
+            border: 1px solid #A0A0A0;
+            border-bottom-color: #A0A0A0;
+            border-top-left-radius: 2px;
+            border-top-right-radius: 2px;
+            min-width: 80px;
+            padding: 4px 8px;
+            margin-right: 1px;
+            color: #000000;
+            font-size: 12px;
+        }
+        QTabBar::tab:selected {
+            background: #F0F0F0;
+            border-bottom-color: #F0F0F0;
+            margin-top: 0px;
+        }
+        QTabBar::tab:!selected {
+            margin-top: 2px;
+            background: #D5D5D5;
+        }
+        QTabBar::tab:hover:!selected {
+            background: #E5E5E5;
+        }
+    )";
+
+    m_vectorTabWidget->setStyleSheet(tabStyle);
+
+    // 设置Tab栏的高度
+    m_vectorTabWidget->setMinimumHeight(35);
+    m_vectorTabWidget->setMaximumHeight(35);
+
+    // 连接Tab切换的信号和槽
+    connect(m_vectorTabWidget, &QTabWidget::currentChanged, this, &MainWindow::onTabChanged);
+
+    qDebug() << "MainWindow::setupTabBar() - Tab栏初始化完成";
+}
+
 void MainWindow::loadVectorTable()
 {
     qDebug() << "MainWindow::loadVectorTable - 开始加载向量表";
 
     // 清空当前选择框
     m_vectorTableSelector->clear();
+
+    // 清空Tab页签
+    m_vectorTabWidget->clear();
+    m_tabToTableId.clear();
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -496,7 +558,13 @@ void MainWindow::loadVectorTable()
         {
             int tableId = tableQuery.value(0).toInt();
             QString tableName = tableQuery.value(1).toString();
+
+            // 添加到下拉选择框
             m_vectorTableSelector->addItem(tableName, tableId);
+
+            // 添加到Tab页签
+            addVectorTableTab(tableId, tableName);
+
             count++;
             qDebug() << "MainWindow::loadVectorTable - 找到向量表:" << tableName << "ID:" << tableId;
         }
@@ -529,11 +597,19 @@ void MainWindow::loadVectorTable()
 
 void MainWindow::onVectorTableSelectionChanged(int index)
 {
-    if (index < 0)
+    if (index < 0 || m_isUpdatingUI)
         return;
+
+    // 设置标志防止循环更新
+    m_isUpdatingUI = true;
+
+    qDebug() << "MainWindow::onVectorTableSelectionChanged - 向量表选择已更改，索引:" << index;
 
     // 获取当前选中表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 同步Tab页签选择
+    syncTabWithComboBox(index);
 
     // 使用数据处理器加载数据
     if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
@@ -547,6 +623,109 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     {
         statusBar()->showMessage("加载向量表失败");
     }
+
+    // 重置标志
+    m_isUpdatingUI = false;
+}
+
+void MainWindow::syncTabWithComboBox(int comboBoxIndex)
+{
+    if (comboBoxIndex < 0 || comboBoxIndex >= m_vectorTableSelector->count())
+        return;
+
+    qDebug() << "MainWindow::syncTabWithComboBox - 同步Tab页签与下拉框选择";
+
+    // 获取当前选择的表ID
+    int tableId = m_vectorTableSelector->itemData(comboBoxIndex).toInt();
+
+    // 在Map中查找对应的Tab索引
+    int tabIndex = -1;
+    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+    {
+        if (it.value() == tableId)
+        {
+            tabIndex = it.key();
+            break;
+        }
+    }
+
+    // 如果找到对应的Tab，选中它
+    if (tabIndex >= 0 && tabIndex < m_vectorTabWidget->count())
+    {
+        m_vectorTabWidget->setCurrentIndex(tabIndex);
+    }
+}
+
+void MainWindow::onTabChanged(int index)
+{
+    if (index < 0 || m_isUpdatingUI)
+        return;
+
+    qDebug() << "MainWindow::onTabChanged - 当前选中的Tab页索引:" << index;
+
+    // 设置标志防止循环更新
+    m_isUpdatingUI = true;
+
+    // 同步下拉框选择
+    syncComboBoxWithTab(index);
+
+    // 获取选中Tab对应的表ID
+    int tableId = m_tabToTableId.value(index, -1);
+    if (tableId >= 0)
+    {
+        qDebug() << "MainWindow::onTabChanged - 加载表ID:" << tableId << "的数据";
+
+        // 使用数据处理器加载数据
+        if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
+        {
+            // 应用表格样式
+            TableStyleManager::applyTableStyle(m_vectorTableWidget);
+
+            // 更新状态栏
+            statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTabWidget->tabText(index)));
+
+            qDebug() << "MainWindow::onTabChanged - 成功加载表格数据";
+        }
+        else
+        {
+            statusBar()->showMessage("加载向量表失败");
+            qDebug() << "MainWindow::onTabChanged - 加载表格数据失败";
+        }
+    }
+
+    // 重置标志
+    m_isUpdatingUI = false;
+}
+
+void MainWindow::syncComboBoxWithTab(int tabIndex)
+{
+    if (tabIndex < 0 || tabIndex >= m_vectorTabWidget->count())
+        return;
+
+    qDebug() << "MainWindow::syncComboBoxWithTab - 同步下拉框与Tab页签选择";
+
+    // 获取选中Tab对应的表ID
+    int tableId = m_tabToTableId.value(tabIndex, -1);
+    if (tableId < 0)
+        return;
+
+    // 在下拉框中查找对应索引
+    int comboIndex = m_vectorTableSelector->findData(tableId);
+    if (comboIndex >= 0)
+    {
+        m_vectorTableSelector->setCurrentIndex(comboIndex);
+    }
+}
+
+void MainWindow::addVectorTableTab(int tableId, const QString &tableName)
+{
+    qDebug() << "MainWindow::addVectorTableTab - 添加向量表Tab页签:" << tableName;
+
+    // 添加到Tab页签
+    int index = m_vectorTabWidget->addTab(new QWidget(), tableName);
+
+    // 存储映射关系
+    m_tabToTableId[index] = tableId;
 }
 
 // 保存向量表数据
@@ -621,71 +800,65 @@ void MainWindow::addNewVectorTable()
     if (vectorNameDialog.exec() == QDialog::Accepted)
     {
         QString tableName = nameEdit->text().trimmed();
+        qDebug() << "MainWindow::addNewVectorTable - 用户输入的向量表名称:" << tableName;
+
+        // 验证用户输入
         if (tableName.isEmpty())
         {
-            qDebug() << "MainWindow::addNewVectorTable - 表名为空，操作取消";
-            QMessageBox::warning(this, "错误", "表名不能为空");
+            QMessageBox::warning(this, "错误", "向量表名称不能为空");
             return;
         }
 
-        qDebug() << "MainWindow::addNewVectorTable - 用户输入的表名:" << tableName;
+        // 检查名称是否已存在
+        QSqlQuery checkQuery(db);
+        checkQuery.prepare("SELECT COUNT(*) FROM vector_tables WHERE LOWER(table_name) = LOWER(?)");
+        checkQuery.addBindValue(tableName);
 
-        // 检查表名是否已存在
-        QSqlQuery query(db);
-        query.prepare("SELECT COUNT(*) FROM vector_tables WHERE table_name = ?");
-        query.addBindValue(tableName);
-        if (query.exec() && query.next())
+        if (checkQuery.exec() && checkQuery.next())
         {
-            int count = query.value(0).toInt();
+            int count = checkQuery.value(0).toInt();
             if (count > 0)
             {
-                qDebug() << "MainWindow::addNewVectorTable - 表名已存在";
-                QMessageBox::warning(this, "错误", "该表名已存在，请使用其他名称");
+                QMessageBox::warning(this, "错误", "已存在同名向量表");
                 return;
             }
         }
-        else
+
+        // 插入新表
+        QSqlQuery insertQuery(db);
+        insertQuery.prepare("INSERT INTO vector_tables (table_name) VALUES (?)");
+        insertQuery.addBindValue(tableName);
+
+        if (insertQuery.exec())
         {
-            qDebug() << "MainWindow::addNewVectorTable - 检查表名失败:" << query.lastError().text();
-        }
+            int newTableId = insertQuery.lastInsertId().toInt();
+            qDebug() << "MainWindow::addNewVectorTable - 新向量表创建成功，ID:" << newTableId;
 
-        qDebug() << "MainWindow::addNewVectorTable - 表名检查通过，准备插入新表";
+            // 添加到下拉框和Tab页签
+            m_vectorTableSelector->addItem(tableName, newTableId);
+            addVectorTableTab(newTableId, tableName);
 
-        // 向数据库添加新表
-        query.prepare("INSERT INTO vector_tables (table_name) VALUES (?)");
-        query.addBindValue(tableName);
-        if (query.exec())
-        {
-            int tableId = query.lastInsertId().toInt();
-            qDebug() << "MainWindow::addNewVectorTable - 添加表成功，新表ID:" << tableId;
-
-            // 显示管脚选择对话框
-            showPinSelectionDialog(tableId, tableName);
-
-            // 刷新向量表列表
-            loadVectorTable();
-
-            // 选择新添加的表
-            for (int i = 0; i < m_vectorTableSelector->count(); i++)
+            // 选中新添加的表
+            int newIndex = m_vectorTableSelector->findData(newTableId);
+            if (newIndex >= 0)
             {
-                if (m_vectorTableSelector->itemData(i).toInt() == tableId)
-                {
-                    m_vectorTableSelector->setCurrentIndex(i);
-                    break;
-                }
+                m_vectorTableSelector->setCurrentIndex(newIndex);
             }
 
-            QMessageBox::information(this, "成功", "向量表 '" + tableName + "' 已成功创建");
+            // 显示管脚选择对话框
+            showPinSelectionDialog(newTableId, tableName);
+
+            // 更新UI显示
+            if (m_welcomeWidget->isVisible())
+            {
+                m_welcomeWidget->setVisible(false);
+                m_vectorTableContainer->setVisible(true);
+            }
         }
         else
         {
-            qDebug() << "MainWindow::addNewVectorTable - 添加表失败:" << query.lastError().text();
-            QMessageBox::critical(this, "错误", "创建向量表失败: " + query.lastError().text());
+            QMessageBox::critical(this, "错误", "创建向量表失败: " + insertQuery.lastError().text());
         }
-    }
-    else
-    {
-        qDebug() << "MainWindow::addNewVectorTable - 用户取消操作";
     }
 }
 
@@ -733,13 +906,6 @@ void MainWindow::addRowToCurrentVectorTable()
 // 删除当前选中的向量表
 void MainWindow::deleteCurrentVectorTable()
 {
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        return;
-    }
-
     // 检查是否有选中的向量表
     if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
     {
@@ -747,14 +913,14 @@ void MainWindow::deleteCurrentVectorTable()
         return;
     }
 
-    // 获取当前选中的向量表ID和名称
+    // 获取表ID和名称
     int tableId = m_vectorTableSelector->currentData().toInt();
     QString tableName = m_vectorTableSelector->currentText();
 
     // 弹出确认对话框
     QMessageBox::StandardButton reply;
     reply = QMessageBox::question(this, "确认删除",
-                                  "确定要删除向量表 \"" + tableName + "\" 吗？\n此操作不可撤销。",
+                                  "确定要删除向量表 \"" + tableName + "\" 吗？\n此操作将删除表中的所有数据，且不可撤销。",
                                   QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::No)
@@ -766,6 +932,37 @@ void MainWindow::deleteCurrentVectorTable()
     QString errorMessage;
     if (m_dataHandler->deleteVectorTable(tableId, errorMessage))
     {
+        // 记录当前选中的索引
+        int currentIndex = m_vectorTableSelector->currentIndex();
+
+        // 找到对应的Tab索引
+        int tabIndex = -1;
+        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+        {
+            if (it.value() == tableId)
+            {
+                tabIndex = it.key();
+                break;
+            }
+        }
+
+        // 删除Tab页签
+        if (tabIndex >= 0)
+        {
+            m_vectorTabWidget->removeTab(tabIndex);
+            m_tabToTableId.remove(tabIndex);
+
+            // 更新其他Tab的映射关系
+            QMap<int, int> updatedMap;
+            for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+            {
+                int oldIndex = it.key();
+                int newIndex = oldIndex > tabIndex ? oldIndex - 1 : oldIndex;
+                updatedMap[newIndex] = it.value();
+            }
+            m_tabToTableId = updatedMap;
+        }
+
         QMessageBox::information(this, "删除成功", "向量表 \"" + tableName + "\" 已成功删除");
 
         // 重新加载向量表列表
@@ -845,7 +1042,18 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 {
     if (m_dialogManager)
     {
-        m_dialogManager->showPinSelectionDialog(tableId, tableName);
+        qDebug() << "MainWindow::showPinSelectionDialog - 开始显示管脚选择对话框";
+        bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
+        qDebug() << "MainWindow::showPinSelectionDialog - 管脚选择对话框返回结果:" << success;
+
+        // 无论对话框结果如何，都刷新表格显示
+        int currentIndex = m_vectorTableSelector->findData(tableId);
+        if (currentIndex >= 0)
+        {
+            qDebug() << "MainWindow::showPinSelectionDialog - 刷新表格显示，表ID:" << tableId;
+            m_vectorTableSelector->setCurrentIndex(currentIndex);
+            onVectorTableSelectionChanged(currentIndex);
+        }
     }
 }
 
@@ -853,7 +1061,22 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
 {
     if (m_dialogManager)
     {
-        m_dialogManager->showVectorDataDialog(tableId, tableName, startIndex);
+        qDebug() << "MainWindow::showVectorDataDialog - 开始显示向量行数据录入对话框";
+        bool success = m_dialogManager->showVectorDataDialog(tableId, tableName, startIndex);
+        qDebug() << "MainWindow::showVectorDataDialog - 向量行数据录入对话框返回结果:" << success;
+
+        // 如果成功添加了数据，刷新表格显示
+        if (success)
+        {
+            qDebug() << "MainWindow::showVectorDataDialog - 成功添加向量行数据，刷新表格";
+            // 找到对应的表索引并刷新
+            int currentIndex = m_vectorTableSelector->findData(tableId);
+            if (currentIndex >= 0)
+            {
+                m_vectorTableSelector->setCurrentIndex(currentIndex);
+                onVectorTableSelectionChanged(currentIndex);
+            }
+        }
     }
 }
 
@@ -1560,40 +1783,320 @@ void MainWindow::deleteVectorRowsInRange()
                                           QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）吗？\n此操作不可撤销。",
                                       QMessageBox::Yes | QMessageBox::No);
 
-        if (reply == QMessageBox::Yes)
+        if (reply == QMessageBox::No)
         {
-            // 执行删除操作
-            QString errorMessage;
-            if (m_dataHandler->deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
-            {
-                QMessageBox::information(this, "删除成功",
-                                         "已成功删除第 " + QString::number(fromRow) + " 到 " +
-                                             QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）");
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消删除操作";
+            return;
+        }
 
-                // 刷新表格
-                onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+        // 执行删除操作
+        QString errorMessage;
+        if (m_dataHandler->deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
+        {
+            QMessageBox::information(this, "删除成功",
+                                     "已成功删除第 " + QString::number(fromRow) + " 到 " +
+                                         QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）");
 
-                qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
-            }
-            else
-            {
-                QMessageBox::critical(this, "删除失败", errorMessage);
-                statusBar()->showMessage("删除行失败: " + errorMessage);
+            // 刷新表格
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
 
-                qDebug() << "MainWindow::deleteVectorRowsInRange - 删除失败：" << errorMessage;
-            }
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
         }
         else
         {
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消删除操作";
+            QMessageBox::critical(this, "删除失败", errorMessage);
+            statusBar()->showMessage("删除行失败: " + errorMessage);
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 删除失败：" << errorMessage;
+        }
+    }
+}
+
+// 关闭Tab页签
+void MainWindow::closeTab(int index)
+{
+    if (index < 0 || index >= m_vectorTabWidget->count())
+        return;
+
+    qDebug() << "MainWindow::closeTab - 关闭Tab页签，索引:" << index;
+
+    // 仅当有多个Tab页时才允许关闭
+    if (m_vectorTabWidget->count() > 1)
+    {
+        int tableId = m_tabToTableId.value(index, -1);
+        m_vectorTabWidget->removeTab(index);
+
+        // 更新映射关系
+        m_tabToTableId.remove(index);
+
+        // 更新其他Tab的映射关系
+        QMap<int, int> updatedMap;
+        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+        {
+            int oldIndex = it.key();
+            int newIndex = oldIndex > index ? oldIndex - 1 : oldIndex;
+            updatedMap[newIndex] = it.value();
+        }
+        m_tabToTableId = updatedMap;
+
+        qDebug() << "MainWindow::closeTab - Tab页签已关闭，剩余Tab页数:" << m_vectorTabWidget->count();
+    }
+    else
+    {
+        qDebug() << "MainWindow::closeTab - 无法关闭，这是最后一个Tab页";
+        QMessageBox::information(this, "提示", "至少需要保留一个Tab页签");
+    }
+}
+
+// 添加单个管脚
+void MainWindow::addSinglePin()
+{
+    qDebug() << "MainWindow::addSinglePin - 开始添加单个管脚";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 弹出输入对话框，获取新管脚名称
+    bool ok;
+    QString pinName = QInputDialog::getText(this, "添加管脚",
+                                            "请输入管脚名称：",
+                                            QLineEdit::Normal,
+                                            "", &ok);
+
+    if (!ok || pinName.isEmpty())
+    {
+        qDebug() << "MainWindow::addSinglePin - 用户取消或输入为空";
+        return;
+    }
+
+    qDebug() << "MainWindow::addSinglePin - 用户输入管脚名称:" << pinName;
+
+    // 验证管脚名称是否已存在
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT COUNT(*) FROM pin_list WHERE LOWER(pin_name) = LOWER(?)");
+    checkQuery.addBindValue(pinName);
+
+    if (checkQuery.exec() && checkQuery.next())
+    {
+        int count = checkQuery.value(0).toInt();
+        if (count > 0)
+        {
+            QMessageBox::warning(this, "错误", "已存在同名管脚");
+            qDebug() << "MainWindow::addSinglePin - 已存在同名管脚";
+            return;
+        }
+    }
+
+    // 添加单个管脚到数据库
+    QList<QString> pins;
+    pins << pinName;
+    if (addPinsToDatabase(pins))
+    {
+        QMessageBox::information(this, "成功", "管脚 " + pinName + " 已成功添加");
+        qDebug() << "MainWindow::addSinglePin - 管脚添加成功";
+
+        // 刷新当前向量表（如果有）
+        if (m_vectorTableSelector->count() > 0 && m_vectorTableSelector->currentIndex() >= 0)
+        {
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
         }
     }
     else
     {
-        qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消对话框";
+        QMessageBox::critical(this, "错误", "添加管脚失败，请检查数据库连接");
+        qDebug() << "MainWindow::addSinglePin - 添加管脚失败";
     }
 }
 
+// 删除管脚
+void MainWindow::deletePins()
+{
+    qDebug() << "MainWindow::deletePins - 开始删除管脚";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 获取所有管脚列表
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT id, pin_name FROM pin_list ORDER BY pin_name");
+
+    if (!query.exec())
+    {
+        QMessageBox::critical(this, "错误", "获取管脚列表失败: " + query.lastError().text());
+        qDebug() << "MainWindow::deletePins - 获取管脚列表失败:" << query.lastError().text();
+        return;
+    }
+
+    // 创建管脚选择对话框
+    QDialog dialog(this);
+    dialog.setWindowTitle("删除管脚");
+    dialog.setMinimumWidth(300);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    // 添加说明标签
+    QLabel *label = new QLabel("请选择要删除的管脚:", &dialog);
+    layout->addWidget(label);
+
+    // 添加管脚列表（使用复选框）
+    QListWidget *pinList = new QListWidget(&dialog);
+    layout->addWidget(pinList);
+
+    // 存储管脚ID和名称的映射关系
+    QMap<int, QString> pinMap;
+
+    // 添加管脚到列表
+    while (query.next())
+    {
+        int pinId = query.value(0).toInt();
+        QString pinName = query.value(1).toString();
+
+        QListWidgetItem *item = new QListWidgetItem(pinName, pinList);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        item->setCheckState(Qt::Unchecked);
+
+        pinMap[pinList->count() - 1] = pinName;
+    }
+
+    // 检查是否有可删除的管脚
+    if (pinList->count() == 0)
+    {
+        QMessageBox::warning(this, "警告", "数据库中没有管脚可供删除");
+        qDebug() << "MainWindow::deletePins - 数据库中没有管脚可供删除";
+        return;
+    }
+
+    // 添加警告标签
+    QLabel *warningLabel = new QLabel("警告: 删除管脚将会影响已使用该管脚的向量表！", &dialog);
+    warningLabel->setStyleSheet("color: red;");
+    layout->addWidget(warningLabel);
+
+    // 添加按钮
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    layout->addWidget(buttonBox);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    // 显示对话框
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        // 获取选中的管脚
+        QStringList pinsToDelete;
+        for (int i = 0; i < pinList->count(); ++i)
+        {
+            QListWidgetItem *item = pinList->item(i);
+            if (item->checkState() == Qt::Checked)
+            {
+                pinsToDelete << item->text();
+            }
+        }
+
+        // 检查是否选中了要删除的管脚
+        if (pinsToDelete.isEmpty())
+        {
+            QMessageBox::warning(this, "警告", "未选择要删除的管脚");
+            qDebug() << "MainWindow::deletePins - 未选择要删除的管脚";
+            return;
+        }
+
+        // 确认删除
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "确认删除",
+                                      "确定要删除选中的 " + QString::number(pinsToDelete.size()) + " 个管脚吗？\n"
+                                                                                                   "此操作将影响所有使用这些管脚的向量表，且不可撤销。",
+                                      QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::No)
+        {
+            qDebug() << "MainWindow::deletePins - 用户取消删除操作";
+            return;
+        }
+
+        // 执行删除操作
+        db.transaction();
+        bool success = true;
+        QString errorMsg;
+
+        for (const QString &pinName : pinsToDelete)
+        {
+            // 首先获取管脚ID
+            QSqlQuery idQuery(db);
+            idQuery.prepare("SELECT id FROM pin_list WHERE pin_name = ?");
+            idQuery.addBindValue(pinName);
+
+            if (idQuery.exec() && idQuery.next())
+            {
+                int pinId = idQuery.value(0).toInt();
+
+                // 删除向量表与管脚的关联
+                QSqlQuery deleteRelationQuery(db);
+                deleteRelationQuery.prepare("DELETE FROM vector_table_pins WHERE pin_id = ?");
+                deleteRelationQuery.addBindValue(pinId);
+
+                if (!deleteRelationQuery.exec())
+                {
+                    success = false;
+                    errorMsg = deleteRelationQuery.lastError().text();
+                    qDebug() << "MainWindow::deletePins - 删除管脚关联失败:" << errorMsg;
+                    break;
+                }
+
+                // 删除管脚本身
+                QSqlQuery deletePinQuery(db);
+                deletePinQuery.prepare("DELETE FROM pin_list WHERE id = ?");
+                deletePinQuery.addBindValue(pinId);
+
+                if (!deletePinQuery.exec())
+                {
+                    success = false;
+                    errorMsg = deletePinQuery.lastError().text();
+                    qDebug() << "MainWindow::deletePins - 删除管脚失败:" << errorMsg;
+                    break;
+                }
+            }
+            else
+            {
+                success = false;
+                errorMsg = idQuery.lastError().text();
+                qDebug() << "MainWindow::deletePins - 查询管脚ID失败:" << errorMsg;
+                break;
+            }
+        }
+
+        // 提交或回滚事务
+        if (success)
+        {
+            db.commit();
+            QMessageBox::information(this, "成功", "已成功删除 " + QString::number(pinsToDelete.size()) + " 个管脚");
+            qDebug() << "MainWindow::deletePins - 成功删除" << pinsToDelete.size() << "个管脚";
+
+            // 刷新当前向量表（如果有）
+            if (m_vectorTableSelector->count() > 0 && m_vectorTableSelector->currentIndex() >= 0)
+            {
+                onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+            }
+        }
+        else
+        {
+            db.rollback();
+            QMessageBox::critical(this, "错误", "删除管脚失败: " + errorMsg);
+            qDebug() << "MainWindow::deletePins - 删除失败，已回滚事务";
+        }
+    }
+}
+
+// 打开管脚设置对话框
 void MainWindow::openPinSettingsDialog()
 {
     qDebug() << "MainWindow::openPinSettingsDialog - 打开管脚设置对话框";
@@ -1607,19 +2110,15 @@ void MainWindow::openPinSettingsDialog()
 
     // 创建并显示管脚设置对话框
     PinSettingsDialog dialog(this);
-
     if (dialog.exec() == QDialog::Accepted)
     {
         qDebug() << "MainWindow::openPinSettingsDialog - 管脚设置已更新";
-
-        // 如果当前有选中的向量表，刷新它的显示
-        if (m_vectorTableSelector->currentIndex() >= 0)
+        // 刷新当前向量表（如果有）
+        if (m_vectorTableSelector->count() > 0 && m_vectorTableSelector->currentIndex() >= 0)
         {
             onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
         }
-
         QMessageBox::information(this, "成功", "管脚设置已更新");
-        statusBar()->showMessage("管脚设置已更新");
     }
     else
     {
@@ -1627,106 +2126,15 @@ void MainWindow::openPinSettingsDialog()
     }
 }
 
-void MainWindow::addSinglePin()
-{
-    qDebug() << "MainWindow::addSinglePin - 开始添加单个管脚";
-
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        qDebug() << "MainWindow::addSinglePin - 数据库未连接";
-        return;
-    }
-
-    // 弹出对话框输入管脚名称
-    bool ok;
-    QString pinName = QInputDialog::getText(this, "添加管脚",
-                                            "请输入管脚名称:", QLineEdit::Normal,
-                                            "", &ok);
-
-    if (!ok || pinName.isEmpty())
-    {
-        qDebug() << "MainWindow::addSinglePin - 用户取消添加或未输入名称";
-        return;
-    }
-
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        qWarning() << "MainWindow::addSinglePin - 数据库未连接";
-        QMessageBox::critical(this, "错误", "数据库连接失败，无法添加管脚");
-        return;
-    }
-
-    // 检查管脚名称是否已存在
-    QSqlQuery checkQuery(db);
-    checkQuery.prepare("SELECT id FROM pin_list WHERE pin_name = ?");
-    checkQuery.addBindValue(pinName);
-
-    if (checkQuery.exec() && checkQuery.next())
-    {
-        qDebug() << "MainWindow::addSinglePin - 管脚名称已存在:" << pinName;
-        QMessageBox::warning(this, "重复的管脚名称",
-                             QString("管脚名称 '%1' 已存在，请使用其他名称").arg(pinName));
-        return;
-    }
-
-    // 添加新管脚到pin_list表
-    QSqlQuery insertQuery(db);
-    insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note) VALUES (?, '')");
-    insertQuery.addBindValue(pinName);
-
-    if (!insertQuery.exec())
-    {
-        qWarning() << "MainWindow::addSinglePin - 无法添加新管脚:" << insertQuery.lastError().text();
-        QMessageBox::critical(this, "错误",
-                              QString("添加管脚失败: %1").arg(insertQuery.lastError().text()));
-        return;
-    }
-
-    int newPinId = insertQuery.lastInsertId().toInt();
-    qDebug() << "MainWindow::addSinglePin - 成功添加新管脚，ID=" << newPinId << "，名称=" << pinName;
-
-    // 打开管脚设置对话框以便用户设置
-    openPinSettingsDialog();
-
-    QMessageBox::information(this, "添加成功",
-                             QString("成功添加管脚 '%1'，默认通道个数为1，请在管脚设置中配置工位信息").arg(pinName));
-}
-
-// 删除管脚功能实现
-void MainWindow::deletePins()
-{
-    qDebug() << "MainWindow::deletePins - 用户点击删除管脚按钮";
-
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        qDebug() << "MainWindow::deletePins - 未打开数据库";
-        QMessageBox::warning(this, "错误", "请先打开或创建一个项目");
-        return;
-    }
-
-    // 创建管脚设置对话框实例，但不显示对话框本身
-    PinSettingsDialog dialog(this);
-
-    // 只显示删除管脚对话框
-    dialog.showDeletePinDialog();
-
-    // 删除操作完成后刷新当前数据
-    refreshVectorTableData();
-}
-
+// 跳转到指定行
 void MainWindow::gotoLine()
 {
-    qDebug() << "MainWindow::gotoLine - 用户点击了跳转到某行按钮";
+    qDebug() << "MainWindow::gotoLine - 开始跳转到指定行";
 
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
         QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        qDebug() << "MainWindow::gotoLine - 错误：数据库未连接";
         return;
     }
 
@@ -1734,87 +2142,105 @@ void MainWindow::gotoLine()
     if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
     {
         QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        qDebug() << "MainWindow::gotoLine - 错误：未选择向量表";
         return;
     }
 
-    // 获取当前选中的向量表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-    qDebug() << "MainWindow::gotoLine - 当前选中向量表:" << tableName << "ID:" << tableId;
-
-    // 获取向量表总行数
-    int totalRows = m_dataHandler->getVectorTableRowCount(tableId);
-    if (totalRows <= 0)
+    // 检查表格是否有数据
+    int rowCount = m_vectorTableWidget->rowCount();
+    if (rowCount <= 0)
     {
-        QMessageBox::warning(this, "警告", "当前向量表没有行数据");
-        qDebug() << "MainWindow::gotoLine - 错误：向量表没有行数据";
+        QMessageBox::warning(this, "警告", "当前向量表没有数据");
         return;
     }
 
-    // 创建跳转到某行对话框
-    QDialog dialog(this);
-    dialog.setWindowTitle("跳转到某行");
-    dialog.setFixedSize(300, 150);
+    qDebug() << "MainWindow::gotoLine - 当前表格有" << rowCount << "行数据";
 
-    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    // 输入对话框获取行号
+    bool ok;
+    int targetLine = QInputDialog::getInt(this, "跳转到行",
+                                          "请输入行号 (1-" + QString::number(rowCount) + "):",
+                                          1, 1, rowCount, 1, &ok);
 
-    QLabel *label = new QLabel(QString("请输入要跳转的行号（1-%1）:").arg(totalRows), &dialog);
-    QSpinBox *spinBox = new QSpinBox(&dialog);
-    spinBox->setRange(1, totalRows);
-    spinBox->setValue(1);
-    spinBox->setFocus();
-
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-    layout->addWidget(label);
-    layout->addWidget(spinBox);
-    layout->addStretch();
-    layout->addWidget(buttonBox);
-
-    if (dialog.exec() == QDialog::Accepted)
+    if (!ok)
     {
-        int row = spinBox->value();
-        qDebug() << "MainWindow::gotoLine - 用户输入的行号:" << row;
+        qDebug() << "MainWindow::gotoLine - 用户取消了跳转";
+        return;
+    }
 
-        if (row >= 1 && row <= totalRows)
-        {
-            // 使用数据处理器获取行的信息（实际上只是进行验证）
-            if (m_dataHandler->gotoLine(tableId, row))
-            {
-                // 在UI上选中并滚动到指定行
-                // 注意：表格UI中的行号从0开始，所以需要减1
-                if (m_vectorTableWidget && m_vectorTableWidget->rowCount() >= row)
-                {
-                    m_vectorTableWidget->clearSelection();
-                    m_vectorTableWidget->selectRow(row - 1);
-                    m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(row - 1, 0), QAbstractItemView::PositionAtCenter);
+    qDebug() << "MainWindow::gotoLine - 用户输入的行号:" << targetLine;
 
-                    statusBar()->showMessage(QString("已跳转到第 %1 行").arg(row), 3000);
-                    qDebug() << "MainWindow::gotoLine - 成功跳转到第" << row << "行";
-                }
-                else
-                {
-                    QMessageBox::warning(this, "警告", "无法在表格中定位到指定行，请尝试刷新表格");
-                    qDebug() << "MainWindow::gotoLine - 错误：表格中找不到指定行 " << row;
-                }
-            }
-            else
-            {
-                QMessageBox::warning(this, "警告", "无法跳转到指定行，请检查数据库连接");
-                qDebug() << "MainWindow::gotoLine - 错误：数据处理器无法跳转到指定行";
-            }
-        }
-        else
-        {
-            QMessageBox::warning(this, "警告", "请输入有效的行号");
-            qDebug() << "MainWindow::gotoLine - 错误：无效的行号 " << row;
-        }
+    // 跳转到指定行（行号需要转换为0-based索引）
+    int rowIndex = targetLine - 1;
+    if (rowIndex >= 0 && rowIndex < rowCount)
+    {
+        // 清除当前选择
+        m_vectorTableWidget->clearSelection();
+
+        // 选中目标行
+        m_vectorTableWidget->selectRow(rowIndex);
+
+        // 滚动到目标行
+        m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(rowIndex, 0), QAbstractItemView::PositionAtCenter);
+
+        qDebug() << "MainWindow::gotoLine - 已跳转到第" << targetLine << "行";
     }
     else
     {
-        qDebug() << "MainWindow::gotoLine - 用户取消了操作";
+        QMessageBox::warning(this, "错误", "无效的行号");
+        qDebug() << "MainWindow::gotoLine - 无效的行号:" << targetLine;
+    }
+}
+
+// 字体缩放滑块值改变响应
+void MainWindow::onFontZoomSliderValueChanged(int value)
+{
+    qDebug() << "MainWindow::onFontZoomSliderValueChanged - 调整字体缩放值:" << value;
+
+    // 计算缩放因子 (从50%到200%)
+    double scaleFactor = value / 100.0;
+
+    // 更新向量表字体大小
+    if (m_vectorTableWidget)
+    {
+        QFont font = m_vectorTableWidget->font();
+        int baseSize = 9; // 默认字体大小
+        font.setPointSizeF(baseSize * scaleFactor);
+        m_vectorTableWidget->setFont(font);
+
+        // 更新表头字体
+        QFont headerFont = m_vectorTableWidget->horizontalHeader()->font();
+        headerFont.setPointSizeF(baseSize * scaleFactor);
+        m_vectorTableWidget->horizontalHeader()->setFont(headerFont);
+        m_vectorTableWidget->verticalHeader()->setFont(headerFont);
+
+        // 调整行高以适应字体大小
+        m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(qMax(25, int(25 * scaleFactor)));
+
+        qDebug() << "MainWindow::onFontZoomSliderValueChanged - 字体大小已调整为:" << font.pointSizeF();
+    }
+}
+
+// 字体缩放重置响应
+void MainWindow::onFontZoomReset()
+{
+    qDebug() << "MainWindow::onFontZoomReset - 重置字体缩放";
+
+    // 重置字体大小到默认值
+    if (m_vectorTableWidget)
+    {
+        QFont font = m_vectorTableWidget->font();
+        font.setPointSizeF(9); // 恢复默认字体大小
+        m_vectorTableWidget->setFont(font);
+
+        // 重置表头字体
+        QFont headerFont = m_vectorTableWidget->horizontalHeader()->font();
+        headerFont.setPointSizeF(9);
+        m_vectorTableWidget->horizontalHeader()->setFont(headerFont);
+        m_vectorTableWidget->verticalHeader()->setFont(headerFont);
+
+        // 重置行高
+        m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
+
+        qDebug() << "MainWindow::onFontZoomReset - 字体大小已重置为默认值";
     }
 }

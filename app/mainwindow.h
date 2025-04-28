@@ -13,6 +13,9 @@
 #include <QMap>
 #include <QLabel>
 #include <QString>
+#include <QTabWidget>
+#include <QListWidget>
+#include <QListWidgetItem>
 #include "../common/tablestylemanager.h"
 
 // 前置声明
@@ -61,6 +64,9 @@ private slots:
     // 选择向量表
     void onVectorTableSelectionChanged(int index);
 
+    // Tab页签切换响应
+    void onTabChanged(int index);
+
     // 保存向量表数据
     void saveVectorTableData();
 
@@ -108,10 +114,19 @@ private slots:
     // 跳转到指定行
     void gotoLine();
 
+    void onFontZoomSliderValueChanged(int value);
+    void onFontZoomReset();
+    void closeTab(int index);
+
 private:
     void setupUI();
     void setupMenu();
     void setupVectorTableUI();
+    void setupTabBar();
+    void addVectorTableTab(int tableId, const QString &tableName);
+    void loadAllVectorTables();
+    void syncTabWithComboBox(int comboBoxIndex);
+    void syncComboBoxWithTab(int tabIndex);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
@@ -133,12 +148,19 @@ private:
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
     QPushButton *m_gotoLineButton;    // 跳转到某行按钮
 
+    // Tab页签组件
+    QTabWidget *m_vectorTabWidget;
+    bool m_isUpdatingUI; // 防止UI更新循环的标志
+
     // 自定义代理
     VectorTableItemDelegate *m_itemDelegate;
 
     // 数据处理和对话框管理器
     VectorDataHandler *m_dataHandler;
     DialogManager *m_dialogManager;
+
+    // 存储Tab页与TableId的映射关系
+    QMap<int, int> m_tabToTableId;
 };
 
 #endif // MAINWINDOW_H
