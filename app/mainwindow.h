@@ -58,6 +58,9 @@ private slots:
     // 显示TimeSet对话框
     bool showTimeSetDialog(bool isInitialSetup = false);
 
+    // 显示管脚分组对话框
+    void showPinGroupDialog();
+
     // 加载并显示向量表
     void loadVectorTable();
 
@@ -147,6 +150,7 @@ private:
     QPushButton *m_deletePinButton;   // 删除管脚按钮
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
     QPushButton *m_gotoLineButton;    // 跳转到某行按钮
+    QPushButton *m_addGroupButton;    // 添加管脚分组按钮
 
     // Tab页签组件
     QTabWidget *m_vectorTabWidget;

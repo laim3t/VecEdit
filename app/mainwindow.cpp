@@ -367,6 +367,7 @@ void MainWindow::setupVectorTableUI()
     controlLayout->addWidget(selectLabel);
     controlLayout->addWidget(m_vectorTableSelector);
 
+    // 创建按钮分组1 - 管脚相关
     // 添加设置向量表管脚按钮
     m_setupPinsButton = new QPushButton(tr("设置向量表"), this);
     connect(m_setupPinsButton, &QPushButton::clicked, this, &MainWindow::setupVectorTablePins);
@@ -387,6 +388,19 @@ void MainWindow::setupVectorTableUI()
     connect(m_deletePinButton, &QPushButton::clicked, this, &MainWindow::deletePins);
     controlLayout->addWidget(m_deletePinButton);
 
+    // 添加"添加分组"按钮
+    m_addGroupButton = new QPushButton(tr("添加分组"), this);
+    connect(m_addGroupButton, &QPushButton::clicked, this, &MainWindow::showPinGroupDialog);
+    controlLayout->addWidget(m_addGroupButton);
+
+    controlLayout->addSpacing(20);
+
+    // 创建按钮分组2 - TimeSet相关
+    // 添加TimeSet设置按钮
+    m_timeSetSettingsButton = new QPushButton(tr("TimeSet设置"), this);
+    connect(m_timeSetSettingsButton, &QPushButton::clicked, this, &MainWindow::openTimeSetSettingsDialog);
+    controlLayout->addWidget(m_timeSetSettingsButton);
+
     // 添加填充TimeSet按钮
     m_fillTimeSetButton = new QPushButton(tr("填充TimeSet"), this);
     connect(m_fillTimeSetButton, &QPushButton::clicked, this, &MainWindow::showFillTimeSetDialog);
@@ -397,64 +411,77 @@ void MainWindow::setupVectorTableUI()
     connect(m_replaceTimeSetButton, &QPushButton::clicked, this, &MainWindow::showReplaceTimeSetDialog);
     controlLayout->addWidget(m_replaceTimeSetButton);
 
-    // 添加刷新按钮
+    controlLayout->addSpacing(20);
+
+    // 创建按钮分组3 - 向量表行操作
+    // 添加向量行按钮
+    QPushButton *addRowButton = new QPushButton(tr("添加向量行"), this);
+    connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
+    controlLayout->addWidget(addRowButton);
+
+    // 删除向量行按钮
+    QPushButton *deleteRowButton = new QPushButton(tr("删除向量行"), this);
+    connect(deleteRowButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
+    controlLayout->addWidget(deleteRowButton);
+
+    // 删除指定范围内的向量行按钮
+    m_deleteRangeButton = new QPushButton(tr("删除范围"), this);
+    connect(m_deleteRangeButton, &QPushButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
+    controlLayout->addWidget(m_deleteRangeButton);
+
+    // 跳转到行按钮
+    m_gotoLineButton = new QPushButton(tr("跳转到行"), this);
+    connect(m_gotoLineButton, &QPushButton::clicked, this, &MainWindow::gotoLine);
+    controlLayout->addWidget(m_gotoLineButton);
+
+    controlLayout->addSpacing(20);
+
+    // 创建按钮分组4 - 向量表操作和杂项
+    // 添加新向量表按钮
+    QPushButton *addTableButton = new QPushButton(tr("新建向量表"), this);
+    connect(addTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
+    controlLayout->addWidget(addTableButton);
+
+    // 删除向量表按钮
+    QPushButton *deleteTableButton = new QPushButton(tr("删除向量表"), this);
+    connect(deleteTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
+    controlLayout->addWidget(deleteTableButton);
+
+    // 刷新按钮
     m_refreshButton = new QPushButton(tr("刷新"), this);
     connect(m_refreshButton, &QPushButton::clicked, this, &MainWindow::refreshVectorTableData);
     controlLayout->addWidget(m_refreshButton);
 
-    // 添加TimeSet设置按钮
-    m_timeSetSettingsButton = new QPushButton(tr("TimeSet设置"), this);
-    connect(m_timeSetSettingsButton, &QPushButton::clicked, this, &MainWindow::openTimeSetSettingsDialog);
-    controlLayout->addWidget(m_timeSetSettingsButton);
-
-    // 添加其他按钮
-    QPushButton *addRowButton = new QPushButton(tr("添加向量行"), this);
-    QPushButton *deleteRowButton = new QPushButton(tr("删除向量行"), this);
-    m_deleteRangeButton = new QPushButton(tr("删除指定范围内的向量行"), this);
-    m_gotoLineButton = new QPushButton(tr("跳转到某行"), this);
-    QPushButton *addTableButton = new QPushButton(tr("新建向量表"), this);
-    QPushButton *deleteTableButton = new QPushButton(tr("删除向量表"), this);
+    // 保存按钮
     QPushButton *saveButton = new QPushButton(tr("保存"), this);
-
-    // 连接信号
-    connect(addRowButton, &QPushButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
-    connect(deleteRowButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
-    connect(m_deleteRangeButton, &QPushButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
-    connect(m_gotoLineButton, &QPushButton::clicked, this, &MainWindow::gotoLine);
-    connect(addTableButton, &QPushButton::clicked, this, &MainWindow::addNewVectorTable);
-    connect(deleteTableButton, &QPushButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveVectorTableData);
-    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onVectorTableSelectionChanged);
-
-    // 添加按钮到控制布局
-    controlLayout->addWidget(addRowButton);
-    controlLayout->addWidget(deleteRowButton);
-    controlLayout->addWidget(m_deleteRangeButton);
-    controlLayout->addWidget(m_gotoLineButton);
-    controlLayout->addWidget(addTableButton);
-    controlLayout->addWidget(deleteTableButton);
     controlLayout->addWidget(saveButton);
+
+    // 使用拉伸填充剩余空间
     controlLayout->addStretch();
 
-    // 创建向量表控件
+    // 创建表格视图
     m_vectorTableWidget = new QTableWidget(this);
+    m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_vectorTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
-    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked | QAbstractItemView::EditKeyPressed);
 
-    // 表格代理
+    // 连接向量表选择器信号
+    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onVectorTableSelectionChanged);
+
+    // 创建项委托，处理单元格编辑
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
-    // 应用表格样式
-    TableStyleManager::applyTableStyle(m_vectorTableWidget);
-
-    // 创建底部Tab页签
+    // 创建Tab栏
     setupTabBar();
 
-    // 添加到容器布局
+    // 将布局添加到容器
     containerLayout->addLayout(controlLayout);
     containerLayout->addWidget(m_vectorTableWidget);
     containerLayout->addWidget(m_vectorTabWidget);
@@ -2242,5 +2269,31 @@ void MainWindow::onFontZoomReset()
         m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
 
         qDebug() << "MainWindow::onFontZoomReset - 字体大小已重置为默认值";
+    }
+}
+
+void MainWindow::showPinGroupDialog()
+{
+    qDebug() << "MainWindow::showPinGroupDialog - 显示管脚分组对话框";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        qDebug() << "MainWindow::showPinGroupDialog - 没有打开的数据库";
+        QMessageBox::warning(this, tr("警告"), tr("请先打开或创建项目"));
+        return;
+    }
+
+    // 使用对话框管理器显示分组对话框
+    bool success = m_dialogManager->showPinGroupDialog();
+
+    if (success)
+    {
+        qDebug() << "MainWindow::showPinGroupDialog - 分组创建成功";
+        statusBar()->showMessage(tr("管脚分组已成功添加"));
+    }
+    else
+    {
+        qDebug() << "MainWindow::showPinGroupDialog - 分组创建取消或失败";
     }
 }

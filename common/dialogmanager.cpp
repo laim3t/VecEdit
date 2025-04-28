@@ -5,6 +5,7 @@
 #include "timeset/timesetdialog.h"
 #include "pin/pinvalueedit.h"
 #include "vector/vectordatahandler.h"
+#include "pin/pingroupdialog.h"
 #include <QObject>
 
 #include <QVBoxLayout>
@@ -785,4 +786,46 @@ void DialogManager::showDatabaseViewDialog()
     DatabaseViewDialog *dialog = new DatabaseViewDialog(m_parent);
     dialog->setAttribute(Qt::WA_DeleteOnClose); // 关闭时自动删除
     dialog->exec();
+}
+
+bool DialogManager::showPinGroupDialog()
+{
+    qDebug() << "DialogManager::showPinGroupDialog - 显示管脚分组对话框";
+
+    // 检查向量表是否存在
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+
+    if (query.exec("SELECT COUNT(*) FROM vector_tables"))
+    {
+        if (query.next())
+        {
+            int count = query.value(0).toInt();
+            qDebug() << "DialogManager::showPinGroupDialog - 检查向量表数量:" << count;
+
+            if (count <= 0)
+            {
+                qDebug() << "DialogManager::showPinGroupDialog - 未找到向量表，提前终止";
+                QMessageBox::information(m_parent, "提示", "没有找到向量表，请先创建向量表");
+                return false;
+            }
+        }
+    }
+    else
+    {
+        qDebug() << "DialogManager::showPinGroupDialog - 查询向量表失败:" << query.lastError().text();
+    }
+
+    // 创建并显示管脚分组对话框
+    PinGroupDialog dialog(m_parent);
+
+    qDebug() << "DialogManager::showPinGroupDialog - 显示对话框";
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        qDebug() << "DialogManager::showPinGroupDialog - 用户接受了对话框";
+        return true;
+    }
+
+    qDebug() << "DialogManager::showPinGroupDialog - 用户取消了对话框";
+    return false;
 }

@@ -27,6 +27,9 @@ public:
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
 
+    // 显示管脚分组对话框
+    bool showPinGroupDialog();
+
 private:
     QWidget *m_parent;
 };

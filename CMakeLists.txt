@@ -21,6 +21,8 @@ set(PROJECT_SOURCES
         database/databaseviewdialog.h
         pin/pinlistdialog.cpp
         pin/pinlistdialog.h
+        pin/pingroupdialog.h
+        pin/pingroupdialog.cpp
         timeset/timesetdialog.cpp
         timeset/timesetdialog.h
         timeset/timesetedgedialog.cpp
