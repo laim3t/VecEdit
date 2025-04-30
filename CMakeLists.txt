@@ -127,3 +127,10 @@ install(TARGETS VecEdit
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(VecEdit)
 endif()
+if (WIN32 AND QT_VERSION_MAJOR EQUAL 6)
+    add_custom_command(TARGET VecEdit POST_BUILD
+      COMMAND ${Qt6_DIR}/../../../bin/windeployqt
+              --no-translations --no-quick-import
+              "$<TARGET_FILE:VecEdit>"
+    )
+endif()
