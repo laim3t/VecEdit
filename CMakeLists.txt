@@ -11,6 +11,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
+# 设置日志输出相关
+add_compile_definitions(QT_MESSAGELOGCONTEXT)  # 启用日志上下文信息
+# 查找 Qt6 的 Core, Gui, Widgets 组件
+find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+
 set(PROJECT_SOURCES
         app/main.cpp
         app/mainwindow.cpp
@@ -47,6 +52,8 @@ set(PROJECT_SOURCES
         common/dialogmanager.cpp
         common/tablestylemanager.h
         common/tablestylemanager.cpp
+        common/logger.h
+        common/logger.cpp
         timeset/timesetdataaccess.h
         timeset/timesetdataaccess.cpp
         timeset/timesetui.h
