@@ -20,7 +20,6 @@
 
 // 前置声明
 class VectorTableItemDelegate;
-class VectorDataHandler;
 class DialogManager;
 
 class MainWindow : public QMainWindow
@@ -160,7 +159,6 @@ private:
     VectorTableItemDelegate *m_itemDelegate;
 
     // 数据处理和对话框管理器
-    VectorDataHandler *m_dataHandler;
     DialogManager *m_dialogManager;
 
     // 存储Tab页与TableId的映射关系

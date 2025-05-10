@@ -6,11 +6,15 @@
 #include <QMap>
 #include <QTableWidget>
 #include <QWidget>
+#include <QObject>
+#include <QAtomicInt>
 
-class VectorDataHandler
+class VectorDataHandler : public QObject
 {
+    Q_OBJECT
+
 public:
-    VectorDataHandler();
+    static VectorDataHandler &instance();
 
     // 加载向量表数据到表格控件
     bool loadVectorTableData(int tableId, QTableWidget *tableWidget);
@@ -41,6 +45,24 @@ public:
 
     // 跳转到指定行
     bool gotoLine(int tableId, int lineNumber);
+
+    // 取消当前操作
+    void cancelOperation();
+
+signals:
+    // 进度更新信号
+    void progressUpdated(int percentage);
+
+private:
+    VectorDataHandler();
+    ~VectorDataHandler();
+
+    // 禁止拷贝和赋值
+    VectorDataHandler(const VectorDataHandler &) = delete;
+    VectorDataHandler &operator=(const VectorDataHandler &) = delete;
+
+    // 取消操作标志
+    QAtomicInt m_cancelRequested;
 };
 
 #endif // VECTORDATAHANDLER_H

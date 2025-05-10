@@ -24,6 +24,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
+#include <QProgressDialog>
 
 DialogManager::DialogManager(QWidget *parent)
     : m_parent(parent)
@@ -277,7 +278,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     QSqlQuery query(db);
 
     // 查询当前向量表中的总行数
-    VectorDataHandler dataHandler;
+    VectorDataHandler &dataHandler = VectorDataHandler::instance();
     int totalRowsInFile = dataHandler.getVectorTableRowCount(tableId);
 
     // 计算剩余可用行数（初始总数为8388608）
@@ -632,6 +633,18 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
             return;
         }
         
+        // 大数据量提示
+        if (totalRowCount > 50000) {
+            QMessageBox::StandardButton reply = QMessageBox::question(&vectorDataDialog, 
+                "大数据量提示", 
+                QString("您正在添加%1行数据，处理可能需要一些时间。是否继续？").arg(totalRowCount),
+                QMessageBox::Yes | QMessageBox::No);
+                
+            if (reply == QMessageBox::No) {
+                return;
+            }
+        }
+        
         // 获取插入位置
         int actualStartIndex = startIndex;
         if (!appendToEndCheckbox->isChecked()) {
@@ -653,14 +666,51 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
             }
         }
         
-        // 保存向量行数据
-        VectorDataHandler dataHandler;
+        // 创建进度对话框
+        QProgressDialog progressDialog("正在添加向量行数据...", "取消", 0, 100, &vectorDataDialog);
+        progressDialog.setWindowTitle("数据处理中");
+        progressDialog.setWindowModality(Qt::WindowModal);
+        progressDialog.setMinimumDuration(0); // 立即显示
+        progressDialog.setValue(0);
+        
+        // 禁用保存和取消按钮，防止重复操作
+        saveButton->setEnabled(false);
+        cancelButton->setEnabled(false);
+        
+        // 获取VectorDataHandler单例
+        VectorDataHandler& dataHandler = VectorDataHandler::instance();
+        
+        // 连接进度更新信号
+        QObject::connect(&dataHandler, &VectorDataHandler::progressUpdated,
+                         &progressDialog, &QProgressDialog::setValue);
+                         
+        // 连接取消按钮
+        QObject::connect(&progressDialog, &QProgressDialog::canceled,
+                         &dataHandler, &VectorDataHandler::cancelOperation);
+        
         QString errorMessage;
         
+        qDebug() << "DialogManager::showVectorDataDialog - 开始保存向量行数据，表ID:" << tableId 
+                 << "，起始索引:" << actualStartIndex << "，总行数:" << totalRowCount;
+        
+        // 执行插入操作（阻塞方式）
         bool success = dataHandler.insertVectorRows(
             tableId, actualStartIndex, totalRowCount, timesetCombo->currentData().toInt(),
             vectorTable, appendToEndCheckbox->isChecked(), selectedPins, errorMessage
         );
+        
+        // 恢复按钮状态
+        saveButton->setEnabled(true);
+        cancelButton->setEnabled(true);
+        
+        // 关闭进度对话框
+        progressDialog.close();
+        
+        // 断开信号连接，防止后续操作影响
+        QObject::disconnect(&dataHandler, &VectorDataHandler::progressUpdated,
+                         &progressDialog, &QProgressDialog::setValue);
+        QObject::disconnect(&progressDialog, &QProgressDialog::canceled,
+                         &dataHandler, &VectorDataHandler::cancelOperation);
         
         if (success) {
             QMessageBox::information(&vectorDataDialog, "保存成功", "向量行数据已成功保存！");

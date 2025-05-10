@@ -9,8 +9,24 @@
 #include <QDebug>
 #include <algorithm>
 
-VectorDataHandler::VectorDataHandler()
+// 静态单例实例
+VectorDataHandler &VectorDataHandler::instance()
 {
+    static VectorDataHandler instance;
+    return instance;
+}
+
+VectorDataHandler::VectorDataHandler() : m_cancelRequested(0)
+{
+}
+
+VectorDataHandler::~VectorDataHandler()
+{
+}
+
+void VectorDataHandler::cancelOperation()
+{
+    m_cancelRequested.storeRelease(1);
 }
 
 bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
@@ -600,6 +616,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
                                          const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
                                          QString &errorMessage)
 {
+    // 重置取消标志
+    m_cancelRequested.storeRelease(0);
+
+    qDebug() << "VectorDataHandler::insertVectorRows - 开始插入向量行，表ID:" << tableId
+             << "行数:" << rowCount << "数据表行数:" << dataTable->rowCount();
+
     // 保存向量行数据
     QSqlDatabase db = DatabaseManager::instance()->database();
     db.transaction();
@@ -627,6 +649,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     // 计算重复次数
     int repeatTimes = rowCount / rowDataCount;
 
+    qDebug() << "VectorDataHandler::insertVectorRows - 重复次数:" << repeatTimes;
+
     // 获取插入位置
     int actualStartIndex = startIndex;
 
@@ -648,90 +672,278 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         }
     }
 
+    // 提前获取pin_options表中的所有可能值，避免重复查询
+    QMap<QString, int> pinOptionsCache;
+    QSqlQuery pinOptionsQuery(db);
+    if (pinOptionsQuery.exec("SELECT id, pin_value FROM pin_options"))
+    {
+        while (pinOptionsQuery.next())
+        {
+            int id = pinOptionsQuery.value(0).toInt();
+            QString value = pinOptionsQuery.value(1).toString();
+            pinOptionsCache[value] = id;
+        }
+    }
+
+    // 默认值为X (id=5)，确保即使查询失败也有默认值
+    if (!pinOptionsCache.contains("X"))
+    {
+        pinOptionsCache["X"] = 5;
+    }
+
+    qDebug() << "VectorDataHandler::insertVectorRows - 开始批量处理插入";
+
+    // 进度报告变量
+    const int PROGRESS_DATA_ROWS = 40;  // 数据行占总进度的40%
+    const int PROGRESS_PIN_VALUES = 60; // 管脚值占总进度的60%
+    int dataProgress = 0;
+
+    // 预处理SQL语句，只准备一次
+    QSqlQuery dataQuery(db);
+    dataQuery.prepare("INSERT INTO vector_table_data "
+                      "(table_id, instruction_id, timeset_id, label, capture, ext, comment, sort_index) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+    QSqlQuery pinValueQuery(db);
+    pinValueQuery.prepare("INSERT INTO vector_table_pin_values "
+                          "(vector_data_id, vector_pin_id, pin_level) "
+                          "VALUES (?, ?, ?)");
+
+    // 使用批处理来提高性能
+    int batchSize = 1000; // 设置一个合理的批处理大小
+    int currentBatch = 0;
+    int totalProcessed = 0;
+    int maxBatches = (repeatTimes * rowDataCount + batchSize - 1) / batchSize;
+
+    QList<QVariantList> dataParams;
+    for (int i = 0; i < 8; i++)
+    { // vector_table_data表有8个参数
+        dataParams.append(QVariantList());
+    }
+
+    QList<QVariantList> pinValueParams;
+    for (int i = 0; i < 3; i++)
+    { // vector_table_pin_values表有3个参数
+        pinValueParams.append(QVariantList());
+    }
+
+    // 收集要插入的数据行的ID
+    QList<int> vectorDataIds;
+
     // 根据重复次数添加行数据
     for (int repeat = 0; repeat < repeatTimes; repeat++)
     {
         for (int row = 0; row < rowDataCount; row++)
         {
-            // 添加vector_table_data记录
-            QSqlQuery dataQuery(db);
-            dataQuery.prepare("INSERT INTO vector_table_data "
-                              "(table_id, instruction_id, timeset_id, label, capture, ext, comment, sort_index) "
-                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            dataQuery.addBindValue(tableId);
-            dataQuery.addBindValue(1); // 默认instruction_id为1
-            dataQuery.addBindValue(timesetId);
-            dataQuery.addBindValue("");                                             // label默认为空
-            dataQuery.addBindValue(0);                                              // capture默认为0
-            dataQuery.addBindValue("");                                             // ext默认为空
-            dataQuery.addBindValue("");                                             // comment默认为空
-            dataQuery.addBindValue(actualStartIndex + repeat * rowDataCount + row); // 计算实际排序索引
-
-            if (!dataQuery.exec())
+            // 检查是否取消
+            if (m_cancelRequested.loadAcquire())
             {
-                errorMessage = "添加向量行数据失败：" + dataQuery.lastError().text();
-                success = false;
-                break;
+                qDebug() << "VectorDataHandler::insertVectorRows - 操作被用户取消";
+                errorMessage = "操作被用户取消";
+                db.rollback();
+                return false;
             }
 
-            int vectorDataId = dataQuery.lastInsertId().toInt();
-
-            // 为每个管脚添加vector_table_pin_values记录
-            for (int col = 0; col < selectedPins.size(); col++)
+            // 更新UI进度
+            if ((repeat * rowDataCount + row) % 5000 == 0 || totalProcessed == 0)
             {
-                int pinId = selectedPins[col].first;
-
-                // 获取单元格中的输入框
-                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(row, col));
-                if (!pinEdit)
-                    continue;
-
-                QString pinValue = pinEdit->text();
-                if (pinValue.isEmpty())
-                    pinValue = "X"; // 如果为空，默认使用X
-
-                // 获取pin_option_id
-                int pinOptionId = 5; // 默认为X (id=5)
-                QSqlQuery pinOptionQuery(db);
-                pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                pinOptionQuery.addBindValue(pinValue);
-                if (pinOptionQuery.exec() && pinOptionQuery.next())
-                {
-                    pinOptionId = pinOptionQuery.value(0).toInt();
-                }
-
-                QSqlQuery pinValueQuery(db);
-                pinValueQuery.prepare("INSERT INTO vector_table_pin_values "
-                                      "(vector_data_id, vector_pin_id, pin_level) "
-                                      "VALUES (?, ?, ?)");
-                pinValueQuery.addBindValue(vectorDataId);
-                pinValueQuery.addBindValue(pinId);
-                pinValueQuery.addBindValue(pinOptionId);
-
-                if (!pinValueQuery.exec())
-                {
-                    errorMessage = "保存管脚值失败：" + pinValueQuery.lastError().text();
-                    success = false;
-                    break;
-                }
+                int progress = totalProcessed * PROGRESS_DATA_ROWS / rowCount;
+                emit progressUpdated(progress);
+                qDebug() << "VectorDataHandler::insertVectorRows - 已处理"
+                         << totalProcessed << "/" << rowCount << "行，进度:" << progress << "%";
             }
 
-            if (!success)
-                break;
+            // vector_table_data参数
+            dataParams[0].append(tableId);
+            dataParams[1].append(1); // 默认instruction_id为1
+            dataParams[2].append(timesetId);
+            dataParams[3].append("");                                             // label默认为空
+            dataParams[4].append(0);                                              // capture默认为0
+            dataParams[5].append("");                                             // ext默认为空
+            dataParams[6].append("");                                             // comment默认为空
+            dataParams[7].append(actualStartIndex + repeat * rowDataCount + row); // 排序索引
+
+            currentBatch++;
+            totalProcessed++;
+
+            // 当达到批处理大小或处理完所有数据时，执行批量插入
+            if (currentBatch >= batchSize || totalProcessed >= rowCount)
+            {
+                qDebug() << "VectorDataHandler::insertVectorRows - 执行批量插入，批次:"
+                         << (totalProcessed / batchSize) << "/" << maxBatches;
+
+                // 批量插入vector_table_data
+                for (int i = 0; i < 8; i++)
+                {
+                    dataQuery.addBindValue(dataParams[i]);
+                }
+
+                if (!dataQuery.execBatch())
+                {
+                    errorMessage = "批量添加向量行数据失败：" + dataQuery.lastError().text();
+                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
+                    db.rollback();
+                    return false;
+                }
+
+                // 获取所有插入的ID
+                // 注意：这是一个简化处理，实际应该使用QSqlDriver::lastInsertId()或适当的SQL查询
+                QSqlQuery idQuery(db);
+                QString idQueryStr = QString(
+                                         "SELECT id FROM vector_table_data WHERE table_id = %1 ORDER BY id DESC LIMIT %2")
+                                         .arg(tableId)
+                                         .arg(currentBatch);
+
+                if (idQuery.exec(idQueryStr))
+                {
+                    while (idQuery.next())
+                    {
+                        vectorDataIds.prepend(idQuery.value(0).toInt()); // 倒序插入，保持正确顺序
+                    }
+                }
+                else
+                {
+                    errorMessage = "获取插入ID失败：" + idQuery.lastError().text();
+                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
+                    db.rollback();
+                    return false;
+                }
+
+                // 清空数据参数列表，准备下一批
+                for (int i = 0; i < 8; i++)
+                {
+                    dataParams[i].clear();
+                }
+
+                currentBatch = 0;
+
+                // 更新进度
+                int progress = totalProcessed * PROGRESS_DATA_ROWS / rowCount;
+                if (progress > dataProgress)
+                {
+                    dataProgress = progress;
+                    emit progressUpdated(dataProgress);
+                }
+            }
         }
-
-        if (!success)
-            break;
     }
+
+    qDebug() << "VectorDataHandler::insertVectorRows - 行数据插入完成，开始处理管脚值";
+    emit progressUpdated(PROGRESS_DATA_ROWS); // 数据行插入已完成
+
+    // 重置批处理计数
+    currentBatch = 0;
+    totalProcessed = 0;
+    int totalPinValues = vectorDataIds.size() * selectedPins.size();
+    maxBatches = (totalPinValues + batchSize - 1) / batchSize;
+
+    // 为每个管脚添加vector_table_pin_values记录
+    for (int dataIdx = 0; dataIdx < vectorDataIds.size(); dataIdx++)
+    {
+        int vectorDataId = vectorDataIds[dataIdx];
+        int originalRowIdx = dataIdx % rowDataCount; // 获取原始数据表中的行索引
+
+        for (int col = 0; col < selectedPins.size(); col++)
+        {
+            // 检查是否取消
+            if (m_cancelRequested.loadAcquire())
+            {
+                qDebug() << "VectorDataHandler::insertVectorRows - 操作被用户取消";
+                errorMessage = "操作被用户取消";
+                db.rollback();
+                return false;
+            }
+
+            // 更新进度
+            if (totalProcessed % 10000 == 0 || totalProcessed == 0)
+            {
+                int progress = PROGRESS_DATA_ROWS + (totalProcessed * PROGRESS_PIN_VALUES / totalPinValues);
+                emit progressUpdated(progress);
+                qDebug() << "VectorDataHandler::insertVectorRows - 已处理管脚值"
+                         << totalProcessed << "/" << totalPinValues << "个，总进度:" << progress << "%";
+            }
+
+            int pinId = selectedPins[col].first;
+
+            // 获取单元格中的输入框
+            PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(originalRowIdx, col));
+
+            // 获取管脚值
+            QString pinValue = pinEdit ? pinEdit->text() : "X";
+            if (pinValue.isEmpty())
+            {
+                pinValue = "X"; // 如果为空，默认使用X
+            }
+
+            // 从缓存中获取pin_option_id
+            int pinOptionId = pinOptionsCache.value(pinValue, 5); // 默认为X (id=5)
+
+            // 添加到批处理参数
+            pinValueParams[0].append(vectorDataId);
+            pinValueParams[1].append(pinId);
+            pinValueParams[2].append(pinOptionId);
+
+            currentBatch++;
+            totalProcessed++;
+
+            // 当达到批处理大小或处理完所有数据时，执行批量插入
+            if (currentBatch >= batchSize || totalProcessed >= totalPinValues)
+            {
+                qDebug() << "VectorDataHandler::insertVectorRows - 执行管脚值批量插入，批次:"
+                         << (totalProcessed / batchSize) << "/" << maxBatches;
+
+                // 批量插入vector_table_pin_values
+                for (int i = 0; i < 3; i++)
+                {
+                    pinValueQuery.addBindValue(pinValueParams[i]);
+                }
+
+                if (!pinValueQuery.execBatch())
+                {
+                    errorMessage = "批量添加管脚值失败：" + pinValueQuery.lastError().text();
+                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
+                    db.rollback();
+                    return false;
+                }
+
+                // 清空参数列表，准备下一批
+                for (int i = 0; i < 3; i++)
+                {
+                    pinValueParams[i].clear();
+                }
+
+                currentBatch = 0;
+
+                // 更新进度
+                int progress = PROGRESS_DATA_ROWS + (totalProcessed * PROGRESS_PIN_VALUES / totalPinValues);
+                emit progressUpdated(progress);
+            }
+        }
+    }
+
+    qDebug() << "VectorDataHandler::insertVectorRows - 所有数据插入完成，准备提交事务";
+    emit progressUpdated(99); // 设为99%，等提交成功后再设为100%
 
     if (success)
     {
-        db.commit();
-        return true;
+        if (db.commit())
+        {
+            qDebug() << "VectorDataHandler::insertVectorRows - 事务提交成功";
+            emit progressUpdated(100); // 操作完成，进度100%
+            return true;
+        }
+        else
+        {
+            errorMessage = "提交事务失败：" + db.lastError().text();
+            qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
+            db.rollback();
+            return false;
+        }
     }
     else
     {
         db.rollback();
+        qDebug() << "VectorDataHandler::insertVectorRows - 事务回滚";
         return false;
     }
 }

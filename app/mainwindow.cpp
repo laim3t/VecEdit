@@ -55,8 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     setupMenu();
 
-    // 创建数据处理器和对话框管理器
-    m_dataHandler = new VectorDataHandler();
+    // 创建对话框管理器
     m_dialogManager = new DialogManager(this);
 
     // 设置窗口标题和大小
@@ -73,9 +72,6 @@ MainWindow::~MainWindow()
     closeCurrentProject();
 
     // 释放我们创建的对象
-    if (m_dataHandler)
-        delete m_dataHandler;
-
     if (m_dialogManager)
         delete m_dialogManager;
 }
@@ -325,29 +321,31 @@ bool MainWindow::showAddPinsDialog()
     return success;
 }
 
-bool MainWindow::showTimeSetDialog(bool isInitialSetup)
+bool MainWindow::showTimeSetDialog(bool isNewTable)
 {
+    qDebug() << "MainWindow::showTimeSetDialog - 显示TimeSet设置对话框，isNewTable:" << isNewTable;
+
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
         return false;
     }
 
-    // 使用对话框管理器显示TimeSet对话框，传递isInitialSetup参数
-    bool success = m_dialogManager->showTimeSetDialog(isInitialSetup);
+    // 创建TimeSet对话框，如果是新表则传递isInitialSetup=true参数
+    TimeSetDialog dialog(this, isNewTable);
 
-    // 无论是否成功，都刷新缓存，确保UI显示最新的TimeSet列表
-    if (m_itemDelegate)
+    // 显示对话框
+    if (dialog.exec() == QDialog::Accepted)
     {
-        qDebug() << "MainWindow::showTimeSetDialog - 刷新TimeSet选项缓存";
-        m_itemDelegate->refreshCache();
+        qDebug() << "MainWindow::showTimeSetDialog - 用户确认TimeSet设置";
+        return true;
     }
-
-    if (success)
+    else
     {
-        statusBar()->showMessage(tr("TimeSet已成功添加"));
+        qDebug() << "MainWindow::showTimeSetDialog - 用户取消TimeSet设置";
+        return false;
     }
-    return success;
 }
 
 void MainWindow::setupVectorTableUI()
@@ -639,7 +637,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     syncTabWithComboBox(index);
 
     // 使用数据处理器加载数据
-    if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
+    if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
     {
         // 应用表格样式
         TableStyleManager::applyTableStyle(m_vectorTableWidget);
@@ -685,42 +683,11 @@ void MainWindow::syncTabWithComboBox(int comboBoxIndex)
 
 void MainWindow::onTabChanged(int index)
 {
-    if (index < 0 || m_isUpdatingUI)
+    if (m_isUpdatingUI || index < 0)
         return;
 
-    qDebug() << "MainWindow::onTabChanged - 当前选中的Tab页索引:" << index;
-
-    // 设置标志防止循环更新
     m_isUpdatingUI = true;
-
-    // 同步下拉框选择
     syncComboBoxWithTab(index);
-
-    // 获取选中Tab对应的表ID
-    int tableId = m_tabToTableId.value(index, -1);
-    if (tableId >= 0)
-    {
-        qDebug() << "MainWindow::onTabChanged - 加载表ID:" << tableId << "的数据";
-
-        // 使用数据处理器加载数据
-        if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
-        {
-            // 应用表格样式
-            TableStyleManager::applyTableStyle(m_vectorTableWidget);
-
-            // 更新状态栏
-            statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTabWidget->tabText(index)));
-
-            qDebug() << "MainWindow::onTabChanged - 成功加载表格数据";
-        }
-        else
-        {
-            statusBar()->showMessage("加载向量表失败");
-            qDebug() << "MainWindow::onTabChanged - 加载表格数据失败";
-        }
-    }
-
-    // 重置标志
     m_isUpdatingUI = false;
 }
 
@@ -729,18 +696,37 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
     if (tabIndex < 0 || tabIndex >= m_vectorTabWidget->count())
         return;
 
-    qDebug() << "MainWindow::syncComboBoxWithTab - 同步下拉框与Tab页签选择";
-
-    // 获取选中Tab对应的表ID
     int tableId = m_tabToTableId.value(tabIndex, -1);
     if (tableId < 0)
         return;
 
-    // 在下拉框中查找对应索引
-    int comboIndex = m_vectorTableSelector->findData(tableId);
-    if (comboIndex >= 0)
+    // 找到对应的下拉框索引
+    for (int i = 0; i < m_vectorTableSelector->count(); i++)
     {
-        m_vectorTableSelector->setCurrentIndex(comboIndex);
+        if (m_vectorTableSelector->itemData(i).toInt() == tableId)
+        {
+            m_vectorTableSelector->setCurrentIndex(i);
+
+            // 检查当前是否显示向量表界面，如果不是则切换
+            if (m_welcomeWidget->isVisible())
+            {
+                m_welcomeWidget->setVisible(false);
+                m_vectorTableContainer->setVisible(true);
+            }
+
+            // 重新加载数据
+            if (tableId > 0)
+            {
+                // 使用数据处理器加载数据
+                if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+                {
+                    // 应用表格样式
+                    TableStyleManager::applyTableStyle(m_vectorTableWidget);
+                }
+            }
+
+            break;
+        }
     }
 }
 
@@ -771,7 +757,7 @@ void MainWindow::saveVectorTableData()
 
     // 使用数据处理器保存数据
     QString errorMessage;
-    if (m_dataHandler->saveVectorTableData(tableId, m_vectorTableWidget, errorMessage))
+    if (VectorDataHandler::instance().saveVectorTableData(tableId, m_vectorTableWidget, errorMessage))
     {
         QMessageBox::information(this, "保存成功", "向量表数据已成功保存");
         statusBar()->showMessage("向量表数据已成功保存");
@@ -930,141 +916,6 @@ void MainWindow::addRowToCurrentVectorTable()
     }
 }
 
-// 删除当前选中的向量表
-void MainWindow::deleteCurrentVectorTable()
-{
-    // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        return;
-    }
-
-    // 获取表ID和名称
-    int tableId = m_vectorTableSelector->currentData().toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-
-    // 弹出确认对话框
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, "确认删除",
-                                  "确定要删除向量表 \"" + tableName + "\" 吗？\n此操作将删除表中的所有数据，且不可撤销。",
-                                  QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::No)
-    {
-        return;
-    }
-
-    // 使用数据处理器删除向量表
-    QString errorMessage;
-    if (m_dataHandler->deleteVectorTable(tableId, errorMessage))
-    {
-        // 记录当前选中的索引
-        int currentIndex = m_vectorTableSelector->currentIndex();
-
-        // 找到对应的Tab索引
-        int tabIndex = -1;
-        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
-        {
-            if (it.value() == tableId)
-            {
-                tabIndex = it.key();
-                break;
-            }
-        }
-
-        // 删除Tab页签
-        if (tabIndex >= 0)
-        {
-            m_vectorTabWidget->removeTab(tabIndex);
-            m_tabToTableId.remove(tabIndex);
-
-            // 更新其他Tab的映射关系
-            QMap<int, int> updatedMap;
-            for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
-            {
-                int oldIndex = it.key();
-                int newIndex = oldIndex > tabIndex ? oldIndex - 1 : oldIndex;
-                updatedMap[newIndex] = it.value();
-            }
-            m_tabToTableId = updatedMap;
-        }
-
-        QMessageBox::information(this, "删除成功", "向量表 \"" + tableName + "\" 已成功删除");
-
-        // 重新加载向量表列表
-        loadVectorTable();
-    }
-    else
-    {
-        QMessageBox::critical(this, "删除失败", errorMessage);
-        statusBar()->showMessage("删除向量表失败: " + errorMessage);
-    }
-}
-
-// 删除选中的向量行
-void MainWindow::deleteSelectedVectorRows()
-{
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        return;
-    }
-
-    // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        return;
-    }
-
-    // 获取选中的行
-    QList<int> selectedRows;
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
-    if (selectedIndexes.isEmpty())
-    {
-        QMessageBox::warning(this, "警告", "请先选择要删除的行");
-        return;
-    }
-
-    for (const QModelIndex &index : selectedIndexes)
-    {
-        selectedRows.append(index.row());
-    }
-
-    // 弹出确认对话框
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, "确认删除",
-                                  "确定要删除选中的 " + QString::number(selectedRows.size()) + " 行数据吗？\n此操作不可撤销。",
-                                  QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::No)
-    {
-        return;
-    }
-
-    // 获取表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
-
-    // 使用数据处理器删除选中的行
-    QString errorMessage;
-    if (m_dataHandler->deleteVectorRows(tableId, selectedRows, errorMessage))
-    {
-        QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(selectedRows.size()) + " 行数据");
-
-        // 刷新表格
-        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-    }
-    else
-    {
-        QMessageBox::critical(this, "删除失败", errorMessage);
-        statusBar()->showMessage("删除行失败: " + errorMessage);
-
-        qDebug() << "MainWindow::deleteSelectedVectorRows - 删除失败：" << errorMessage;
-    }
-}
-
 void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 {
     if (m_dialogManager)
@@ -1107,57 +958,297 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
     }
 }
 
-void MainWindow::showFillTimeSetDialog()
+// 删除当前选中的向量表
+void MainWindow::deleteCurrentVectorTable()
 {
-    // 检查是否有向量表被选中
+    // 获取当前选择的向量表
     int currentIndex = m_vectorTableSelector->currentIndex();
     if (currentIndex < 0)
     {
-        QMessageBox::warning(this, tr("警告"), tr("请先选择一个向量表"));
+        QMessageBox::warning(this, "删除失败", "没有选中的向量表");
         return;
     }
 
-    // 获取当前向量表ID
-    int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+    int tableId = m_vectorTableSelector->currentData().toInt();
 
-    // 获取向量表行数
-    int rowCount = m_dataHandler->getVectorTableRowCount(tableId);
-    if (rowCount <= 0)
+    // 确认删除
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "确认删除",
+                                                              QString("确定要删除向量表 \"%1\" 吗？此操作不可撤销。").arg(tableName),
+                                                              QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes)
     {
-        QMessageBox::warning(this, tr("警告"), tr("当前向量表没有行数据"));
         return;
     }
 
-    // 创建填充TimeSet对话框
-    FillTimeSetDialog dialog(this);
-    dialog.setVectorRowCount(rowCount);
+    // 使用数据处理器删除向量表
+    QString errorMessage;
+    if (VectorDataHandler::instance().deleteVectorTable(tableId, errorMessage))
+    {
+        // 记录当前选中的索引
+        int previousIndex = m_vectorTableSelector->currentIndex();
 
-    // 获取选中的UI行 (0-based index)
-    QList<int> selectedUiRows;
+        // 从下拉框和页签中移除
+        m_vectorTableSelector->removeItem(currentIndex);
+
+        // 查找对应的页签
+        for (int i = 0; i < m_tabToTableId.size(); ++i)
+        {
+            if (m_tabToTableId.value(i) == tableId)
+            {
+                // 清除映射关系并删除页签
+                m_tabToTableId.remove(i);
+                m_vectorTabWidget->removeTab(i);
+                break;
+            }
+        }
+
+        // 如果还有剩余表，选中前一个表（如果可能）或者第一个表
+        if (m_vectorTableSelector->count() > 0)
+        {
+            int newIndex = previousIndex - 1;
+            if (newIndex < 0)
+                newIndex = 0;
+            m_vectorTableSelector->setCurrentIndex(newIndex);
+        }
+        else
+        {
+            // 如果没有剩余表，清空表格并显示欢迎界面
+            m_vectorTableWidget->setRowCount(0);
+            m_vectorTableWidget->setColumnCount(0);
+            m_welcomeWidget->setVisible(true);
+            m_vectorTableContainer->setVisible(false);
+        }
+
+        QMessageBox::information(this, "删除成功", QString("向量表 \"%1\" 已成功删除").arg(tableName));
+        statusBar()->showMessage(QString("向量表 \"%1\" 已成功删除").arg(tableName));
+    }
+    else
+    {
+        QMessageBox::critical(this, "删除失败", errorMessage);
+        statusBar()->showMessage("删除失败: " + errorMessage);
+    }
+}
+
+// 删除选中的向量行
+void MainWindow::deleteSelectedVectorRows()
+{
+    // 获取当前选择的向量表
+    int currentIndex = m_vectorTableSelector->currentIndex();
+    if (currentIndex < 0)
+    {
+        QMessageBox::warning(this, "删除失败", "没有选中的向量表");
+        return;
+    }
+
+    // 获取表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    // 获取选中的行
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (selectedIndexes.isEmpty())
+    {
+        QMessageBox::warning(this, "删除失败", "请先选择要删除的行");
+        return;
+    }
+
+    // 确认删除
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "确认删除",
+                                                              QString("确定要删除选定的 %1 行吗？此操作不可撤销。").arg(selectedIndexes.size()),
+                                                              QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes)
+    {
+        return;
+    }
+
+    // 获取所有选中的行索引
+    QList<int> selectedRows;
+    foreach (const QModelIndex &index, selectedIndexes)
+    {
+        selectedRows.append(index.row());
+    }
+
+    // 使用数据处理器删除选中的行
+    QString errorMessage;
+    if (VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage))
+    {
+        QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(selectedRows.size()) + " 行数据");
+
+        // 刷新表格
+        onVectorTableSelectionChanged(currentIndex);
+    }
+    else
+    {
+        QMessageBox::critical(this, "删除失败", errorMessage);
+    }
+}
+
+// 删除指定范围内的向量行
+void MainWindow::deleteVectorRowsInRange()
+{
+    qDebug() << "MainWindow::deleteVectorRowsInRange - 开始处理删除指定范围内的向量行";
+
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中的向量表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 获取向量表总行数
+    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (totalRows <= 0)
+    {
+        QMessageBox::warning(this, "警告", "当前向量表没有行数据");
+        return;
+    }
+
+    qDebug() << "MainWindow::deleteVectorRowsInRange - 当前向量表总行数：" << totalRows;
+
+    // 创建删除范围对话框
+    DeleteRangeVectorDialog dialog(this);
+    dialog.setMaxRow(totalRows);
+
+    // 获取当前选中的行
     QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
     if (!selectedIndexes.isEmpty())
     {
-        int minRow = INT_MAX;
-        int maxRow = INT_MIN;
-        foreach (const QModelIndex &index, selectedIndexes)
+        if (selectedIndexes.size() == 1)
         {
-            int uiRow = index.row();
-            selectedUiRows.append(uiRow);
-            minRow = qMin(minRow, uiRow);
-            maxRow = qMax(maxRow, uiRow);
-        }
+            // 只选中了一行
+            int row = selectedIndexes.first().row() + 1; // 将0-based转为1-based
+            dialog.setSelectedRange(row, row);
 
-        // 设置对话框的起始行和结束行，主要为了显示，实际更新使用selectedUiRows
-        dialog.setSelectedRange(minRow + 1, maxRow + 1);
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了单行：" << row;
+        }
+        else
+        {
+            // 选中了多行，找出最小和最大行号
+            int minRow = INT_MAX;
+            int maxRow = INT_MIN;
+
+            for (const QModelIndex &index : selectedIndexes)
+            {
+                int row = index.row() + 1; // 将0-based转为1-based
+                minRow = qMin(minRow, row);
+                maxRow = qMax(maxRow, row);
+            }
+
+            dialog.setSelectedRange(minRow, maxRow);
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了多行，范围：" << minRow << "到" << maxRow;
+        }
+    }
+    else
+    {
+        // 没有选中行，文本框保持为空
+        dialog.clearSelectedRange();
+
+        qDebug() << "MainWindow::deleteVectorRowsInRange - 没有选中行，文本框保持为空";
     }
 
+    // 显示对话框
     if (dialog.exec() == QDialog::Accepted)
     {
-        // 获取用户输入
+        // 获取用户输入的范围
+        int fromRow = dialog.getFromRow();
+        int toRow = dialog.getToRow();
+
+        // 验证用户输入是否有效
+        if (fromRow <= 0 || toRow <= 0)
+        {
+            QMessageBox::warning(this, "警告", "请输入有效的行范围");
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户输入的范围无效：" << fromRow << "到" << toRow;
+            return;
+        }
+
+        qDebug() << "MainWindow::deleteVectorRowsInRange - 用户确认删除范围：" << fromRow << "到" << toRow;
+
+        // 确认删除
+        QMessageBox::StandardButton reply;
+        int rowCount = toRow - fromRow + 1;
+        reply = QMessageBox::question(this, "确认删除",
+                                      "确定要删除第 " + QString::number(fromRow) + " 到 " +
+                                          QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）吗？\n此操作不可撤销。",
+                                      QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::No)
+        {
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消删除操作";
+            return;
+        }
+
+        // 执行删除操作
+        QString errorMessage;
+        if (VectorDataHandler::instance().deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
+        {
+            QMessageBox::information(this, "删除成功",
+                                     QString("已成功删除第 %1 到 %2 行（共 %3 行）").arg(fromRow).arg(toRow).arg(rowCount));
+
+            // 刷新表格
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
+        }
+        else
+        {
+            QMessageBox::critical(this, "删除失败", errorMessage);
+            statusBar()->showMessage("删除行失败: " + errorMessage);
+
+            qDebug() << "MainWindow::deleteVectorRowsInRange - 删除失败：" << errorMessage;
+        }
+    }
+}
+
+// 显示填充TimeSet对话框
+void MainWindow::showFillTimeSetDialog()
+{
+    // 获取当前选择的向量表
+    int currentIndex = m_vectorTableSelector->currentIndex();
+    if (currentIndex < 0)
+    {
+        QMessageBox::warning(this, "操作失败", "没有选中的向量表");
+        return;
+    }
+
+    // 获取表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 获取向量表行数
+    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (rowCount <= 0)
+    {
+        QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
+        return;
+    }
+
+    // 显示填充TimeSet对话框
+    FillTimeSetDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted)
+    {
         int timeSetId = dialog.getSelectedTimeSetId();
 
-        // 填充TimeSet，传递选中的UI行列表
-        fillTimeSetForVectorTable(timeSetId, selectedUiRows);
+        // 获取选中的行
+        QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+        QList<int> selectedRows;
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            selectedRows.append(index.row());
+        }
+
+        // 填充TimeSet
+        fillTimeSetForVectorTable(timeSetId, selectedRows);
     }
 }
 
@@ -1331,56 +1422,42 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
 
 void MainWindow::showReplaceTimeSetDialog()
 {
-    // 检查是否有向量表被选中
+    // 获取当前选择的向量表
     int currentIndex = m_vectorTableSelector->currentIndex();
     if (currentIndex < 0)
     {
-        QMessageBox::warning(this, tr("警告"), tr("请先选择一个向量表"));
+        QMessageBox::warning(this, "操作失败", "没有选中的向量表");
         return;
     }
 
-    // 获取当前向量表ID
-    int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
+    // 获取表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = m_dataHandler->getVectorTableRowCount(tableId);
+    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
     if (rowCount <= 0)
     {
-        QMessageBox::warning(this, tr("警告"), tr("当前向量表没有行数据"));
+        QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
         return;
     }
 
-    // 创建替换TimeSet对话框
+    // 显示替换TimeSet对话框
     ReplaceTimeSetDialog dialog(this);
-    dialog.setVectorRowCount(rowCount);
-
-    // 获取选中的UI行 (0-based index)
-    QList<int> selectedUiRows;
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
-    if (!selectedIndexes.isEmpty())
-    {
-        int minRow = INT_MAX;
-        int maxRow = INT_MIN;
-        foreach (const QModelIndex &index, selectedIndexes)
-        {
-            int uiRow = index.row();
-            selectedUiRows.append(uiRow);
-            minRow = qMin(minRow, uiRow);
-            maxRow = qMax(maxRow, uiRow);
-        }
-
-        // 设置对话框的起始行和结束行，主要为了显示，实际更新使用selectedUiRows
-        dialog.setSelectedRange(minRow + 1, maxRow + 1);
-    }
-
     if (dialog.exec() == QDialog::Accepted)
     {
-        // 获取用户输入
         int fromTimeSetId = dialog.getFromTimeSetId();
         int toTimeSetId = dialog.getToTimeSetId();
 
-        // 替换TimeSet，传递选中的UI行列表
-        replaceTimeSetForVectorTable(fromTimeSetId, toTimeSetId, selectedUiRows);
+        // 获取选中的行
+        QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+        QList<int> selectedRows;
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            selectedRows.append(index.row());
+        }
+
+        // 替换TimeSet
+        replaceTimeSetForVectorTable(fromTimeSetId, toTimeSetId, selectedRows);
     }
 }
 
@@ -1560,318 +1637,6 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
 
         // 显示错误消息
         QMessageBox::critical(this, tr("错误"), tr("替换TimeSet失败: %1").arg(e.what()));
-    }
-}
-
-void MainWindow::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
-{
-    VectorDataHandler::addVectorRow(table, pinOptions, rowIdx);
-}
-
-bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
-{
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        return false;
-    }
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-
-    // 开始事务
-    db.transaction();
-
-    // 循环添加每个管脚
-    bool success = true;
-    for (const QString &pinName : pinNames)
-    {
-        QSqlQuery query(db);
-        query.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
-        query.addBindValue(pinName);
-        query.addBindValue(""); // pin_note为空
-        query.addBindValue(""); // pin_nav_note为空
-
-        if (!query.exec())
-        {
-            qDebug() << "添加管脚失败:" << query.lastError().text();
-            success = false;
-            break;
-        }
-    }
-
-    // 提交或回滚事务
-    if (success)
-    {
-        db.commit();
-        return true;
-    }
-    else
-    {
-        db.rollback();
-        return false;
-    }
-}
-
-// 刷新当前向量表数据
-void MainWindow::refreshVectorTableData()
-{
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        return;
-    }
-
-    // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        return;
-    }
-
-    // 获取当前选中表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-
-    // 使用数据处理器重新加载数据
-    if (m_dataHandler->loadVectorTableData(tableId, m_vectorTableWidget))
-    {
-        statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
-    }
-    else
-    {
-        statusBar()->showMessage("刷新向量表失败");
-        QMessageBox::warning(this, "刷新失败", "无法刷新向量表数据，请检查数据库连接");
-    }
-}
-
-// 打开TimeSet设置对话框
-void MainWindow::openTimeSetSettingsDialog()
-{
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        return;
-    }
-
-    // 显示TimeSet设置对话框
-    if (showTimeSetDialog(false))
-    {
-        // 如果有修改，刷新界面
-        if (m_itemDelegate)
-        {
-            m_itemDelegate->refreshCache();
-        }
-
-        // 重新加载当前向量表数据
-        int currentIndex = m_vectorTableSelector->currentIndex();
-        if (currentIndex >= 0)
-        {
-            onVectorTableSelectionChanged(currentIndex);
-        }
-
-        statusBar()->showMessage("TimeSet设置已更新");
-    }
-}
-
-void MainWindow::setupVectorTablePins()
-{
-    qDebug() << "MainWindow::setupVectorTablePins - 开始设置向量表管脚";
-
-    // 获取当前选择的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "错误", "请先选择一个向量表");
-        qDebug() << "MainWindow::setupVectorTablePins - 没有选择向量表";
-        return;
-    }
-
-    // 获取表ID和名称
-    int tableId = m_vectorTableSelector->currentData().toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-
-    qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
-
-    // 创建并显示管脚设置对话框
-    VectorPinSettingsDialog dialog(tableId, tableName, this);
-
-    if (dialog.exec() == QDialog::Accepted)
-    {
-        qDebug() << "MainWindow::setupVectorTablePins - 管脚设置已更新，刷新表格";
-
-        // 刷新当前向量表
-        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-
-        QMessageBox::information(this, "成功", "向量表管脚设置已更新");
-    }
-    else
-    {
-        qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置";
-    }
-}
-
-void MainWindow::deleteVectorRowsInRange()
-{
-    qDebug() << "MainWindow::deleteVectorRowsInRange - 开始处理删除指定范围内的向量行";
-
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
-    {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        return;
-    }
-
-    // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        return;
-    }
-
-    // 获取当前选中的向量表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
-
-    // 获取向量表总行数
-    int totalRows = m_dataHandler->getVectorTableRowCount(tableId);
-    if (totalRows <= 0)
-    {
-        QMessageBox::warning(this, "警告", "当前向量表没有行数据");
-        return;
-    }
-
-    qDebug() << "MainWindow::deleteVectorRowsInRange - 当前向量表总行数：" << totalRows;
-
-    // 创建删除范围对话框
-    DeleteRangeVectorDialog dialog(this);
-    dialog.setMaxRow(totalRows);
-
-    // 获取当前选中的行
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
-    if (!selectedIndexes.isEmpty())
-    {
-        if (selectedIndexes.size() == 1)
-        {
-            // 只选中了一行
-            int row = selectedIndexes.first().row() + 1; // 将0-based转为1-based
-            dialog.setSelectedRange(row, row);
-
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了单行：" << row;
-        }
-        else
-        {
-            // 选中了多行，找出最小和最大行号
-            int minRow = INT_MAX;
-            int maxRow = INT_MIN;
-
-            for (const QModelIndex &index : selectedIndexes)
-            {
-                int row = index.row() + 1; // 将0-based转为1-based
-                minRow = qMin(minRow, row);
-                maxRow = qMax(maxRow, row);
-            }
-
-            dialog.setSelectedRange(minRow, maxRow);
-
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了多行，范围：" << minRow << "到" << maxRow;
-        }
-    }
-    else
-    {
-        // 没有选中行，文本框保持为空
-        dialog.clearSelectedRange();
-
-        qDebug() << "MainWindow::deleteVectorRowsInRange - 没有选中行，文本框保持为空";
-    }
-
-    // 显示对话框
-    if (dialog.exec() == QDialog::Accepted)
-    {
-        // 获取用户输入的范围
-        int fromRow = dialog.getFromRow();
-        int toRow = dialog.getToRow();
-
-        // 验证用户输入是否有效
-        if (fromRow <= 0 || toRow <= 0)
-        {
-            QMessageBox::warning(this, "警告", "请输入有效的行范围");
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户输入的范围无效：" << fromRow << "到" << toRow;
-            return;
-        }
-
-        qDebug() << "MainWindow::deleteVectorRowsInRange - 用户确认删除范围：" << fromRow << "到" << toRow;
-
-        // 确认删除
-        QMessageBox::StandardButton reply;
-        int rowCount = toRow - fromRow + 1;
-        reply = QMessageBox::question(this, "确认删除",
-                                      "确定要删除第 " + QString::number(fromRow) + " 到 " +
-                                          QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）吗？\n此操作不可撤销。",
-                                      QMessageBox::Yes | QMessageBox::No);
-
-        if (reply == QMessageBox::No)
-        {
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 用户取消删除操作";
-            return;
-        }
-
-        // 执行删除操作
-        QString errorMessage;
-        if (m_dataHandler->deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
-        {
-            QMessageBox::information(this, "删除成功",
-                                     "已成功删除第 " + QString::number(fromRow) + " 到 " +
-                                         QString::number(toRow) + " 行（共 " + QString::number(rowCount) + " 行）");
-
-            // 刷新表格
-            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
-        }
-        else
-        {
-            QMessageBox::critical(this, "删除失败", errorMessage);
-            statusBar()->showMessage("删除行失败: " + errorMessage);
-
-            qDebug() << "MainWindow::deleteVectorRowsInRange - 删除失败：" << errorMessage;
-        }
-    }
-}
-
-// 关闭Tab页签
-void MainWindow::closeTab(int index)
-{
-    if (index < 0 || index >= m_vectorTabWidget->count())
-        return;
-
-    qDebug() << "MainWindow::closeTab - 关闭Tab页签，索引:" << index;
-
-    // 仅当有多个Tab页时才允许关闭
-    if (m_vectorTabWidget->count() > 1)
-    {
-        int tableId = m_tabToTableId.value(index, -1);
-        m_vectorTabWidget->removeTab(index);
-
-        // 更新映射关系
-        m_tabToTableId.remove(index);
-
-        // 更新其他Tab的映射关系
-        QMap<int, int> updatedMap;
-        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
-        {
-            int oldIndex = it.key();
-            int newIndex = oldIndex > index ? oldIndex - 1 : oldIndex;
-            updatedMap[newIndex] = it.value();
-        }
-        m_tabToTableId = updatedMap;
-
-        qDebug() << "MainWindow::closeTab - Tab页签已关闭，剩余Tab页数:" << m_vectorTabWidget->count();
-    }
-    else
-    {
-        qDebug() << "MainWindow::closeTab - 无法关闭，这是最后一个Tab页";
-        QMessageBox::information(this, "提示", "至少需要保留一个Tab页签");
     }
 }
 
@@ -2123,6 +1888,153 @@ void MainWindow::deletePins()
     }
 }
 
+bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        return false;
+    }
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // 开始事务
+    db.transaction();
+
+    // 循环添加每个管脚
+    bool success = true;
+    for (const QString &pinName : pinNames)
+    {
+        QSqlQuery query(db);
+        query.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+        query.addBindValue(pinName);
+        query.addBindValue(""); // pin_note为空
+        query.addBindValue(""); // pin_nav_note为空
+
+        if (!query.exec())
+        {
+            qDebug() << "添加管脚失败:" << query.lastError().text();
+            success = false;
+            break;
+        }
+    }
+
+    // 提交或回滚事务
+    if (success)
+    {
+        db.commit();
+        return true;
+    }
+    else
+    {
+        db.rollback();
+        return false;
+    }
+}
+
+// 刷新当前向量表数据
+void MainWindow::refreshVectorTableData()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 检查是否有选中的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "警告", "请先选择一个向量表");
+        return;
+    }
+
+    // 获取当前选中表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    // 使用数据处理器重新加载数据
+    if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+    {
+        statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
+
+        // 应用表格样式
+        TableStyleManager::applyTableStyle(m_vectorTableWidget);
+    }
+    else
+    {
+        statusBar()->showMessage("刷新向量表失败");
+        QMessageBox::warning(this, "刷新失败", "无法刷新向量表数据，请检查数据库连接");
+    }
+}
+
+// 打开TimeSet设置对话框
+void MainWindow::openTimeSetSettingsDialog()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        return;
+    }
+
+    // 显示TimeSet设置对话框
+    if (showTimeSetDialog(false))
+    {
+        // 如果有修改，刷新界面
+        if (m_itemDelegate)
+        {
+            m_itemDelegate->refreshCache();
+        }
+
+        // 重新加载当前向量表数据
+        int currentIndex = m_vectorTableSelector->currentIndex();
+        if (currentIndex >= 0)
+        {
+            onVectorTableSelectionChanged(currentIndex);
+        }
+
+        statusBar()->showMessage("TimeSet设置已更新");
+    }
+}
+
+void MainWindow::setupVectorTablePins()
+{
+    qDebug() << "MainWindow::setupVectorTablePins - 开始设置向量表管脚";
+
+    // 获取当前选择的向量表
+    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    {
+        QMessageBox::warning(this, "错误", "请先选择一个向量表");
+        qDebug() << "MainWindow::setupVectorTablePins - 没有选择向量表";
+        return;
+    }
+
+    // 获取表ID和名称
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    QString tableName = m_vectorTableSelector->currentText();
+
+    qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
+
+    // 创建并显示管脚设置对话框
+    VectorPinSettingsDialog dialog(tableId, tableName, this);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        qDebug() << "MainWindow::setupVectorTablePins - 管脚设置已更新，刷新表格";
+
+        // 刷新当前向量表
+        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+        QMessageBox::information(this, "成功", "向量表管脚设置已更新");
+    }
+    else
+    {
+        qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置";
+    }
+}
+
 // 打开管脚设置对话框
 void MainWindow::openPinSettingsDialog()
 {
@@ -2269,6 +2181,42 @@ void MainWindow::onFontZoomReset()
         m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
 
         qDebug() << "MainWindow::onFontZoomReset - 字体大小已重置为默认值";
+    }
+}
+
+// 关闭Tab页签
+void MainWindow::closeTab(int index)
+{
+    if (index < 0 || index >= m_vectorTabWidget->count())
+        return;
+
+    qDebug() << "MainWindow::closeTab - 关闭Tab页签，索引:" << index;
+
+    // 仅当有多个Tab页时才允许关闭
+    if (m_vectorTabWidget->count() > 1)
+    {
+        int tableId = m_tabToTableId.value(index, -1);
+        m_vectorTabWidget->removeTab(index);
+
+        // 更新映射关系
+        m_tabToTableId.remove(index);
+
+        // 更新其他Tab的映射关系
+        QMap<int, int> updatedMap;
+        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+        {
+            int oldIndex = it.key();
+            int newIndex = oldIndex > index ? oldIndex - 1 : oldIndex;
+            updatedMap[newIndex] = it.value();
+        }
+        m_tabToTableId = updatedMap;
+
+        qDebug() << "MainWindow::closeTab - Tab页签已关闭，剩余Tab页数:" << m_vectorTabWidget->count();
+    }
+    else
+    {
+        qDebug() << "MainWindow::closeTab - 无法关闭，这是最后一个Tab页";
+        QMessageBox::information(this, "提示", "至少需要保留一个Tab页签");
     }
 }
 
