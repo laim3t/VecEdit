@@ -63,6 +63,15 @@ private:
 
     // 取消操作标志
     QAtomicInt m_cancelRequested;
+
+    /**
+     * @brief 解析给定表ID的二进制文件的绝对路径
+     *
+     * @param tableId 向量表的ID
+     * @param errorMsg 如果发生错误，将填充错误消息
+     * @return QString 如果成功，则为二进制文件的绝对路径；否则为空字符串
+     */
+    QString resolveBinaryFilePath(int tableId, QString &errorMsg);
 };
 
 #endif // VECTORDATAHANDLER_H

@@ -181,44 +181,96 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
     // 显示对话框
     if (pinDialog.exec() == QDialog::Accepted)
     {
-        // 获取选中的管脚并保存到数据库
         db.transaction();
         bool success = true;
+        QSqlQuery queryHelper(db); // Use a helper query object for cleanup and column config
 
+        // 1. 清除该表旧的列配置 (确保与新选择同步)
+        qDebug() << "DialogManager::showPinSelectionDialog - Preparing to delete old column config for tableId:" << tableId;
+        bool prepareOk = queryHelper.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+        if (!prepareOk)
+        {
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to prepare delete query:" << queryHelper.lastError().text();
+            QMessageBox::critical(m_parent, "数据库准备错误", "准备清除旧列配置失败：" + queryHelper.lastError().text());
+            db.rollback();
+            return false;
+        }
+        qDebug() << "DialogManager::showPinSelectionDialog - Delete query prepared. Binding tableId:" << tableId;
+        queryHelper.addBindValue(tableId);
+        qDebug() << "DialogManager::showPinSelectionDialog - Executing delete query. Bound values:" << queryHelper.boundValues();
+        if (!queryHelper.exec())
+        {
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to execute delete query:" << queryHelper.lastError().text() << " (Bound values:" << queryHelper.boundValues() << ")";
+            QMessageBox::critical(m_parent, "数据库错误", "清除旧列配置失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback(); // 回滚事务
+            return false;
+        }
+        qDebug() << "DialogManager::showPinSelectionDialog - Successfully deleted old column config.";
+
+        int columnOrder = 0; // 用于确定列顺序
         for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
         {
+            if (!success)
+                break; // 如果之前的操作失败，则跳出循环
+
             int pinId = it.key();
             QCheckBox *checkbox = it.value();
+            QString pinName = checkbox->text(); // 获取管脚名称，这将是列名
 
-            // 如果勾选了该管脚
             if (checkbox->isChecked())
             {
-                // 获取选择的类型
                 QComboBox *typeCombo = pinTypeComboBoxes[pinId];
                 int typeId = typeCombo->currentData().toInt();
+                QString typeName = typeCombo->currentText(); // 获取类型名称 (In, Out etc.) - 可能用于确定列类型
+                int channelCount = 1;                        // 固定为1
 
-                // 固定使用1作为channel_count
-                int channelCount = 1;
-
-                // 保存到数据库
-                QSqlQuery insertPinQuery(db);
-                insertPinQuery.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
-                                       "VALUES (?, ?, ?, ?)");
-                insertPinQuery.addBindValue(tableId);
-                insertPinQuery.addBindValue(pinId);
-                insertPinQuery.addBindValue(typeId);
-                insertPinQuery.addBindValue(channelCount);
-
-                if (!insertPinQuery.exec())
+                // 2. 插入到 vector_table_pins (记录用户选择)
+                queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
+                                    "VALUES (?, ?, ?, ?)");
+                queryHelper.addBindValue(tableId);
+                queryHelper.addBindValue(pinId);
+                queryHelper.addBindValue(typeId);
+                queryHelper.addBindValue(channelCount);
+                if (!queryHelper.exec())
                 {
-                    QMessageBox::critical(m_parent, "数据库错误", "保存管脚信息失败：" + insertPinQuery.lastError().text());
+                    QMessageBox::critical(m_parent, "数据库错误", "保存管脚信息到 vector_table_pins 失败：" + queryHelper.lastError().text());
                     success = false;
-                    break;
+                    continue; // 跳过此管脚的列配置插入
+                }
+
+                // 3. 插入到 VectorTableColumnConfiguration (定义实际的表列结构)
+                queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties) "
+                                    "VALUES (?, ?, ?, ?, ?)");
+                queryHelper.addBindValue(tableId);
+                queryHelper.addBindValue(pinName);       // 使用管脚名称作为列名
+                queryHelper.addBindValue(columnOrder++); // 设置列顺序并递增
+                // *** 确定列类型 - 假设所有管脚列都存储文本状态 ***
+                queryHelper.addBindValue("TEXT"); // 设置列类型为 TEXT
+                queryHelper.addBindValue("{}");   // 设置默认的空JSON对象作为属性
+
+                if (!queryHelper.exec())
+                {
+                    QMessageBox::critical(m_parent, "数据库错误", "保存列配置信息失败：" + queryHelper.lastError().text());
+                    success = false;
+                    // 不必break，让循环继续处理其他管脚，但最终会回滚
                 }
             }
         }
 
-        // 提交或回滚事务
+        // 4. 更新主记录中的 column_count (可选但推荐)
+        if (success)
+        {
+            queryHelper.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
+            queryHelper.addBindValue(columnOrder); // columnOrder 现在等于实际添加的列数
+            queryHelper.addBindValue(tableId);
+            if (!queryHelper.exec())
+            {
+                qWarning() << "DialogManager::showPinSelectionDialog - 更新主记录 column_count 失败: " << queryHelper.lastError().text();
+                // 不一定需要因此失败整个操作，可以只记录警告
+            }
+        }
+
         if (success)
         {
             db.commit();

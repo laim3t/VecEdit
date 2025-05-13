@@ -6,13 +6,16 @@
 
 void TableStyleManager::applyTableStyle(QTableWidget *table)
 {
+    const QString funcName = "TableStyleManager::applyTableStyle(QTableWidget*)";
+    qDebug() << funcName << " - Entry";
+
     if (!table)
     {
-        qDebug() << "TableStyleManager::applyTableStyle - 错误：表格对象为空";
+        qWarning() << funcName << " - 错误：表格对象为空";
         return;
     }
 
-    qDebug() << "TableStyleManager::applyTableStyle - 开始设置表格样式";
+    qDebug() << funcName << " - 开始设置表格样式";
 
     // 设置表格边框和网格线
     table->setShowGrid(true);
@@ -49,18 +52,21 @@ void TableStyleManager::applyTableStyle(QTableWidget *table)
     // 刷新显示
     refreshTable(table);
 
-    qDebug() << "TableStyleManager::applyTableStyle - 表格样式设置完成";
+    qDebug() << funcName << " - 表格样式设置完成";
 }
 
 void TableStyleManager::applyTableStyle(QTableView *tableView)
 {
+    const QString funcName = "TableStyleManager::applyTableStyle(QTableView*)";
+    qDebug() << funcName << " - Entry";
+
     if (!tableView)
     {
-        qDebug() << "TableStyleManager::applyTableStyle - 错误：表格视图对象为空";
+        qWarning() << funcName << " - 错误：表格视图对象为空";
         return;
     }
 
-    qDebug() << "TableStyleManager::applyTableStyle - 开始设置表格视图样式";
+    qDebug() << funcName << " - 开始设置表格视图样式";
 
     // 设置表格边框和网格线
     tableView->setShowGrid(true);
@@ -94,7 +100,7 @@ void TableStyleManager::applyTableStyle(QTableView *tableView)
     // 设置默认行高
     tableView->verticalHeader()->setDefaultSectionSize(28);
 
-    qDebug() << "TableStyleManager::applyTableStyle - 表格视图样式设置完成";
+    qDebug() << funcName << " - 表格视图样式设置完成";
 }
 
 void TableStyleManager::setColumnAlignments(QTableWidget *table)

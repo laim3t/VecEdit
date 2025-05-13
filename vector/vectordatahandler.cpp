@@ -1,6 +1,9 @@
 #include "vectordatahandler.h"
 #include "database/databasemanager.h"
 #include "pin/pinvalueedit.h"
+#include "database/binaryfilehelper.h"
+#include "vector/vector_data_types.h"
+#include "common/utils/pathutils.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -8,6 +11,388 @@
 #include <QSet>
 #include <QDebug>
 #include <algorithm>
+#include <QFile>
+#include <QJsonDocument>
+#include <QDir>
+#include <QFileInfo>
+
+namespace
+{
+    // 辅助函数：加载向量表元数据（文件名、列结构、schema版本、行数）
+    bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount)
+    {
+        const QString funcName = "loadVectorTableMeta";
+        qDebug() << funcName << " - 查询表ID:" << tableId;
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (!db.isOpen())
+        {
+            qWarning() << funcName << " - 数据库未打开";
+            return false;
+        }
+        // 1. 查询主记录表
+        QSqlQuery metaQuery(db);
+        metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
+        metaQuery.addBindValue(tableId);
+        if (!metaQuery.exec() || !metaQuery.next())
+        {
+            qWarning() << funcName << " - 查询主记录失败, 表ID:" << tableId << ", 错误:" << metaQuery.lastError().text();
+            return false;
+        }
+        binFileName = metaQuery.value(0).toString();
+        schemaVersion = metaQuery.value(1).toInt();
+        rowCount = metaQuery.value(2).toInt();
+        qDebug() << funcName << " - 文件名:" << binFileName << ", schemaVersion:" << schemaVersion << ", rowCount:" << rowCount;
+        // 2. 查询列结构
+        QSqlQuery colQuery(db);
+        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+        colQuery.addBindValue(tableId);
+        if (!colQuery.exec())
+        {
+            qWarning() << funcName << " - 查询列结构失败, 错误:" << colQuery.lastError().text();
+            return false;
+        }
+        columns.clear();
+        while (colQuery.next())
+        {
+            Vector::ColumnInfo col;
+            col.id = colQuery.value(0).toInt();
+            col.vector_table_id = tableId;
+            col.name = colQuery.value(1).toString();
+            col.order = colQuery.value(2).toInt();
+            col.original_type_str = colQuery.value(3).toString();
+            col.type = Vector::columnDataTypeFromString(col.original_type_str);
+            QString propStr = colQuery.value(4).toString();
+            if (!propStr.isEmpty())
+            {
+                QJsonParseError err;
+                QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+                qDebug().nospace() << funcName << " - JSON Parsing Details for Column: '" << col.name
+                                   << "', Input: '" << propStr
+                                   << "', ErrorCode: " << err.error
+                                   << " (ErrorStr: " << err.errorString()
+                                   << "), IsObject: " << doc.isObject();
+
+                if (err.error == QJsonParseError::NoError && doc.isObject())
+                {
+                    col.data_properties = doc.object();
+                }
+                else
+                {
+                    qWarning().nospace() << funcName << " - 列属性JSON解析判定为失败 (条件分支), 列: '" << col.name
+                                         << "', Input: '" << propStr
+                                         << "', ErrorCode: " << err.error
+                                         << " (ErrorStr: " << err.errorString()
+                                         << "), IsObject: " << doc.isObject();
+                }
+            }
+            col.logDetails(funcName);
+            columns.append(col);
+        }
+        return true;
+    }
+    // 辅助函数：从二进制文件读取所有行
+    bool readAllRowsFromBinary(const QString &binFileName, const QList<Vector::ColumnInfo> &columns, int schemaVersion, QList<Vector::RowData> &rows)
+    {
+        const QString funcName = "readAllRowsFromBinary";
+
+        // 获取数据库路径，用于解析相对路径
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QString dbFilePath = db.databaseName();
+        QFileInfo dbFileInfo(dbFilePath);
+        QString dbDir = dbFileInfo.absolutePath();
+
+        // 确保使用正确的绝对路径
+        QString absoluteBinFilePath;
+        QFileInfo binFileInfo(binFileName);
+        if (binFileInfo.isRelative())
+        {
+            absoluteBinFilePath = dbDir + QDir::separator() + binFileName;
+            absoluteBinFilePath = QDir::toNativeSeparators(absoluteBinFilePath);
+            qDebug() << funcName << " - 相对路径转换为绝对路径:" << binFileName << " -> " << absoluteBinFilePath;
+        }
+        else
+        {
+            absoluteBinFilePath = binFileName;
+        }
+
+        qDebug() << funcName << " - 打开文件:" << absoluteBinFilePath;
+        QFile file(absoluteBinFilePath);
+        if (!file.open(QIODevice::ReadOnly))
+        {
+            qWarning() << funcName << " - 无法打开文件:" << absoluteBinFilePath << ", 错误:" << file.errorString();
+            return false;
+        }
+        BinaryFileHeader header;
+        if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+        {
+            qWarning() << funcName << " - 文件头读取失败";
+            return false;
+        }
+        if (header.data_schema_version != schemaVersion)
+        {
+            qWarning() << funcName << " - 文件schema版本与数据库不一致! 文件:" << header.data_schema_version << ", DB:" << schemaVersion;
+
+            // 版本兼容性处理
+            if (header.data_schema_version > schemaVersion)
+            {
+                qCritical() << funcName << " - 文件版本高于数据库版本，无法加载!";
+                file.close();
+                return false;
+            }
+
+            // 如果文件版本低于数据库版本，可以尝试兼容加载
+            qInfo() << funcName << " - 文件版本低于数据库版本，将尝试兼容加载。";
+            // 后续的反序列化函数会根据fileVersion参数适配低版本数据
+        }
+        rows.clear();
+        for (quint64 i = 0; i < header.row_count_in_file; ++i)
+        {
+            QByteArray rowBytes;
+            QDataStream in(&file);
+            in.setByteOrder(QDataStream::LittleEndian);
+            // 先记录当前位置
+            qint64 pos = file.pos();
+            // 读取一行（假设每行长度不定，需先约定写入方式。此处假设每行前有长度）
+            quint32 rowLen = 0;
+            in >> rowLen;
+            if (in.status() != QDataStream::Ok || rowLen == 0)
+            {
+                qWarning() << funcName << " - 行长度读取失败, 行:" << i;
+                return false;
+            }
+            rowBytes.resize(rowLen);
+            if (file.read(rowBytes.data(), rowLen) != rowLen)
+            {
+                qWarning() << funcName << " - 行数据读取失败, 行:" << i;
+                return false;
+            }
+            Vector::RowData rowData;
+            if (!Persistence::BinaryFileHelper::deserializeRow(rowBytes, columns, header.data_schema_version, rowData))
+            {
+                qWarning() << funcName << " - 行反序列化失败, 行:" << i;
+                return false;
+            }
+            rows.append(rowData);
+        }
+        qDebug() << funcName << " - 读取完成, 总行数:" << rows.size();
+        return true;
+    }
+} // 匿名命名空间
+
+/**
+ * @brief 私有辅助函数：解析给定表ID的二进制文件的绝对路径。
+ *
+ * @param tableId 向量表的ID。
+ * @param[out] errorMsg 如果发生错误，将填充错误消息。
+ * @return QString 如果成功，则为二进制文件的绝对路径；否则为空字符串。
+ */
+QString VectorDataHandler::resolveBinaryFilePath(int tableId, QString &errorMsg)
+{
+    const QString funcName = "VectorDataHandler::resolveBinaryFilePath";
+    qDebug() << funcName << " - 开始解析表ID的二进制文件路径:" << tableId;
+
+    // 1. 获取该表存储的纯二进制文件名
+    QString justTheFileName;
+    QList<Vector::ColumnInfo> columns; // We don't need columns here, but loadVectorTableMeta requires it
+    int schemaVersion = 0;
+    int rowCount = 0; // Not needed here either
+
+    if (!loadVectorTableMeta(tableId, justTheFileName, columns, schemaVersion, rowCount))
+    {
+        errorMsg = QString("无法加载表 %1 的元数据以获取二进制文件名").arg(tableId);
+        qWarning() << funcName << " - " << errorMsg;
+        return QString();
+    }
+
+    // 检查获取到的文件名是否为空
+    if (justTheFileName.isEmpty())
+    {
+        errorMsg = QString("表 %1 的元数据中缺少二进制文件名").arg(tableId);
+        qWarning() << funcName << " - " << errorMsg;
+        // 这可能表示一个新创建但尚未完全初始化的表，或者一个损坏的记录。
+        // 根据业务逻辑，可能需要返回错误或允许创建/处理。
+        // 对于加载和保存，缺少文件名通常是一个错误。
+        return QString();
+    }
+
+    // 检查文件名是否包含路径分隔符 (指示旧格式或错误数据)
+    if (justTheFileName.contains('\\') || justTheFileName.contains('/'))
+    {
+        qWarning() << funcName << " - 表 " << tableId << " 的二进制文件名 '" << justTheFileName
+                   << "' 包含路径分隔符，这可能是旧格式或错误数据。尝试提取文件名部分。";
+        // 尝试仅提取文件名部分作为临时解决方案
+        QFileInfo fileInfo(justTheFileName);
+        justTheFileName = fileInfo.fileName();
+        if (justTheFileName.isEmpty())
+        {
+            errorMsg = QString("无法从表 %1 的记录 '%2' 中提取有效的文件名").arg(tableId).arg(fileInfo.filePath());
+            qWarning() << funcName << " - " << errorMsg;
+            return QString();
+        }
+        qWarning() << funcName << " - 提取的文件名: " << justTheFileName << ". 建议运行数据迁移来修复数据库记录。";
+        // 注意：这里没有实际移动文件，只是在内存中使用了提取的文件名。
+        // 一个完整的迁移工具应该处理文件移动。
+    }
+
+    // 2. 获取当前数据库路径
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QString currentDbPath = db.databaseName();
+    if (currentDbPath.isEmpty())
+    {
+        errorMsg = "无法获取当前数据库路径";
+        qWarning() << funcName << " - " << errorMsg;
+        return QString();
+    }
+
+    // 3. 使用 PathUtils 获取项目二进制数据目录
+    QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(currentDbPath);
+    if (projectBinaryDataDir.isEmpty())
+    {
+        errorMsg = QString("无法为数据库 '%1' 生成项目二进制数据目录").arg(currentDbPath);
+        qWarning() << funcName << " - " << errorMsg;
+        return QString();
+    }
+
+    // 4. 拼接得到绝对路径
+    // 标准化路径格式并确保使用正确的分隔符
+    QString absoluteBinFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + justTheFileName);
+    absoluteBinFilePath = QDir::toNativeSeparators(absoluteBinFilePath);
+
+    qDebug() << funcName << " - 解析得到的绝对路径: " << absoluteBinFilePath
+             << " (DB: " << currentDbPath << ", File: " << justTheFileName << ")";
+
+    errorMsg.clear(); // Clear error message on success
+    return absoluteBinFilePath;
+}
+
+// 重构后的主流程
+bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
+{
+    const QString funcName = "VectorDataHandler::loadVectorTableData";
+    qDebug() << funcName << " - 开始加载, 表ID:" << tableId;
+    if (!tableWidget)
+    {
+        qWarning() << funcName << " - tableWidget 为空";
+        return false;
+    }
+
+    tableWidget->clearContents(); // Use clearContents instead of clear to keep headers
+    tableWidget->setRowCount(0);
+    // Don't clear columns/headers here if they might already be set,
+    // or reset them based on loaded meta later.
+
+    // 1. 读取元数据 (仍然需要，用于获取列信息等)
+    QString binFileNameFromMeta; // Variable name emphasizes it's from metadata
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int rowCountFromMeta = 0; // Variable name emphasizes it's from metadata
+    if (!loadVectorTableMeta(tableId, binFileNameFromMeta, columns, schemaVersion, rowCountFromMeta))
+    {
+        qWarning() << funcName << " - 元数据加载失败, 表ID:" << tableId;
+        // Clear the table to indicate failure
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        return false;
+    }
+    qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", DB记录行数:" << rowCountFromMeta;
+
+    // 如果没有列信息，也无法继续
+    if (columns.isEmpty())
+    {
+        qWarning() << funcName << " - 表 " << tableId << " 没有列配置。";
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        // Consider if this is an error or just an empty table state
+        return true; // Return true as metadata loaded, but table is empty/unconfigured
+    }
+
+    // 2. 解析二进制文件路径
+    QString errorMsg;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - 无法解析二进制文件路径: " << errorMsg;
+        // Indicate error state, e.g., clear table, show message
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        return false;
+    }
+
+    // 检查文件是否存在，如果不存在，对于加载操作来说通常是一个错误，
+    // 除非我们允许一个没有二进制文件的表（可能仅元数据）。
+    // 新创建的表应该有一个空的带头部的二进制文件。
+    if (!QFile::exists(absoluteBinFilePath))
+    {
+        qWarning() << funcName << " - 二进制文件不存在: " << absoluteBinFilePath;
+        // Decide how to handle this. Is it an error? Or just means 0 rows?
+        // Let's assume for now it might be a newly created table where binary file creation failed
+        // or an old table where the file was lost. Treat as error for now.
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        return false; // Return false as data is missing
+    }
+
+    // 3. 读取所有行
+    QList<Vector::RowData> allRows;
+    if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        qWarning() << funcName << " - 二进制数据加载失败 (readAllRowsFromBinary 返回 false), 文件:" << absoluteBinFilePath;
+        // Clear table on failure
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        return false;
+    }
+    qDebug() << funcName << " - 从二进制文件加载了 " << allRows.size() << " 行";
+
+    // 校验从文件读取的行数与数据库记录的行数 (可选，但推荐)
+    if (allRows.size() != rowCountFromMeta)
+    {
+        qWarning() << funcName << " - 文件中的行数 (" << allRows.size()
+                   << ") 与数据库元数据记录的行数 (" << rowCountFromMeta
+                   << ") 不匹配！文件: " << absoluteBinFilePath;
+        // Decide how to proceed. Trust the file? Trust the DB? Error out?
+        // For now, let's trust the file content but log a warning.
+        // Consider adding logic to update the DB row count if file is trusted.
+    }
+
+    // 4. 设置表头
+    tableWidget->setColumnCount(columns.size());
+    QStringList headers;
+    for (const auto &col : columns)
+    {
+        headers << col.name;
+    }
+    tableWidget->setHorizontalHeaderLabels(headers);
+
+    // 5. 填充数据
+    tableWidget->setRowCount(allRows.size());
+    qDebug() << funcName << " - 准备填充 " << allRows.size() << " 行到 QTableWidget";
+    for (int row = 0; row < allRows.size(); ++row)
+    {
+        const auto &rowData = allRows[row];
+        // Ensure rowData has enough columns, though readAllRowsFromBinary should guarantee this if successful
+        if (rowData.size() != columns.size())
+        {
+            qWarning() << funcName << " - 数据行 " << row << " 的列数 (" << rowData.size()
+                       << ") 与表头列数 (" << columns.size() << ") 不匹配! 文件:" << absoluteBinFilePath;
+            // Skip this row or handle error appropriately
+            continue;
+        }
+        for (int col = 0; col < columns.size(); ++col)
+        {
+            // 优化: 避免重复创建 QTableWidgetItem，如果已有则更新
+            QTableWidgetItem *item = tableWidget->item(row, col);
+            if (!item)
+            {
+                item = new QTableWidgetItem();
+                tableWidget->setItem(row, col, item);
+            }
+            item->setData(Qt::DisplayRole, rowData.value(col)); // Use DisplayRole
+        }
+    }
+    qDebug() << funcName << " - 加载完成, 行数:" << tableWidget->rowCount() << ", 列数:" << tableWidget->columnCount();
+    return true;
+}
 
 // 静态单例实例
 VectorDataHandler &VectorDataHandler::instance()
@@ -22,6 +407,7 @@ VectorDataHandler::VectorDataHandler() : m_cancelRequested(0)
 
 VectorDataHandler::~VectorDataHandler()
 {
+    qDebug() << "VectorDataHandler::~VectorDataHandler - 析构";
 }
 
 void VectorDataHandler::cancelOperation()
@@ -29,404 +415,134 @@ void VectorDataHandler::cancelOperation()
     m_cancelRequested.storeRelease(1);
 }
 
-bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
+bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidget, QString &errorMessage)
 {
+    const QString funcName = "VectorDataHandler::saveVectorTableData";
+    qDebug() << funcName << " - 开始保存, 表ID:" << tableId;
     if (!tableWidget)
-        return false;
-
-    // 清空表格
-    tableWidget->clear();
-    tableWidget->setRowCount(0);
-    tableWidget->setColumnCount(0);
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
     {
+        errorMessage = "表控件为空";
+        qWarning() << funcName << " - " << errorMessage;
         return false;
     }
 
-    // 1. 获取表的管脚信息以设置表头
-    QSqlQuery pinsQuery(db);
-    pinsQuery.prepare("SELECT vtp.id, pl.pin_name, vtp.pin_channel_count, topt.type_name "
-                      "FROM vector_table_pins vtp "
-                      "JOIN pin_list pl ON vtp.pin_id = pl.id "
-                      "JOIN type_options topt ON vtp.pin_type = topt.id "
-                      "WHERE vtp.table_id = ? "
-                      "ORDER BY pl.pin_name");
-    pinsQuery.addBindValue(tableId);
-
-    QList<int> pinIds;
-    QMap<int, int> pinIdToColumn; // 管脚ID到列索引的映射
-
-    int columnIndex = 0;
-
-    // 固定列: 标签，指令，TimeSet，Capture，Ext，Comment
-    tableWidget->setColumnCount(6);
-    tableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem("Label"));
-    tableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem("Instruction"));
-    tableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem("TimeSet"));
-    tableWidget->setHorizontalHeaderItem(3, new QTableWidgetItem("Capture"));
-    tableWidget->setHorizontalHeaderItem(4, new QTableWidgetItem("Ext"));
-    tableWidget->setHorizontalHeaderItem(5, new QTableWidgetItem("Comment"));
-
-    columnIndex = 6;
-
-    if (pinsQuery.exec())
+    // 1. 获取列信息和预期 schema version (从元数据)
+    QString ignoredBinFileName; // We resolve the path separately
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int ignoredRowCount = 0;
+    if (!loadVectorTableMeta(tableId, ignoredBinFileName, columns, schemaVersion, ignoredRowCount))
     {
-        while (pinsQuery.next())
+        errorMessage = "元数据加载失败，无法确定列结构和版本";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 如果没有列配置，则无法保存
+    if (columns.isEmpty())
+    {
+        errorMessage = QString("表 %1 没有列配置，无法保存数据。").arg(tableId);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", Schema版本:" << schemaVersion;
+
+    // 2. 解析二进制文件路径
+    QString resolveErrorMsg;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveErrorMsg);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        errorMessage = "无法解析二进制文件路径: " + resolveErrorMsg;
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 检查目标目录是否存在，如果不存在则尝试创建
+    QFileInfo binFileInfo(absoluteBinFilePath);
+    QDir binDir = binFileInfo.dir();
+    if (!binDir.exists())
+    {
+        qInfo() << funcName << " - 目标二进制目录不存在，尝试创建:" << binDir.absolutePath();
+        if (!binDir.mkpath("."))
         {
-            int pinId = pinsQuery.value(0).toInt();
-            QString pinName = pinsQuery.value(1).toString();
-            int channelCount = pinsQuery.value(2).toInt();
-            QString typeName = pinsQuery.value(3).toString();
-
-            pinIds.append(pinId);
-            pinIdToColumn[pinId] = columnIndex;
-
-            // 添加管脚列
-            tableWidget->insertColumn(columnIndex);
-
-            // 创建自定义表头
-            QTableWidgetItem *headerItem = new QTableWidgetItem();
-            headerItem->setText(pinName + "\nx" + QString::number(channelCount) + "\n" + typeName);
-            headerItem->setTextAlignment(Qt::AlignCenter);
-            QFont headerFont = headerItem->font();
-            headerFont.setBold(true);
-            headerItem->setFont(headerFont);
-
-            tableWidget->setHorizontalHeaderItem(columnIndex, headerItem);
-            columnIndex++;
+            errorMessage = QString("无法创建目标二进制目录: %1").arg(binDir.absolutePath());
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
         }
     }
 
-    // 2. 获取向量表数据
-    QSqlQuery dataQuery(db);
-    dataQuery.prepare("SELECT vtd.id, vtd.label, io.instruction_value, tl.timeset_name, "
-                      "vtd.capture, vtd.ext, vtd.comment, vtd.sort_index "
-                      "FROM vector_table_data vtd "
-                      "JOIN instruction_options io ON vtd.instruction_id = io.id "
-                      "LEFT JOIN timeset_list tl ON vtd.timeset_id = tl.id "
-                      "WHERE vtd.table_id = ? "
-                      "ORDER BY vtd.sort_index");
-    dataQuery.addBindValue(tableId);
+    // 3. 收集所有行数据
+    QList<Vector::RowData> allRows;
+    int tableRowCount = tableWidget->rowCount();
+    int tableColCount = tableWidget->columnCount();
+    qDebug() << funcName << " - 从 QTableWidget (行:" << tableRowCount << ", 列:" << tableColCount << ") 收集数据";
 
-    if (dataQuery.exec())
+    // 检查 QTableWidget 的列数是否与元数据匹配
+    if (tableColCount != columns.size())
     {
-        QMap<int, int> vectorDataIdToRow; // 向量数据ID到行索引的映射
-        int rowIndex = 0;
-
-        while (dataQuery.next())
-        {
-            int vectorDataId = dataQuery.value(0).toInt();
-            QString label = dataQuery.value(1).toString();
-            QString instruction = dataQuery.value(2).toString();
-            QString timeset = dataQuery.value(3).toString();
-            QString capture = dataQuery.value(4).toString();
-            QString ext = dataQuery.value(5).toString();
-            QString comment = dataQuery.value(6).toString();
-
-            // 添加新行
-            tableWidget->insertRow(rowIndex);
-
-            // 设置固定列数据
-            tableWidget->setItem(rowIndex, 0, new QTableWidgetItem(label));
-            tableWidget->setItem(rowIndex, 1, new QTableWidgetItem(instruction));
-            tableWidget->setItem(rowIndex, 2, new QTableWidgetItem(timeset));
-
-            // 修改Capture列显示逻辑，当值为"0"时显示为空白
-            QString captureDisplay = (capture == "0") ? "" : capture;
-            tableWidget->setItem(rowIndex, 3, new QTableWidgetItem(captureDisplay));
-
-            tableWidget->setItem(rowIndex, 4, new QTableWidgetItem(ext));
-            tableWidget->setItem(rowIndex, 5, new QTableWidgetItem(comment));
-
-            vectorDataIdToRow[vectorDataId] = rowIndex;
-            rowIndex++;
-        }
-
-        // 3. 获取管脚数值 - 直接从数据库中查询pin_options表获取值
-        QSqlQuery valueQuery(db);
-        QString valueQueryStr = QString(
-                                    "SELECT vtd.id AS vector_data_id, "
-                                    "       vtp.id AS vector_pin_id, "
-                                    "       po.pin_value "
-                                    "FROM vector_table_data vtd "
-                                    "JOIN vector_table_pin_values vtpv ON vtd.id = vtpv.vector_data_id "
-                                    "JOIN vector_table_pins vtp ON vtpv.vector_pin_id = vtp.id "
-                                    "JOIN pin_options po ON vtpv.pin_level = po.id "
-                                    "WHERE vtd.table_id = %1 "
-                                    "ORDER BY vtd.sort_index")
-                                    .arg(tableId);
-
-        if (valueQuery.exec(valueQueryStr))
-        {
-            int count = 0;
-            while (valueQuery.next())
-            {
-                int vectorDataId = valueQuery.value(0).toInt();
-                int vectorPinId = valueQuery.value(1).toInt();
-                QString pinValue = valueQuery.value(2).toString();
-                count++;
-
-                // 找到对应的行和列
-                if (vectorDataIdToRow.contains(vectorDataId) && pinIdToColumn.contains(vectorPinId))
-                {
-                    int row = vectorDataIdToRow[vectorDataId];
-                    int col = pinIdToColumn[vectorPinId];
-
-                    // 设置单元格值
-                    tableWidget->setItem(row, col, new QTableWidgetItem(pinValue));
-                }
-            }
-
-            // 如果没有找到任何记录，尝试直接使用pin_level值
-            if (count == 0)
-            {
-                QSqlQuery fallbackQuery(db);
-                QString fallbackQueryStr = QString(
-                                               "SELECT vtd.id AS vector_data_id, "
-                                               "       vtp.id AS vector_pin_id, "
-                                               "       vtpv.pin_level "
-                                               "FROM vector_table_data vtd "
-                                               "JOIN vector_table_pin_values vtpv ON vtd.id = vtpv.vector_data_id "
-                                               "JOIN vector_table_pins vtp ON vtpv.vector_pin_id = vtp.id "
-                                               "WHERE vtd.table_id = %1 "
-                                               "ORDER BY vtd.sort_index")
-                                               .arg(tableId);
-
-                if (fallbackQuery.exec(fallbackQueryStr))
-                {
-                    while (fallbackQuery.next())
-                    {
-                        int vectorDataId = fallbackQuery.value(0).toInt();
-                        int vectorPinId = fallbackQuery.value(1).toInt();
-                        int pinLevelId = fallbackQuery.value(2).toInt();
-
-                        // 尝试从pin_options表获取实际值
-                        QSqlQuery getPinValue(db);
-                        QString pinValue;
-
-                        getPinValue.prepare("SELECT pin_value FROM pin_options WHERE id = ?");
-                        getPinValue.addBindValue(pinLevelId);
-
-                        if (getPinValue.exec() && getPinValue.next())
-                        {
-                            pinValue = getPinValue.value(0).toString();
-                        }
-                        else
-                        {
-                            // 如果获取失败，直接使用ID作为字符串
-                            pinValue = QString::number(pinLevelId);
-                        }
-
-                        // 找到对应的行和列
-                        if (vectorDataIdToRow.contains(vectorDataId) && pinIdToColumn.contains(vectorPinId))
-                        {
-                            int row = vectorDataIdToRow[vectorDataId];
-                            int col = pinIdToColumn[vectorPinId];
-
-                            // 设置单元格值
-                            tableWidget->setItem(row, col, new QTableWidgetItem(pinValue));
-                        }
-                    }
-                }
-            }
-        }
+        errorMessage = QString("表格控件的列数 (%1) 与数据库元数据的列数 (%2) 不匹配。").arg(tableColCount).arg(columns.size());
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
     }
 
-    // 调整列宽
-    tableWidget->resizeColumnsToContents();
-
-    // 确保所有管脚单元格都有默认值"X"
-    for (int row = 0; row < tableWidget->rowCount(); ++row)
+    allRows.reserve(tableRowCount);
+    for (int row = 0; row < tableRowCount; ++row)
     {
-        for (int col = 6; col < tableWidget->columnCount(); ++col)
+        Vector::RowData rowData;
+        rowData.reserve(columns.size());
+        for (int col = 0; col < columns.size(); ++col)
         {
             QTableWidgetItem *item = tableWidget->item(row, col);
-            if (!item || item->text().isEmpty())
-            {
-                tableWidget->setItem(row, col, new QTableWidgetItem("X"));
-            }
+            // 获取数据，确保使用正确的角色 (DisplayRole) 并处理空项
+            QVariant value = item ? item->data(Qt::DisplayRole) : QVariant();
+            // TODO: 根据 column[col].type 进行类型转换或验证?
+            rowData.append(value);
         }
+        allRows.append(rowData);
+    }
+    qDebug() << funcName << " - 收集了 " << allRows.size() << " 行数据进行保存";
+
+    // 4. 写入二进制文件
+    qDebug() << funcName << " - 准备写入数据到二进制文件: " << absoluteBinFilePath;
+    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    qDebug() << funcName << " - 二进制文件写入成功";
+
+    // 5. 更新数据库中的行数记录
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery updateQuery(db);
+
+    // 为 SQL 语句添加 prepare 检查
+    if (!updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?"))
+    {
+        errorMessage = QString("数据库更新语句准备失败 (row_count): %1").arg(updateQuery.lastError().text());
+        qWarning() << funcName << " - " << errorMessage;
+        // 即使数据库更新失败，文件已经写入。根据需求决定是否返回 false。
+        // 为了数据一致性，prepare失败通常应视为关键错误。
+        return false;
+    }
+
+    updateQuery.addBindValue(allRows.size());
+    updateQuery.addBindValue(tableId);
+    if (!updateQuery.exec())
+    {
+        errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
+        qWarning() << funcName << " - " << errorMessage;
+        // 即使数据库更新失败，文件已经写入，所以不算完全失败。
+        // 可以选择返回true并记录警告，或者返回false。
+        // 返回true，但errorMsg已设置，调用者可以检查。
+    }
+    else
+    {
+        qDebug() << funcName << " - 数据库元数据行数已更新为:" << allRows.size();
+        errorMessage.clear(); // Clear error message on full success
     }
 
     return true;
-}
-
-bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidget, QString &errorMessage)
-{
-    if (!tableWidget)
-    {
-        errorMessage = "表格控件为空";
-        return false;
-    }
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        errorMessage = "数据库未打开";
-        return false;
-    }
-
-    // 开始事务
-    db.transaction();
-    QSqlQuery query(db);
-
-    try
-    {
-        // 清除现有数据 - 先删除关联的pin_values，再删除主数据
-        query.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id IN "
-                      "(SELECT id FROM vector_table_data WHERE table_id = ?)");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法清除关联的管脚值数据: " + query.lastError().text());
-        }
-
-        query.prepare("DELETE FROM vector_table_data WHERE table_id = ?");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法清除现有数据: " + query.lastError().text());
-        }
-
-        // 获取已选择的管脚列表
-        QList<int> pinIds;
-        QList<QString> pinNames;
-        query.prepare("SELECT vtp.id, pl.pin_name FROM vector_table_pins vtp "
-                      "JOIN pin_list pl ON vtp.pin_id = pl.id "
-                      "WHERE vtp.table_id = ? ORDER BY pl.pin_name");
-        query.addBindValue(tableId);
-        if (!query.exec())
-        {
-            throw QString("无法获取管脚列表: " + query.lastError().text());
-        }
-
-        while (query.next())
-        {
-            pinIds.append(query.value(0).toInt());
-            pinNames.append(query.value(1).toString());
-        }
-
-        if (pinIds.isEmpty())
-        {
-            throw QString("没有找到任何关联的管脚");
-        }
-
-        // 逐行保存数据
-        for (int row = 0; row < tableWidget->rowCount(); ++row)
-        {
-            // 获取基本信息
-            QString label = tableWidget->item(row, 0) ? tableWidget->item(row, 0)->text() : "";
-            QString instruction = tableWidget->item(row, 1) ? tableWidget->item(row, 1)->text() : "";
-            QString timeSet = tableWidget->item(row, 2) ? tableWidget->item(row, 2)->text() : "";
-            QString capture = tableWidget->item(row, 3) ? tableWidget->item(row, 3)->text() : "";
-            QString ext = tableWidget->item(row, 4) ? tableWidget->item(row, 4)->text() : "";
-            QString comment = tableWidget->item(row, 5) ? tableWidget->item(row, 5)->text() : "";
-
-            // 获取指令ID
-            int instructionId = 1; // 默认为1 (VECTOR)
-            if (!instruction.isEmpty())
-            {
-                QSqlQuery instrQuery(db);
-                instrQuery.prepare("SELECT id FROM instruction_options WHERE instruction_value = ?");
-                instrQuery.addBindValue(instruction);
-                if (instrQuery.exec() && instrQuery.next())
-                {
-                    instructionId = instrQuery.value(0).toInt();
-                }
-            }
-
-            // 获取时间集ID
-            int timeSetId = -1;
-            if (!timeSet.isEmpty())
-            {
-                QSqlQuery timeSetQuery(db);
-                timeSetQuery.prepare("SELECT id FROM timeset_list WHERE timeset_name = ?");
-                timeSetQuery.addBindValue(timeSet);
-                if (timeSetQuery.exec() && timeSetQuery.next())
-                {
-                    timeSetId = timeSetQuery.value(0).toInt();
-                }
-            }
-
-            // 插入行数据
-            QSqlQuery insertRowQuery(db);
-            insertRowQuery.prepare("INSERT INTO vector_table_data "
-                                   "(table_id, label, instruction_id, timeset_id, capture, ext, comment, sort_index) "
-                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            insertRowQuery.addBindValue(tableId);
-            insertRowQuery.addBindValue(label);
-            insertRowQuery.addBindValue(instructionId);
-            insertRowQuery.addBindValue(timeSetId > 0 ? timeSetId : QVariant());
-            insertRowQuery.addBindValue(capture == "Y" ? 1 : 0);
-            insertRowQuery.addBindValue(ext);
-            insertRowQuery.addBindValue(comment);
-            insertRowQuery.addBindValue(row);
-
-            if (!insertRowQuery.exec())
-            {
-                throw QString("保存行 " + QString::number(row + 1) + " 失败: " + insertRowQuery.lastError().text());
-            }
-
-            // 获取插入的行ID
-            int rowId = insertRowQuery.lastInsertId().toInt();
-
-            // 保存管脚数据
-            for (int i = 0; i < pinIds.size(); ++i)
-            {
-                int pinCol = i + 6; // 管脚从第6列开始
-                QString pinValue = tableWidget->item(row, pinCol) ? tableWidget->item(row, pinCol)->text() : "X";
-
-                // 如果值为空，使用默认值"X"
-                if (pinValue.isEmpty())
-                {
-                    pinValue = "X";
-                }
-
-                // 获取pin_option_id
-                int pinOptionId = 5; // 默认为X (id=5)
-                QSqlQuery pinOptionQuery(db);
-                pinOptionQuery.prepare("SELECT id FROM pin_options WHERE pin_value = ?");
-                pinOptionQuery.addBindValue(pinValue);
-                if (pinOptionQuery.exec() && pinOptionQuery.next())
-                {
-                    pinOptionId = pinOptionQuery.value(0).toInt();
-                }
-                else
-                {
-                    // 如果查询失败或没有找到对应的值，确保使用默认值X的ID
-                    pinOptionId = 5; // X的ID固定为5
-                }
-
-                // 插入管脚数据
-                QSqlQuery pinDataQuery(db);
-                pinDataQuery.prepare("INSERT INTO vector_table_pin_values "
-                                     "(vector_data_id, vector_pin_id, pin_level) VALUES (?, ?, ?)");
-                pinDataQuery.addBindValue(rowId);
-                pinDataQuery.addBindValue(pinIds[i]);
-                pinDataQuery.addBindValue(pinOptionId);
-
-                if (!pinDataQuery.exec())
-                {
-                    throw QString("保存管脚 " + pinNames[i] + " 数据失败: " + pinDataQuery.lastError().text());
-                }
-            }
-        }
-
-        // 提交事务
-        db.commit();
-        return true;
-    }
-    catch (const QString &error)
-    {
-        // 错误处理和回滚
-        db.rollback();
-        errorMessage = error;
-        return false;
-    }
 }
 
 void VectorDataHandler::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
@@ -616,336 +732,308 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
                                          const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
                                          QString &errorMessage)
 {
-    // 重置取消标志
+    const QString funcName = "VectorDataHandler::insertVectorRows";
     m_cancelRequested.storeRelease(0);
+    emit progressUpdated(0); // Start
 
-    qDebug() << "VectorDataHandler::insertVectorRows - 开始插入向量行，表ID:" << tableId
-             << "行数:" << rowCount << "数据表行数:" << dataTable->rowCount();
+    qDebug() << funcName << "- NEW BINARY IMPL - 开始插入向量行，表ID:" << tableId
+             << "目标行数:" << rowCount << "源数据表行数:" << dataTable->rowCount()
+             << "TimesetID:" << timesetId << "Append:" << appendToEnd << "StartIndex:" << startIndex;
 
-    // 保存向量行数据
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    db.transaction();
+    errorMessage.clear();
+    emit progressUpdated(2); // Initial checks passed
 
-    bool success = true;
+    // 1. 加载元数据和现有行数据 (如果存在)
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int existingRowCountFromMeta = 0;
 
-    // 获取实际数据行数
-    int rowDataCount = dataTable->rowCount();
-
-    // 检查行数设置
-    if (rowCount < rowDataCount)
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, existingRowCountFromMeta))
     {
-        errorMessage = "设置的总行数小于实际添加的行数据数量！";
-        db.rollback();
+        errorMessage = QString("无法加载表 %1 的元数据。").arg(tableId);
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
+        return false;
+    }
+    qDebug() << funcName << "- 元数据加载成功. BinFile:" << binFileName << "SchemaVersion:" << schemaVersion << "Columns:" << columns.size() << "ExistingMetaRows:" << existingRowCountFromMeta;
+    emit progressUpdated(5);
+
+    if (columns.isEmpty())
+    {
+        errorMessage = QString("表 %1 没有列配置信息，无法插入数据.").arg(tableId);
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
         return false;
     }
 
-    if (rowCount % rowDataCount != 0)
+    QString absoluteBinFilePath;
+    QString resolveError;
+    absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveError);
+    if (absoluteBinFilePath.isEmpty())
     {
-        errorMessage = "设置的总行数必须是行数据数量的整数倍！";
-        db.rollback();
+        errorMessage = QString("无法解析表 %1 的二进制文件路径: %2").arg(tableId).arg(resolveError);
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
         return false;
     }
+    qDebug() << funcName << "- 二进制文件绝对路径:" << absoluteBinFilePath;
+    emit progressUpdated(8);
 
-    // 计算重复次数
-    int repeatTimes = rowCount / rowDataCount;
-
-    qDebug() << "VectorDataHandler::insertVectorRows - 重复次数:" << repeatTimes;
-
-    // 获取插入位置
-    int actualStartIndex = startIndex;
-
-    // 如果不是添加到最后，需要先将目标位置及之后的数据往后移动
-    if (!appendToEnd)
+    QFileInfo binFileInfo(absoluteBinFilePath);
+    QDir binDir = binFileInfo.dir();
+    if (!binDir.exists())
     {
-        QSqlQuery updateQuery(db);
-        updateQuery.prepare("UPDATE vector_table_data SET sort_index = sort_index + ? "
-                            "WHERE table_id = ? AND sort_index >= ?");
-        updateQuery.addBindValue(rowCount);
-        updateQuery.addBindValue(tableId);
-        updateQuery.addBindValue(actualStartIndex);
-
-        if (!updateQuery.exec())
+        qInfo() << funcName << "- 目标二进制目录不存在，尝试创建:" << binDir.absolutePath();
+        if (!binDir.mkpath("."))
         {
-            errorMessage = "更新现有数据索引失败：" + updateQuery.lastError().text();
-            db.rollback();
+            errorMessage = QString("无法创建目标二进制目录: %1").arg(binDir.absolutePath());
+            qWarning() << funcName << "-" << errorMessage;
+            emit progressUpdated(100); // End with error
             return false;
         }
     }
+    emit progressUpdated(10);
 
-    // 提前获取pin_options表中的所有可能值，避免重复查询
-    QMap<QString, int> pinOptionsCache;
-    QSqlQuery pinOptionsQuery(db);
-    if (pinOptionsQuery.exec("SELECT id, pin_value FROM pin_options"))
+    QList<Vector::RowData> allTableRows;
+    if (QFile::exists(absoluteBinFilePath))
     {
-        while (pinOptionsQuery.next())
+        qDebug() << funcName << "- 二进制文件存在，尝试加载现有数据:" << absoluteBinFilePath;
+        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allTableRows))
         {
-            int id = pinOptionsQuery.value(0).toInt();
-            QString value = pinOptionsQuery.value(1).toString();
-            pinOptionsCache[value] = id;
-        }
-    }
-
-    // 默认值为X (id=5)，确保即使查询失败也有默认值
-    if (!pinOptionsCache.contains("X"))
-    {
-        pinOptionsCache["X"] = 5;
-    }
-
-    qDebug() << "VectorDataHandler::insertVectorRows - 开始批量处理插入";
-
-    // 进度报告变量
-    const int PROGRESS_DATA_ROWS = 40;  // 数据行占总进度的40%
-    const int PROGRESS_PIN_VALUES = 60; // 管脚值占总进度的60%
-    int dataProgress = 0;
-
-    // 预处理SQL语句，只准备一次
-    QSqlQuery dataQuery(db);
-    dataQuery.prepare("INSERT INTO vector_table_data "
-                      "(table_id, instruction_id, timeset_id, label, capture, ext, comment, sort_index) "
-                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-
-    QSqlQuery pinValueQuery(db);
-    pinValueQuery.prepare("INSERT INTO vector_table_pin_values "
-                          "(vector_data_id, vector_pin_id, pin_level) "
-                          "VALUES (?, ?, ?)");
-
-    // 使用批处理来提高性能
-    int batchSize = 1000; // 设置一个合理的批处理大小
-    int currentBatch = 0;
-    int totalProcessed = 0;
-    int maxBatches = (repeatTimes * rowDataCount + batchSize - 1) / batchSize;
-
-    QList<QVariantList> dataParams;
-    for (int i = 0; i < 8; i++)
-    { // vector_table_data表有8个参数
-        dataParams.append(QVariantList());
-    }
-
-    QList<QVariantList> pinValueParams;
-    for (int i = 0; i < 3; i++)
-    { // vector_table_pin_values表有3个参数
-        pinValueParams.append(QVariantList());
-    }
-
-    // 收集要插入的数据行的ID
-    QList<int> vectorDataIds;
-
-    // 根据重复次数添加行数据
-    for (int repeat = 0; repeat < repeatTimes; repeat++)
-    {
-        for (int row = 0; row < rowDataCount; row++)
-        {
-            // 检查是否取消
-            if (m_cancelRequested.loadAcquire())
-            {
-                qDebug() << "VectorDataHandler::insertVectorRows - 操作被用户取消";
-                errorMessage = "操作被用户取消";
-                db.rollback();
-                return false;
-            }
-
-            // 更新UI进度
-            if ((repeat * rowDataCount + row) % 5000 == 0 || totalProcessed == 0)
-            {
-                int progress = totalProcessed * PROGRESS_DATA_ROWS / rowCount;
-                emit progressUpdated(progress);
-                qDebug() << "VectorDataHandler::insertVectorRows - 已处理"
-                         << totalProcessed << "/" << rowCount << "行，进度:" << progress << "%";
-            }
-
-            // vector_table_data参数
-            dataParams[0].append(tableId);
-            dataParams[1].append(1); // 默认instruction_id为1
-            dataParams[2].append(timesetId);
-            dataParams[3].append("");                                             // label默认为空
-            dataParams[4].append(0);                                              // capture默认为0
-            dataParams[5].append("");                                             // ext默认为空
-            dataParams[6].append("");                                             // comment默认为空
-            dataParams[7].append(actualStartIndex + repeat * rowDataCount + row); // 排序索引
-
-            currentBatch++;
-            totalProcessed++;
-
-            // 当达到批处理大小或处理完所有数据时，执行批量插入
-            if (currentBatch >= batchSize || totalProcessed >= rowCount)
-            {
-                qDebug() << "VectorDataHandler::insertVectorRows - 执行批量插入，批次:"
-                         << (totalProcessed / batchSize) << "/" << maxBatches;
-
-                // 批量插入vector_table_data
-                for (int i = 0; i < 8; i++)
-                {
-                    dataQuery.addBindValue(dataParams[i]);
-                }
-
-                if (!dataQuery.execBatch())
-                {
-                    errorMessage = "批量添加向量行数据失败：" + dataQuery.lastError().text();
-                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
-                    db.rollback();
-                    return false;
-                }
-
-                // 获取所有插入的ID
-                // 注意：这是一个简化处理，实际应该使用QSqlDriver::lastInsertId()或适当的SQL查询
-                QSqlQuery idQuery(db);
-                QString idQueryStr = QString(
-                                         "SELECT id FROM vector_table_data WHERE table_id = %1 ORDER BY id DESC LIMIT %2")
-                                         .arg(tableId)
-                                         .arg(currentBatch);
-
-                if (idQuery.exec(idQueryStr))
-                {
-                    while (idQuery.next())
-                    {
-                        vectorDataIds.prepend(idQuery.value(0).toInt()); // 倒序插入，保持正确顺序
-                    }
-                }
-                else
-                {
-                    errorMessage = "获取插入ID失败：" + idQuery.lastError().text();
-                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
-                    db.rollback();
-                    return false;
-                }
-
-                // 清空数据参数列表，准备下一批
-                for (int i = 0; i < 8; i++)
-                {
-                    dataParams[i].clear();
-                }
-
-                currentBatch = 0;
-
-                // 更新进度
-                int progress = totalProcessed * PROGRESS_DATA_ROWS / rowCount;
-                if (progress > dataProgress)
-                {
-                    dataProgress = progress;
-                    emit progressUpdated(dataProgress);
-                }
-            }
-        }
-    }
-
-    qDebug() << "VectorDataHandler::insertVectorRows - 行数据插入完成，开始处理管脚值";
-    emit progressUpdated(PROGRESS_DATA_ROWS); // 数据行插入已完成
-
-    // 重置批处理计数
-    currentBatch = 0;
-    totalProcessed = 0;
-    int totalPinValues = vectorDataIds.size() * selectedPins.size();
-    maxBatches = (totalPinValues + batchSize - 1) / batchSize;
-
-    // 为每个管脚添加vector_table_pin_values记录
-    for (int dataIdx = 0; dataIdx < vectorDataIds.size(); dataIdx++)
-    {
-        int vectorDataId = vectorDataIds[dataIdx];
-        int originalRowIdx = dataIdx % rowDataCount; // 获取原始数据表中的行索引
-
-        for (int col = 0; col < selectedPins.size(); col++)
-        {
-            // 检查是否取消
-            if (m_cancelRequested.loadAcquire())
-            {
-                qDebug() << "VectorDataHandler::insertVectorRows - 操作被用户取消";
-                errorMessage = "操作被用户取消";
-                db.rollback();
-                return false;
-            }
-
-            // 更新进度
-            if (totalProcessed % 10000 == 0 || totalProcessed == 0)
-            {
-                int progress = PROGRESS_DATA_ROWS + (totalProcessed * PROGRESS_PIN_VALUES / totalPinValues);
-                emit progressUpdated(progress);
-                qDebug() << "VectorDataHandler::insertVectorRows - 已处理管脚值"
-                         << totalProcessed << "/" << totalPinValues << "个，总进度:" << progress << "%";
-            }
-
-            int pinId = selectedPins[col].first;
-
-            // 获取单元格中的输入框
-            PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(originalRowIdx, col));
-
-            // 获取管脚值
-            QString pinValue = pinEdit ? pinEdit->text() : "X";
-            if (pinValue.isEmpty())
-            {
-                pinValue = "X"; // 如果为空，默认使用X
-            }
-
-            // 从缓存中获取pin_option_id
-            int pinOptionId = pinOptionsCache.value(pinValue, 5); // 默认为X (id=5)
-
-            // 添加到批处理参数
-            pinValueParams[0].append(vectorDataId);
-            pinValueParams[1].append(pinId);
-            pinValueParams[2].append(pinOptionId);
-
-            currentBatch++;
-            totalProcessed++;
-
-            // 当达到批处理大小或处理完所有数据时，执行批量插入
-            if (currentBatch >= batchSize || totalProcessed >= totalPinValues)
-            {
-                qDebug() << "VectorDataHandler::insertVectorRows - 执行管脚值批量插入，批次:"
-                         << (totalProcessed / batchSize) << "/" << maxBatches;
-
-                // 批量插入vector_table_pin_values
-                for (int i = 0; i < 3; i++)
-                {
-                    pinValueQuery.addBindValue(pinValueParams[i]);
-                }
-
-                if (!pinValueQuery.execBatch())
-                {
-                    errorMessage = "批量添加管脚值失败：" + pinValueQuery.lastError().text();
-                    qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
-                    db.rollback();
-                    return false;
-                }
-
-                // 清空参数列表，准备下一批
-                for (int i = 0; i < 3; i++)
-                {
-                    pinValueParams[i].clear();
-                }
-
-                currentBatch = 0;
-
-                // 更新进度
-                int progress = PROGRESS_DATA_ROWS + (totalProcessed * PROGRESS_PIN_VALUES / totalPinValues);
-                emit progressUpdated(progress);
-            }
-        }
-    }
-
-    qDebug() << "VectorDataHandler::insertVectorRows - 所有数据插入完成，准备提交事务";
-    emit progressUpdated(99); // 设为99%，等提交成功后再设为100%
-
-    if (success)
-    {
-        if (db.commit())
-        {
-            qDebug() << "VectorDataHandler::insertVectorRows - 事务提交成功";
-            emit progressUpdated(100); // 操作完成，进度100%
-            return true;
+            qWarning() << funcName << "- 无法从现有二进制文件读取行数据. File:" << absoluteBinFilePath << ". Treating as empty or starting fresh.";
+            allTableRows.clear();
         }
         else
         {
-            errorMessage = "提交事务失败：" + db.lastError().text();
-            qDebug() << "VectorDataHandler::insertVectorRows - 错误:" << errorMessage;
-            db.rollback();
-            return false;
+            qDebug() << funcName << "- 从二进制文件成功加载" << allTableRows.size() << "行现有数据.";
         }
     }
     else
     {
-        db.rollback();
-        qDebug() << "VectorDataHandler::insertVectorRows - 事务回滚";
+        qDebug() << funcName << "- 二进制文件不存在:" << absoluteBinFilePath << ". 将创建新文件.";
+    }
+    emit progressUpdated(20); // Metadata and existing rows loaded
+
+    // 2. 准备新的行数据
+    int sourceDataRowCount = dataTable->rowCount();
+    if (sourceDataRowCount == 0 && rowCount > 0)
+    {
+        errorMessage = "源数据表为空，但请求插入多于0行。";
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
         return false;
     }
+
+    if (rowCount < 0)
+    {
+        errorMessage = "请求的总行数不能为负。";
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
+        return false;
+    }
+
+    int repeatTimes = 1;
+    if (sourceDataRowCount > 0)
+    {
+        if (rowCount % sourceDataRowCount != 0 && rowCount > sourceDataRowCount)
+        {
+            errorMessage = "请求的总行数必须是源数据表行数的整数倍 (如果大于源数据表行数)。";
+            qWarning() << funcName << "-" << errorMessage;
+            emit progressUpdated(100); // End with error
+            return false;
+        }
+        if (rowCount == 0) // Special case: insert 0 of the pattern means 0 repeats
+            repeatTimes = 0;
+        else
+            repeatTimes = rowCount / sourceDataRowCount;
+    }
+    else if (rowCount > 0 && sourceDataRowCount == 0) // Should have been caught by earlier check
+    {
+        // This case is an error.
+        emit progressUpdated(100); // End with error
+                return false;
+            }
+    else // rowCount == 0 and sourceDataRowCount == 0
+    {
+        repeatTimes = 0;
+    }
+
+    qDebug() << funcName << "- 计算重复次数:" << repeatTimes << " (基于请求总行数 " << rowCount << " 和源数据表行数 " << sourceDataRowCount << ")";
+
+    QList<Vector::RowData> newRowsToInsert;
+    newRowsToInsert.reserve(rowCount > 0 ? rowCount : 0); // Avoid negative reserve
+
+    QMap<QString, int> columnNameMap;
+    for (int i = 0; i < columns.size(); ++i)
+    {
+        columnNameMap[columns[i].name] = i;
+    }
+
+    if (dataTable->columnCount() != selectedPins.size() && sourceDataRowCount > 0)
+    {
+        errorMessage = QString("对话框提供的列数 (%1) 与选中管脚数 (%2) 不匹配。").arg(dataTable->columnCount()).arg(selectedPins.size());
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
+                    return false;
+                }
+
+    const int totalIterationsForNewRows = qMax(1, repeatTimes * sourceDataRowCount); // Avoid division by zero for progress
+    int currentIterationNewRows = 0;
+
+    for (int rpt = 0; rpt < repeatTimes; ++rpt)
+    {
+        for (int srcRowIdx = 0; srcRowIdx < sourceDataRowCount; ++srcRowIdx)
+        {
+            if (m_cancelRequested.loadAcquire())
+            {
+                qDebug() << funcName << "- 操作被用户取消 (在行数据准备阶段)。";
+                errorMessage = "操作被用户取消。";
+                emit progressUpdated(100); // End
+                    return false;
+                }
+
+            Vector::RowData newRow;
+            newRow.resize(columns.size());
+
+            if (columnNameMap.contains("Instruction"))
+                newRow[columnNameMap["Instruction"]] = 1;
+            if (columnNameMap.contains("TimeSet"))
+                newRow[columnNameMap["TimeSet"]] = timesetId;
+            if (columnNameMap.contains("Label"))
+                newRow[columnNameMap["Label"]] = "";
+            if (columnNameMap.contains("Capture"))
+                newRow[columnNameMap["Capture"]] = 0;
+            if (columnNameMap.contains("Ext"))
+                newRow[columnNameMap["Ext"]] = "";
+            if (columnNameMap.contains("Comment"))
+                newRow[columnNameMap["Comment"]] = "";
+
+            for (int pinColIdx = 0; pinColIdx < selectedPins.size(); ++pinColIdx)
+            {
+                const auto &pinSelection = selectedPins[pinColIdx];
+                const QString &pinName = pinSelection.second.first;
+                if (!columnNameMap.contains(pinName))
+                {
+                    qWarning() << funcName << "- 警告: 表格列配置中未找到管脚列名:" << pinName << ". 跳过此管脚.";
+                    continue;
+                }
+                int targetColIdx = columnNameMap[pinName];
+                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(srcRowIdx, pinColIdx));
+                QString pinValueStr = pinEdit ? pinEdit->text() : "X";
+                if (pinValueStr.isEmpty())
+                    pinValueStr = "X";
+                newRow[targetColIdx] = pinValueStr;
+            }
+            newRowsToInsert.append(newRow);
+            currentIterationNewRows++;
+            if (rowCount > 0)
+            { // Only update progress if there are rows to process
+                emit progressUpdated(20 + static_cast<int>((static_cast<double>(currentIterationNewRows) / totalIterationsForNewRows) * 40.0));
+            }
+        }
+    }
+    qDebug() << funcName << "- 准备了" << newRowsToInsert.size() << "行新数据待插入/追加。";
+    emit progressUpdated(60); // New rows prepared
+
+    // 3. 修改 allTableRows
+    int actualInsertionIndex = appendToEnd ? allTableRows.size() : startIndex;
+    if (actualInsertionIndex < 0)
+        actualInsertionIndex = 0;
+    if (actualInsertionIndex > allTableRows.size())
+        actualInsertionIndex = allTableRows.size();
+
+    if (!appendToEnd)
+    {
+        qDebug() << funcName << "- 非追加模式，将在索引" << actualInsertionIndex << "处插入" << newRowsToInsert.size() << "行, 当前总行数:" << allTableRows.size();
+        if (rowCount == 0 && sourceDataRowCount > 0)
+        {
+            if (startIndex < allTableRows.size())
+            {
+                qDebug() << funcName << "- 请求插入0行，非追加模式。将删除从索引" << startIndex << "开始的所有行。";
+                allTableRows.erase(allTableRows.begin() + startIndex, allTableRows.end());
+            }
+        }
+        else
+        {
+            // Use a temporary list for insertion to avoid iterator invalidation issues with QList::insert
+            QList<Vector::RowData> tempRowsToKeepPrefix = allTableRows.mid(0, actualInsertionIndex);
+            QList<Vector::RowData> tempRowsToKeepSuffix;
+            if (actualInsertionIndex < allTableRows.size())
+            { // Check if there's anything after insertion point
+                tempRowsToKeepSuffix = allTableRows.mid(actualInsertionIndex);
+            }
+            allTableRows = tempRowsToKeepPrefix;
+            allTableRows.append(newRowsToInsert);
+            allTableRows.append(tempRowsToKeepSuffix);
+        }
+    }
+    else
+    {
+        qDebug() << funcName << "- 追加模式，将添加" << newRowsToInsert.size() << "行到末尾。";
+        allTableRows.append(newRowsToInsert);
+    }
+    qDebug() << funcName << "- 修改后，allTableRows 总行数:" << allTableRows.size();
+    emit progressUpdated(65); // All table rows modified
+
+    // 4. 写回二进制文件
+    qDebug() << funcName << "- 准备写入" << allTableRows.size() << "行到二进制文件:" << absoluteBinFilePath;
+    // For now, BinaryFileHelper::writeAllRowsToBinary doesn't have internal progress.
+    // We emit progress before and after this potentially long operation.
+    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allTableRows))
+    {
+        errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
+        return false;
+    }
+    qDebug() << funcName << "- 二进制文件写入成功: " << absoluteBinFilePath;
+    emit progressUpdated(95); // Binary file written
+
+    // 5. 更新数据库中的主记录
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.transaction())
+    {
+        errorMessage = "无法开始数据库事务以更新主记录。";
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100); // End with error
+        return false;
+    }
+
+    QSqlQuery updateQuery(db);
+    if (!updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"))
+    {
+        errorMessage = QString("数据库更新语句准备失败 (row_count): %1").arg(updateQuery.lastError().text());
+        qWarning() << funcName << "-" << errorMessage;
+                    db.rollback();
+        emit progressUpdated(100); // End with error
+                    return false;
+                }
+    updateQuery.addBindValue(allTableRows.size());
+    updateQuery.addBindValue(tableId);
+
+    if (!updateQuery.exec())
+    {
+        errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
+        qWarning() << funcName << "-" << errorMessage;
+            db.rollback();
+        emit progressUpdated(100); // End with error
+            return false;
+        }
+
+    if (!db.commit())
+    {
+        errorMessage = "提交数据库事务失败 (更新主记录后)。";
+        qWarning() << funcName << "-" << errorMessage;
+        db.rollback();
+        emit progressUpdated(100); // End with error
+        return false;
+    }
+
+    qDebug() << funcName << "- 数据库元数据行数已更新为:" << allTableRows.size() << " for table ID:" << tableId;
+    emit progressUpdated(100); // 操作完成
+    qDebug() << funcName << "- NEW BINARY IMPL - 向量行数据操作成功完成。";
+    return true;
 }
 
 bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage)

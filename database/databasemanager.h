@@ -20,6 +20,9 @@ public:
     static DatabaseManager *instance();
     ~DatabaseManager();
 
+    // 支持的最新数据库 Schema 版本号
+    static const int LATEST_DB_SCHEMA_VERSION = 2;
+
     // 初始化新数据库（从schema.sql创建）
     bool initializeNewDatabase(const QString &dbFilePath, const QString &schemaFilePath);
 
@@ -53,7 +56,22 @@ public:
     // 初始化固定表的默认数据
     bool initializeDefaultData();
 
+    // 当前数据库的版本 (从 db_version 表读取)
+    int m_currentDbFileVersion;
+
 private:
+    // 升级数据库 Schema 到特定版本的辅助函数
+    bool performSchemaUpgradeToV2();
+
+    // 将旧格式(SQLite表)的向量表数据迁移到新格式(二进制文件)
+    bool migrateVectorDataToBinaryFiles();
+
+    // 内部函数，用于更新数据库中的版本号记录
+    bool setCurrentDbFileVersionInTable(int version);
+
+    // 确保版本表存在并返回当前版本（如果存在）
+    int ensureVersionTableAndGetCurrentVersion();
+
     // 私有构造函数（单例模式的一部分）
     explicit DatabaseManager(QObject *parent = nullptr);
 
@@ -79,14 +97,14 @@ private:
     // 数据库连接
     QSqlDatabase m_db;
 
+    // 当前打开的数据库文件路径
+    QString m_dbFilePath;
+
     // 单例实例
     static DatabaseManager *m_instance;
 
-    // 当前数据库的版本
-    int m_currentVersion;
-
-    // 数据库版本表名
-    QString VERSION_TABLE = "db_version";
+    // 数据库版本表名 (确保只有一个定义)
+    static const QString VERSION_TABLE;
 };
 
 #endif // DATABASEMANAGER_H

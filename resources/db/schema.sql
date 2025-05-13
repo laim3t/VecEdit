@@ -189,3 +189,44 @@ FROM pin_group_members pgm
 JOIN pin_groups pg ON pgm.group_id = pg.group_id
 JOIN pin_list pl ON pgm.pin_id = pl.id
 ORDER BY pg.group_name, pgm.sort_index;
+
+-- 新增表用于混合存储方案
+-- VectorTableMasterRecord 将存储每个向量表的元数据和指向其二进制数据文件的引用
+CREATE TABLE VectorTableMasterRecord (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,           -- 主键
+    original_vector_table_id INTEGER UNIQUE,      -- 可选: 用于映射到旧的 vector_tables.id，方便迁移和关联
+    table_name TEXT NOT NULL UNIQUE,                -- 向量表名称，应与 vector_tables.table_name 保持一致或由此派生
+    binary_data_filename TEXT NOT NULL UNIQUE,      -- 对应的二进制数据文件名 (例如 'table_123.vbindata')
+    file_format_version INTEGER NOT NULL DEFAULT 1, -- 二进制文件格式的版本号
+    data_schema_version INTEGER NOT NULL DEFAULT 1, -- 二进制文件内容所依据的 schema 版本 (可能与列配置相关)
+    row_count INTEGER NOT NULL DEFAULT 0,           -- 二进制文件中的行数
+    column_count INTEGER NOT NULL DEFAULT 0,        -- 二进制文件中的列数 (实际数据列)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- 记录创建时间
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP   -- 记录最后更新时间
+);
+
+-- VectorTableColumnConfiguration 将存储每个二进制数据文件内部的列结构定义
+CREATE TABLE VectorTableColumnConfiguration (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,                   -- 主键
+    master_record_id INTEGER NOT NULL,                      -- 外键，关联到 VectorTableMasterRecord(id)
+    -- original_vector_table_pin_id INTEGER,                -- 可选: 用于映射旧的 vector_table_pins.id
+    column_name TEXT NOT NULL,                              -- 列名 (例如 "Label", "Instruction", "Pin1", "Pin2")
+    column_order INTEGER NOT NULL,                          -- 列的顺序 (0-indexed)
+    column_type TEXT NOT NULL,                              -- 列的数据类型 (例如 "TEXT", "INTEGER", "PIN_STATE_ID", "TIMESET_ID")
+                                                            -- "PIN_STATE_ID" 表示存储的是 pin_options.id
+                                                            -- "TIMESET_ID" 表示存储的是 timeset_list.id
+                                                            -- "INSTRUCTION_ID" 表示存储的是 instruction_options.id
+    data_properties TEXT,                                   -- 可选: 存储此列的其他属性 (例如，如果是管脚列，可以存 pin_list.id, channel_count, type_options.id)
+                                                            -- 建议使用 JSON 格式: '{"pin_list_id": 5, "channel_count": 1, "type_id": 2}'
+    UNIQUE (master_record_id, column_name),
+    UNIQUE (master_record_id, column_order),
+    FOREIGN KEY (master_record_id) REFERENCES VectorTableMasterRecord(id) ON DELETE CASCADE
+);
+
+-- 可选: 创建一个触发器，在 VectorTableMasterRecord 更新时自动更新 updated_at 时间戳
+CREATE TRIGGER trigger_update_vector_table_master_record_updated_at
+AFTER UPDATE ON VectorTableMasterRecord
+FOR EACH ROW
+BEGIN
+    UPDATE VectorTableMasterRecord SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;

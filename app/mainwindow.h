@@ -130,6 +130,12 @@ private:
     void syncTabWithComboBox(int comboBoxIndex);
     void syncComboBoxWithTab(int tabIndex);
 
+    // 为新创建的向量表添加默认列配置
+    bool addDefaultColumnConfigurations(int tableId);
+
+    // 修复没有列配置的现有向量表
+    bool fixExistingTableWithoutColumns(int tableId);
+
     // 当前项目的数据库路径
     QString m_currentDbPath;
 

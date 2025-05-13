@@ -22,8 +22,11 @@ set(PROJECT_SOURCES
         app/mainwindow.h
         database/databasemanager.cpp
         database/databasemanager.h
+        database/databasemanager_migrator.cpp
         database/databaseviewdialog.cpp
         database/databaseviewdialog.h
+        database/binaryfilehelper.h
+        database/binaryfilehelper.cpp
         pin/pinlistdialog.cpp
         pin/pinlistdialog.h
         pin/pingroupdialog.h

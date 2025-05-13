@@ -13,6 +13,9 @@
 #include "pin/pinsettingsdialog.h"
 #include "vector/deleterangevectordialog.h"
 #include "common/tablestylemanager.h"
+#include "common/binary_file_format.h"
+#include "database/binaryfilehelper.h"
+#include "common/utils/pathutils.h" // 修正包含路径
 
 #include <QMenuBar>
 #include <QMenu>
@@ -48,6 +51,9 @@
 #include <QTimer>
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QDir>
+#include <QFile>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)
@@ -636,16 +642,28 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 同步Tab页签选择
     syncTabWithComboBox(index);
 
+    // 尝试修复当前表（如果需要）
+    fixExistingTableWithoutColumns(tableId);
+
     // 使用数据处理器加载数据
-    if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+    const QString funcName = "MainWindow::onVectorTableSelectionChanged";
+    bool loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
+    qDebug() << funcName << " - VectorDataHandler::loadVectorTableData returned:" << loadSuccess << "for tableId:" << tableId; // <-- 添加日志：确认返回值
+
+    if (loadSuccess)
     {
+        qDebug() << funcName << " - Load successful branch entered. Setting status bar."; // <-- 添加日志：确认 if 分支
         // 应用表格样式
+        qDebug() << funcName << " - Before applyTableStyle - RowCount:" << m_vectorTableWidget->rowCount() << "ColCount:" << m_vectorTableWidget->columnCount() << "Visible:" << m_vectorTableWidget->isVisible();
         TableStyleManager::applyTableStyle(m_vectorTableWidget);
+        qDebug() << funcName << " - After applyTableStyle - RowCount:" << m_vectorTableWidget->rowCount() << "ColCount:" << m_vectorTableWidget->columnCount() << "Visible:" << m_vectorTableWidget->isVisible();
 
         statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
+        qDebug() << funcName << " - Status bar updated to: " << statusBar()->currentMessage();
     }
     else
     {
+        qDebug() << funcName << " - Load failed branch entered. Setting status bar."; // <-- 添加日志：确认 else 分支
         statusBar()->showMessage("加载向量表失败");
     }
 
@@ -744,6 +762,9 @@ void MainWindow::addVectorTableTab(int tableId, const QString &tableName)
 // 保存向量表数据
 void MainWindow::saveVectorTableData()
 {
+    const QString funcName = "MainWindow::saveVectorTableData";
+    qDebug() << funcName << " - 开始保存数据";
+
     // 获取当前选择的向量表
     QString currentTable = m_vectorTableSelector->currentText();
     if (currentTable.isEmpty())
@@ -755,9 +776,36 @@ void MainWindow::saveVectorTableData()
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
 
+    // Ensure m_vectorTableWidget is the correct one associated with the current tab/selection
+    QWidget *currentTabWidget = m_vectorTabWidget->currentWidget();
+    QTableWidget *targetTableWidget = nullptr;
+
+    if (currentTabWidget)
+    {
+        // Find the QTableWidget within the current tab. This assumes a specific structure.
+        // If your tabs directly contain QTableWidget, this is simpler.
+        // If they contain a layout which then contains the QTableWidget, you'll need to find it.
+        targetTableWidget = currentTabWidget->findChild<QTableWidget *>();
+    }
+
+    if (!targetTableWidget)
+    {
+        // Fallback or if the structure is QTableWidget is directly managed by MainWindow for the active view
+        targetTableWidget = m_vectorTableWidget;
+        qDebug() << funcName << " - 未找到当前Tab页中的TableWidget, 回退到 m_vectorTableWidget";
+    }
+
+    if (!targetTableWidget)
+    {
+        QMessageBox::critical(this, "保存失败", "无法确定要保存的表格控件。");
+        qCritical() << funcName << " - 无法确定要保存的表格控件。";
+        return;
+    }
+    qDebug() << funcName << " - 目标表格控件已确定。";
+
     // 使用数据处理器保存数据
     QString errorMessage;
-    if (VectorDataHandler::instance().saveVectorTableData(tableId, m_vectorTableWidget, errorMessage))
+    if (VectorDataHandler::instance().saveVectorTableData(tableId, targetTableWidget, errorMessage))
     {
         QMessageBox::information(this, "保存成功", "向量表数据已成功保存");
         statusBar()->showMessage("向量表数据已成功保存");
@@ -771,17 +819,18 @@ void MainWindow::saveVectorTableData()
 
 void MainWindow::addNewVectorTable()
 {
-    qDebug() << "MainWindow::addNewVectorTable - 开始添加新向量表";
+    const QString funcName = "MainWindow::addNewVectorTable";
+    qDebug() << funcName << " - 开始添加新向量表";
 
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
-        qDebug() << "MainWindow::addNewVectorTable - 未打开数据库，操作取消";
+        qDebug() << funcName << " - 未打开数据库，操作取消";
         QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
         return;
     }
 
-    qDebug() << "MainWindow::addNewVectorTable - 数据库已连接，准备创建向量表";
+    qDebug() << funcName << " - 数据库已连接 (" << m_currentDbPath << ")，准备创建向量表";
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -813,7 +862,7 @@ void MainWindow::addNewVectorTable()
     if (vectorNameDialog.exec() == QDialog::Accepted)
     {
         QString tableName = nameEdit->text().trimmed();
-        qDebug() << "MainWindow::addNewVectorTable - 用户输入的向量表名称:" << tableName;
+        qDebug() << funcName << " - 用户输入的向量表名称:" << tableName;
 
         // 验证用户输入
         if (tableName.isEmpty())
@@ -845,7 +894,187 @@ void MainWindow::addNewVectorTable()
         if (insertQuery.exec())
         {
             int newTableId = insertQuery.lastInsertId().toInt();
-            qDebug() << "MainWindow::addNewVectorTable - 新向量表创建成功，ID:" << newTableId;
+            qDebug() << funcName << " - 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
+
+            // 使用 PathUtils 获取项目特定的二进制数据目录
+            // m_currentDbPath 应该是最新且正确的数据库路径
+            QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
+            if (projectBinaryDataDir.isEmpty())
+            {
+                QMessageBox::critical(this, "错误", QString("无法为数据库 '%1' 生成二进制数据目录路径。").arg(m_currentDbPath));
+                // 考虑是否需要回滚 vector_tables 中的插入
+                return;
+            }
+            qDebug() << funcName << " - 项目二进制数据目录:" << projectBinaryDataDir;
+
+            QDir dataDir(projectBinaryDataDir);
+            if (!dataDir.exists())
+            {
+                if (!dataDir.mkpath(".")) // mkpath creates parent directories if necessary
+                {
+                    QMessageBox::critical(this, "错误", "无法创建项目二进制数据目录: " + projectBinaryDataDir);
+                    // 考虑是否需要回滚 vector_tables 中的插入
+                    return;
+                }
+                qDebug() << funcName << " - 已创建项目二进制数据目录: " << projectBinaryDataDir;
+            }
+
+            // 构造二进制文件名 (纯文件名)
+            QString binaryOnlyFileName = QString("table_%1_data.vbindata").arg(newTableId);
+            // 使用QDir::cleanPath确保路径格式正确，然后转换为本地路径格式
+            QString absoluteBinaryFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binaryOnlyFileName);
+            absoluteBinaryFilePath = QDir::toNativeSeparators(absoluteBinaryFilePath);
+            qDebug() << funcName << " - 绝对二进制文件路径:" << absoluteBinaryFilePath;
+
+            // 创建VectorTableMasterRecord记录
+            QSqlQuery insertMasterQuery(db);
+            insertMasterQuery.prepare("INSERT INTO VectorTableMasterRecord "
+                                      "(original_vector_table_id, table_name, binary_data_filename, "
+                                      "file_format_version, data_schema_version, row_count, column_count) "
+                                      "VALUES (?, ?, ?, ?, ?, ?, ?)"); // Added one more ? for schema
+            insertMasterQuery.addBindValue(newTableId);
+            insertMasterQuery.addBindValue(tableName);
+            insertMasterQuery.addBindValue(binaryOnlyFileName);                       // <--- 存储纯文件名
+            insertMasterQuery.addBindValue(Persistence::CURRENT_FILE_FORMAT_VERSION); // 使用定义的版本
+            insertMasterQuery.addBindValue(1);                                        // 初始数据 schema version
+            insertMasterQuery.addBindValue(0);                                        // row_count
+            insertMasterQuery.addBindValue(0);                                        // column_count
+
+            if (!insertMasterQuery.exec())
+            {
+                qCritical() << funcName << " - 创建VectorTableMasterRecord记录失败: " << insertMasterQuery.lastError().text();
+                QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
+                // 考虑回滚 vector_tables 和清理目录
+                return;
+            }
+            qDebug() << funcName << " - VectorTableMasterRecord记录创建成功 for table ID:" << newTableId;
+
+            // 添加默认列配置
+            if (!addDefaultColumnConfigurations(newTableId))
+            {
+                qCritical() << funcName << " - 无法为表ID " << newTableId << " 添加默认列配置";
+                QMessageBox::critical(this, "错误", "无法添加默认列配置");
+                // 考虑回滚 vector_tables 和清理目录
+                return;
+            }
+            qDebug() << funcName << " - 已成功添加默认列配置";
+
+            // 创建空的二进制文件
+            QFile binaryFile(absoluteBinaryFilePath);
+            if (binaryFile.exists())
+            {
+                qWarning() << funcName << " - 二进制文件已存在 (这不应该发生对于新表):" << absoluteBinaryFilePath;
+                // Decide on handling: overwrite, error out, or skip? For now, let's attempt to open and write header.
+            }
+
+            if (!binaryFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) // Truncate if exists
+            {
+                qCritical() << funcName << " - 无法打开/创建二进制数据文件: " << absoluteBinaryFilePath << ", 错误: " << binaryFile.errorString();
+                QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString()); // 更明确的错误信息
+
+                // --- 开始回滚 ---
+                QSqlQuery rollbackQuery(db);
+                db.transaction(); // 开始事务以便原子回滚
+
+                // 删除列配置
+                rollbackQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除列配置失败: " << rollbackQuery.lastError().text();
+                    // 即使回滚失败也要继续尝试删除其他记录
+                }
+
+                // 删除主记录
+                rollbackQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除主记录失败: " << rollbackQuery.lastError().text();
+                }
+
+                // 删除 vector_tables 记录
+                rollbackQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除 vector_tables 记录失败: " << rollbackQuery.lastError().text();
+                }
+
+                if (!db.commit())
+                { // 提交事务
+                    qWarning() << funcName << " - 回滚事务提交失败: " << db.lastError().text();
+                    db.rollback(); // 尝试再次回滚以防万一
+                }
+                qInfo() << funcName << " - 已执行数据库回滚操作 for table ID: " << newTableId;
+                // --- 结束回滚 ---
+
+                return;
+            }
+
+            // 创建并写入文件头
+            BinaryFileHeader header; // 从 common/binary_file_format.h
+            header.magic_number = Persistence::VEC_BINDATA_MAGIC;
+            header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
+            header.row_count_in_file = 0;
+            header.column_count_in_file = 0; // 初始没有列
+            header.data_schema_version = 1;  // 与 VectorTableMasterRecord 中的 schema version 一致
+            header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+            header.timestamp_updated = header.timestamp_created;
+            // header.reserved 保持默认 (0)
+
+            qDebug() << funcName << " - 准备写入文件头到:" << absoluteBinaryFilePath;
+            bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
+            binaryFile.close();
+
+            if (!headerWriteSuccess)
+            {
+                qCritical() << funcName << " - 无法写入二进制文件头到:" << absoluteBinaryFilePath;
+                QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头"); // 更明确的错误信息
+                // 考虑回滚和删除文件
+                QFile::remove(absoluteBinaryFilePath); // Attempt to clean up
+
+                // --- 开始回滚 ---
+                QSqlQuery rollbackQuery(db);
+                db.transaction(); // 开始事务以便原子回滚
+
+                // 删除列配置
+                rollbackQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除列配置失败: " << rollbackQuery.lastError().text();
+                    // 即使回滚失败也要继续尝试删除其他记录
+                }
+
+                // 删除主记录
+                rollbackQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除主记录失败: " << rollbackQuery.lastError().text();
+                }
+
+                // 删除 vector_tables 记录
+                rollbackQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << " - 回滚: 删除 vector_tables 记录失败: " << rollbackQuery.lastError().text();
+                }
+
+                if (!db.commit())
+                { // 提交事务
+                    qWarning() << funcName << " - 回滚事务提交失败: " << db.lastError().text();
+                    db.rollback(); // 尝试再次回滚以防万一
+                }
+                qInfo() << funcName << " - 已执行数据库回滚操作 for table ID: " << newTableId;
+                // --- 结束回滚 ---
+
+                return;
+            }
+
+            qInfo() << funcName << " - 已成功创建空的二进制文件并写入文件头: " << absoluteBinaryFilePath;
 
             // 添加到下拉框和Tab页签
             m_vectorTableSelector->addItem(tableName, newTableId);
@@ -870,7 +1099,8 @@ void MainWindow::addNewVectorTable()
         }
         else
         {
-            QMessageBox::critical(this, "错误", "创建向量表失败: " + insertQuery.lastError().text());
+            qCritical() << funcName << " - 新向量表创建失败 (vector_tables): " << insertQuery.lastError().text();
+            QMessageBox::critical(this, "数据库错误", "无法在数据库中创建新向量表: " + insertQuery.lastError().text());
         }
     }
 }
@@ -1936,26 +2166,47 @@ bool MainWindow::addPinsToDatabase(const QList<QString> &pinNames)
 // 刷新当前向量表数据
 void MainWindow::refreshVectorTableData()
 {
-    // 检查是否有打开的数据库
-    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    const QString funcName = "MainWindow::refreshVectorTableData";
+    qDebug() << funcName << " - 开始刷新向量表数据";
+
+    int currentIndex = m_vectorTableSelector->currentIndex();
+    if (currentIndex < 0)
     {
-        QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
+        qDebug() << funcName << " - 没有选中的向量表，不执行刷新";
+        statusBar()->showMessage("没有选中的向量表");
         return;
     }
-
-    // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
-    {
-        QMessageBox::warning(this, "警告", "请先选择一个向量表");
-        return;
-    }
-
-    // 获取当前选中表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
     QString tableName = m_vectorTableSelector->currentText();
+    qDebug() << funcName << " - 正在刷新表ID:" << tableId << ", 名称:" << tableName;
 
-    // 使用数据处理器重新加载数据
-    if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+    // 尝试修复当前表（如果需要）
+    fixExistingTableWithoutColumns(tableId);
+
+    // Ensure m_vectorTableWidget is the correct one associated with the current tab/selection
+    QWidget *currentTabWidget = m_vectorTabWidget->currentWidget();
+    QTableWidget *targetTableWidget = nullptr;
+
+    if (currentTabWidget)
+    {
+        targetTableWidget = currentTabWidget->findChild<QTableWidget *>();
+    }
+
+    if (!targetTableWidget)
+    {
+        targetTableWidget = m_vectorTableWidget; // Fallback
+        qDebug() << funcName << " - 未找到当前Tab页中的TableWidget, 回退到 m_vectorTableWidget for refresh";
+    }
+
+    if (!targetTableWidget)
+    {
+        qCritical() << funcName << " - 无法确定用于刷新的表格控件。";
+        // Optionally show a message to the user
+        return;
+    }
+    qDebug() << funcName << " - 用于刷新的表格控件已确定。";
+
+    if (VectorDataHandler::instance().loadVectorTableData(tableId, targetTableWidget))
     {
         statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
 
@@ -1972,6 +2223,7 @@ void MainWindow::refreshVectorTableData()
 // 打开TimeSet设置对话框
 void MainWindow::openTimeSetSettingsDialog()
 {
+    const QString funcName = "MainWindow::openTimeSetSettingsDialog"; // 添加 funcName 定义
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
@@ -1992,7 +2244,10 @@ void MainWindow::openTimeSetSettingsDialog()
         int currentIndex = m_vectorTableSelector->currentIndex();
         if (currentIndex >= 0)
         {
-            onVectorTableSelectionChanged(currentIndex);
+            // int tableId = m_vectorTableSelector->itemData(currentIndex).toInt(); // 获取 tableId 以便在日志中使用（如果需要）
+            qDebug() << funcName << " - TimeSet设置已更新，将刷新当前选择的向量表，下拉框索引为: " << currentIndex; // 修正日志，移除未定义的 tableId
+            m_vectorTableSelector->setCurrentIndex(currentIndex);
+            // onVectorTableSelectionChanged(currentIndex); // setCurrentIndex会触发信号
         }
 
         statusBar()->showMessage("TimeSet设置已更新");
@@ -2243,5 +2498,246 @@ void MainWindow::showPinGroupDialog()
     else
     {
         qDebug() << "MainWindow::showPinGroupDialog - 分组创建取消或失败";
+    }
+}
+
+/**
+ * @brief 为新创建的向量表添加默认的列配置
+ *
+ * @param tableId 向量表ID
+ * @return bool 成功返回true，失败返回false
+ */
+bool MainWindow::addDefaultColumnConfigurations(int tableId)
+{
+    const QString funcName = "MainWindow::addDefaultColumnConfigurations";
+    qDebug() << funcName << " - 开始为表ID " << tableId << " 添加默认列配置";
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qCritical() << funcName << " - 数据库未打开";
+        return false;
+    }
+
+    db.transaction();
+
+    try
+    {
+        QSqlQuery query(db);
+
+        // 添加标准列配置
+        // 1. 添加Label列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("Label");
+        query.addBindValue(0);
+        query.addBindValue("TEXT");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加Label列: " + query.lastError().text());
+        }
+
+        // 2. 添加Instruction列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("Instruction");
+        query.addBindValue(1);
+        query.addBindValue("INSTRUCTION_ID");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加Instruction列: " + query.lastError().text());
+        }
+
+        // 3. 添加TimeSet列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("TimeSet");
+        query.addBindValue(2);
+        query.addBindValue("TIMESET_ID");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加TimeSet列: " + query.lastError().text());
+        }
+
+        // 4. 添加Comment列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("Comment");
+        query.addBindValue(3);
+        query.addBindValue("TEXT");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加Comment列: " + query.lastError().text());
+        }
+
+        // 更新主记录的列数
+        query.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
+        query.addBindValue(4); // 四个标准列
+        query.addBindValue(tableId);
+
+        if (!query.exec())
+        {
+            throw QString("无法更新主记录的列数: " + query.lastError().text());
+        }
+
+        // 提交事务
+        if (!db.commit())
+        {
+            throw QString("无法提交事务: " + db.lastError().text());
+        }
+
+        qDebug() << funcName << " - 成功添加默认列配置";
+        return true;
+    }
+    catch (const QString &error)
+    {
+        qCritical() << funcName << " - 错误: " << error;
+        db.rollback();
+        return false;
+    }
+}
+
+/**
+ * @brief 修复没有列配置的现有向量表
+ *
+ * 这是一个一次性工具方法，用于修复数据库中已经存在但缺少列配置的向量表
+ *
+ * @param tableId 要修复的向量表ID
+ * @return bool 成功返回true，失败返回false
+ */
+bool MainWindow::fixExistingTableWithoutColumns(int tableId)
+{
+    const QString funcName = "MainWindow::fixExistingTableWithoutColumns";
+    qDebug() << funcName << " - 开始修复表ID " << tableId << " 的列配置";
+
+    // 首先检查这个表是否已经有列配置
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qCritical() << funcName << " - 数据库未打开";
+        return false;
+    }
+
+    // 检查是否有列配置
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+    checkQuery.addBindValue(tableId);
+
+    if (!checkQuery.exec() || !checkQuery.next())
+    {
+        qCritical() << funcName << " - 无法检查表ID " << tableId << " 的列配置: " << checkQuery.lastError().text();
+        return false;
+    }
+
+    int columnCount = checkQuery.value(0).toInt();
+    if (columnCount > 0)
+    {
+        qDebug() << funcName << " - 表ID " << tableId << " 已有 " << columnCount << " 个列配置，不需要修复";
+        return true; // 已有列配置，不需要修复
+    }
+
+    // 添加默认列配置
+    if (!addDefaultColumnConfigurations(tableId))
+    {
+        qCritical() << funcName << " - 无法为表ID " << tableId << " 添加默认列配置";
+        return false;
+    }
+
+    // 查询与这个表关联的管脚
+    QSqlQuery pinQuery(db);
+    pinQuery.prepare("SELECT vtp.id, pl.pin_name, vtp.pin_id, vtp.pin_channel_count, vtp.pin_type "
+                     "FROM vector_table_pins vtp "
+                     "JOIN pin_list pl ON vtp.pin_id = pl.id "
+                     "WHERE vtp.table_id = ?");
+    pinQuery.addBindValue(tableId);
+
+    if (!pinQuery.exec())
+    {
+        qCritical() << funcName << " - 无法查询表ID " << tableId << " 的管脚: " << pinQuery.lastError().text();
+        return false;
+    }
+
+    // 设置事务
+    db.transaction();
+
+    try
+    {
+        // 从标准列开始，所以列序号从4开始（0-3已经由addDefaultColumnConfigurations添加）
+        int columnOrder = 4;
+
+        while (pinQuery.next())
+        {
+            int pinTableId = pinQuery.value(0).toInt();
+            QString pinName = pinQuery.value(1).toString();
+            int pinId = pinQuery.value(2).toInt();
+            int channelCount = pinQuery.value(3).toInt();
+            int pinType = pinQuery.value(4).toInt();
+
+            // 构造JSON属性字符串
+            QString jsonProps = QString("{\"pin_list_id\": %1, \"channel_count\": %2, \"type_id\": %3}")
+                                    .arg(pinId)
+                                    .arg(channelCount)
+                                    .arg(pinType);
+
+            // 添加管脚列配置
+            QSqlQuery colInsertQuery(db);
+            colInsertQuery.prepare("INSERT INTO VectorTableColumnConfiguration "
+                                   "(master_record_id, column_name, column_order, column_type, data_properties) "
+                                   "VALUES (?, ?, ?, ?, ?)");
+            colInsertQuery.addBindValue(tableId);
+            colInsertQuery.addBindValue(pinName);
+            colInsertQuery.addBindValue(columnOrder++);
+            colInsertQuery.addBindValue("PIN_STATE_ID");
+            colInsertQuery.addBindValue(jsonProps);
+
+            if (!colInsertQuery.exec())
+            {
+                throw QString("无法添加管脚列配置: " + colInsertQuery.lastError().text());
+            }
+
+            qDebug() << funcName << " - 已成功为表ID " << tableId << " 添加管脚列 " << pinName;
+        }
+
+        // 更新表的总列数
+        QSqlQuery updateColumnCountQuery(db);
+        updateColumnCountQuery.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
+        updateColumnCountQuery.addBindValue(columnOrder); // 总列数
+        updateColumnCountQuery.addBindValue(tableId);
+
+        if (!updateColumnCountQuery.exec())
+        {
+            throw QString("无法更新列数: " + updateColumnCountQuery.lastError().text());
+        }
+
+        // 提交事务
+        if (!db.commit())
+        {
+            throw QString("无法提交事务: " + db.lastError().text());
+        }
+
+        qDebug() << funcName << " - 成功修复表ID " << tableId << " 的列配置，共添加了 " << columnOrder << " 列";
+        return true;
+    }
+    catch (const QString &error)
+    {
+        qCritical() << funcName << " - 错误: " << error;
+        db.rollback();
+        return false;
     }
 }
