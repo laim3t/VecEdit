@@ -22,7 +22,7 @@ namespace
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount)
     {
         const QString funcName = "loadVectorTableMeta";
-        qDebug() << funcName << " - 查询表ID:" << tableId;
+        qDebug() << funcName << " - Entry for tableId:" << tableId;
         QSqlDatabase db = DatabaseManager::instance()->database();
         if (!db.isOpen())
         {
@@ -31,8 +31,8 @@ namespace
         }
         // 1. 查询主记录表
         QSqlQuery metaQuery(db);
-        metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
-        metaQuery.addBindValue(tableId);
+        metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = :id");
+        metaQuery.bindValue(":id", tableId);
         if (!metaQuery.exec() || !metaQuery.next())
         {
             qWarning() << funcName << " - 查询主记录失败, 表ID:" << tableId << ", 错误:" << metaQuery.lastError().text();
@@ -44,8 +44,8 @@ namespace
         qDebug() << funcName << " - 文件名:" << binFileName << ", schemaVersion:" << schemaVersion << ", rowCount:" << rowCount;
         // 2. 查询列结构
         QSqlQuery colQuery(db);
-        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
-        colQuery.addBindValue(tableId);
+        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = :master_id ORDER BY column_order");
+        colQuery.bindValue(":master_id", tableId);
         if (!colQuery.exec())
         {
             qWarning() << funcName << " - 查询列结构失败, 错误:" << colQuery.lastError().text();
@@ -88,6 +88,7 @@ namespace
             col.logDetails(funcName);
             columns.append(col);
         }
+        qDebug() << funcName << " - Finished processing columns for master_record_id:" << tableId << ". Total columns loaded:" << columns.size();
         return true;
     }
     // 辅助函数：从二进制文件读取所有行
@@ -269,7 +270,7 @@ QString VectorDataHandler::resolveBinaryFilePath(int tableId, QString &errorMsg)
 bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
 {
     const QString funcName = "VectorDataHandler::loadVectorTableData";
-    qDebug() << funcName << " - 开始加载, 表ID:" << tableId;
+    qDebug() << funcName << " - Entry for tableId:" << tableId;
     if (!tableWidget)
     {
         qWarning() << funcName << " - tableWidget 为空";
@@ -852,8 +853,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     {
         // This case is an error.
         emit progressUpdated(100); // End with error
-                return false;
-            }
+        return false;
+    }
     else // rowCount == 0 and sourceDataRowCount == 0
     {
         repeatTimes = 0;
@@ -875,8 +876,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         errorMessage = QString("对话框提供的列数 (%1) 与选中管脚数 (%2) 不匹配。").arg(dataTable->columnCount()).arg(selectedPins.size());
         qWarning() << funcName << "-" << errorMessage;
         emit progressUpdated(100); // End with error
-                    return false;
-                }
+        return false;
+    }
 
     const int totalIterationsForNewRows = qMax(1, repeatTimes * sourceDataRowCount); // Avoid division by zero for progress
     int currentIterationNewRows = 0;
@@ -890,8 +891,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
                 qDebug() << funcName << "- 操作被用户取消 (在行数据准备阶段)。";
                 errorMessage = "操作被用户取消。";
                 emit progressUpdated(100); // End
-                    return false;
-                }
+                return false;
+            }
 
             Vector::RowData newRow;
             newRow.resize(columns.size());
@@ -1005,10 +1006,10 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     {
         errorMessage = QString("数据库更新语句准备失败 (row_count): %1").arg(updateQuery.lastError().text());
         qWarning() << funcName << "-" << errorMessage;
-                    db.rollback();
+        db.rollback();
         emit progressUpdated(100); // End with error
-                    return false;
-                }
+        return false;
+    }
     updateQuery.addBindValue(allTableRows.size());
     updateQuery.addBindValue(tableId);
 
@@ -1016,10 +1017,10 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     {
         errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
         qWarning() << funcName << "-" << errorMessage;
-            db.rollback();
+        db.rollback();
         emit progressUpdated(100); // End with error
-            return false;
-        }
+        return false;
+    }
 
     if (!db.commit())
     {

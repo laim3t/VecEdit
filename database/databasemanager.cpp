@@ -5,6 +5,9 @@
 #include <QDir>
 #include <QDateTime>        // Needed for unique connection name, already used in openExistingDatabase
 #include <QCoreApplication> // For applicationDirPath as a fallback for script path
+#include <QSqlQuery>
+#include <QVariant>
+#include <QDebug>
 
 // 静态实例初始化为nullptr
 DatabaseManager *DatabaseManager::m_instance = nullptr;
@@ -1096,3 +1099,10 @@ bool DatabaseManager::performSchemaUpgradeToV2()
     return true;
 }
 // ---- End performSchemaUpgradeToV2 ----
+
+/* REMOVED - Functionality handled by MainWindow::addDefaultColumnConfigurations
+bool DatabaseManager::addDefaultColumnsToTable(int tableId)
+{
+    // ... implementation ...
+}
+*/

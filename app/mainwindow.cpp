@@ -820,7 +820,7 @@ void MainWindow::saveVectorTableData()
 void MainWindow::addNewVectorTable()
 {
     const QString funcName = "MainWindow::addNewVectorTable";
-    qDebug() << funcName << " - 开始添加新向量表";
+    qDebug() << funcName << " - Entry: Attempting to add a new vector table."; // << ADDED
 
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
@@ -862,7 +862,7 @@ void MainWindow::addNewVectorTable()
     if (vectorNameDialog.exec() == QDialog::Accepted)
     {
         QString tableName = nameEdit->text().trimmed();
-        qDebug() << funcName << " - 用户输入的向量表名称:" << tableName;
+        qDebug() << funcName << " - User provided table name:" << tableName; // << ADDED
 
         // 验证用户输入
         if (tableName.isEmpty())
@@ -894,7 +894,7 @@ void MainWindow::addNewVectorTable()
         if (insertQuery.exec())
         {
             int newTableId = insertQuery.lastInsertId().toInt();
-            qDebug() << funcName << " - 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
+            qDebug() << funcName << " - Successfully inserted into vector_tables. New table_id (from vector_tables):" << newTableId << ", Name:" << tableName; // << REVISED
 
             // 使用 PathUtils 获取项目特定的二进制数据目录
             // m_currentDbPath 应该是最新且正确的数据库路径
@@ -942,22 +942,100 @@ void MainWindow::addNewVectorTable()
 
             if (!insertMasterQuery.exec())
             {
-                qCritical() << funcName << " - 创建VectorTableMasterRecord记录失败: " << insertMasterQuery.lastError().text();
+                qCritical() << funcName << " - Failed to create VectorTableMasterRecord:" << insertMasterQuery.lastError().text(); // << REVISED
                 QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
                 // 考虑回滚 vector_tables 和清理目录
                 return;
             }
-            qDebug() << funcName << " - VectorTableMasterRecord记录创建成功 for table ID:" << newTableId;
+            qDebug() << funcName << " - Successfully created VectorTableMasterRecord for original_vector_table_id:" << newTableId; // << REVISED
 
             // 添加默认列配置
-            if (!addDefaultColumnConfigurations(newTableId))
+            qDebug() << funcName << " - Calling addDefaultColumnConfigurations for tableId (master_record_id):" << newTableId; // << ADDED
+            bool addColsSuccess = addDefaultColumnConfigurations(newTableId);
+            qDebug() << funcName << " - addDefaultColumnConfigurations returned:" << addColsSuccess << "for tableId:" << newTableId; // << ADDED
+
+            if (!addColsSuccess) // << REVISED from if (!addDefaultColumnConfigurations(newTableId))
             {
-                qCritical() << funcName << " - 无法为表ID " << newTableId << " 添加默认列配置";
+                qCritical() << funcName << " - addDefaultColumnConfigurations FAILED for table ID " << newTableId << ". Initiating rollback.";
                 QMessageBox::critical(this, "错误", "无法添加默认列配置");
-                // 考虑回滚 vector_tables 和清理目录
+                // 在这里执行回滚逻辑，因为关键步骤失败了
+                // (可以考虑将回滚逻辑封装成一个函数)
+                if (!db.transaction())
+                { // Start a new transaction for rollback operations
+                    qWarning() << funcName << "Rollback: Failed to start transaction for cleanup: " << db.lastError().text();
+                    // 即使事务启动失败，也尝试清理。这可能意味着自动提交模式。
+                }
+                QSqlQuery rollbackQuery(db);
+
+                // << NEW: Rollback VectorTableColumnConfiguration entries for this tableId >>
+                qDebug() << funcName << "Rollback: Attempting to delete from VectorTableColumnConfiguration for master_record_id:" << newTableId;
+                rollbackQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                {
+                    qWarning() << funcName << "Rollback: Failed to delete from VectorTableColumnConfiguration for master_record_id:" << newTableId << "Error:" << rollbackQuery.lastError().text();
+                }
+                else
+                {
+                    qDebug() << funcName << "Rollback: Successfully deleted from VectorTableColumnConfiguration for master_record_id:" << newTableId << "Affected rows:" << rollbackQuery.numRowsAffected();
+                }
+                // << END NEW >>
+
+                // Rollback VectorTableMasterRecord
+                qDebug() << funcName << "Rollback: Attempting to delete from VectorTableMasterRecord for id:" << newTableId;
+                rollbackQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                    qWarning() << funcName << "Rollback: Failed to delete from VectorTableMasterRecord for id:" << newTableId << "Error:" << rollbackQuery.lastError().text();
+                else
+                    qDebug() << funcName << "Rollback: Successfully deleted from VectorTableMasterRecord for id:" << newTableId << "Affected rows:" << rollbackQuery.numRowsAffected();
+
+                // Rollback vector_tables
+                qDebug() << funcName << "Rollback: Attempting to delete from vector_tables for id:" << newTableId;
+                rollbackQuery.prepare("DELETE FROM vector_tables WHERE id = ?"); // Assuming newTableId is also the ID in vector_tables for this new entry
+                rollbackQuery.addBindValue(newTableId);
+                if (!rollbackQuery.exec())
+                    qWarning() << funcName << "Rollback: Failed to delete from vector_tables for id:" << newTableId << "Error:" << rollbackQuery.lastError().text();
+                else
+                    qDebug() << funcName << "Rollback: Successfully deleted from vector_tables for id:" << newTableId << "Affected rows:" << rollbackQuery.numRowsAffected();
+
+                if (!db.commit())
+                {
+                    qWarning()
+                        << funcName << "Rollback transaction commit failed: " << db.lastError().text();
+                    // Attempt to rollback the current rollback transaction if commit fails
+                    if (!db.rollback())
+                    { // This rollback is for the cleanup transaction itself
+                        qWarning() << funcName << "Rollback: Rollback of cleanup transaction also failed: " << db.lastError().text();
+                    }
+                }
+                else
+                {
+                    qDebug() << funcName << "Rollback of master, vector_tables, and column_config records successful due to addDefaultColumnConfigurations failure.";
+                }
                 return;
             }
-            qDebug() << funcName << " - 已成功添加默认列配置";
+            qDebug() << funcName << " - addDefaultColumnConfigurations call completed successfully."; // << REVISED LOG
+
+            // 获取刚刚设置的默认列数量
+            int defaultColumnCount = 0;
+            QSqlQuery countQuery(db);
+            countQuery.prepare("SELECT column_count FROM VectorTableMasterRecord WHERE id = ?");
+            countQuery.addBindValue(newTableId);
+            if (countQuery.exec() && countQuery.next())
+            {
+                defaultColumnCount = countQuery.value(0).toInt();
+                qDebug() << funcName << " - Successfully fetched column_count from VectorTableMasterRecord. Value:" << defaultColumnCount << "for id:" << newTableId; // << ADDED
+            }
+            else
+            {
+                qWarning() << funcName << " - Failed to fetch column_count from VectorTableMasterRecord for table ID:" << newTableId << ". Error:" << countQuery.lastError().text(); // << REVISED
+                // Fallback or error, though addDefaultColumnConfigurations should have set it.
+                // For safety, let's assume the size from the list we used if query fails
+                defaultColumnCount = 6;                                                                  // Fallback, though this indicates a problem
+                qWarning() << funcName << " - Using fallback defaultColumnCount:" << defaultColumnCount; // << ADDED
+            }
+            // qDebug() << funcName << " - 确认的默认列数为:" << defaultColumnCount; // Already exists, slightly different wording
 
             // 创建空的二进制文件
             QFile binaryFile(absoluteBinaryFilePath);
@@ -969,8 +1047,8 @@ void MainWindow::addNewVectorTable()
 
             if (!binaryFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) // Truncate if exists
             {
-                qCritical() << funcName << " - 无法打开/创建二进制数据文件: " << absoluteBinaryFilePath << ", 错误: " << binaryFile.errorString();
-                QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString()); // 更明确的错误信息
+                qCritical() << funcName << " - 无法打开/创建二进制数据文件: " << absoluteBinaryFilePath << ", 错误: " << binaryFile.errorString() << ". Initiating rollback."; // <-- ADDED LOG
+                QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString());                                                    // 更明确的错误信息
 
                 // --- 开始回滚 ---
                 QSqlQuery rollbackQuery(db);
@@ -1017,20 +1095,21 @@ void MainWindow::addNewVectorTable()
             header.magic_number = Persistence::VEC_BINDATA_MAGIC;
             header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
             header.row_count_in_file = 0;
-            header.column_count_in_file = 0; // 初始没有列
-            header.data_schema_version = 1;  // 与 VectorTableMasterRecord 中的 schema version 一致
+            header.column_count_in_file = defaultColumnCount; // <--- CORRECTED: Use actual column count
+            header.data_schema_version = 1;                   // 与 VectorTableMasterRecord 中的 schema version 一致
             header.timestamp_created = QDateTime::currentSecsSinceEpoch();
             header.timestamp_updated = header.timestamp_created;
             // header.reserved 保持默认 (0)
 
-            qDebug() << funcName << " - 准备写入文件头到:" << absoluteBinaryFilePath;
+            qDebug() << funcName << " - Preparing to write binary file header to:" << absoluteBinaryFilePath << "with column_count_in_file:" << defaultColumnCount; // << REVISED
             bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
             binaryFile.close();
+            qDebug() << funcName << " - Persistence::BinaryFileHelper::writeBinaryHeader returned:" << headerWriteSuccess; // << ADDED
 
             if (!headerWriteSuccess)
             {
-                qCritical() << funcName << " - 无法写入二进制文件头到:" << absoluteBinaryFilePath;
-                QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头"); // 更明确的错误信息
+                qCritical() << funcName << " - Failed to write binary file header to:" << absoluteBinaryFilePath << ". Initiating rollback."; // << REVISED
+                QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头");
                 // 考虑回滚和删除文件
                 QFile::remove(absoluteBinaryFilePath); // Attempt to clean up
 
@@ -1068,7 +1147,7 @@ void MainWindow::addNewVectorTable()
                     qWarning() << funcName << " - 回滚事务提交失败: " << db.lastError().text();
                     db.rollback(); // 尝试再次回滚以防万一
                 }
-                qInfo() << funcName << " - 已执行数据库回滚操作 for table ID: " << newTableId;
+                qInfo() << funcName << " - 已执行数据库回滚操作 (due to binary header write failure) for table ID: " << newTableId; // <-- ADDED LOG
                 // --- 结束回滚 ---
 
                 return;
@@ -1086,6 +1165,7 @@ void MainWindow::addNewVectorTable()
             {
                 m_vectorTableSelector->setCurrentIndex(newIndex);
             }
+            qDebug() << funcName << " - Successfully added new vector table. ID:" << newTableId << ", Name:" << tableName << ", Binary Path:" << absoluteBinaryFilePath; // << ADDED
 
             // 显示管脚选择对话框
             showPinSelectionDialog(newTableId, tableName);
@@ -2510,105 +2590,123 @@ void MainWindow::showPinGroupDialog()
 bool MainWindow::addDefaultColumnConfigurations(int tableId)
 {
     const QString funcName = "MainWindow::addDefaultColumnConfigurations";
-    qDebug() << funcName << " - 开始为表ID " << tableId << " 添加默认列配置";
+    qDebug() << funcName << " - Entry: Attempting to add default columns for master_record_id:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
-        qCritical() << funcName << " - 数据库未打开";
+        qCritical() << funcName << " - Database is not open for master_record_id:" << tableId;
         return false;
     }
 
-    db.transaction();
+    // << ADDING DIAGNOSTIC LOGGING >>
+    if (tableId == 1)
+    { // Log current state specifically for tableId 1 before doing anything
+        QSqlQuery checkBeforeQuery(db);
+        checkBeforeQuery.prepare("SELECT column_name, column_order, column_type FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+        checkBeforeQuery.addBindValue(tableId);
+        if (checkBeforeQuery.exec())
+        {
+            QStringList currentCols;
+            while (checkBeforeQuery.next())
+            {
+                currentCols << QString("'%1'(%2, %3)").arg(checkBeforeQuery.value(0).toString()).arg(checkBeforeQuery.value(1).toInt()).arg(checkBeforeQuery.value(2).toString());
+            }
+            qDebug() << funcName << " - DIAGNOSTIC (tableId=" << tableId << "): Columns *before* attempting to add defaults:" << currentCols.join(", ");
+        }
+        else
+        {
+            qWarning() << funcName << " - DIAGNOSTIC (tableId=" << tableId << "): Failed to query existing columns before add:" << checkBeforeQuery.lastError().text();
+        }
+    }
+    // << END DIAGNOSTIC LOGGING >>
+
+    if (!db.transaction())
+    {
+        qCritical() << funcName << " - Failed to start transaction for master_record_id:" << tableId << "Error:" << db.lastError().text();
+        return false;
+    }
+    qDebug() << funcName << " - Transaction started for master_record_id:" << tableId;
 
     try
     {
         QSqlQuery query(db);
 
-        // 添加标准列配置
-        // 1. 添加Label列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Label");
-        query.addBindValue(0);
-        query.addBindValue("TEXT");
-        query.addBindValue("{}");
+        QList<std::tuple<QString, int, QString>> defaultColumns = {
+            std::make_tuple("Label", 0, "TEXT"),
+            std::make_tuple("Instruction", 1, "TEXT"),
+            std::make_tuple("TimeSet", 2, "TEXT"),
+            std::make_tuple("Capture", 3, "TEXT"),
+            std::make_tuple("ExT", 4, "INTEGER"),
+            std::make_tuple("Comment", 5, "TEXT")};
 
-        if (!query.exec())
+        for (const auto &col : defaultColumns)
         {
-            throw QString("无法添加Label列: " + query.lastError().text());
+            QString columnName = std::get<0>(col);
+            int columnOrder = std::get<1>(col);
+            QString columnType = std::get<2>(col);
+
+            qDebug() << funcName << " - Preparing to insert column:" << columnName << "Order:" << columnOrder << "Type:" << columnType << "for master_record_id:" << tableId;
+            query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                          "(master_record_id, column_name, column_order, column_type, data_properties) "
+                          "VALUES (:table_id, :name, :order, :type, :props)");
+            query.bindValue(":table_id", tableId);
+            query.bindValue(":name", columnName);
+            query.bindValue(":order", columnOrder);
+            query.bindValue(":type", columnType);
+            query.bindValue(":props", "{}");
+
+            if (!query.exec())
+            {
+                QString errorMsg = QString("Failed to insert column '%1': %2").arg(columnName).arg(query.lastError().text());
+                qCritical() << funcName << " - " << errorMsg << "for master_record_id:" << tableId;
+                throw errorMsg; // This will be caught by the catch block
+            }
+            qDebug() << funcName << " - Successfully inserted column:" << columnName << "for master_record_id:" << tableId;
         }
 
-        // 2. 添加Instruction列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Instruction");
-        query.addBindValue(1);
-        query.addBindValue("INSTRUCTION_ID");
-        query.addBindValue("{}");
+        qDebug() << funcName << " - All default columns inserted into VectorTableColumnConfiguration for master_record_id:" << tableId;
 
-        if (!query.exec())
-        {
-            throw QString("无法添加Instruction列: " + query.lastError().text());
-        }
-
-        // 3. 添加TimeSet列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("TimeSet");
-        query.addBindValue(2);
-        query.addBindValue("TIMESET_ID");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加TimeSet列: " + query.lastError().text());
-        }
-
-        // 4. 添加Comment列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Comment");
-        query.addBindValue(3);
-        query.addBindValue("TEXT");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加Comment列: " + query.lastError().text());
-        }
-
-        // 更新主记录的列数
+        qDebug() << funcName << " - Preparing to update column_count in VectorTableMasterRecord for id:" << tableId << "to count:" << defaultColumns.size();
         query.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
-        query.addBindValue(4); // 四个标准列
-        query.addBindValue(tableId);
+        query.bindValue(0, static_cast<int>(defaultColumns.size()));
+        query.bindValue(1, tableId);
 
         if (!query.exec())
         {
-            throw QString("无法更新主记录的列数: " + query.lastError().text());
+            QString errorMsg = QString("Failed to update column_count in VectorTableMasterRecord for id: %1. Error: %2").arg(tableId).arg(query.lastError().text());
+            qCritical() << funcName << " - " << errorMsg;
+            throw errorMsg; // This will be caught by the catch block
         }
+        qDebug() << funcName << " - Successfully updated column_count in VectorTableMasterRecord for id:" << tableId;
 
-        // 提交事务
+        // Removed the pre-commit verification query as it might be unreliable within a transaction.
+        // We rely on the success of individual exec() calls and the final commit().
+
+        qDebug() << funcName << " - Attempting to commit transaction for master_record_id:" << tableId;
         if (!db.commit())
         {
-            throw QString("无法提交事务: " + db.lastError().text());
+            QString errorMsg = QString("Failed to commit transaction for master_record_id: %1. Error: %2").arg(tableId).arg(db.lastError().text());
+            qCritical() << funcName << " - " << errorMsg;
+            // db.rollback() will be called in the catch block or if commit fails and an exception is thrown.
+            throw errorMsg; // This ensures rollback is attempted.
         }
+        qDebug() << funcName << " - Transaction committed successfully for master_record_id:" << tableId;
 
-        qDebug() << funcName << " - 成功添加默认列配置";
+        qDebug() << funcName << " - Successfully added all default column configurations for master_record_id:" << tableId;
         return true;
     }
     catch (const QString &error)
     {
-        qCritical() << funcName << " - 错误: " << error;
-        db.rollback();
+        qCritical() << funcName << " - Error caught: " << error << ". Attempting to roll back transaction for master_record_id:" << tableId;
+        if (!db.rollback())
+        {
+            qCritical() << funcName << " - Rollback FAILED for master_record_id:" << tableId << "Error:" << db.lastError().text();
+        }
+        else
+        {
+            qInfo() << funcName << " - Rollback successful for master_record_id:" << tableId;
+        }
         return false;
     }
 }
@@ -2636,16 +2734,29 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
 
     // 检查是否有列配置
     QSqlQuery checkQuery(db);
-    checkQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+    // << MODIFIED: Query more details for logging >>
+    checkQuery.prepare("SELECT column_name, column_order, column_type FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     checkQuery.addBindValue(tableId);
 
-    if (!checkQuery.exec() || !checkQuery.next())
+    if (!checkQuery.exec()) // Removed checkQuery.next() here as we'll loop
     {
         qCritical() << funcName << " - 无法检查表ID " << tableId << " 的列配置: " << checkQuery.lastError().text();
         return false;
     }
 
-    int columnCount = checkQuery.value(0).toInt();
+    QStringList existingColumnsInfo;
+    while (checkQuery.next())
+    {
+        existingColumnsInfo << QString("'%1'(order:%2, type:%3)")
+                                   .arg(checkQuery.value(0).toString())  // column_name
+                                   .arg(checkQuery.value(1).toInt())     // column_order
+                                   .arg(checkQuery.value(2).toString()); // column_type
+    }
+    int columnCount = existingColumnsInfo.size();
+
+    qDebug() << funcName << " - DIAGNOSTIC (tableId=" << tableId << "): Found" << columnCount << "existing columns:" << existingColumnsInfo.join(" | ");
+    // << END MODIFIED SECTION >>
+
     if (columnCount > 0)
     {
         qDebug() << funcName << " - 表ID " << tableId << " 已有 " << columnCount << " 个列配置，不需要修复";
@@ -2679,7 +2790,8 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
     try
     {
         // 从标准列开始，所以列序号从4开始（0-3已经由addDefaultColumnConfigurations添加）
-        int columnOrder = 4;
+        // int columnOrder = 4; // BUG: Standard columns are 0-5 (6 total). Pin columns should start after them.
+        int columnOrder = 6; // CORRECTED: Standard columns are 0-5. Pins start at 6.
 
         while (pinQuery.next())
         {
