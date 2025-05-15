@@ -4,17 +4,27 @@
 #include "database/binaryfilehelper.h"
 #include "vector/vector_data_types.h"
 #include "common/utils/pathutils.h"
+#include "common/binary_file_format.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QSet>
-#include <QDebug>
-#include <algorithm>
-#include <QFile>
-#include <QJsonDocument>
+#include <QSqlRecord>
+#include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QDir>
+#include <QFile>
+#include <QDebug>
+#include <QDateTime>
 #include <QFileInfo>
+#include <QCoreApplication>
+#include <QEventLoop>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QJsonParseError>
+#include <QSet>
+#include <algorithm>
 
 namespace
 {
@@ -357,12 +367,50 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
 
     // 4. 设置表头
     tableWidget->setColumnCount(columns.size());
+    qDebug() << funcName << " - 设置表格列数:" << columns.size();
+
     QStringList headers;
     for (const auto &col : columns)
     {
-        headers << col.name;
+        // 检查是否是管脚列
+        if (col.type == Vector::ColumnDataType::PIN_STATE_ID && !col.data_properties.isEmpty())
+        {
+            // 获取管脚属性
+            int channelCount = col.data_properties["channel_count"].toInt(1);
+            int typeId = col.data_properties["type_id"].toInt(1);
+
+            // 获取类型名称
+            QString typeName = "In"; // 默认为输入类型
+            QSqlQuery typeQuery(DatabaseManager::instance()->database());
+            typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
+            typeQuery.addBindValue(typeId);
+            if (typeQuery.exec() && typeQuery.next())
+            {
+                typeName = typeQuery.value(0).toString();
+            }
+
+            // 创建带有管脚信息的表头
+            QString headerText = col.name + "\nx" + QString::number(channelCount) + "\n" + typeName;
+            headers << headerText;
+            qDebug() << funcName << " - 添加管脚列表头:" << headerText << "，索引:" << headers.size() - 1;
+        }
+        else
+        {
+            // 标准列，直接使用列名
+            headers << col.name;
+            qDebug() << funcName << " - 添加标准列表头:" << col.name << "，索引:" << headers.size() - 1;
+        }
     }
     tableWidget->setHorizontalHeaderLabels(headers);
+    qDebug() << funcName << " - 设置表头完成，列数:" << headers.size() << "，列表:" << headers.join(", ");
+
+    // 确保列数与表头列表一致
+    if (tableWidget->columnCount() != headers.size())
+    {
+        qWarning() << funcName << " - 警告：表格列数 (" << tableWidget->columnCount()
+                   << ") 与表头列表数 (" << headers.size() << ") 不一致！";
+        tableWidget->setColumnCount(headers.size());
+    }
 
     // 5. 填充数据
     tableWidget->setRowCount(allRows.size());
@@ -403,6 +451,7 @@ VectorDataHandler &VectorDataHandler::instance()
 
 VectorDataHandler::VectorDataHandler() : m_cancelRequested(0)
 {
+    // 构造函数不变
 }
 
 VectorDataHandler::~VectorDataHandler()
@@ -736,7 +785,7 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     m_cancelRequested.storeRelease(0);
     emit progressUpdated(0); // Start
 
-    qDebug() << funcName << "- NEW BINARY IMPL - 开始插入向量行，表ID:" << tableId
+    qDebug() << funcName << "- 开始插入向量行，表ID:" << tableId
              << "目标行数:" << rowCount << "源数据表行数:" << dataTable->rowCount()
              << "TimesetID:" << timesetId << "Append:" << appendToEnd << "StartIndex:" << startIndex;
 
@@ -795,27 +844,7 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     }
     emit progressUpdated(10);
 
-    QList<Vector::RowData> allTableRows;
-    if (QFile::exists(absoluteBinFilePath))
-    {
-        qDebug() << funcName << "- 二进制文件存在，尝试加载现有数据:" << absoluteBinFilePath;
-        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allTableRows))
-        {
-            qWarning() << funcName << "- 无法从现有二进制文件读取行数据. File:" << absoluteBinFilePath << ". Treating as empty or starting fresh.";
-            allTableRows.clear();
-        }
-        else
-        {
-            qDebug() << funcName << "- 从二进制文件成功加载" << allTableRows.size() << "行现有数据.";
-        }
-    }
-    else
-    {
-        qDebug() << funcName << "- 二进制文件不存在:" << absoluteBinFilePath << ". 将创建新文件.";
-    }
-    emit progressUpdated(20); // Metadata and existing rows loaded
-
-    // 2. 准备新的行数据
+    // 2. 检查和验证行数据
     int sourceDataRowCount = dataTable->rowCount();
     if (sourceDataRowCount == 0 && rowCount > 0)
     {
@@ -850,10 +879,9 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     }
     else if (rowCount > 0 && sourceDataRowCount == 0) // Should have been caught by earlier check
     {
-        // This case is an error.
         emit progressUpdated(100); // End with error
-                return false;
-            }
+        return false;
+    }
     else // rowCount == 0 and sourceDataRowCount == 0
     {
         repeatTimes = 0;
@@ -861,178 +889,413 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
 
     qDebug() << funcName << "- 计算重复次数:" << repeatTimes << " (基于请求总行数 " << rowCount << " 和源数据表行数 " << sourceDataRowCount << ")";
 
-    QList<Vector::RowData> newRowsToInsert;
-    newRowsToInsert.reserve(rowCount > 0 ? rowCount : 0); // Avoid negative reserve
-
-    QMap<QString, int> columnNameMap;
-    for (int i = 0; i < columns.size(); ++i)
-    {
-        columnNameMap[columns[i].name] = i;
-    }
-
     if (dataTable->columnCount() != selectedPins.size() && sourceDataRowCount > 0)
     {
         errorMessage = QString("对话框提供的列数 (%1) 与选中管脚数 (%2) 不匹配。").arg(dataTable->columnCount()).arg(selectedPins.size());
         qWarning() << funcName << "-" << errorMessage;
         emit progressUpdated(100); // End with error
-                    return false;
-                }
+        return false;
+    }
 
-    const int totalIterationsForNewRows = qMax(1, repeatTimes * sourceDataRowCount); // Avoid division by zero for progress
-    int currentIterationNewRows = 0;
+    emit progressUpdated(15);
 
-    for (int rpt = 0; rpt < repeatTimes; ++rpt)
+    // 3. 创建二进制文件或读取已有数据
+    QList<Vector::RowData> existingRows;
+    if (QFile::exists(absoluteBinFilePath))
     {
-        for (int srcRowIdx = 0; srcRowIdx < sourceDataRowCount; ++srcRowIdx)
+        qDebug() << funcName << "- 二进制文件存在，尝试加载现有数据:" << absoluteBinFilePath;
+
+        // 如果是追加模式且文件已存在，不需要加载所有现有数据，只需要获取总行数
+        if (appendToEnd)
         {
-            if (m_cancelRequested.loadAcquire())
+            // 只读取文件头获取行数
+            QFile file(absoluteBinFilePath);
+            if (file.open(QIODevice::ReadOnly))
             {
-                qDebug() << funcName << "- 操作被用户取消 (在行数据准备阶段)。";
-                errorMessage = "操作被用户取消。";
-                emit progressUpdated(100); // End
-                    return false;
+                BinaryFileHeader header;
+                if (Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+                {
+                    existingRowCountFromMeta = header.row_count_in_file;
+                    qDebug() << funcName << "- 追加模式: 从文件头获取现有行数:" << existingRowCountFromMeta;
                 }
+                file.close();
+            }
+        }
+        else
+        {
+            // 非追加模式需要加载所有数据
+            if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, existingRows))
+            {
+                qWarning() << funcName << "- 无法从现有二进制文件读取行数据. File:" << absoluteBinFilePath << ". 将作为空文件处理。";
+                existingRows.clear();
+            }
+            else
+            {
+                qDebug() << funcName << "- 从二进制文件成功加载" << existingRows.size() << "行现有数据.";
+            }
+        }
+    }
+    else
+    {
+        qDebug() << funcName << "- 二进制文件不存在:" << absoluteBinFilePath << ". 将创建新文件.";
+    }
 
-            Vector::RowData newRow;
-            newRow.resize(columns.size());
+    emit progressUpdated(20); // 文件准备完成
 
-            if (columnNameMap.contains("Instruction"))
-                newRow[columnNameMap["Instruction"]] = 1;
-            if (columnNameMap.contains("TimeSet"))
-                newRow[columnNameMap["TimeSet"]] = timesetId;
-            if (columnNameMap.contains("Label"))
-                newRow[columnNameMap["Label"]] = "";
-            if (columnNameMap.contains("Capture"))
-                newRow[columnNameMap["Capture"]] = 0;
-            if (columnNameMap.contains("Ext"))
-                newRow[columnNameMap["Ext"]] = "";
-            if (columnNameMap.contains("Comment"))
-                newRow[columnNameMap["Comment"]] = "";
+    // 4. 确定实际插入位置
+    int actualInsertionIndex = appendToEnd ? existingRowCountFromMeta : startIndex;
+    if (actualInsertionIndex < 0)
+        actualInsertionIndex = 0;
+    if (actualInsertionIndex > existingRowCountFromMeta)
+        actualInsertionIndex = existingRowCountFromMeta;
 
+    // 创建按列名检索的映射，提前准备好提高效率
+    QMap<QString, int> columnNameMap;
+    for (int i = 0; i < columns.size(); ++i)
+    {
+        columnNameMap[columns[i].name] = i;
+        qDebug() << funcName << " - 列映射: 名称=" << columns[i].name << "，索引=" << i << "，类型=" << columns[i].original_type_str;
+    }
+
+    // 5. 批量处理数据写入，避免一次性生成大量数据占用内存
+    const int BATCH_SIZE = 10000; // 每批处理的行数，可根据内存情况调整
+
+    // 对于超过100万行的大数据，做特殊的进度上报处理
+    bool isLargeDataset = (rowCount > 1000000);
+    int progressStart = 25;
+    int progressEnd = isLargeDataset ? 95 : 90; // 大数据集预留更多进度给文件写入操作
+
+    // 计算总批次数
+    int totalBatches = (rowCount + BATCH_SIZE - 1) / BATCH_SIZE; // 向上取整
+    int currentBatch = 0;
+    int totalRowsProcessed = 0;
+
+    qDebug() << funcName << "- 开始批量处理，总批次:" << totalBatches << "，每批大小:" << BATCH_SIZE;
+
+    // 创建已经处理的行数记录，用于断点续传
+    QFile binaryFile(absoluteBinFilePath);
+    bool fileOpenSuccess = false;
+    QDataStream out; // 声明流对象但不立即初始化
+
+    // 如果是追加模式，直接打开文件进行追加
+    if (appendToEnd && existingRowCountFromMeta > 0)
+    {
+        fileOpenSuccess = binaryFile.open(QIODevice::ReadWrite);
+        if (fileOpenSuccess)
+        {
+            binaryFile.seek(binaryFile.size()); // 移动到文件末尾
+            out.setDevice(&binaryFile);
+            out.setByteOrder(QDataStream::LittleEndian);
+        }
+        else
+        {
+            qWarning() << funcName << "- 追加模式下无法打开文件:" << binaryFile.errorString();
+        }
+    }
+
+    // 预先创建一个模板行，存储标准列的默认值，减少重复计算
+    Vector::RowData templateRow;
+    templateRow.resize(columns.size());
+
+    // 初始化模板行的标准列
+    if (columnNameMap.contains("Label"))
+        templateRow[columnNameMap["Label"]] = "";
+
+    if (columnNameMap.contains("Instruction"))
+        templateRow[columnNameMap["Instruction"]] = 0; // 使用默认指令ID
+
+    if (columnNameMap.contains("TimeSet"))
+        templateRow[columnNameMap["TimeSet"]] = timesetId;
+
+    if (columnNameMap.contains("Capture"))
+        templateRow[columnNameMap["Capture"]] = "N"; // 默认不捕获
+
+    if (columnNameMap.contains("Ext"))
+        templateRow[columnNameMap["Ext"]] = "";
+
+    if (columnNameMap.contains("Comment"))
+        templateRow[columnNameMap["Comment"]] = "";
+
+    // 创建数据临时缓存，用于存储从UITable读取的数据
+    QVector<QVector<QString>> pinDataCache;
+    pinDataCache.resize(sourceDataRowCount);
+    for (int i = 0; i < sourceDataRowCount; i++)
+    {
+        pinDataCache[i].resize(selectedPins.size());
+
+        // 读取界面表格中的数据并缓存
+        for (int pinColIdx = 0; pinColIdx < selectedPins.size(); ++pinColIdx)
+        {
+            PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(i, pinColIdx));
+            QString pinValueStr = pinEdit ? pinEdit->text() : "X";
+            if (pinValueStr.isEmpty())
+                pinValueStr = "X";
+            pinDataCache[i][pinColIdx] = pinValueStr;
+        }
+    }
+
+    // 批量生成和保存数据
+    while (totalRowsProcessed < rowCount && !m_cancelRequested.loadAcquire())
+    {
+        // 计算当前批次要处理的行数
+        int currentBatchSize = qMin(BATCH_SIZE, rowCount - totalRowsProcessed);
+        qDebug() << funcName << "- 处理批次 " << (currentBatch + 1) << "/" << totalBatches
+                 << "，当前批次大小:" << currentBatchSize;
+
+        // 为当前批次创建数据行
+        QList<Vector::RowData> batchRows;
+        batchRows.reserve(currentBatchSize);
+
+        // 生成当前批次的数据
+        for (int i = 0; i < currentBatchSize; ++i)
+        {
+            // 计算当前行在源数据表中的索引
+            int srcRowIdx = (totalRowsProcessed + i) % sourceDataRowCount;
+
+            // 使用模板行创建新行，减少重复初始化
+            Vector::RowData newRow = templateRow;
+
+            // 设置管脚列的值（从缓存中读取）
             for (int pinColIdx = 0; pinColIdx < selectedPins.size(); ++pinColIdx)
             {
                 const auto &pinSelection = selectedPins[pinColIdx];
                 const QString &pinName = pinSelection.second.first;
                 if (!columnNameMap.contains(pinName))
-                {
-                    qWarning() << funcName << "- 警告: 表格列配置中未找到管脚列名:" << pinName << ". 跳过此管脚.";
                     continue;
-                }
+
                 int targetColIdx = columnNameMap[pinName];
-                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(dataTable->cellWidget(srcRowIdx, pinColIdx));
-                QString pinValueStr = pinEdit ? pinEdit->text() : "X";
-                if (pinValueStr.isEmpty())
-                    pinValueStr = "X";
-                newRow[targetColIdx] = pinValueStr;
+                newRow[targetColIdx] = pinDataCache[srcRowIdx][pinColIdx];
             }
-            newRowsToInsert.append(newRow);
-            currentIterationNewRows++;
-            if (rowCount > 0)
-            { // Only update progress if there are rows to process
-                emit progressUpdated(20 + static_cast<int>((static_cast<double>(currentIterationNewRows) / totalIterationsForNewRows) * 40.0));
-            }
+
+            batchRows.append(newRow);
         }
-    }
-    qDebug() << funcName << "- 准备了" << newRowsToInsert.size() << "行新数据待插入/追加。";
-    emit progressUpdated(60); // New rows prepared
 
-    // 3. 修改 allTableRows
-    int actualInsertionIndex = appendToEnd ? allTableRows.size() : startIndex;
-    if (actualInsertionIndex < 0)
-        actualInsertionIndex = 0;
-    if (actualInsertionIndex > allTableRows.size())
-        actualInsertionIndex = allTableRows.size();
-
-    if (!appendToEnd)
-    {
-        qDebug() << funcName << "- 非追加模式，将在索引" << actualInsertionIndex << "处插入" << newRowsToInsert.size() << "行, 当前总行数:" << allTableRows.size();
-        if (rowCount == 0 && sourceDataRowCount > 0)
+        // 处理写入文件
+        // 如果是第一批且非追加模式，或者文件还未打开，则重新创建文件
+        if ((currentBatch == 0 && !appendToEnd) || !fileOpenSuccess)
         {
-            if (startIndex < allTableRows.size())
+            // 关闭之前可能打开的文件
+            if (binaryFile.isOpen())
+                binaryFile.close();
+
+            // 如果是第一批且非追加模式，则重新创建文件
+            if (currentBatch == 0 && !appendToEnd)
             {
-                qDebug() << funcName << "- 请求插入0行，非追加模式。将删除从索引" << startIndex << "开始的所有行。";
-                allTableRows.erase(allTableRows.begin() + startIndex, allTableRows.end());
+                // 处理非追加模式下的文件写入（合并现有数据与新数据）
+                QList<Vector::RowData> combinedRows;
+
+                // 如果需要保留文件前部分（在插入点之前的数据）
+                if (actualInsertionIndex > 0 && !existingRows.isEmpty())
+                {
+                    for (int i = 0; i < actualInsertionIndex && i < existingRows.size(); i++)
+                    {
+                        combinedRows.append(existingRows[i]);
+                    }
+                }
+
+                // 添加当前批次的新数据
+                combinedRows.append(batchRows);
+
+                // 如果有剩余的现有数据需要保留（非追加模式下插入点之后的数据）
+                if (actualInsertionIndex < existingRows.size() && !appendToEnd)
+                {
+                    for (int i = actualInsertionIndex; i < existingRows.size(); i++)
+                    {
+                        combinedRows.append(existingRows[i]);
+                    }
+                }
+
+                // 写入组合后的数据
+                if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, combinedRows))
+                {
+                    errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
+                    qWarning() << funcName << "-" << errorMessage;
+                    emit progressUpdated(100); // End with error
+                    return false;
+                }
+
+                // 已经写入了第一批数据，现在打开文件进行追加模式写入后续批次
+                fileOpenSuccess = binaryFile.open(QIODevice::ReadWrite);
+                if (fileOpenSuccess)
+                {
+                    binaryFile.seek(binaryFile.size());
+                    out.setDevice(&binaryFile);
+                    out.setByteOrder(QDataStream::LittleEndian);
+                }
+            }
+            else
+            {
+                // 追加模式但文件未打开的情况
+                if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, batchRows))
+                {
+                    errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
+                    qWarning() << funcName << "-" << errorMessage;
+                    emit progressUpdated(100); // End with error
+                    return false;
+                }
+
+                // 已经写入了第一批数据，现在打开文件进行追加模式写入后续批次
+                fileOpenSuccess = binaryFile.open(QIODevice::ReadWrite);
+                if (fileOpenSuccess)
+                {
+                    binaryFile.seek(binaryFile.size());
+                    out.setDevice(&binaryFile);
+                    out.setByteOrder(QDataStream::LittleEndian);
+                }
             }
         }
         else
         {
-            // Use a temporary list for insertion to avoid iterator invalidation issues with QList::insert
-            QList<Vector::RowData> tempRowsToKeepPrefix = allTableRows.mid(0, actualInsertionIndex);
-            QList<Vector::RowData> tempRowsToKeepSuffix;
-            if (actualInsertionIndex < allTableRows.size())
-            { // Check if there's anything after insertion point
-                tempRowsToKeepSuffix = allTableRows.mid(actualInsertionIndex);
+            // 已经打开文件进行追加操作，直接序列化并写入每一行
+            for (const Vector::RowData &row : batchRows)
+            {
+                QByteArray serializedRowData;
+                if (!Persistence::BinaryFileHelper::serializeRow(row, columns, serializedRowData))
+                {
+                    errorMessage = QString("序列化行数据失败");
+                    if (binaryFile.isOpen())
+                        binaryFile.close();
+                    emit progressUpdated(100);
+                    return false;
+                }
+
+                // 写入行大小和数据
+                quint32 rowBlockSize = static_cast<quint32>(serializedRowData.size());
+                out << rowBlockSize;
+                if (out.status() != QDataStream::Ok)
+                {
+                    errorMessage = QString("写入行大小失败");
+                    if (binaryFile.isOpen())
+                        binaryFile.close();
+                    emit progressUpdated(100);
+                    return false;
+                }
+
+                qint64 bytesWritten = out.writeRawData(serializedRowData.constData(), rowBlockSize);
+                if (bytesWritten != rowBlockSize || out.status() != QDataStream::Ok)
+                {
+                    errorMessage = QString("写入行数据失败");
+                    if (binaryFile.isOpen())
+                        binaryFile.close();
+                    emit progressUpdated(100);
+                    return false;
+                }
             }
-            allTableRows = tempRowsToKeepPrefix;
-            allTableRows.append(newRowsToInsert);
-            allTableRows.append(tempRowsToKeepSuffix);
+
+            // 定期刷新文件，避免缓冲区溢出
+            if (currentBatch % 10 == 0)
+            {
+                binaryFile.flush();
+            }
+        }
+
+        // 更新处理进度
+        totalRowsProcessed += currentBatchSize;
+        currentBatch++;
+
+        // 更新进度条（非线性进度，大数据进度增长更慢）
+        double progress = progressStart + ((double)totalRowsProcessed / rowCount) * (progressEnd - progressStart);
+        emit progressUpdated(static_cast<int>(progress));
+
+        // 每批次处理完后，主动让出CPU时间，减轻UI冻结
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    }
+
+    // 关闭打开的文件
+    if (binaryFile.isOpen())
+    {
+        binaryFile.flush();
+        binaryFile.close();
+    }
+
+    // 如果是追加模式或批量处理，更新二进制文件头中的行数信息
+    if (appendToEnd || currentBatch > 1)
+    {
+        qDebug() << funcName << "- 更新二进制文件头中的行数信息";
+        QFile headerUpdateFile(absoluteBinFilePath);
+        if (headerUpdateFile.open(QIODevice::ReadWrite))
+        {
+            BinaryFileHeader header;
+            if (Persistence::BinaryFileHelper::readBinaryHeader(&headerUpdateFile, header))
+            {
+                // 计算最终的行数
+                int finalRowCount = appendToEnd ? (existingRowCountFromMeta + rowCount) : (!existingRows.isEmpty() ? (existingRows.size() + rowCount - (existingRows.size() - actualInsertionIndex)) : rowCount);
+
+                // 更新文件头
+                header.row_count_in_file = finalRowCount;
+                header.timestamp_updated = static_cast<uint64_t>(QDateTime::currentSecsSinceEpoch());
+
+                // 重置文件指针到开头
+                headerUpdateFile.seek(0);
+
+                // 写入更新后的文件头
+                if (!Persistence::BinaryFileHelper::writeBinaryHeader(&headerUpdateFile, header))
+                {
+                    qWarning() << funcName << "- 警告: 无法更新二进制文件头中的行数信息";
+                }
+                else
+                {
+                    qDebug() << funcName << "- 成功更新二进制文件头中的行数为:" << finalRowCount;
+                }
+            }
+            headerUpdateFile.close();
+        }
+        else
+        {
+            qWarning() << funcName << "- 警告: 无法打开文件更新文件头:" << headerUpdateFile.errorString();
         }
     }
-    else
-    {
-        qDebug() << funcName << "- 追加模式，将添加" << newRowsToInsert.size() << "行到末尾。";
-        allTableRows.append(newRowsToInsert);
-    }
-    qDebug() << funcName << "- 修改后，allTableRows 总行数:" << allTableRows.size();
-    emit progressUpdated(65); // All table rows modified
 
-    // 4. 写回二进制文件
-    qDebug() << funcName << "- 准备写入" << allTableRows.size() << "行到二进制文件:" << absoluteBinFilePath;
-    // For now, BinaryFileHelper::writeAllRowsToBinary doesn't have internal progress.
-    // We emit progress before and after this potentially long operation.
-    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allTableRows))
+    // 如果用户取消了操作
+    if (m_cancelRequested.loadAcquire())
     {
-        errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
-        qWarning() << funcName << "-" << errorMessage;
-        emit progressUpdated(100); // End with error
+        qDebug() << funcName << "- 操作被用户取消。";
+        errorMessage = "操作被用户取消。";
+        emit progressUpdated(100);
         return false;
     }
-    qDebug() << funcName << "- 二进制文件写入成功: " << absoluteBinFilePath;
-    emit progressUpdated(95); // Binary file written
 
-    // 5. 更新数据库中的主记录
+    emit progressUpdated(isLargeDataset ? 95 : 90); // 文件写入完成
+
+    // 更新数据库中的行数记录
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.transaction())
     {
         errorMessage = "无法开始数据库事务以更新主记录。";
         qWarning() << funcName << "-" << errorMessage;
-        emit progressUpdated(100); // End with error
+        emit progressUpdated(100);
         return false;
     }
 
+    // 计算最终的行数
+    int finalRowCount = appendToEnd ? (existingRowCountFromMeta + rowCount) : (!existingRows.isEmpty() ? (existingRows.size() + rowCount - (existingRows.size() - actualInsertionIndex)) : rowCount);
+
     QSqlQuery updateQuery(db);
-    if (!updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"))
-    {
-        errorMessage = QString("数据库更新语句准备失败 (row_count): %1").arg(updateQuery.lastError().text());
-        qWarning() << funcName << "-" << errorMessage;
-                    db.rollback();
-        emit progressUpdated(100); // End with error
-                    return false;
-                }
-    updateQuery.addBindValue(allTableRows.size());
+    updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    updateQuery.addBindValue(finalRowCount);
     updateQuery.addBindValue(tableId);
 
     if (!updateQuery.exec())
     {
         errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
         qWarning() << funcName << "-" << errorMessage;
-            db.rollback();
-        emit progressUpdated(100); // End with error
-            return false;
-        }
-
-    if (!db.commit())
-    {
-        errorMessage = "提交数据库事务失败 (更新主记录后)。";
-        qWarning() << funcName << "-" << errorMessage;
         db.rollback();
-        emit progressUpdated(100); // End with error
+        emit progressUpdated(100);
         return false;
     }
 
-    qDebug() << funcName << "- 数据库元数据行数已更新为:" << allTableRows.size() << " for table ID:" << tableId;
+    if (!db.commit())
+    {
+        errorMessage = "提交数据库事务失败。";
+        qWarning() << funcName << "-" << errorMessage;
+        db.rollback();
+        emit progressUpdated(100);
+        return false;
+    }
+
+    qDebug() << funcName << "- 数据库元数据行数已更新为:" << finalRowCount << " for table ID:" << tableId;
     emit progressUpdated(100); // 操作完成
-    qDebug() << funcName << "- NEW BINARY IMPL - 向量行数据操作成功完成。";
+    qDebug() << funcName << "- 向量行数据操作成功完成。";
     return true;
 }
 

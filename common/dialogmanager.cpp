@@ -209,6 +209,121 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         qDebug() << "DialogManager::showPinSelectionDialog - Successfully deleted old column config.";
 
         int columnOrder = 0; // 用于确定列顺序
+
+        // 添加标准列配置
+        qDebug() << "DialogManager::showPinSelectionDialog - 开始添加标准列配置";
+
+        // 1. 添加Label列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("Label");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("TEXT");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加Label列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        // 2. 添加Instruction列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("Instruction");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("INSTRUCTION_ID");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加Instruction列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        // 3. 添加TimeSet列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("TimeSet");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("TIMESET_ID");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加TimeSet列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        // 4. 添加Capture列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("Capture");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("TEXT");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加Capture列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        // 5. 添加Ext列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("Ext");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("TEXT");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加Ext列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        // 6. 添加Comment列
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue("Comment");
+        queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue("TEXT");
+        queryHelper.addBindValue("{}");
+
+        if (!queryHelper.exec())
+        {
+            QMessageBox::critical(m_parent, "数据库错误", "添加Comment列失败：" + queryHelper.lastError().text());
+            success = false;
+            db.rollback();
+            return false;
+        }
+
+        qDebug() << "DialogManager::showPinSelectionDialog - 已成功添加6个标准列配置";
+
+        // 继续添加用户选择的管脚列
         for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
         {
             if (!success)
@@ -686,10 +801,23 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         }
         
         // 大数据量提示
-        if (totalRowCount > 50000) {
+        int warningThreshold = 10000; // 降低警告阈值到1万行
+        if (totalRowCount > warningThreshold) {
+            // 简单估算处理时间（根据行数线性增长）
+            int estimatedSeconds = totalRowCount / 2000; // 假设每2000行需要1秒
+            QString timeEstimate;
+            
+            if (estimatedSeconds < 60) {
+                timeEstimate = QString("约 %1 秒").arg(estimatedSeconds);
+            } else if (estimatedSeconds < 3600) {
+                timeEstimate = QString("约 %1 分钟").arg(estimatedSeconds / 60);
+            } else {
+                timeEstimate = QString("约 %1 小时 %2 分钟").arg(estimatedSeconds / 3600).arg((estimatedSeconds % 3600) / 60);
+            }
+            
             QMessageBox::StandardButton reply = QMessageBox::question(&vectorDataDialog, 
                 "大数据量提示", 
-                QString("您正在添加%1行数据，处理可能需要一些时间。是否继续？").arg(totalRowCount),
+                QString("您正在添加 %1 行数据，预计处理时间 %2。\n\n处理期间请勿关闭程序，是否继续？").arg(totalRowCount).arg(timeEstimate),
                 QMessageBox::Yes | QMessageBox::No);
                 
             if (reply == QMessageBox::No) {
@@ -719,10 +847,11 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         }
         
         // 创建进度对话框
-        QProgressDialog progressDialog("正在添加向量行数据...", "取消", 0, 100, &vectorDataDialog);
-        progressDialog.setWindowTitle("数据处理中");
+        QProgressDialog progressDialog("准备添加向量数据...", "取消", 0, 100, &vectorDataDialog);
+        progressDialog.setWindowTitle(QString("正在处理 %1 行数据").arg(totalRowCount));
         progressDialog.setWindowModality(Qt::WindowModal);
         progressDialog.setMinimumDuration(0); // 立即显示
+        progressDialog.resize(400, progressDialog.height()); // 加宽进度条，确保文本显示完整
         progressDialog.setValue(0);
         
         // 禁用保存和取消按钮，防止重复操作

@@ -265,6 +265,12 @@ void MainWindow::openExistingProject()
         // 加载向量表数据
         loadVectorTable();
 
+        // 检查和修复所有向量表的列配置
+        checkAndFixAllVectorTables();
+
+        // 设置窗口标题
+        setWindowTitle(tr("VecEdit - 矢量测试编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
+
         QMessageBox::information(this, tr("成功"),
                                  tr("项目数据库已打开！当前版本：%1\n您可以通过\"查看\"菜单打开数据库查看器").arg(version));
     }
@@ -634,36 +640,76 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 设置标志防止循环更新
     m_isUpdatingUI = true;
 
-    qDebug() << "MainWindow::onVectorTableSelectionChanged - 向量表选择已更改，索引:" << index;
+    const QString funcName = "MainWindow::onVectorTableSelectionChanged";
+    qDebug() << funcName << " - 向量表选择已更改，索引:" << index;
 
     // 获取当前选中表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
+    qDebug() << funcName << " - 当前表ID:" << tableId;
 
     // 同步Tab页签选择
     syncTabWithComboBox(index);
 
     // 尝试修复当前表（如果需要）
-    fixExistingTableWithoutColumns(tableId);
+    bool needsFix = false;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+    checkQuery.addBindValue(tableId);
+    if (checkQuery.exec() && checkQuery.next())
+    {
+        int columnCount = checkQuery.value(0).toInt();
+        qDebug() << funcName << " - 表 " << tableId << " 当前有 " << columnCount << " 个列配置";
+        needsFix = (columnCount == 0);
+    }
+
+    if (needsFix)
+    {
+        qDebug() << funcName << " - 表 " << tableId << " 需要修复列配置";
+        fixExistingTableWithoutColumns(tableId);
+    }
 
     // 使用数据处理器加载数据
-    const QString funcName = "MainWindow::onVectorTableSelectionChanged";
+    qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId;
     bool loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
-    qDebug() << funcName << " - VectorDataHandler::loadVectorTableData returned:" << loadSuccess << "for tableId:" << tableId; // <-- 添加日志：确认返回值
+    qDebug() << funcName << " - VectorDataHandler::loadVectorTableData 返回:" << loadSuccess
+             << "，表ID:" << tableId
+             << "，列数:" << m_vectorTableWidget->columnCount();
 
     if (loadSuccess)
     {
-        qDebug() << funcName << " - Load successful branch entered. Setting status bar."; // <-- 添加日志：确认 if 分支
-        // 应用表格样式
-        qDebug() << funcName << " - Before applyTableStyle - RowCount:" << m_vectorTableWidget->rowCount() << "ColCount:" << m_vectorTableWidget->columnCount() << "Visible:" << m_vectorTableWidget->isVisible();
-        TableStyleManager::applyTableStyle(m_vectorTableWidget);
-        qDebug() << funcName << " - After applyTableStyle - RowCount:" << m_vectorTableWidget->rowCount() << "ColCount:" << m_vectorTableWidget->columnCount() << "Visible:" << m_vectorTableWidget->isVisible();
+        qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
 
-        statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
-        qDebug() << funcName << " - Status bar updated to: " << statusBar()->currentMessage();
+        // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
+        if (m_vectorTableWidget->columnCount() < 6)
+        {
+            qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
+                       << "），可能缺少标准列。尝试修复...";
+            fixExistingTableWithoutColumns(tableId);
+            // 重新加载表格
+            loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
+            qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
+                     << "，列数:" << m_vectorTableWidget->columnCount();
+        }
+
+        // 应用表格样式
+        TableStyleManager::applyTableStyle(m_vectorTableWidget);
+
+        // 输出每一列的标题，用于调试
+        QStringList columnHeaders;
+        for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
+        {
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+            QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
+            columnHeaders << headerText;
+        }
+        qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
+
+        statusBar()->showMessage(QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableWidget->columnCount()));
     }
     else
     {
-        qDebug() << funcName << " - Load failed branch entered. Setting status bar."; // <-- 添加日志：确认 else 分支
+        qWarning() << funcName << " - 表格加载失败，表ID:" << tableId;
         statusBar()->showMessage("加载向量表失败");
     }
 
@@ -1167,22 +1213,44 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 
 void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
+    const QString funcName = "MainWindow::showVectorDataDialog";
+    qDebug() << funcName << " - 开始显示向量行数据录入对话框";
+
     if (m_dialogManager)
     {
-        qDebug() << "MainWindow::showVectorDataDialog - 开始显示向量行数据录入对话框";
+        qDebug() << funcName << " - 调用对话框管理器显示向量行数据录入对话框";
         bool success = m_dialogManager->showVectorDataDialog(tableId, tableName, startIndex);
-        qDebug() << "MainWindow::showVectorDataDialog - 向量行数据录入对话框返回结果:" << success;
+        qDebug() << funcName << " - 向量行数据录入对话框返回结果:" << success;
 
         // 如果成功添加了数据，刷新表格显示
         if (success)
         {
-            qDebug() << "MainWindow::showVectorDataDialog - 成功添加向量行数据，刷新表格";
+            qDebug() << funcName << " - 成功添加向量行数据，准备刷新表格";
+
             // 找到对应的表索引并刷新
             int currentIndex = m_vectorTableSelector->findData(tableId);
             if (currentIndex >= 0)
             {
+                qDebug() << funcName << " - 找到表索引:" << currentIndex << "，设置为当前表";
+
+                // 先保存当前的列状态
                 m_vectorTableSelector->setCurrentIndex(currentIndex);
-                onVectorTableSelectionChanged(currentIndex);
+
+                // 强制调用loadVectorTableData而不是依赖信号槽，确保正确加载所有列
+                if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+                {
+                    qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
+                    // 应用表格样式
+                    TableStyleManager::applyTableStyle(m_vectorTableWidget);
+                }
+                else
+                {
+                    qWarning() << funcName << " - 重新加载表格数据失败";
+                }
+            }
+            else
+            {
+                qWarning() << funcName << " - 未找到表ID:" << tableId << "对应的索引";
             }
         }
     }
@@ -2571,13 +2639,43 @@ bool MainWindow::addDefaultColumnConfigurations(int tableId)
             throw QString("无法添加TimeSet列: " + query.lastError().text());
         }
 
-        // 4. 添加Comment列
+        // 4. 添加Capture列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("Capture");
+        query.addBindValue(3);
+        query.addBindValue("BOOLEAN");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加Capture列: " + query.lastError().text());
+        }
+
+        // 5. 添加EXT列
+        query.prepare("INSERT INTO VectorTableColumnConfiguration "
+                      "(master_record_id, column_name, column_order, column_type, data_properties) "
+                      "VALUES (?, ?, ?, ?, ?)");
+        query.addBindValue(tableId);
+        query.addBindValue("EXT");
+        query.addBindValue(4);
+        query.addBindValue("TEXT");
+        query.addBindValue("{}");
+
+        if (!query.exec())
+        {
+            throw QString("无法添加EXT列: " + query.lastError().text());
+        }
+
+        // 6. 添加Comment列
         query.prepare("INSERT INTO VectorTableColumnConfiguration "
                       "(master_record_id, column_name, column_order, column_type, data_properties) "
                       "VALUES (?, ?, ?, ?, ?)");
         query.addBindValue(tableId);
         query.addBindValue("Comment");
-        query.addBindValue(3);
+        query.addBindValue(5);
         query.addBindValue("TEXT");
         query.addBindValue("{}");
 
@@ -2588,7 +2686,7 @@ bool MainWindow::addDefaultColumnConfigurations(int tableId)
 
         // 更新主记录的列数
         query.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
-        query.addBindValue(4); // 四个标准列
+        query.addBindValue(6); // 六个标准列
         query.addBindValue(tableId);
 
         if (!query.exec())
@@ -2678,8 +2776,8 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
 
     try
     {
-        // 从标准列开始，所以列序号从4开始（0-3已经由addDefaultColumnConfigurations添加）
-        int columnOrder = 4;
+        // 从标准列开始，所以列序号从6开始（0-5已经由addDefaultColumnConfigurations添加）
+        int columnOrder = 6;
 
         while (pinQuery.next())
         {
@@ -2740,4 +2838,68 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
         db.rollback();
         return false;
     }
+}
+
+void MainWindow::checkAndFixAllVectorTables()
+{
+    const QString funcName = "MainWindow::checkAndFixAllVectorTables";
+    qDebug() << funcName << " - 开始检查和修复所有向量表的列配置";
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qCritical() << funcName << " - 数据库未打开";
+        return;
+    }
+
+    // 获取所有向量表主记录
+    QSqlQuery query(db);
+    query.prepare("SELECT id FROM VectorTableMasterRecord");
+
+    if (!query.exec())
+    {
+        qCritical() << funcName << " - 无法查询向量表主记录:" << query.lastError().text();
+        return;
+    }
+
+    int fixedCount = 0;
+    int totalCount = 0;
+
+    while (query.next())
+    {
+        int tableId = query.value(0).toInt();
+        totalCount++;
+
+        // 检查是否有列配置
+        QSqlQuery checkQuery(db);
+        checkQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+        checkQuery.addBindValue(tableId);
+
+        if (!checkQuery.exec() || !checkQuery.next())
+        {
+            qWarning() << funcName << " - 无法检查表ID " << tableId << " 的列配置:" << checkQuery.lastError().text();
+            continue;
+        }
+
+        int columnCount = checkQuery.value(0).toInt();
+        if (columnCount == 0)
+        {
+            qDebug() << funcName << " - 表ID " << tableId << " 没有列配置，尝试修复";
+            if (fixExistingTableWithoutColumns(tableId))
+            {
+                fixedCount++;
+                qDebug() << funcName << " - 成功修复表ID " << tableId << " 的列配置";
+            }
+            else
+            {
+                qWarning() << funcName << " - 修复表ID " << tableId << " 的列配置失败";
+            }
+        }
+        else
+        {
+            qDebug() << funcName << " - 表ID " << tableId << " 有 " << columnCount << " 个列配置，不需要修复";
+        }
+    }
+
+    qDebug() << funcName << " - 检查完成，共 " << totalCount << " 个表，修复了 " << fixedCount << " 个表";
 }

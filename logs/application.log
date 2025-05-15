@@ -1,0 +1,8 @@
+[2025-05-15 14:00:39.135] [Debug] Logger::initialize - 日志系统已初始化 (logger.cpp:98, void Logger::initialize(bool, const QString&))
+[2025-05-15 14:00:39.138] [Debug] main - 应用程序启动 (main.cpp:13, int qMain(int, char**))
+[2025-05-15 14:00:39.139] [Info] main - 欢迎使用VecEdit (main.cpp:14, int qMain(int, char**))
+[2025-05-15 14:00:39.145] [Debug] VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载 (vectortabledelegate.cpp:27, void VectorTableItemDelegate::refreshCache())
+[2025-05-15 14:00:39.146] [Debug] MainWindow::setupTabBar() - 初始化Tab栏 (mainwindow.cpp:509, void MainWindow::setupTabBar())
+[2025-05-15 14:00:39.148] [Debug] MainWindow::setupTabBar() - Tab栏初始化完成 (mainwindow.cpp:556, void MainWindow::setupTabBar())
+[2025-05-15 14:00:39.230] [Debug] main - 进入应用程序主循环 (main.cpp:19, int qMain(int, char**))
+[2025-05-15 14:01:13.863] [Debug] main - 应用程序退出，返回码: 0 (main.cpp:21, int qMain(int, char**))

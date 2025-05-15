@@ -136,6 +136,9 @@ private:
     // 修复没有列配置的现有向量表
     bool fixExistingTableWithoutColumns(int tableId);
 
+    // 检查和修复所有向量表的列配置
+    void checkAndFixAllVectorTables();
+
     // 当前项目的数据库路径
     QString m_currentDbPath;
 

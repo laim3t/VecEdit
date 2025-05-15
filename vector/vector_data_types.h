@@ -75,28 +75,27 @@ namespace Vector
     using VectorTableData = QList<RowData>;
 
     // Helper to convert string type from DB to enum
-    static ColumnDataType columnDataTypeFromString(const QString &typeStr)
+    inline ColumnDataType columnDataTypeFromString(const QString &typeStr)
     {
-        QString upperType = typeStr.toUpper();
-        if (upperType == "TEXT")
+        if (typeStr == "TEXT")
             return ColumnDataType::TEXT;
-        if (upperType == "INTEGER")
+        if (typeStr == "INTEGER")
             return ColumnDataType::INTEGER;
-        if (upperType == "REAL")
+        if (typeStr == "REAL")
             return ColumnDataType::REAL;
-        if (upperType == "INSTRUCTION_ID")
+        if (typeStr == "INSTRUCTION_ID")
             return ColumnDataType::INSTRUCTION_ID;
-        if (upperType == "TIMESET_ID")
+        if (typeStr == "TIMESET_ID")
             return ColumnDataType::TIMESET_ID;
-        if (upperType == "PIN_STATE_ID")
+        if (typeStr == "PIN_STATE_ID")
             return ColumnDataType::PIN_STATE_ID;
-        if (upperType == "BOOLEAN")
+        if (typeStr == "BOOLEAN")
             return ColumnDataType::BOOLEAN;
-        if (upperType == "JSON_PROPERTIES")
+        if (typeStr == "JSON_PROPERTIES")
             return ColumnDataType::JSON_PROPERTIES;
-        // Default or error case
-        qWarning() << "columnDataTypeFromString - Unknown column type string:" << typeStr << ", defaulting to TEXT.";
-        return ColumnDataType::TEXT;
+
+        qWarning() << "Unrecognized column type string:" << typeStr << ", defaulting to TEXT";
+        return ColumnDataType::TEXT; // Default to TEXT for unrecognized types
     }
 
 } // namespace Vector
