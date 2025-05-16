@@ -10,6 +10,7 @@
 #include "tablestylemanager.h"
 #include <QJsonObject>
 #include <QJsonDocument>
+#include "../database/databasemanager.h"
 
 VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tableName, QWidget *parent)
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
@@ -78,9 +79,17 @@ void VectorPinSettingsDialog::loadPinsData()
 {
     qDebug() << "VectorPinSettingsDialog::loadPinsData - 加载管脚数据";
 
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorPinSettingsDialog::loadPinsData - 数据库未连接";
+        return;
+    }
+
     // 加载所有管脚
-    QSqlQuery pinQuery("SELECT id, pin_name FROM pin_list ORDER BY pin_name");
-    if (pinQuery.exec())
+    QSqlQuery pinQuery(db);
+    if (pinQuery.exec("SELECT id, pin_name FROM pin_list ORDER BY pin_name"))
     {
         while (pinQuery.next())
         {
@@ -95,7 +104,7 @@ void VectorPinSettingsDialog::loadPinsData()
     }
 
     // 从vector_table_pins表中加载已经关联到该向量表的管脚
-    QSqlQuery existingPinsQuery;
+    QSqlQuery existingPinsQuery(db);
     existingPinsQuery.prepare(
         "SELECT pin_id, pin_type FROM vector_table_pins WHERE table_id = :tableId");
     existingPinsQuery.bindValue(":tableId", m_tableId);
@@ -193,7 +202,14 @@ bool VectorPinSettingsDialog::hasPinData(int pinId)
 {
     qDebug() << "VectorPinSettingsDialog::hasPinData - 检查管脚ID" << pinId << "是否有数据";
 
-    QSqlQuery query;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorPinSettingsDialog::hasPinData - 数据库未连接";
+        return false;
+    }
+
+    QSqlQuery query(db);
     query.prepare("SELECT COUNT(*) FROM vector_table_pin_values vtpv "
                   "JOIN vector_table_pins vtp ON vtpv.vector_pin_id = vtp.id "
                   "WHERE vtp.table_id = :tableId AND vtp.pin_id = :pinId");
@@ -276,7 +292,7 @@ void VectorPinSettingsDialog::onAccepted()
     }
 
     // 开始事务
-    QSqlDatabase db = QSqlDatabase::database();
+    QSqlDatabase db = DatabaseManager::instance()->database();
     db.transaction();
 
     try
@@ -286,7 +302,7 @@ void VectorPinSettingsDialog::onAccepted()
         {
             for (int pinId : pinsToDeleteData)
             {
-                QSqlQuery dataDeleteQuery;
+                QSqlQuery dataDeleteQuery(db);
                 dataDeleteQuery.prepare(
                     "DELETE FROM vector_table_pin_values WHERE vector_pin_id IN "
                     "(SELECT id FROM vector_table_pins WHERE table_id = :tableId AND pin_id = :pinId)");
@@ -300,7 +316,7 @@ void VectorPinSettingsDialog::onAccepted()
                 }
 
                 // 同时删除vector_table_pins记录
-                QSqlQuery pinDeleteQuery;
+                QSqlQuery pinDeleteQuery(db);
                 pinDeleteQuery.prepare("DELETE FROM vector_table_pins WHERE table_id = :tableId AND pin_id = :pinId");
                 pinDeleteQuery.bindValue(":tableId", m_tableId);
                 pinDeleteQuery.bindValue(":pinId", pinId);
@@ -312,7 +328,7 @@ void VectorPinSettingsDialog::onAccepted()
                 }
 
                 // 同时删除对应的VectorTableColumnConfiguration记录
-                QSqlQuery colConfigDeleteQuery;
+                QSqlQuery colConfigDeleteQuery(db);
                 colConfigDeleteQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
                 colConfigDeleteQuery.bindValue(":tableId", m_tableId);
                 colConfigDeleteQuery.bindValue(":pinName", m_allPins[pinId]);
@@ -344,7 +360,7 @@ void VectorPinSettingsDialog::onAccepted()
             }
 
             // 检查是否已存在记录
-            QSqlQuery checkPinQuery;
+            QSqlQuery checkPinQuery(db);
             checkPinQuery.prepare("SELECT id FROM vector_table_pins WHERE table_id = :tableId AND pin_id = :pinId");
             checkPinQuery.bindValue(":tableId", m_tableId);
             checkPinQuery.bindValue(":pinId", pinId);
@@ -353,7 +369,7 @@ void VectorPinSettingsDialog::onAccepted()
             {
                 // 已存在，更新
                 int pinRecordId = checkPinQuery.value(0).toInt();
-                QSqlQuery updatePinQuery;
+                QSqlQuery updatePinQuery(db);
                 updatePinQuery.prepare("UPDATE vector_table_pins SET pin_type = :typeId, pin_channel_count = 1 WHERE id = :id");
                 updatePinQuery.bindValue(":typeId", typeId);
                 updatePinQuery.bindValue(":id", pinRecordId);
@@ -367,7 +383,7 @@ void VectorPinSettingsDialog::onAccepted()
             else
             {
                 // 不存在，插入
-                QSqlQuery insertPinQuery;
+                QSqlQuery insertPinQuery(db);
                 insertPinQuery.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_channel_count, pin_type) VALUES (:tableId, :pinId, 1, :typeId)");
                 insertPinQuery.bindValue(":tableId", m_tableId);
                 insertPinQuery.bindValue(":pinId", pinId);
@@ -381,7 +397,7 @@ void VectorPinSettingsDialog::onAccepted()
             }
 
             // 同时检查和更新VectorTableColumnConfiguration表
-            QSqlQuery checkColConfigQuery;
+            QSqlQuery checkColConfigQuery(db);
             checkColConfigQuery.prepare("SELECT id FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
             checkColConfigQuery.bindValue(":tableId", m_tableId);
             checkColConfigQuery.bindValue(":pinName", pinName);
@@ -398,7 +414,7 @@ void VectorPinSettingsDialog::onAccepted()
             {
                 // 已存在列配置，更新属性
                 int colConfigId = checkColConfigQuery.value(0).toInt();
-                QSqlQuery updateColConfigQuery;
+                QSqlQuery updateColConfigQuery(db);
                 updateColConfigQuery.prepare("UPDATE VectorTableColumnConfiguration SET data_properties = :props WHERE id = :id");
                 updateColConfigQuery.bindValue(":props", propJson);
                 updateColConfigQuery.bindValue(":id", colConfigId);
@@ -413,7 +429,7 @@ void VectorPinSettingsDialog::onAccepted()
             {
                 // 不存在列配置，插入新记录
                 // 首先获取当前最大的column_order值
-                QSqlQuery maxOrderQuery;
+                QSqlQuery maxOrderQuery(db);
                 maxOrderQuery.prepare("SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId");
                 maxOrderQuery.bindValue(":tableId", m_tableId);
 
@@ -423,7 +439,7 @@ void VectorPinSettingsDialog::onAccepted()
                     nextOrder = maxOrderQuery.value(0).toInt() + 1;
                 }
 
-                QSqlQuery insertColConfigQuery;
+                QSqlQuery insertColConfigQuery(db);
                 insertColConfigQuery.prepare(
                     "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties) "
                     "VALUES (:tableId, :pinName, :order, 'PIN_STATE_ID', :props)");
@@ -464,7 +480,14 @@ void VectorPinSettingsDialog::onRejected()
 void VectorPinSettingsDialog::logColumnConfigInfo(int tableId)
 {
     // 获取并输出当前表的所有列配置信息，用于调试
-    QSqlQuery query;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorPinSettingsDialog::logColumnConfigInfo - 数据库未连接";
+        return;
+    }
+
+    QSqlQuery query(db);
     query.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     query.addBindValue(tableId);
 

@@ -115,8 +115,8 @@ void PinSettingsDialog::loadPinsData()
     }
 
     // 加载所有管脚及其注释
-    QSqlQuery pinQuery("SELECT id, pin_name, pin_note FROM pin_list ORDER BY pin_name");
-    if (pinQuery.exec())
+    QSqlQuery pinQuery(db);
+    if (pinQuery.exec("SELECT id, pin_name, pin_note FROM pin_list ORDER BY pin_name"))
     {
         while (pinQuery.next())
         {
@@ -137,8 +137,8 @@ void PinSettingsDialog::loadPinsData()
     }
 
     // 加载现有的管脚设置
-    QSqlQuery settingsQuery("SELECT pin_id, station_number, station_bit_index, channel_count FROM pin_settings");
-    if (settingsQuery.exec())
+    QSqlQuery settingsQuery(db);
+    if (settingsQuery.exec("SELECT pin_id, station_number, station_bit_index, channel_count FROM pin_settings"))
     {
         while (settingsQuery.next())
         {
@@ -577,7 +577,7 @@ bool PinSettingsDialog::saveSettings()
         }
 
         // 更新pin_list表中的注释
-        QSqlQuery updateNoteQuery;
+        QSqlQuery updateNoteQuery(db);
         updateNoteQuery.prepare("UPDATE pin_list SET pin_note = ? WHERE id = ?");
 
         for (auto it = updatedNotes.begin(); it != updatedNotes.end(); ++it)
@@ -597,14 +597,14 @@ bool PinSettingsDialog::saveSettings()
         }
 
         // 清空pin_settings表
-        QSqlQuery clearQuery("DELETE FROM pin_settings");
-        if (!clearQuery.exec())
+        QSqlQuery clearQuery(db);
+        if (!clearQuery.exec("DELETE FROM pin_settings"))
         {
             throw std::runtime_error(clearQuery.lastError().text().toStdString());
         }
 
         // 插入新的pin_settings数据
-        QSqlQuery insertQuery;
+        QSqlQuery insertQuery(db);
         insertQuery.prepare("INSERT INTO pin_settings (pin_id, channel_count, station_bit_index, station_number) "
                             "VALUES (?, ?, ?, ?)");
 
@@ -714,21 +714,22 @@ void PinSettingsDialog::onAddPin()
 
     if (!insertQuery.exec())
     {
-        qWarning() << "PinSettingsDialog::onAddPin - 无法添加新管脚:" << insertQuery.lastError().text();
+        qWarning() << "PinSettingsDialog::onAddPin - 添加管脚失败:" << insertQuery.lastError().text();
         QMessageBox::critical(this, "错误",
                               QString("添加管脚失败: %1").arg(insertQuery.lastError().text()));
         return;
     }
 
+    // 获取新插入的管脚ID
     int newPinId = insertQuery.lastInsertId().toInt();
     qDebug() << "PinSettingsDialog::onAddPin - 成功添加新管脚，ID=" << newPinId << "，名称=" << pinName;
 
-    // 将新管脚添加到内存中
+    // 更新内存中的管脚列表和通道数
     m_allPins[newPinId] = pinName;
-    m_pinNotes[newPinId] = "";
     m_channelCounts[newPinId] = 1; // 默认通道数为1
+    m_pinNotes[newPinId] = "";     // 默认注释为空
 
-    // 更新表格显示
+    // 更新表格
     updateTable();
 
     QMessageBox::information(this, "添加成功",
