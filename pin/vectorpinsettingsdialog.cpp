@@ -8,6 +8,8 @@
 #include <QDebug>
 #include <QSqlDatabase>
 #include "tablestylemanager.h"
+#include <QJsonObject>
+#include <QJsonDocument>
 
 VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tableName, QWidget *parent)
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
@@ -308,6 +310,18 @@ void VectorPinSettingsDialog::onAccepted()
                     qWarning() << "VectorPinSettingsDialog::onAccepted - 删除管脚设置失败:" << pinDeleteQuery.lastError().text();
                     throw std::runtime_error(pinDeleteQuery.lastError().text().toStdString());
                 }
+
+                // 同时删除对应的VectorTableColumnConfiguration记录
+                QSqlQuery colConfigDeleteQuery;
+                colConfigDeleteQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
+                colConfigDeleteQuery.bindValue(":tableId", m_tableId);
+                colConfigDeleteQuery.bindValue(":pinName", m_allPins[pinId]);
+
+                if (!colConfigDeleteQuery.exec())
+                {
+                    qWarning() << "VectorPinSettingsDialog::onAccepted - 删除列配置失败:" << colConfigDeleteQuery.lastError().text();
+                    throw std::runtime_error(colConfigDeleteQuery.lastError().text().toStdString());
+                }
             }
         }
 
@@ -315,6 +329,7 @@ void VectorPinSettingsDialog::onAccepted()
         for (auto it = newSelectedPins.begin(); it != newSelectedPins.end(); ++it)
         {
             int pinId = it.key();
+            QString pinName = m_allPins[pinId];
             QString pinType = it.value();
 
             // 将字符串类型转换为数值ID
@@ -364,11 +379,71 @@ void VectorPinSettingsDialog::onAccepted()
                     throw std::runtime_error(insertPinQuery.lastError().text().toStdString());
                 }
             }
+
+            // 同时检查和更新VectorTableColumnConfiguration表
+            QSqlQuery checkColConfigQuery;
+            checkColConfigQuery.prepare("SELECT id FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
+            checkColConfigQuery.bindValue(":tableId", m_tableId);
+            checkColConfigQuery.bindValue(":pinName", pinName);
+
+            // 准备JSON属性字符串，包含管脚ID、通道数和类型ID
+            QJsonObject propObj;
+            propObj["pin_id"] = pinId;
+            propObj["channel_count"] = 1;
+            propObj["type_id"] = typeId;
+            QJsonDocument propDoc(propObj);
+            QString propJson = propDoc.toJson(QJsonDocument::Compact);
+
+            if (checkColConfigQuery.exec() && checkColConfigQuery.next())
+            {
+                // 已存在列配置，更新属性
+                int colConfigId = checkColConfigQuery.value(0).toInt();
+                QSqlQuery updateColConfigQuery;
+                updateColConfigQuery.prepare("UPDATE VectorTableColumnConfiguration SET data_properties = :props WHERE id = :id");
+                updateColConfigQuery.bindValue(":props", propJson);
+                updateColConfigQuery.bindValue(":id", colConfigId);
+
+                if (!updateColConfigQuery.exec())
+                {
+                    qWarning() << "VectorPinSettingsDialog::onAccepted - 更新列配置失败:" << updateColConfigQuery.lastError().text();
+                    throw std::runtime_error(updateColConfigQuery.lastError().text().toStdString());
+                }
+            }
+            else
+            {
+                // 不存在列配置，插入新记录
+                // 首先获取当前最大的column_order值
+                QSqlQuery maxOrderQuery;
+                maxOrderQuery.prepare("SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId");
+                maxOrderQuery.bindValue(":tableId", m_tableId);
+
+                int nextOrder = 0;
+                if (maxOrderQuery.exec() && maxOrderQuery.next())
+                {
+                    nextOrder = maxOrderQuery.value(0).toInt() + 1;
+                }
+
+                QSqlQuery insertColConfigQuery;
+                insertColConfigQuery.prepare(
+                    "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties) "
+                    "VALUES (:tableId, :pinName, :order, 'PIN_STATE_ID', :props)");
+                insertColConfigQuery.bindValue(":tableId", m_tableId);
+                insertColConfigQuery.bindValue(":pinName", pinName);
+                insertColConfigQuery.bindValue(":order", nextOrder);
+                insertColConfigQuery.bindValue(":props", propJson);
+
+                if (!insertColConfigQuery.exec())
+                {
+                    qWarning() << "VectorPinSettingsDialog::onAccepted - 插入列配置失败:" << insertColConfigQuery.lastError().text();
+                    throw std::runtime_error(insertColConfigQuery.lastError().text().toStdString());
+                }
+            }
         }
 
         // 提交事务
         db.commit();
-        qDebug() << "VectorPinSettingsDialog::onAccepted - 成功保存管脚设置";
+        qDebug() << "VectorPinSettingsDialog::onAccepted - 成功保存管脚设置和列配置";
+        logColumnConfigInfo(m_tableId);
         accept();
     }
     catch (const std::exception &e)
@@ -384,6 +459,37 @@ void VectorPinSettingsDialog::onRejected()
 {
     qDebug() << "VectorPinSettingsDialog::onRejected - 取消管脚设置";
     reject();
+}
+
+void VectorPinSettingsDialog::logColumnConfigInfo(int tableId)
+{
+    // 获取并输出当前表的所有列配置信息，用于调试
+    QSqlQuery query;
+    query.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    query.addBindValue(tableId);
+
+    if (query.exec())
+    {
+        qDebug() << "VectorPinSettingsDialog::logColumnConfigInfo - 表" << tableId << "的列配置情况:";
+        int count = 0;
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString name = query.value(1).toString();
+            int order = query.value(2).toInt();
+            QString type = query.value(3).toString();
+            QString props = query.value(4).toString();
+
+            qDebug() << "  列" << count++ << ": ID=" << id << ", 名称=" << name
+                     << ", 顺序=" << order << ", 类型=" << type
+                     << ", 属性=" << props;
+        }
+        qDebug() << "  总计:" << count << "列";
+    }
+    else
+    {
+        qWarning() << "VectorPinSettingsDialog::logColumnConfigInfo - 查询列配置失败:" << query.lastError().text();
+    }
 }
 
 QMap<int, QString> VectorPinSettingsDialog::getSelectedPinsWithTypes() const

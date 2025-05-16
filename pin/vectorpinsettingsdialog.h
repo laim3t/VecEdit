@@ -32,7 +32,8 @@ private slots:
 private:
     void setupUI();
     void loadPinsData();
-    bool hasPinData(int pinId); // 检查管脚是否有数据
+    bool hasPinData(int pinId);            // 检查管脚是否有数据
+    void logColumnConfigInfo(int tableId); // 调试用：输出列配置信息
 
     int m_tableId;
     QString m_tableName;

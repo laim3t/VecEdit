@@ -225,6 +225,40 @@ namespace Persistence
                 QVariant val;
                 qDebug().nospace() << funcName << " - 反序列化第" << i << "列, 名称:" << col.name << ", 类型:" << static_cast<int>(col.type);
 
+                // 检查数据流是否已经到达末尾
+                if (in.atEnd())
+                {
+                    qWarning() << funcName << " - 数据流已到达末尾，列:" << col.name << "使用默认值";
+                    // 使用默认值
+                    switch (col.type)
+                    {
+                    case Vector::ColumnDataType::TEXT:
+                        val = QString("");
+                        break;
+                    case Vector::ColumnDataType::INTEGER:
+                    case Vector::ColumnDataType::INSTRUCTION_ID:
+                    case Vector::ColumnDataType::TIMESET_ID:
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        val = 0;
+                        break;
+                    case Vector::ColumnDataType::REAL:
+                        val = 0.0;
+                        break;
+                    case Vector::ColumnDataType::BOOLEAN:
+                        val = false;
+                        break;
+                    case Vector::ColumnDataType::JSON_PROPERTIES:
+                        val = QJsonObject();
+                        break;
+                    default:
+                        val = QVariant();
+                        break;
+                    }
+                    rowData[i] = val;
+                    continue; // 继续处理下一列
+                }
+
+                // 尝试读取数据
                 switch (col.type)
                 {
                 case Vector::ColumnDataType::TEXT:
@@ -268,13 +302,42 @@ namespace Persistence
                 }
                 default:
                     qWarning() << funcName << " - 不支持的列类型:" << static_cast<int>(col.type) << ", 列名:" << col.name;
-                    return false;
+                    // 使用默认空值
+                    val = QVariant();
+                    break;
                 }
 
+                // 检查读取是否成功
                 if (in.status() != QDataStream::Ok)
                 {
-                    qWarning() << funcName << " - QDataStream 读取失败, 列:" << col.name << ", 状态:" << in.status();
-                    return false;
+                    qWarning() << funcName << " - QDataStream 读取失败, 列:" << col.name << ", 状态:" << in.status() << ", 使用默认值";
+                    // 使用默认值
+                    switch (col.type)
+                    {
+                    case Vector::ColumnDataType::TEXT:
+                        val = QString("X"); // 对于管脚状态，默认使用"X"
+                        break;
+                    case Vector::ColumnDataType::INTEGER:
+                    case Vector::ColumnDataType::INSTRUCTION_ID:
+                    case Vector::ColumnDataType::TIMESET_ID:
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        val = 0;
+                        break;
+                    case Vector::ColumnDataType::REAL:
+                        val = 0.0;
+                        break;
+                    case Vector::ColumnDataType::BOOLEAN:
+                        val = false;
+                        break;
+                    case Vector::ColumnDataType::JSON_PROPERTIES:
+                        val = QJsonObject();
+                        break;
+                    default:
+                        val = QVariant();
+                        break;
+                    }
+                    // 重置状态以继续处理后续列
+                    in.resetStatus();
                 }
 
                 rowData[i] = val;
@@ -397,11 +460,37 @@ namespace Persistence
             Vector::RowData deserializedRow;
             if (!deserializeRow(rowDataBlock, columns, header.data_schema_version, deserializedRow))
             {
-                qWarning() << funcName << "- Failed to deserialize row" << actualRowsRead << ". Aborting read.";
-                // Decide how to handle deserialization failure for a single row.
-                // Currently aborting the whole read.
-                file.close();
-                return false;
+                qWarning() << funcName << "- Failed to deserialize row" << actualRowsRead << ". Using empty row instead.";
+                // 创建一个空行，填充默认值
+                deserializedRow.clear();
+                for (int i = 0; i < columns.size(); ++i)
+                {
+                    const auto &col = columns[i];
+                    switch (col.type)
+                    {
+                    case Vector::ColumnDataType::TEXT:
+                        deserializedRow.append(QString(""));
+                        break;
+                    case Vector::ColumnDataType::INTEGER:
+                    case Vector::ColumnDataType::INSTRUCTION_ID:
+                    case Vector::ColumnDataType::TIMESET_ID:
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        deserializedRow.append(0);
+                        break;
+                    case Vector::ColumnDataType::REAL:
+                        deserializedRow.append(0.0);
+                        break;
+                    case Vector::ColumnDataType::BOOLEAN:
+                        deserializedRow.append(false);
+                        break;
+                    case Vector::ColumnDataType::JSON_PROPERTIES:
+                        deserializedRow.append(QJsonObject());
+                        break;
+                    default:
+                        deserializedRow.append(QVariant());
+                        break;
+                    }
+                }
             }
 
             rows.append(deserializedRow);
