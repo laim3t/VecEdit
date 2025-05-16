@@ -373,12 +373,19 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
 
         for (const auto &pData : allPinDataFromDialog)
         {
+            qDebug() << "DialogManager::showPinSelectionDialog - 正在处理管脚: " << pData.pinName
+                     << ", ID:" << pData.pinId
+                     << ", 勾选状态:" << (pData.isChecked ? "已选择" : "未选择");
+
             if (!success)
                 break;
 
-            // 2. 如果管脚被勾选，插入到 vector_table_pins
+            // 只处理被勾选的管脚
             if (pData.isChecked)
             {
+                qDebug() << "DialogManager::showPinSelectionDialog - 为选中的管脚添加配置: " << pData.pinName;
+
+                // 2. 插入到 vector_table_pins
                 queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_channel_count, pin_type) "
                                     "VALUES (?, ?, ?, ?)");
                 queryHelper.addBindValue(tableId);
@@ -391,34 +398,39 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
                     success = false;
                     continue;
                 }
-            }
+                qDebug() << "DialogManager::showPinSelectionDialog - 成功添加管脚到 vector_table_pins: " << pData.pinName;
 
-            // 3. 为所有对话框中列出的管脚插入到 VectorTableColumnConfiguration
-            QJsonObject properties;
-            properties["pin_list_id"] = pData.pinId;
-            properties["channel_count"] = pData.channelCount;
-            properties["type_id"] = pData.typeId;
-            QJsonDocument doc(properties);
-            QString propertiesJson = doc.toJson(QJsonDocument::Compact);
+                // 3. 只为勾选的管脚插入到 VectorTableColumnConfiguration
+                QJsonObject properties;
+                properties["pin_list_id"] = pData.pinId;
+                properties["channel_count"] = pData.channelCount;
+                properties["type_id"] = pData.typeId;
+                QJsonDocument doc(properties);
+                QString propertiesJson = doc.toJson(QJsonDocument::Compact);
 
-            queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
-                                "(master_record_id, column_name, column_order, column_type, data_properties) "
-                                "VALUES (?, ?, ?, ?, ?)");
-            queryHelper.addBindValue(tableId);
-            queryHelper.addBindValue(pData.pinName);
-            queryHelper.addBindValue(columnOrder++);
-            queryHelper.addBindValue("PIN_STATE_ID");
-            queryHelper.addBindValue(propertiesJson);
+                queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                                    "(master_record_id, column_name, column_order, column_type, data_properties) "
+                                    "VALUES (?, ?, ?, ?, ?)");
+                queryHelper.addBindValue(tableId);
+                queryHelper.addBindValue(pData.pinName);
+                queryHelper.addBindValue(columnOrder++);
+                queryHelper.addBindValue("PIN_STATE_ID");
+                queryHelper.addBindValue(propertiesJson);
 
-            if (!queryHelper.exec())
-            {
-                QMessageBox::critical(m_parent, "数据库错误", QString("为管脚 %1 保存列配置失败： ").arg(pData.pinName) + queryHelper.lastError().text());
-                success = false;
-                // continue; // Allow other column configs to be attempted, but transaction will fail
+                if (!queryHelper.exec())
+                {
+                    QMessageBox::critical(m_parent, "数据库错误", QString("为管脚 %1 保存列配置失败： ").arg(pData.pinName) + queryHelper.lastError().text());
+                    success = false;
+                    // continue; // Allow other column configs to be attempted, but transaction will fail
+                }
+                else
+                {
+                    qDebug() << "DialogManager::showPinSelectionDialog - 成功为管脚添加列配置:" << pData.pinName << "Props:" << propertiesJson;
+                }
             }
             else
             {
-                qDebug() << "DialogManager::showPinSelectionDialog - Successfully added column config for pin:" << pData.pinName << "Props:" << propertiesJson;
+                qDebug() << "DialogManager::showPinSelectionDialog - 跳过未选中的管脚: " << pData.pinName;
             }
         }
 

@@ -2142,6 +2142,21 @@ void MainWindow::deletePins()
                     break;
                 }
 
+                // 删除VectorTableColumnConfiguration表中的列配置
+                QSqlQuery deleteColumnConfigQuery(db);
+                deleteColumnConfigQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE column_name = ? AND column_type = 'PIN_STATE_ID'");
+                deleteColumnConfigQuery.addBindValue(pinName);
+
+                if (!deleteColumnConfigQuery.exec())
+                {
+                    success = false;
+                    errorMsg = deleteColumnConfigQuery.lastError().text();
+                    qDebug() << "MainWindow::deletePins - 删除管脚列配置失败:" << errorMsg;
+                    break;
+                }
+
+                qDebug() << "MainWindow::deletePins - 成功删除管脚列配置:" << pinName;
+
                 // 删除管脚本身
                 QSqlQuery deletePinQuery(db);
                 deletePinQuery.prepare("DELETE FROM pin_list WHERE id = ?");
