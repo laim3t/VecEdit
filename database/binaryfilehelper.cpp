@@ -235,10 +235,12 @@ namespace Persistence
                     case Vector::ColumnDataType::TEXT:
                         val = QString("");
                         break;
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        val = QString("X"); // 管脚状态默认为"X"
+                        break;
                     case Vector::ColumnDataType::INTEGER:
                     case Vector::ColumnDataType::INSTRUCTION_ID:
                     case Vector::ColumnDataType::TIMESET_ID:
-                    case Vector::ColumnDataType::PIN_STATE_ID:
                         val = 0;
                         break;
                     case Vector::ColumnDataType::REAL:
@@ -315,12 +317,14 @@ namespace Persistence
                     switch (col.type)
                     {
                     case Vector::ColumnDataType::TEXT:
-                        val = QString("X"); // 对于管脚状态，默认使用"X"
+                        val = QString("");
+                        break;
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        val = QString("X"); // 管脚状态默认为"X"
                         break;
                     case Vector::ColumnDataType::INTEGER:
                     case Vector::ColumnDataType::INSTRUCTION_ID:
                     case Vector::ColumnDataType::TIMESET_ID:
-                    case Vector::ColumnDataType::PIN_STATE_ID:
                         val = 0;
                         break;
                     case Vector::ColumnDataType::REAL:
@@ -471,10 +475,12 @@ namespace Persistence
                     case Vector::ColumnDataType::TEXT:
                         deserializedRow.append(QString(""));
                         break;
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        deserializedRow.append(QString("X")); // 管脚状态默认为"X"
+                        break;
                     case Vector::ColumnDataType::INTEGER:
                     case Vector::ColumnDataType::INSTRUCTION_ID:
                     case Vector::ColumnDataType::TIMESET_ID:
-                    case Vector::ColumnDataType::PIN_STATE_ID:
                         deserializedRow.append(0);
                         break;
                     case Vector::ColumnDataType::REAL:
