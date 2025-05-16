@@ -172,10 +172,28 @@ namespace Persistence
             case Vector::ColumnDataType::TEXT:
                 out << val.toString();
                 break;
+            case Vector::ColumnDataType::PIN_STATE_ID:
+                // 对管脚状态特殊处理
+                // 如果值为空或0，写入"X"作为默认值
+                if (val.isNull() || !val.isValid() || val.toInt() == 0 || val.toString().isEmpty())
+                {
+                    out << QString("X");
+                    qDebug() << funcName << " - 管脚状态列使用默认值'X'";
+                }
+                else if (val.type() == QVariant::String || val.type() == QVariant::Char)
+                {
+                    // 如果值已经是字符串，直接写入
+                    out << val.toString();
+                }
+                else
+                {
+                    // 如果是整数等其他类型，转换为字符串
+                    out << val.toString();
+                }
+                break;
             case Vector::ColumnDataType::INTEGER:
             case Vector::ColumnDataType::INSTRUCTION_ID:
             case Vector::ColumnDataType::TIMESET_ID:
-            case Vector::ColumnDataType::PIN_STATE_ID:
                 out << val.toInt();
                 break;
             case Vector::ColumnDataType::REAL:
@@ -270,10 +288,22 @@ namespace Persistence
                     val = s;
                     break;
                 }
+                case Vector::ColumnDataType::PIN_STATE_ID:
+                {
+                    // 读取为字符串
+                    QString s;
+                    in >> s;
+                    // 如果为空，默认为"X"
+                    if (s.isEmpty())
+                    {
+                        s = "X";
+                    }
+                    val = s;
+                    break;
+                }
                 case Vector::ColumnDataType::INTEGER:
                 case Vector::ColumnDataType::INSTRUCTION_ID:
                 case Vector::ColumnDataType::TIMESET_ID:
-                case Vector::ColumnDataType::PIN_STATE_ID:
                 {
                     int v = 0;
                     in >> v;

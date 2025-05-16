@@ -25,6 +25,17 @@
 #include <QSqlError>
 #include <QDebug>
 #include <QProgressDialog>
+#include <QJsonObject>
+#include <QJsonDocument>
+
+struct PinDataFromDialog
+{
+    int pinId;
+    QString pinName;
+    int typeId;
+    int channelCount;
+    bool isChecked;
+};
 
 DialogManager::DialogManager(QWidget *parent)
     : m_parent(parent)
@@ -185,34 +196,50 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         bool success = true;
         QSqlQuery queryHelper(db); // Use a helper query object for cleanup and column config
 
-        // 1. 清除该表旧的列配置 (确保与新选择同步)
+        // 1a. 清除该表旧的 VectorTableColumnConfiguration (确保与新选择同步)
         qDebug() << "DialogManager::showPinSelectionDialog - Preparing to delete old column config for tableId:" << tableId;
         bool prepareOk = queryHelper.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
         if (!prepareOk)
         {
-            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to prepare delete query:" << queryHelper.lastError().text();
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to prepare delete query for ColumnConfiguration:" << queryHelper.lastError().text();
             QMessageBox::critical(m_parent, "数据库准备错误", "准备清除旧列配置失败：" + queryHelper.lastError().text());
             db.rollback();
             return false;
         }
-        qDebug() << "DialogManager::showPinSelectionDialog - Delete query prepared. Binding tableId:" << tableId;
         queryHelper.addBindValue(tableId);
-        qDebug() << "DialogManager::showPinSelectionDialog - Executing delete query. Bound values:" << queryHelper.boundValues();
         if (!queryHelper.exec())
         {
-            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to execute delete query:" << queryHelper.lastError().text() << " (Bound values:" << queryHelper.boundValues() << ")";
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to execute delete query for ColumnConfiguration:" << queryHelper.lastError().text() << " (Bound values:" << queryHelper.boundValues() << ")";
             QMessageBox::critical(m_parent, "数据库错误", "清除旧列配置失败：" + queryHelper.lastError().text());
-            success = false;
             db.rollback(); // 回滚事务
             return false;
         }
         qDebug() << "DialogManager::showPinSelectionDialog - Successfully deleted old column config.";
 
+        // 1b. 清除该表旧的 vector_table_pins 记录 (NEW AND IMPORTANT)
+        qDebug() << "DialogManager::showPinSelectionDialog - Preparing to delete old vector_table_pins for tableId:" << tableId;
+        prepareOk = queryHelper.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
+        if (!prepareOk)
+        {
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to prepare delete query for vector_table_pins:" << queryHelper.lastError().text();
+            QMessageBox::critical(m_parent, "数据库准备错误", "准备清除旧管脚关联失败：" + queryHelper.lastError().text());
+            db.rollback();
+            return false;
+        }
+        queryHelper.addBindValue(tableId);
+        if (!queryHelper.exec())
+        {
+            qCritical() << "DialogManager::showPinSelectionDialog - FAILED to execute delete query for vector_table_pins:" << queryHelper.lastError().text() << " (Bound values:" << queryHelper.boundValues() << ")";
+            QMessageBox::critical(m_parent, "数据库错误", "清除旧管脚关联失败：" + queryHelper.lastError().text());
+            db.rollback();
+            return false;
+        }
+        qDebug() << "DialogManager::showPinSelectionDialog - Successfully deleted old vector_table_pins.";
+
         int columnOrder = 0; // 用于确定列顺序
 
         // 添加标准列配置
         qDebug() << "DialogManager::showPinSelectionDialog - 开始添加标准列配置";
-
         // 1. 添加Label列
         queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
                             "(master_record_id, column_name, column_order, column_type, data_properties) "
@@ -321,77 +348,103 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
             return false;
         }
 
-        qDebug() << "DialogManager::showPinSelectionDialog - 已成功添加6个标准列配置";
+        qDebug() << "DialogManager::showPinSelectionDialog - 已成功添加" << columnOrder << "个标准列配置";
 
-        // 继续添加用户选择的管脚列
-        for (auto it = pinCheckboxes.begin(); it != pinCheckboxes.end(); ++it)
+        // 收集所有管脚的配置信息
+        QList<PinDataFromDialog> allPinDataFromDialog;
+        for (auto it_lp = localPinList.begin(); it_lp != localPinList.end(); ++it_lp)
+        {
+            int pinId = it_lp.key();
+            QString pinName = it_lp.value();
+            QCheckBox *cb = pinCheckboxes.value(pinId);
+            QComboBox *combo = pinTypeComboBoxes.value(pinId);
+
+            PinDataFromDialog pData;
+            pData.pinId = pinId;
+            pData.pinName = pinName;
+            pData.typeId = combo ? combo->currentData().toInt() : 1; // Default to type_id 1 if combo is null
+            pData.channelCount = 1;                                  // From "x1"
+            pData.isChecked = cb ? cb->isChecked() : false;
+            allPinDataFromDialog.append(pData);
+        }
+
+        // 按照管脚名称排序（如果需要确保列顺序基于管脚名称）
+        // std::sort(allPinDataFromDialog.begin(), allPinDataFromDialog.end(), [](const PinDataFromDialog& a, const PinDataFromDialog& b){ return a.pinName < b.pinName; });
+
+        for (const auto &pData : allPinDataFromDialog)
         {
             if (!success)
-                break; // 如果之前的操作失败，则跳出循环
+                break;
 
-            int pinId = it.key();
-            QCheckBox *checkbox = it.value();
-            QString pinName = checkbox->text(); // 获取管脚名称，这将是列名
-
-            if (checkbox->isChecked())
+            // 2. 如果管脚被勾选，插入到 vector_table_pins
+            if (pData.isChecked)
             {
-                QComboBox *typeCombo = pinTypeComboBoxes[pinId];
-                int typeId = typeCombo->currentData().toInt();
-                QString typeName = typeCombo->currentText(); // 获取类型名称 (In, Out etc.) - 可能用于确定列类型
-                int channelCount = 1;                        // 固定为1
-
-                // 2. 插入到 vector_table_pins (记录用户选择)
-                queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) "
+                queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_channel_count, pin_type) "
                                     "VALUES (?, ?, ?, ?)");
                 queryHelper.addBindValue(tableId);
-                queryHelper.addBindValue(pinId);
-                queryHelper.addBindValue(typeId);
-                queryHelper.addBindValue(channelCount);
+                queryHelper.addBindValue(pData.pinId);
+                queryHelper.addBindValue(pData.channelCount);
+                queryHelper.addBindValue(pData.typeId);
                 if (!queryHelper.exec())
                 {
-                    QMessageBox::critical(m_parent, "数据库错误", "保存管脚信息到 vector_table_pins 失败：" + queryHelper.lastError().text());
+                    QMessageBox::critical(m_parent, "数据库错误", QString("向 vector_table_pins 添加管脚 %1 失败：").arg(pData.pinName) + queryHelper.lastError().text());
                     success = false;
-                    continue; // 跳过此管脚的列配置插入
+                    continue;
                 }
+            }
 
-                // 3. 插入到 VectorTableColumnConfiguration (定义实际的表列结构)
-                queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties) "
-                                    "VALUES (?, ?, ?, ?, ?)");
-                queryHelper.addBindValue(tableId);
-                queryHelper.addBindValue(pinName);       // 使用管脚名称作为列名
-                queryHelper.addBindValue(columnOrder++); // 设置列顺序并递增
-                // *** 确定列类型 - 假设所有管脚列都存储文本状态 ***
-                queryHelper.addBindValue("TEXT"); // 设置列类型为 TEXT
-                queryHelper.addBindValue("{}");   // 设置默认的空JSON对象作为属性
+            // 3. 为所有对话框中列出的管脚插入到 VectorTableColumnConfiguration
+            QJsonObject properties;
+            properties["pin_list_id"] = pData.pinId;
+            properties["channel_count"] = pData.channelCount;
+            properties["type_id"] = pData.typeId;
+            QJsonDocument doc(properties);
+            QString propertiesJson = doc.toJson(QJsonDocument::Compact);
 
-                if (!queryHelper.exec())
-                {
-                    QMessageBox::critical(m_parent, "数据库错误", "保存列配置信息失败：" + queryHelper.lastError().text());
-                    success = false;
-                    // 不必break，让循环继续处理其他管脚，但最终会回滚
-                }
+            queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                                "(master_record_id, column_name, column_order, column_type, data_properties) "
+                                "VALUES (?, ?, ?, ?, ?)");
+            queryHelper.addBindValue(tableId);
+            queryHelper.addBindValue(pData.pinName);
+            queryHelper.addBindValue(columnOrder++);
+            queryHelper.addBindValue("PIN_STATE_ID");
+            queryHelper.addBindValue(propertiesJson);
+
+            if (!queryHelper.exec())
+            {
+                QMessageBox::critical(m_parent, "数据库错误", QString("为管脚 %1 保存列配置失败： ").arg(pData.pinName) + queryHelper.lastError().text());
+                success = false;
+                // continue; // Allow other column configs to be attempted, but transaction will fail
+            }
+            else
+            {
+                qDebug() << "DialogManager::showPinSelectionDialog - Successfully added column config for pin:" << pData.pinName << "Props:" << propertiesJson;
             }
         }
 
-        // 4. 更新主记录中的 column_count (可选但推荐)
-        if (success)
+        if (!success)
         {
-            queryHelper.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
-            queryHelper.addBindValue(columnOrder); // columnOrder 现在等于实际添加的列数
-            queryHelper.addBindValue(tableId);
-            if (!queryHelper.exec())
-            {
-                qWarning() << "DialogManager::showPinSelectionDialog - 更新主记录 column_count 失败: " << queryHelper.lastError().text();
-                // 不一定需要因此失败整个操作，可以只记录警告
-            }
+            db.rollback();
+            return false;
+        }
+
+        // 4. 更新主记录中的 column_count
+        queryHelper.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
+        queryHelper.addBindValue(columnOrder);
+        queryHelper.addBindValue(tableId);
+        if (!queryHelper.exec())
+        {
+            qWarning() << "DialogManager::showPinSelectionDialog - 更新主记录 column_count 失败: " << queryHelper.lastError().text();
+            // This might not be a critical failure to warrant a full rollback if pins/cols were set,
+            // but for consistency it's better to ensure it succeeds.
+            // For now, let's consider it non-critical if previous steps succeeded.
+            // success = false; // Uncomment if this should cause a rollback
         }
 
         if (success)
         {
             db.commit();
             QMessageBox::information(m_parent, "保存成功", "管脚信息已成功保存！");
-
-            // 显示向量行数据录入对话框
             showVectorDataDialog(tableId, tableName, 0);
             return true;
         }
@@ -403,11 +456,57 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
     }
     else
     {
-        // 用户取消，删除已创建的向量表
+        // 用户取消，删除已创建的向量表及相关记录
+        qDebug() << "DialogManager::showPinSelectionDialog - User cancelled. Cleaning up tableId:" << tableId;
+        QSqlDatabase db = DatabaseManager::instance()->database(); // Get a fresh instance or ensure it's the same
+        db.transaction();
+        bool cleanupSuccess = true;
+
         QSqlQuery deleteQuery(db);
+
+        deleteQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+        deleteQuery.addBindValue(tableId);
+        if (!deleteQuery.exec())
+        {
+            qWarning() << "DialogManager::showPinSelectionDialog (Cancel) - Failed to delete VectorTableColumnConfiguration:" << deleteQuery.lastError().text();
+            cleanupSuccess = false;
+        }
+
+        deleteQuery.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
+        deleteQuery.addBindValue(tableId);
+        if (!deleteQuery.exec())
+        {
+            qWarning() << "DialogManager::showPinSelectionDialog (Cancel) - Failed to delete vector_table_pins:" << deleteQuery.lastError().text();
+            cleanupSuccess = false;
+        }
+
+        // Assuming original_vector_table_id in VectorTableMasterRecord is the same as tableId (newTableId from MainWindow::addNewVectorTable)
+        deleteQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE original_vector_table_id = ?");
+        deleteQuery.addBindValue(tableId);
+        if (!deleteQuery.exec())
+        {
+            qWarning() << "DialogManager::showPinSelectionDialog (Cancel) - Failed to delete VectorTableMasterRecord:" << deleteQuery.lastError().text();
+            cleanupSuccess = false;
+        }
+
         deleteQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
         deleteQuery.addBindValue(tableId);
-        deleteQuery.exec();
+        if (!deleteQuery.exec())
+        {
+            qWarning() << "DialogManager::showPinSelectionDialog (Cancel) - Failed to delete vector_tables record:" << tableId << deleteQuery.lastError().text();
+            cleanupSuccess = false;
+        }
+
+        if (cleanupSuccess)
+        {
+            db.commit();
+            qDebug() << "DialogManager::showPinSelectionDialog (Cancel) - Cleanup successful for tableId:" << tableId;
+        }
+        else
+        {
+            db.rollback();
+            qWarning() << "DialogManager::showPinSelectionDialog (Cancel) - Cleanup failed for tableId:" << tableId << ", transaction rolled back.";
+        }
         return false;
     }
 }
