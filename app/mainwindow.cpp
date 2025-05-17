@@ -2142,20 +2142,46 @@ void MainWindow::deletePins()
                     break;
                 }
 
-                // 删除VectorTableColumnConfiguration表中的列配置
-                QSqlQuery deleteColumnConfigQuery(db);
-                deleteColumnConfigQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE column_name = ? AND column_type = 'PIN_STATE_ID'");
-                deleteColumnConfigQuery.addBindValue(pinName);
+                // 查找使用此管脚的向量表
+                QSqlQuery findTablesQuery(db);
+                findTablesQuery.prepare("SELECT DISTINCT vtm.id, vtm.table_name FROM VectorTableMasterRecord vtm "
+                                        "JOIN VectorTableColumnConfiguration vtcc ON vtm.id = vtcc.master_record_id "
+                                        "WHERE vtcc.column_name = ? AND vtcc.column_type = 'PIN_STATE_ID'");
+                findTablesQuery.addBindValue(pinName);
 
-                if (!deleteColumnConfigQuery.exec())
+                if (!findTablesQuery.exec())
                 {
                     success = false;
-                    errorMsg = deleteColumnConfigQuery.lastError().text();
-                    qDebug() << "MainWindow::deletePins - 删除管脚列配置失败:" << errorMsg;
+                    errorMsg = findTablesQuery.lastError().text();
+                    qDebug() << "MainWindow::deletePins - 查找使用管脚的向量表失败:" << errorMsg;
                     break;
                 }
 
-                qDebug() << "MainWindow::deletePins - 成功删除管脚列配置:" << pinName;
+                // 对每个使用此管脚的向量表，将对应列标记为不可见
+                while (findTablesQuery.next() && success)
+                {
+                    int tableId = findTablesQuery.value(0).toInt();
+                    QString tableName = findTablesQuery.value(1).toString();
+
+                    qDebug() << "MainWindow::deletePins - 在表 " << tableName << " (ID:" << tableId << ") 中将管脚 " << pinName << " 标记为不可见";
+
+                    // 使用VectorDataHandler::hideVectorTableColumn方法逻辑删除列
+                    QString hideError;
+                    if (!VectorDataHandler::instance().hideVectorTableColumn(tableId, pinName, hideError))
+                    {
+                        success = false;
+                        errorMsg = hideError;
+                        qDebug() << "MainWindow::deletePins - 逻辑删除管脚列失败:" << errorMsg;
+                        break;
+                    }
+                }
+
+                if (!success)
+                {
+                    break;
+                }
+
+                qDebug() << "MainWindow::deletePins - 成功逻辑删除管脚列:" << pinName;
 
                 // 删除管脚本身
                 QSqlQuery deletePinQuery(db);

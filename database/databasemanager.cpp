@@ -200,15 +200,19 @@ bool DatabaseManager::openExistingDatabase(const QString &dbFilePath)
             }
         }
 
-        // --- 升级到版本 3 (示例) ---
-        // if (upgradeSuccess && m_currentDbFileVersion < 3) {
-        //     qInfo() << "正在升级到版本 3...";
-        //     if (!performSchemaUpgradeToV3()) {
-        //         upgradeSuccess = false;
-        //     } else {
-        //          qInfo() << "成功升级到版本 3.";
-        //     }
-        // }
+        // --- 升级到版本 3 ---
+        if (upgradeSuccess && m_currentDbFileVersion < 3)
+        {
+            qInfo() << "正在升级到版本 3...";
+            if (!performSchemaUpgradeToV3())
+            {
+                upgradeSuccess = false;
+            }
+            else
+            {
+                qInfo() << "成功升级到版本 3.";
+            }
+        }
 
         if (upgradeSuccess)
         {
@@ -1096,3 +1100,57 @@ bool DatabaseManager::performSchemaUpgradeToV2()
     return true;
 }
 // ---- End performSchemaUpgradeToV2 ----
+
+bool DatabaseManager::performSchemaUpgradeToV3()
+{
+    qInfo() << "DatabaseManager::performSchemaUpgradeToV3 - 开始数据库升级到版本3...";
+
+    // 1. 执行 update_to_v3.sql 脚本
+    QString updateScriptPath;
+    if (QFile::exists(":/db/updates/update_to_v3.sql"))
+    {
+        updateScriptPath = ":/db/updates/update_to_v3.sql";
+    }
+    else
+    {
+        // 尝试查找脚本文件的备选路径
+        QStringList potentialPaths;
+        potentialPaths << QCoreApplication::applicationDirPath() + "/resources/db/updates/update_to_v3.sql";
+        potentialPaths << QDir(QCoreApplication::applicationDirPath()).filePath("../../resources/db/updates/update_to_v3.sql");
+
+        for (const QString &path : potentialPaths)
+        {
+            if (QFile::exists(path))
+            {
+                updateScriptPath = path;
+                break;
+            }
+        }
+
+        if (updateScriptPath.isEmpty())
+        {
+            m_lastError = "升级脚本 update_to_v3.sql 未找到。检查资源路径 : :/db/updates/update_to_v3.sql 或备用文件系统路径.";
+            qCritical() << m_lastError;
+            return false;
+        }
+    }
+
+    qInfo() << "  执行升级脚本: " << updateScriptPath;
+    if (!executeSqlScriptFromFile(updateScriptPath))
+    {
+        qCritical() << "  执行升级脚本 update_to_v3.sql 失败.";
+        return false;
+    }
+    qInfo() << "  升级脚本执行成功，已添加 IsVisible 字段到 VectorTableColumnConfiguration 表.";
+
+    // 更新数据库版本号
+    if (!setCurrentDbFileVersionInTable(3))
+    {
+        qCritical() << "  无法在 db_version 表中将版本更新到 3.";
+        return false;
+    }
+
+    m_currentDbFileVersion = 3;
+    qInfo() << "DatabaseManager::performSchemaUpgradeToV3 - 数据库成功升级到版本3.";
+    return true;
+}

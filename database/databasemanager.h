@@ -21,7 +21,7 @@ public:
     ~DatabaseManager();
 
     // 支持的最新数据库 Schema 版本号
-    static const int LATEST_DB_SCHEMA_VERSION = 2;
+    static const int LATEST_DB_SCHEMA_VERSION = 3;
 
     // 初始化新数据库（从schema.sql创建）
     bool initializeNewDatabase(const QString &dbFilePath, const QString &schemaFilePath);
@@ -62,6 +62,7 @@ public:
 private:
     // 升级数据库 Schema 到特定版本的辅助函数
     bool performSchemaUpgradeToV2();
+    bool performSchemaUpgradeToV3();
 
     // 将旧格式(SQLite表)的向量表数据迁移到新格式(二进制文件)
     bool migrateVectorDataToBinaryFiles();

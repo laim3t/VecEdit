@@ -218,6 +218,7 @@ CREATE TABLE VectorTableColumnConfiguration (
                                                             -- "INSTRUCTION_ID" 表示存储的是 instruction_options.id
     data_properties TEXT,                                   -- 可选: 存储此列的其他属性 (例如，如果是管脚列，可以存 pin_list.id, channel_count, type_options.id)
                                                             -- 建议使用 JSON 格式: '{"pin_list_id": 5, "channel_count": 1, "type_id": 2}'
+    IsVisible BOOLEAN NOT NULL DEFAULT 1,                   -- 标记列是否可见（用于逻辑删除）
     UNIQUE (master_record_id, column_name),
     UNIQUE (master_record_id, column_order),
     FOREIGN KEY (master_record_id) REFERENCES VectorTableMasterRecord(id) ON DELETE CASCADE

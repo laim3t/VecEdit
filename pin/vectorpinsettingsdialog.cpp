@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include "../database/databasemanager.h"
+#include "../vector/vectordatahandler.h"
 
 VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tableName, QWidget *parent)
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
@@ -327,16 +328,13 @@ void VectorPinSettingsDialog::onAccepted()
                     throw std::runtime_error(pinDeleteQuery.lastError().text().toStdString());
                 }
 
-                // 同时删除对应的VectorTableColumnConfiguration记录
-                QSqlQuery colConfigDeleteQuery(db);
-                colConfigDeleteQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
-                colConfigDeleteQuery.bindValue(":tableId", m_tableId);
-                colConfigDeleteQuery.bindValue(":pinName", m_allPins[pinId]);
-
-                if (!colConfigDeleteQuery.exec())
+                // 逻辑删除对应的VectorTableColumnConfiguration记录（设置IsVisible=0）
+                QString pinName = m_allPins[pinId];
+                QString errorMsg;
+                if (!VectorDataHandler::instance().hideVectorTableColumn(m_tableId, pinName, errorMsg))
                 {
-                    qWarning() << "VectorPinSettingsDialog::onAccepted - 删除列配置失败:" << colConfigDeleteQuery.lastError().text();
-                    throw std::runtime_error(colConfigDeleteQuery.lastError().text().toStdString());
+                    qWarning() << "VectorPinSettingsDialog::onAccepted - 逻辑删除列配置失败:" << errorMsg;
+                    throw std::runtime_error(errorMsg.toStdString());
                 }
             }
         }

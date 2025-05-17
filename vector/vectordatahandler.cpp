@@ -52,15 +52,17 @@ namespace
         schemaVersion = metaQuery.value(1).toInt();
         rowCount = metaQuery.value(2).toInt();
         qDebug() << funcName << " - 文件名:" << binFileName << ", schemaVersion:" << schemaVersion << ", rowCount:" << rowCount;
-        // 2. 查询列结构
+
+        // 2. 查询列结构 - 只加载IsVisible=1的列
         QSqlQuery colQuery(db);
-        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
         colQuery.addBindValue(tableId);
         if (!colQuery.exec())
         {
             qWarning() << funcName << " - 查询列结构失败, 错误:" << colQuery.lastError().text();
             return false;
         }
+
         columns.clear();
         while (colQuery.next())
         {
@@ -100,6 +102,7 @@ namespace
         }
         return true;
     }
+
     // 辅助函数：从二进制文件读取所有行
     bool readAllRowsFromBinary(const QString &binFileName, const QList<Vector::ColumnInfo> &columns, int schemaVersion, QList<Vector::RowData> &rows)
     {
@@ -1466,5 +1469,57 @@ bool VectorDataHandler::gotoLine(int tableId, int lineNumber)
     // 但在大多数情况下，我们只需要知道行数，因为我们会在UI层面使用selectRow方法来选中行
 
     qDebug() << "VectorDataHandler::gotoLine - 跳转成功：表" << tableName << "的第" << lineNumber << "行";
+    return true;
+}
+
+bool VectorDataHandler::hideVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage)
+{
+    const QString funcName = "VectorDataHandler::hideVectorTableColumn";
+    qDebug() << funcName << " - 开始逻辑删除列, 表ID:" << tableId << ", 列名:" << columnName;
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未打开";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 检查列是否存在
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT id FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND column_name = ?");
+    checkQuery.addBindValue(tableId);
+    checkQuery.addBindValue(columnName);
+
+    if (!checkQuery.exec())
+    {
+        errorMessage = "查询列信息失败: " + checkQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (!checkQuery.next())
+    {
+        errorMessage = QString("找不到表 %1 中的列 '%2'").arg(tableId).arg(columnName);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    int columnId = checkQuery.value(0).toInt();
+    qDebug() << funcName << " - 找到列ID:" << columnId;
+
+    // 更新IsVisible字段为0（逻辑删除）
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET IsVisible = 0 WHERE id = ?");
+    updateQuery.addBindValue(columnId);
+
+    if (!updateQuery.exec())
+    {
+        errorMessage = "更新列可见性失败: " + updateQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 成功将列 '" << columnName << "' 标记为不可见 (IsVisible=0)";
     return true;
 }

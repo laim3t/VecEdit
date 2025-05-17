@@ -46,6 +46,9 @@ public:
     // 跳转到指定行
     bool gotoLine(int tableId, int lineNumber);
 
+    // 逻辑删除列（设置IsVisible=0）
+    bool hideVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage);
+
     // 取消当前操作
     void cancelOperation();
 
