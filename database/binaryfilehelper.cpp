@@ -174,21 +174,42 @@ namespace Persistence
                 break;
             case Vector::ColumnDataType::PIN_STATE_ID:
                 // 对管脚状态特殊处理
-                // 如果值为空或0，写入"X"作为默认值
-                if (val.isNull() || !val.isValid() || val.toInt() == 0 || val.toString().isEmpty())
+                // 确保管脚状态始终保存为字符串类型
+                if (val.isNull() || !val.isValid() || val.toString().isEmpty())
                 {
+                    // 如果值为空、无效或空字符串，写入"X"作为默认值
                     out << QString("X");
-                    qDebug() << funcName << " - 管脚状态列使用默认值'X'";
+                    qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
                 }
                 else if (val.type() == QVariant::String || val.type() == QVariant::Char)
                 {
-                    // 如果值已经是字符串，直接写入
-                    out << val.toString();
+                    // 如果值已经是字符串，检查是否为空字符串
+                    QString pinValue = val.toString().trimmed();
+                    if (pinValue.isEmpty())
+                    {
+                        out << QString("X");
+                        qDebug() << funcName << " - 管脚状态列为空字符串，使用默认值'X'，列名:" << col.name;
+                    }
+                    else
+                    {
+                        qDebug() << funcName << " - 管脚状态列写入有效值:" << pinValue << "，列名:" << col.name;
+                        out << pinValue;
+                    }
                 }
                 else
                 {
                     // 如果是整数等其他类型，转换为字符串
-                    out << val.toString();
+                    QString pinValue = val.toString().trimmed();
+                    if (pinValue.isEmpty() || val.toInt() == 0)
+                    {
+                        out << QString("X");
+                        qDebug() << funcName << " - 管脚状态列值为0或转换后为空，使用默认值'X'，列名:" << col.name;
+                    }
+                    else
+                    {
+                        qDebug() << funcName << " - 管脚状态列写入转换值:" << pinValue << "，列名:" << col.name;
+                        out << pinValue;
+                    }
                 }
                 break;
             case Vector::ColumnDataType::INTEGER:
@@ -228,9 +249,37 @@ namespace Persistence
         in.setByteOrder(QDataStream::LittleEndian);
 
         // 为每个列创建一个空值
+        rowData.resize(columns.size());
+        // 为所有列设置默认值
         for (int i = 0; i < columns.size(); ++i)
         {
-            rowData.append(QVariant());
+            const auto &col = columns[i];
+            switch (col.type)
+            {
+            case Vector::ColumnDataType::TEXT:
+                rowData[i] = QString("");
+                break;
+            case Vector::ColumnDataType::PIN_STATE_ID:
+                rowData[i] = QString("X"); // 管脚状态默认为"X"
+                break;
+            case Vector::ColumnDataType::INTEGER:
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+            case Vector::ColumnDataType::TIMESET_ID:
+                rowData[i] = 0;
+                break;
+            case Vector::ColumnDataType::REAL:
+                rowData[i] = 0.0;
+                break;
+            case Vector::ColumnDataType::BOOLEAN:
+                rowData[i] = false;
+                break;
+            case Vector::ColumnDataType::JSON_PROPERTIES:
+                rowData[i] = QJsonObject();
+                break;
+            default:
+                rowData[i] = QVariant();
+                break;
+            }
         }
 
         // 根据文件版本选择不同的反序列化方法
@@ -247,34 +296,7 @@ namespace Persistence
                 if (in.atEnd())
                 {
                     qWarning() << funcName << " - 数据流已到达末尾，列:" << col.name << "使用默认值";
-                    // 使用默认值
-                    switch (col.type)
-                    {
-                    case Vector::ColumnDataType::TEXT:
-                        val = QString("");
-                        break;
-                    case Vector::ColumnDataType::PIN_STATE_ID:
-                        val = QString("X"); // 管脚状态默认为"X"
-                        break;
-                    case Vector::ColumnDataType::INTEGER:
-                    case Vector::ColumnDataType::INSTRUCTION_ID:
-                    case Vector::ColumnDataType::TIMESET_ID:
-                        val = 0;
-                        break;
-                    case Vector::ColumnDataType::REAL:
-                        val = 0.0;
-                        break;
-                    case Vector::ColumnDataType::BOOLEAN:
-                        val = false;
-                        break;
-                    case Vector::ColumnDataType::JSON_PROPERTIES:
-                        val = QJsonObject();
-                        break;
-                    default:
-                        val = QVariant();
-                        break;
-                    }
-                    rowData[i] = val;
+                    // 保留之前设置的默认值
                     continue; // 继续处理下一列
                 }
 
@@ -293,10 +315,15 @@ namespace Persistence
                     // 读取为字符串
                     QString s;
                     in >> s;
-                    // 如果为空，默认为"X"
-                    if (s.isEmpty())
+                    // 如果为空或无效，使用"X"
+                    if (s.isEmpty() || s.isNull() || s.trimmed().isEmpty())
                     {
                         s = "X";
+                        qDebug() << funcName << " - 管脚状态列值为空，使用默认值'X'，列名:" << col.name;
+                    }
+                    else
+                    {
+                        qDebug() << funcName << " - 管脚状态列读取到有效值:" << s << "，列名:" << col.name;
                     }
                     val = s;
                     break;
@@ -343,38 +370,15 @@ namespace Persistence
                 if (in.status() != QDataStream::Ok)
                 {
                     qWarning() << funcName << " - QDataStream 读取失败, 列:" << col.name << ", 状态:" << in.status() << ", 使用默认值";
-                    // 使用默认值
-                    switch (col.type)
-                    {
-                    case Vector::ColumnDataType::TEXT:
-                        val = QString("");
-                        break;
-                    case Vector::ColumnDataType::PIN_STATE_ID:
-                        val = QString("X"); // 管脚状态默认为"X"
-                        break;
-                    case Vector::ColumnDataType::INTEGER:
-                    case Vector::ColumnDataType::INSTRUCTION_ID:
-                    case Vector::ColumnDataType::TIMESET_ID:
-                        val = 0;
-                        break;
-                    case Vector::ColumnDataType::REAL:
-                        val = 0.0;
-                        break;
-                    case Vector::ColumnDataType::BOOLEAN:
-                        val = false;
-                        break;
-                    case Vector::ColumnDataType::JSON_PROPERTIES:
-                        val = QJsonObject();
-                        break;
-                    default:
-                        val = QVariant();
-                        break;
-                    }
+                    // 保留之前设置的默认值
                     // 重置状态以继续处理后续列
                     in.resetStatus();
                 }
-
-                rowData[i] = val;
+                else
+                {
+                    // 读取成功，更新行数据
+                    rowData[i] = val;
+                }
             }
         }
         else if (fileVersion > 1)
@@ -389,6 +393,30 @@ namespace Persistence
         {
             qWarning() << funcName << " - 无效的文件版本:" << fileVersion;
             return false;
+        }
+
+        // 最后检查所有PIN_STATE_ID类型的列，确保它们都有有效的值
+        for (int i = 0; i < columns.size(); ++i)
+        {
+            if (columns[i].type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
+                QVariant &val = rowData[i];
+                QString strValue = val.toString().trimmed();
+                if (val.isNull() || !val.isValid() || strValue.isEmpty())
+                {
+                    val = QString("X");
+                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值为空，设置为默认值'X'";
+                }
+                else if (strValue != "0" && strValue != "1" && strValue != "X" && strValue != "L" && strValue != "H" && strValue != "Z")
+                {
+                    // 添加额外检查，确保管脚值是有效的状态
+                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值" << strValue << "不是有效的管脚状态，保留原值";
+                }
+                else
+                {
+                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值" << strValue << "是有效值";
+                }
+            }
         }
 
         qDebug() << funcName << " - 反序列化完成, 行数据项:" << rowData.size();
@@ -563,6 +591,17 @@ namespace Persistence
     {
         const QString funcName = "BinaryFileHelper::writeAllRowsToBinary";
         qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << ". Attempting to write" << rows.size() << "rows with" << columns.size() << "columns.";
+
+        // 打印列信息以便诊断
+        qDebug() << funcName << "- 列信息详情:";
+        for (int i = 0; i < columns.size(); ++i)
+        {
+            qDebug() << funcName << "  列[" << i << "]: ID=" << columns[i].id
+                     << ", 名称=" << columns[i].name
+                     << ", 顺序=" << columns[i].order
+                     << ", 类型=" << columns[i].original_type_str
+                     << ", 可见=" << columns[i].is_visible;
+        }
 
         QFile file(binFilePath);
         qDebug() << funcName << "- Attempting to open file for writing (Truncate).";
