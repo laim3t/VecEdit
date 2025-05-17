@@ -42,12 +42,14 @@ namespace Vector
         ColumnDataType type;         // The data type of the column (guides serialization)
         QString original_type_str;   // The original string for type from DB (e.g., "TEXT", "PIN_STATE_ID")
         QJsonObject data_properties; // Additional properties, e.g., for pin columns (pin_list_id, channel_count)
+        bool is_visible;             // 表示列是否可见（对应数据库中的IsVisible字段）
 
         ColumnInfo()
             : id(-1),
               vector_table_id(-1),
               order(-1),
-              type(ColumnDataType::TEXT) {}
+              type(ColumnDataType::TEXT),
+              is_visible(true) {}
 
         void logDetails(const QString &context) const
         {
@@ -57,6 +59,7 @@ namespace Vector
                                << "\n  Name: " << name
                                << "\n  Order: " << order
                                << "\n  Type: " << static_cast<int>(type) << " (Original: " << original_type_str << ")"
+                               << "\n  IsVisible: " << (is_visible ? "true" : "false")
                                << "\n  Properties: " << data_properties;
         }
     };

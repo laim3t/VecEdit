@@ -55,7 +55,7 @@ namespace
 
         // 2. 查询列结构 - 只加载IsVisible=1的列
         QSqlQuery colQuery(db);
-        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
+        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
         colQuery.addBindValue(tableId);
         if (!colQuery.exec())
         {
@@ -73,6 +73,8 @@ namespace
             col.order = colQuery.value(2).toInt();
             col.original_type_str = colQuery.value(3).toString();
             col.type = Vector::columnDataTypeFromString(col.original_type_str);
+            col.is_visible = colQuery.value(5).toBool();
+
             QString propStr = colQuery.value(4).toString();
             if (!propStr.isEmpty())
             {
@@ -345,22 +347,77 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         return false; // Return false as data is missing
     }
 
-    // 3. 读取所有行
-    QList<Vector::RowData> allRows;
-    if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    // 3. 读取所有行的原始数据
+    QList<Vector::RowData> allRowsOriginal;
+
+    // 3.1 获取全部列信息（包括隐藏的）以加载完整的二进制数据
+    QList<Vector::ColumnInfo> allColumns;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery colQuery(db);
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    colQuery.addBindValue(tableId);
+    if (!colQuery.exec())
     {
-        qWarning() << funcName << " - 二进制数据加载失败 (readAllRowsFromBinary 返回 false), 文件:" << absoluteBinFilePath;
-        // Clear table on failure
+        qWarning() << funcName << " - 查询完整列结构失败, 错误:" << colQuery.lastError().text();
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
         return false;
     }
-    qDebug() << funcName << " - 从二进制文件加载了 " << allRows.size() << " 行";
+
+    // 构建列映射：原始列索引 -> 可见列索引
+    // 这将帮助我们从二进制数据中正确提取数据到UI表中
+    QMap<int, int> columnIndexMapping;
+    int visibleColIndex = 0;
+
+    while (colQuery.next())
+    {
+        Vector::ColumnInfo col;
+        col.id = colQuery.value(0).toInt();
+        col.vector_table_id = tableId;
+        col.name = colQuery.value(1).toString();
+        col.order = colQuery.value(2).toInt();
+        col.original_type_str = colQuery.value(3).toString();
+        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.is_visible = colQuery.value(5).toBool();
+
+        QString propStr = colQuery.value(4).toString();
+        if (!propStr.isEmpty())
+        {
+            QJsonParseError err;
+            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+            {
+                col.data_properties = doc.object();
+            }
+        }
+
+        allColumns.append(col);
+
+        // 只为可见列创建映射
+        if (col.is_visible)
+        {
+            // 原始索引 -> 可见索引的映射
+            columnIndexMapping[col.order] = visibleColIndex++;
+            qDebug() << funcName << " - 列映射: 原始索引" << col.order
+                     << " -> 可见索引" << (visibleColIndex - 1)
+                     << ", 列名:" << col.name;
+        }
+    }
+
+    // 加载完整的二进制数据（包括隐藏列）
+    if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, allColumns, schemaVersion, allRowsOriginal))
+    {
+        qWarning() << funcName << " - 二进制数据加载失败 (readAllRowsFromBinary 返回 false), 文件:" << absoluteBinFilePath;
+        tableWidget->setColumnCount(0);
+        tableWidget->setRowCount(0);
+        return false;
+    }
+    qDebug() << funcName << " - 从二进制文件加载了 " << allRowsOriginal.size() << " 行, 原始列数:" << allColumns.size() << ", 可见列数:" << columns.size();
 
     // 校验从文件读取的行数与数据库记录的行数 (可选，但推荐)
-    if (allRows.size() != rowCountFromMeta)
+    if (allRowsOriginal.size() != rowCountFromMeta)
     {
-        qWarning() << funcName << " - 文件中的行数 (" << allRows.size()
+        qWarning() << funcName << " - 文件中的行数 (" << allRowsOriginal.size()
                    << ") 与数据库元数据记录的行数 (" << rowCountFromMeta
                    << ") 不匹配！文件: " << absoluteBinFilePath;
         // Decide how to proceed. Trust the file? Trust the DB? Error out?
@@ -415,32 +472,54 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         tableWidget->setColumnCount(headers.size());
     }
 
-    // 5. 填充数据
-    tableWidget->setRowCount(allRows.size());
-    qDebug() << funcName << " - 准备填充 " << allRows.size() << " 行到 QTableWidget";
-    for (int row = 0; row < allRows.size(); ++row)
+    // 5. 填充数据，根据映射关系处理
+    tableWidget->setRowCount(allRowsOriginal.size());
+    qDebug() << funcName << " - 准备填充 " << allRowsOriginal.size() << " 行到 QTableWidget";
+
+    for (int row = 0; row < allRowsOriginal.size(); ++row)
     {
-        const auto &rowData = allRows[row];
-        // Ensure rowData has enough columns, though readAllRowsFromBinary should guarantee this if successful
-        if (rowData.size() != columns.size())
+        const auto &rowDataOriginal = allRowsOriginal[row];
+
+        // 遍历所有原始列
+        for (int originalColIndex = 0; originalColIndex < allColumns.size(); ++originalColIndex)
         {
-            qWarning() << funcName << " - 数据行 " << row << " 的列数 (" << rowData.size()
-                       << ") 与表头列数 (" << columns.size() << ") 不匹配! 文件:" << absoluteBinFilePath;
-            // Skip this row or handle error appropriately
-            continue;
-        }
-        for (int col = 0; col < columns.size(); ++col)
-        {
-            // 优化: 避免重复创建 QTableWidgetItem，如果已有则更新
-            QTableWidgetItem *item = tableWidget->item(row, col);
-            if (!item)
+            // 检查该列是否可见并有映射
+            if (columnIndexMapping.contains(originalColIndex))
             {
-                item = new QTableWidgetItem();
-                tableWidget->setItem(row, col, item);
+                // 获取该列在UI表中的索引
+                int uiColIndex = columnIndexMapping[originalColIndex];
+
+                // 检查索引是否有效
+                if (uiColIndex >= 0 && uiColIndex < tableWidget->columnCount())
+                {
+                    // 创建或更新单元格
+                    QTableWidgetItem *item = tableWidget->item(row, uiColIndex);
+                    if (!item)
+                    {
+                        item = new QTableWidgetItem();
+                        tableWidget->setItem(row, uiColIndex, item);
+                    }
+
+                    // 设置数据
+                    if (originalColIndex < rowDataOriginal.size())
+                    {
+                        item->setData(Qt::DisplayRole, rowDataOriginal.value(originalColIndex));
+                    }
+                    else
+                    {
+                        qWarning() << funcName << " - 行 " << row << " 的原始列索引 " << originalColIndex
+                                   << " 超出数据范围 (" << rowDataOriginal.size() << ")";
+                    }
+                }
+                else
+                {
+                    qWarning() << funcName << " - 映射后的UI列索引 " << uiColIndex
+                               << " 超出表格列范围 (0-" << (tableWidget->columnCount() - 1) << ")";
+                }
             }
-            item->setData(Qt::DisplayRole, rowData.value(col)); // Use DisplayRole
         }
     }
+
     qDebug() << funcName << " - 加载完成, 行数:" << tableWidget->rowCount() << ", 列数:" << tableWidget->columnCount();
     return true;
 }
