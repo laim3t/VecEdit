@@ -378,7 +378,7 @@ bool TimeSetDataAccess::saveTimeSetEdgesToDatabase(int timeSetId, const QList<Ti
         }
         qDebug() << "TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功删除旧边沿参数 for TimeSet ID:" << timeSetId;
         deleteQuery.finish(); // Explicitly finish
-    }                         // deleteQuery goes out of scope here
+    } // deleteQuery goes out of scope here
 
     // 添加新的边沿参数
     if (edges.isEmpty())

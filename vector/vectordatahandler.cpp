@@ -927,6 +927,26 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             }
 
             int originalColIdx = columnIdToIndexMap[visibleColumn.id];
+
+            // 处理单元格内容 - 检查是否为管脚列（单元格控件）
+            if (visibleColumn.type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
+                // 对于管脚列，从单元格控件获取值
+                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(tableWidget->cellWidget(row, tableCol));
+                if (pinEdit)
+                {
+                    QString pinStateText = pinEdit->text();
+                    if (pinStateText.isEmpty())
+                    {
+                        pinStateText = "X"; // 默认值
+                    }
+                    rowData[originalColIdx] = pinStateText;
+                    qDebug() << funcName << " - 行" << row << "列" << tableCol << " 管脚状态: " << pinStateText;
+                    continue; // 已处理，跳过后面的QTableWidgetItem检查
+                }
+            }
+
+            // 对于非管脚列或管脚列单元格控件不存在的情况，尝试从QTableWidgetItem获取值
             QTableWidgetItem *item = tableWidget->item(row, tableCol);
             if (!item)
             {
