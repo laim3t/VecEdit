@@ -55,6 +55,9 @@
 #include <QFile>
 #include <QDateTime>
 #include <QSplitter>
+#include <QSizePolicy>
+#include <QSettings>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)
@@ -67,7 +70,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 设置窗口标题和大小
     setWindowTitle("VecEdit - 矢量测试编辑器");
+
+    // 初始窗口大小（如果没有保存的状态）
     resize(1024, 768);
+
+    // 初始化窗口大小信息标签
+    m_windowSizeLabel = new QLabel(this);
+    statusBar()->addPermanentWidget(m_windowSizeLabel);
+    updateWindowSizeInfo();
 
     // 显示就绪状态
     statusBar()->showMessage("就绪");
@@ -75,8 +85,12 @@ MainWindow::MainWindow(QWidget *parent)
     // 加载所有向量表
     loadVectorTable();
 
-    // 设置窗口为最大化
-    setWindowState(Qt::WindowMaximized);
+    // 启用自由缩放窗口
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    setMinimumSize(800, 600); // 设置窗口最小尺寸
+
+    // 恢复上次的窗口状态
+    restoreWindowState();
 
     // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
     connect(this, &MainWindow::windowResized, [this]()
@@ -166,6 +180,78 @@ void MainWindow::setupMenu()
     // 查看数据库
     QAction *viewDatabaseAction = viewMenu->addAction(tr("查看数据库(&D)"));
     connect(viewDatabaseAction, &QAction::triggered, this, &MainWindow::showDatabaseViewDialog);
+
+    // 分隔符
+    viewMenu->addSeparator();
+
+    // 窗口控制
+    QAction *maximizeAction = viewMenu->addAction(tr("窗口最大化(&M)"));
+    connect(maximizeAction, &QAction::triggered, [this]()
+            {
+        qDebug() << "MainWindow - 窗口最大化操作触发";
+        if (isMaximized()) {
+            showNormal();
+            qDebug() << "MainWindow - 恢复窗口正常大小";
+        } else {
+            showMaximized();
+            qDebug() << "MainWindow - 窗口已最大化";
+        } });
+
+    // 设置窗口大小菜单项
+    QAction *setSizeAction = viewMenu->addAction(tr("设置窗口大小(&S)"));
+    connect(setSizeAction, &QAction::triggered, [this]()
+            {
+        qDebug() << "MainWindow - 触发设置窗口大小操作";
+        
+        // 获取当前窗口大小
+        QSize currentSize = size();
+        
+        // 创建对话框
+        QDialog dialog(this);
+        dialog.setWindowTitle(tr("设置窗口大小"));
+        
+        // 创建表单布局
+        QFormLayout *layout = new QFormLayout(&dialog);
+        
+        // 添加宽度和高度输入框
+        QSpinBox *widthBox = new QSpinBox(&dialog);
+        widthBox->setRange(800, 3840);  // 设置合理的范围
+        widthBox->setValue(currentSize.width());
+        widthBox->setSuffix(" px");
+        
+        QSpinBox *heightBox = new QSpinBox(&dialog);
+        heightBox->setRange(600, 2160);  // 设置合理的范围
+        heightBox->setValue(currentSize.height());
+        heightBox->setSuffix(" px");
+        
+        layout->addRow(tr("宽度:"), widthBox);
+        layout->addRow(tr("高度:"), heightBox);
+        
+        // 添加按钮
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+            Qt::Horizontal, &dialog);
+        layout->addRow(buttonBox);
+        
+        // 连接按钮信号
+        connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        
+        // 显示对话框
+        if (dialog.exec() == QDialog::Accepted) {
+            // 应用新的窗口大小
+            int width = widthBox->value();
+            int height = heightBox->value();
+            qDebug() << "MainWindow - 设置窗口大小为: " << width << "x" << height;
+            
+            // 如果窗口是最大化状态，先恢复正常
+            if (isMaximized()) {
+                showNormal();
+            }
+            
+            // 设置新的窗口大小
+            resize(width, height);
+        } });
 }
 
 void MainWindow::createNewProject()
@@ -2978,5 +3064,119 @@ void MainWindow::checkAndFixAllVectorTables()
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
-    emit windowResized();
+
+    // 记录窗口大小变化
+    qDebug() << "MainWindow::resizeEvent - 窗口大小变化: "
+             << event->size().width() << "x" << event->size().height()
+             << " (旧尺寸: " << event->oldSize().width() << "x" << event->oldSize().height() << ")";
+
+    // 如果窗口大小发生实质性变化，才更新UI
+    if (event->size() != event->oldSize())
+    {
+        // 通知窗口尺寸变化
+        emit windowResized();
+
+        // 确保向量表容器适应新窗口尺寸
+        if (m_vectorTableWidget && m_vectorTableWidget->isVisible())
+        {
+            qDebug() << "MainWindow::resizeEvent - 调整向量表大小以适应窗口";
+
+            // 刷新表格布局
+            m_vectorTableWidget->updateGeometry();
+
+            // 如果表格有列，调整列宽
+            if (m_vectorTableWidget->columnCount() > 6)
+            {
+                TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+            }
+        }
+
+        // 更新窗口大小信息
+        updateWindowSizeInfo();
+    }
+}
+
+// 更新状态栏中的窗口大小信息
+void MainWindow::updateWindowSizeInfo()
+{
+    if (m_windowSizeLabel)
+    {
+        QSize currentSize = size();
+        QString sizeInfo = tr("窗口大小: %1 x %2").arg(currentSize.width()).arg(currentSize.height());
+        m_windowSizeLabel->setText(sizeInfo);
+        qDebug() << "MainWindow::updateWindowSizeInfo - " << sizeInfo;
+    }
+}
+
+// 拦截关闭事件，保存窗口状态
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    saveWindowState();
+    QMainWindow::closeEvent(event);
+}
+
+// 保存窗口状态
+void MainWindow::saveWindowState()
+{
+    QSettings settings("VecEdit", "VecEdit");
+    settings.beginGroup("MainWindow");
+
+    // 保存窗口几何属性
+    settings.setValue("geometry", saveGeometry());
+
+    // 保存窗口状态（工具栏、停靠窗口等）
+    settings.setValue("windowState", QMainWindow::saveState());
+
+    // 保存窗口是否最大化
+    settings.setValue("isMaximized", isMaximized());
+
+    // 保存窗口大小和位置
+    if (!isMaximized())
+    {
+        settings.setValue("size", size());
+        settings.setValue("pos", pos());
+    }
+
+    settings.endGroup();
+
+    qDebug() << "MainWindow::saveWindowState - 窗口状态已保存";
+}
+
+// 恢复窗口状态
+void MainWindow::restoreWindowState()
+{
+    QSettings settings("VecEdit", "VecEdit");
+    settings.beginGroup("MainWindow");
+
+    // 恢复窗口几何属性
+    if (settings.contains("geometry"))
+    {
+        restoreGeometry(settings.value("geometry").toByteArray());
+    }
+
+    // 恢复窗口状态
+    if (settings.contains("windowState"))
+    {
+        restoreState(settings.value("windowState").toByteArray());
+    }
+
+    // 恢复窗口大小和位置
+    if (settings.contains("size") && settings.contains("pos"))
+    {
+        resize(settings.value("size").toSize());
+        move(settings.value("pos").toPoint());
+    }
+
+    // 恢复窗口是否最大化
+    if (settings.value("isMaximized", false).toBool())
+    {
+        showMaximized();
+    }
+
+    settings.endGroup();
+
+    // 更新窗口大小信息
+    updateWindowSizeInfo();
+
+    qDebug() << "MainWindow::restoreWindowState - 窗口状态已恢复";
 }

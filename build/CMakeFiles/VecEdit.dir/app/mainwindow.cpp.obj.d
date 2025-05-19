@@ -501,6 +501,8 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qinputmethod.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
@@ -531,8 +533,6 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlTableModel \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqltablemodel.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlquerymodel.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \
@@ -639,4 +639,9 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtimer.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qbasictimer.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDateTime \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qdatetime.h
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdatetime.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSizePolicy \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QSettings \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qsettings.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent

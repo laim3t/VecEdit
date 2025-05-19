@@ -502,6 +502,8 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qinputmethod.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
@@ -784,8 +786,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlTableModel \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqltablemodel.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlquerymodel.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \

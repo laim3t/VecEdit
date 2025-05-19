@@ -17,6 +17,7 @@
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QResizeEvent>
+#include <QStatusBar>
 #include "../common/tablestylemanager.h"
 
 // 前置声明
@@ -37,6 +38,9 @@ public:
 protected:
     // 处理窗口大小变化事件
     void resizeEvent(QResizeEvent *event) override;
+
+    // 处理窗口关闭事件
+    void closeEvent(QCloseEvent *event) override;
 
 signals:
     // 窗口大小变化信号
@@ -139,6 +143,15 @@ private:
     void syncTabWithComboBox(int comboBoxIndex);
     void syncComboBoxWithTab(int tabIndex);
 
+    // 更新状态栏中的窗口大小信息
+    void updateWindowSizeInfo();
+
+    // 保存窗口状态
+    void saveWindowState();
+
+    // 恢复窗口状态
+    void restoreWindowState();
+
     // 为新创建的向量表添加默认列配置
     bool addDefaultColumnConfigurations(int tableId);
 
@@ -181,6 +194,9 @@ private:
 
     // 存储Tab页与TableId的映射关系
     QMap<int, int> m_tabToTableId;
+
+    // 窗口大小信息标签
+    QLabel *m_windowSizeLabel;
 };
 
 #endif // MAINWINDOW_H
