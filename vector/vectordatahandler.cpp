@@ -1129,107 +1129,256 @@ bool VectorDataHandler::deleteVectorTable(int tableId, QString &errorMessage)
 
 bool VectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndexes, QString &errorMessage)
 {
+    const QString funcName = "VectorDataHandler::deleteVectorRows";
+    qDebug() << funcName << "- 开始删除向量行，表ID:" << tableId << "，选中行数:" << rowIndexes.size();
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
         errorMessage = "数据库未打开";
+        qWarning() << funcName << "- 错误:" << errorMessage;
         return false;
     }
 
-    db.transaction();
-    bool success = true;
+    // 检查表是否存在
+    QSqlQuery tableCheckQuery(db);
+    tableCheckQuery.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
+    tableCheckQuery.addBindValue(tableId);
 
-    try
+    if (!tableCheckQuery.exec() || !tableCheckQuery.next())
     {
-        // 查询表中所有数据行，按排序索引顺序
-        QList<int> allDataIds;
-        QSqlQuery dataQuery(db);
-        dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index");
-        dataQuery.addBindValue(tableId);
-
-        if (!dataQuery.exec())
-        {
-            throw QString("获取向量数据ID失败: " + dataQuery.lastError().text());
-        }
-
-        // 将所有数据ID按顺序放入列表
-        while (dataQuery.next())
-        {
-            allDataIds.append(dataQuery.value(0).toInt());
-        }
-
-        // 检查是否有足够的数据行
-        if (allDataIds.isEmpty())
-        {
-            throw QString("没有找到可删除的数据行");
-        }
-
-        // 根据选中的行索引获取对应的数据ID
-        QList<int> dataIdsToDelete;
-        for (int row : rowIndexes)
-        {
-            if (row >= 0 && row < allDataIds.size())
-            {
-                dataIdsToDelete.append(allDataIds[row]);
-            }
-        }
-
-        if (dataIdsToDelete.isEmpty())
-        {
-            throw QString("没有找到对应选中行的数据ID");
-        }
-
-        // 删除选中行的数据
-        QSqlQuery deleteQuery(db);
-        for (int dataId : dataIdsToDelete)
-        {
-            // 先删除关联的管脚值
-            deleteQuery.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 的管脚值失败: " + deleteQuery.lastError().text());
-            }
-
-            // 再删除向量数据行
-            deleteQuery.prepare("DELETE FROM vector_table_data WHERE id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 失败: " + deleteQuery.lastError().text());
-            }
-        }
-
-        // 提交事务
-        db.commit();
-        return true;
-    }
-    catch (const QString &error)
-    {
-        // 回滚事务
-        db.rollback();
-        errorMessage = error;
+        errorMessage = QString("找不到ID为 %1 的向量表").arg(tableId);
+        qWarning() << funcName << "- 错误:" << errorMessage;
         return false;
     }
+
+    QString tableName = tableCheckQuery.value(0).toString();
+    qDebug() << funcName << "- 向量表名称:" << tableName;
+
+    // 检查选中的行索引是否有效
+    if (rowIndexes.isEmpty())
+    {
+        errorMessage = "未选择任何行";
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 1. 加载元数据和二进制文件路径
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int currentRowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, currentRowCount))
+    {
+        errorMessage = QString("无法加载表 %1 的元数据").arg(tableId);
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 如果元数据显示表中没有行
+    if (currentRowCount <= 0)
+    {
+        errorMessage = "表中没有数据行可删除";
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << "- 从元数据获取的行数:" << currentRowCount;
+
+    // 2. 解析二进制文件路径
+    QString resolveError;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveError);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        errorMessage = "无法解析二进制文件路径: " + resolveError;
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 3. 检查文件是否存在
+    QFile binFile(absoluteBinFilePath);
+    if (!binFile.exists())
+    {
+        errorMessage = "找不到二进制数据文件: " + absoluteBinFilePath;
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 4. 读取所有行数据
+    QList<Vector::RowData> allRows;
+    if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        errorMessage = "从二进制文件读取数据失败";
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << "- 从二进制文件读取到的行数:" << allRows.size();
+
+    // 验证实际读取的行数与元数据中的行数是否一致
+    if (allRows.size() != currentRowCount)
+    {
+        qWarning() << funcName << "- 警告: 元数据中的行数(" << currentRowCount
+                   << ")与二进制文件中的行数(" << allRows.size() << ")不一致";
+    }
+
+    // 5. 检查行索引是否有效
+    QList<int> validRowIndexes;
+    for (int rowIndex : rowIndexes)
+    {
+        if (rowIndex >= 0 && rowIndex < allRows.size())
+        {
+            validRowIndexes.append(rowIndex);
+            qDebug() << funcName << "- 将删除行索引:" << rowIndex;
+        }
+        else
+        {
+            qWarning() << funcName << "- 忽略无效的行索引:" << rowIndex << "，总行数:" << allRows.size();
+        }
+    }
+
+    if (validRowIndexes.isEmpty())
+    {
+        errorMessage = "没有有效的行索引可删除";
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 6. 删除指定的行（从大到小排序，避免索引变化影响删除）
+    std::sort(validRowIndexes.begin(), validRowIndexes.end(), std::greater<int>());
+
+    for (int rowIndex : validRowIndexes)
+    {
+        allRows.removeAt(rowIndex);
+        qDebug() << funcName << "- 已删除行索引:" << rowIndex;
+    }
+
+    // 7. 将更新后的数据写回文件
+    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        errorMessage = "将更新后的数据写回二进制文件失败";
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    // 8. 更新数据库中的行数记录
+    QSqlQuery updateRowCountQuery(db);
+    updateRowCountQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    updateRowCountQuery.addBindValue(allRows.size());
+    updateRowCountQuery.addBindValue(tableId);
+
+    if (!updateRowCountQuery.exec())
+    {
+        errorMessage = "更新数据库中的行数记录失败: " + updateRowCountQuery.lastError().text();
+        qWarning() << funcName << "- 错误:" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << "- 成功删除了" << validRowIndexes.size() << "行，剩余行数:" << allRows.size();
+    return true;
 }
 
 int VectorDataHandler::getVectorTableRowCount(int tableId)
 {
-    // 查询当前向量表中的总行数
-    int totalRowsInFile = 0;
+    const QString funcName = "VectorDataHandler::getVectorTableRowCount";
+    qDebug() << funcName << " - 获取表ID为" << tableId << "的行数";
+
+    // 首先尝试从元数据中获取行数
     QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery rowCountQuery(db);
-
-    rowCountQuery.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
-    rowCountQuery.addBindValue(tableId);
-
-    if (rowCountQuery.exec() && rowCountQuery.next())
+    if (!db.isOpen())
     {
-        totalRowsInFile = rowCountQuery.value(0).toInt();
+        qWarning() << funcName << " - 数据库未打开";
+        return 0;
     }
 
-    return totalRowsInFile;
+    QSqlQuery metaQuery(db);
+    metaQuery.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
+    metaQuery.addBindValue(tableId);
+
+    if (metaQuery.exec() && metaQuery.next())
+    {
+        int rowCount = metaQuery.value(0).toInt();
+        qDebug() << funcName << " - 从元数据获取的行数:" << rowCount;
+
+        // 如果元数据中的行数大于0，直接返回
+        if (rowCount > 0)
+        {
+            return rowCount;
+        }
+    }
+    else
+    {
+        qWarning() << funcName << " - 查询元数据行数失败:" << metaQuery.lastError().text();
+    }
+
+    // 如果元数据中没有行数或行数为0，尝试从二进制文件头中获取
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int rowCountFromMeta = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCountFromMeta))
+    {
+        qWarning() << funcName << " - 无法加载元数据";
+        return 0;
+    }
+
+    // 如果已经从loadVectorTableMeta获取到行数，返回它
+    if (rowCountFromMeta > 0)
+    {
+        qDebug() << funcName << " - 从loadVectorTableMeta获取的行数:" << rowCountFromMeta;
+        return rowCountFromMeta;
+    }
+
+    // 最后尝试直接从二进制文件头中获取
+    QString resolveError;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveError);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - 无法解析二进制文件路径:" << resolveError;
+        return 0;
+    }
+
+    QFile binFile(absoluteBinFilePath);
+    if (!binFile.exists())
+    {
+        qWarning() << funcName << " - 二进制文件不存在:" << absoluteBinFilePath;
+        return 0;
+    }
+
+    if (binFile.open(QIODevice::ReadOnly))
+    {
+        BinaryFileHeader header;
+        if (Persistence::BinaryFileHelper::readBinaryHeader(&binFile, header))
+        {
+            qDebug() << funcName << " - 从二进制文件头获取的行数:" << header.row_count_in_file;
+            binFile.close();
+            return header.row_count_in_file;
+        }
+        else
+        {
+            qWarning() << funcName << " - 读取二进制文件头失败";
+            binFile.close();
+        }
+    }
+    else
+    {
+        qWarning() << funcName << " - 无法打开二进制文件:" << binFile.errorString();
+    }
+
+    // 如果所有方法都失败，尝试读取整个文件来计算行数
+    QList<Vector::RowData> allRows;
+    if (Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        int rowsCount = allRows.size();
+        qDebug() << funcName << " - 通过读取整个文件获取的行数:" << rowsCount;
+        return rowsCount;
+    }
+
+    qWarning() << funcName << " - 所有尝试都失败，返回0行";
+    return 0;
 }
 
 bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId,
@@ -1757,7 +1906,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
 
 bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage)
 {
-    qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 开始删除范围内的向量行，表ID：" << tableId
+    const QString funcName = "VectorDataHandler::deleteVectorRowsInRange";
+    qDebug() << funcName << " - 开始删除范围内的向量行，表ID：" << tableId
              << "，从行：" << fromRow << "，到行：" << toRow;
 
     // 获取数据库连接
@@ -1765,107 +1915,152 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
     if (!db.isOpen())
     {
         errorMessage = "数据库未打开";
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 错误：" << errorMessage;
+        qWarning() << funcName << " - 错误：" << errorMessage;
         return false;
     }
 
-    db.transaction();
+    // 检查表是否存在
+    QSqlQuery tableCheckQuery(db);
+    tableCheckQuery.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
+    tableCheckQuery.addBindValue(tableId);
 
-    try
+    if (!tableCheckQuery.exec() || !tableCheckQuery.next())
     {
-        // 查询表中所有数据行，按排序索引顺序
-        QList<int> allDataIds;
-        QSqlQuery dataQuery(db);
-        dataQuery.prepare("SELECT id FROM vector_table_data WHERE table_id = ? ORDER BY sort_index");
-        dataQuery.addBindValue(tableId);
-
-        if (!dataQuery.exec())
-        {
-            throw QString("获取向量数据ID失败: " + dataQuery.lastError().text());
-        }
-
-        // 将所有数据ID按顺序放入列表
-        while (dataQuery.next())
-        {
-            allDataIds.append(dataQuery.value(0).toInt());
-        }
-
-        // 检查是否有足够的数据行
-        if (allDataIds.isEmpty())
-        {
-            throw QString("没有找到可删除的数据行");
-        }
-
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 总行数：" << allDataIds.size();
-
-        // 调整索引范围
-        if (fromRow < 1)
-            fromRow = 1;
-
-        if (toRow > allDataIds.size())
-            toRow = allDataIds.size();
-
-        if (fromRow > toRow)
-        {
-            int temp = fromRow;
-            fromRow = toRow;
-            toRow = temp;
-        }
-
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 调整后范围：" << fromRow << "到" << toRow;
-
-        // 获取要删除的行ID
-        QList<int> dataIdsToDelete;
-        for (int row = fromRow; row <= toRow; row++)
-        {
-            int index = row - 1; // 将1-based转换为0-based索引
-            if (index >= 0 && index < allDataIds.size())
-            {
-                dataIdsToDelete.append(allDataIds[index]);
-            }
-        }
-
-        if (dataIdsToDelete.isEmpty())
-        {
-            throw QString("没有找到对应选中范围的数据ID");
-        }
-
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 要删除的行数：" << dataIdsToDelete.size();
-
-        // 删除选中范围内的数据
-        QSqlQuery deleteQuery(db);
-        for (int dataId : dataIdsToDelete)
-        {
-            // 先删除关联的管脚值
-            deleteQuery.prepare("DELETE FROM vector_table_pin_values WHERE vector_data_id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 的管脚值失败: " + deleteQuery.lastError().text());
-            }
-
-            // 再删除向量数据行
-            deleteQuery.prepare("DELETE FROM vector_table_data WHERE id = ?");
-            deleteQuery.addBindValue(dataId);
-            if (!deleteQuery.exec())
-            {
-                throw QString("删除数据ID " + QString::number(dataId) + " 失败: " + deleteQuery.lastError().text());
-            }
-        }
-
-        // 提交事务
-        db.commit();
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 成功删除范围内的行";
-        return true;
-    }
-    catch (const QString &error)
-    {
-        // 回滚事务
-        db.rollback();
-        errorMessage = error;
-        qDebug() << "VectorDataHandler::deleteVectorRowsInRange - 错误：" << errorMessage;
+        errorMessage = QString("找不到ID为 %1 的向量表").arg(tableId);
+        qWarning() << funcName << " - 错误:" << errorMessage;
         return false;
     }
+
+    QString tableName = tableCheckQuery.value(0).toString();
+    qDebug() << funcName << " - 向量表名称:" << tableName;
+
+    // 检查输入的行范围是否有效
+    if (fromRow <= 0 || toRow <= 0)
+    {
+        errorMessage = "无效的行范围：起始行和结束行必须大于0";
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 1. 加载元数据和二进制文件路径
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int currentRowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, currentRowCount))
+    {
+        errorMessage = QString("无法加载表 %1 的元数据").arg(tableId);
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 如果元数据显示表中没有行
+    if (currentRowCount <= 0)
+    {
+        errorMessage = "表中没有数据行可删除";
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 从元数据获取的行数:" << currentRowCount;
+
+    // 2. 解析二进制文件路径
+    QString resolveError;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveError);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        errorMessage = "无法解析二进制文件路径: " + resolveError;
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 3. 检查文件是否存在
+    QFile binFile(absoluteBinFilePath);
+    if (!binFile.exists())
+    {
+        errorMessage = "找不到二进制数据文件: " + absoluteBinFilePath;
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 4. 读取所有行数据
+    QList<Vector::RowData> allRows;
+    if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        errorMessage = "从二进制文件读取数据失败";
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 从二进制文件读取到的行数:" << allRows.size();
+
+    // 验证实际读取的行数与元数据中的行数是否一致
+    if (allRows.size() != currentRowCount)
+    {
+        qWarning() << funcName << " - 警告: 元数据中的行数(" << currentRowCount
+                   << ")与二进制文件中的行数(" << allRows.size() << ")不一致";
+    }
+
+    // 5. 调整索引范围
+    if (fromRow < 1)
+        fromRow = 1;
+
+    if (toRow > allRows.size())
+        toRow = allRows.size();
+
+    if (fromRow > toRow)
+    {
+        int temp = fromRow;
+        fromRow = toRow;
+        toRow = temp;
+    }
+
+    qDebug() << funcName << " - 调整后的删除范围：" << fromRow << " 到 " << toRow;
+
+    // 检查范围是否有效
+    if (fromRow > allRows.size() || toRow < 1)
+    {
+        errorMessage = "指定的行范围超出了可用范围";
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 6. 计算要删除的行数
+    int rowsToDelete = toRow - fromRow + 1;
+    qDebug() << funcName << " - 将删除 " << rowsToDelete << " 行";
+
+    // 7. 删除范围内的行（从后向前删除，避免索引变化）
+    // 注意：fromRow和toRow是基于1的索引，而QList是基于0的索引
+    for (int i = toRow - 1; i >= fromRow - 1; i--)
+    {
+        allRows.removeAt(i);
+        qDebug() << funcName << " - 已删除行索引:" << i;
+    }
+
+    // 8. 将更新后的数据写回文件
+    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    {
+        errorMessage = "将更新后的数据写回二进制文件失败";
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    // 9. 更新数据库中的行数记录
+    QSqlQuery updateRowCountQuery(db);
+    updateRowCountQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    updateRowCountQuery.addBindValue(allRows.size());
+    updateRowCountQuery.addBindValue(tableId);
+
+    if (!updateRowCountQuery.exec())
+    {
+        errorMessage = "更新数据库中的行数记录失败: " + updateRowCountQuery.lastError().text();
+        qWarning() << funcName << " - 错误：" << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 成功删除了范围内的 " << rowsToDelete << " 行，剩余行数: " << allRows.size();
+    return true;
 }
 
 bool VectorDataHandler::gotoLine(int tableId, int lineNumber)

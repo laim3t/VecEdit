@@ -1446,25 +1446,33 @@ void MainWindow::deleteCurrentVectorTable()
 // 删除选中的向量行
 void MainWindow::deleteSelectedVectorRows()
 {
+    const QString funcName = "MainWindow::deleteSelectedVectorRows";
+    qDebug() << funcName << " - 开始处理删除选中的向量行";
+
     // 获取当前选择的向量表
     int currentIndex = m_vectorTableSelector->currentIndex();
     if (currentIndex < 0)
     {
         QMessageBox::warning(this, "删除失败", "没有选中的向量表");
+        qWarning() << funcName << " - 没有选中的向量表";
         return;
     }
 
-    // 获取表ID
+    // 获取表ID和名称
     int tableId = m_vectorTableSelector->currentData().toInt();
     QString tableName = m_vectorTableSelector->currentText();
+    qDebug() << funcName << " - 当前选择的向量表：" << tableName << "，ID：" << tableId;
 
     // 获取选中的行
     QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
     if (selectedIndexes.isEmpty())
     {
         QMessageBox::warning(this, "删除失败", "请先选择要删除的行");
+        qWarning() << funcName << " - 用户未选择任何行";
         return;
     }
+
+    qDebug() << funcName << " - 用户选择了" << selectedIndexes.size() << "行";
 
     // 确认删除
     QMessageBox::StandardButton reply = QMessageBox::question(this, "确认删除",
@@ -1472,6 +1480,7 @@ void MainWindow::deleteSelectedVectorRows()
                                                               QMessageBox::Yes | QMessageBox::No);
     if (reply != QMessageBox::Yes)
     {
+        qDebug() << funcName << " - 用户取消了删除操作";
         return;
     }
 
@@ -1480,13 +1489,16 @@ void MainWindow::deleteSelectedVectorRows()
     foreach (const QModelIndex &index, selectedIndexes)
     {
         selectedRows.append(index.row());
+        qDebug() << funcName << " - 选中的行索引：" << index.row();
     }
 
     // 使用数据处理器删除选中的行
     QString errorMessage;
+    qDebug() << funcName << " - 开始调用VectorDataHandler::deleteVectorRows，参数：tableId=" << tableId << "，行数=" << selectedRows.size();
     if (VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage))
     {
         QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(selectedRows.size()) + " 行数据");
+        qDebug() << funcName << " - 删除操作成功完成";
 
         // 刷新表格
         onVectorTableSelectionChanged(currentIndex);
@@ -1494,6 +1506,9 @@ void MainWindow::deleteSelectedVectorRows()
     else
     {
         QMessageBox::critical(this, "删除失败", errorMessage);
+        qWarning() << funcName << " - 删除失败：" << errorMessage;
+        // 在状态栏显示错误消息
+        statusBar()->showMessage("删除行失败: " + errorMessage, 5000);
     }
 }
 
