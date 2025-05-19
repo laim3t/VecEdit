@@ -38,6 +38,7 @@ void TableStyleManager::applyTableStyle(QTableWidget *table)
         "   border: 1px solid #c0c0c0;"
         "   font-weight: bold;"
         "   padding: 4px;"
+        "   text-align: center;"
         "}"
         "QHeaderView::section:checked {"
         "   background-color: #e0e0e0;"
@@ -92,6 +93,7 @@ void TableStyleManager::applyTableStyle(QTableView *tableView)
         "   border: 1px solid #c0c0c0;"
         "   font-weight: bold;"
         "   padding: 4px;"
+        "   text-align: center;"
         "}"
         "QHeaderView::section:checked {"
         "   background-color: #e0e0e0;"
@@ -108,33 +110,43 @@ void TableStyleManager::applyTableStyle(QTableView *tableView)
 
 void TableStyleManager::setColumnAlignments(QTableWidget *table)
 {
-    if (!table || table->columnCount() == 0)
+    if (!table || table->columnCount() <= 0)
     {
-        qDebug() << "TableStyleManager::setColumnAlignments - 错误：表格对象为空或无列";
+        qDebug() << "TableStyleManager::setColumnAlignments - 错误：表格对象为空或没有列";
         return;
     }
 
-    qDebug() << "TableStyleManager::setColumnAlignments - 开始根据内容设置列对齐方式";
+    qDebug() << "TableStyleManager::setColumnAlignments - 开始设置表格列对齐方式";
 
-    // 根据列的内容设置对齐方式
-    // 假设列的标题可以指示其内容类型
-
+    // 遍历所有列
     for (int col = 0; col < table->columnCount(); col++)
     {
         QTableWidgetItem *headerItem = table->horizontalHeaderItem(col);
         if (!headerItem)
+        {
+            qDebug() << "TableStyleManager::setColumnAlignments - 错误：列" << col << "没有表头项";
             continue;
+        }
 
-        QString headerText = headerItem->text().toLower();
+        QString headerText = headerItem->text();
 
-        // 数字类型列（如ID、数量、金额等）右对齐
-        if (headerText.contains("id") ||
-            headerText.contains("数量") ||
-            headerText.contains("金额") ||
-            headerText.contains("大小") ||
+        // 检查是否包含管脚信息（格式为"名称\nx数量\n类型"）
+        if (headerText.contains("\n"))
+        {
+            // 管脚列，居中对齐
+            setColumnAlignment(table, col, Qt::AlignCenter);
+            qDebug() << "TableStyleManager::setColumnAlignments - 设置管脚列" << col << "居中对齐";
+            continue;
+        }
+
+        // 数值类型列靠右对齐
+        if (headerText.contains("数量") ||
+            headerText.contains("数值") ||
+            headerText.contains("count") ||
             headerText.contains("value") ||
-            headerText.contains("number") ||
-            headerText.contains("size"))
+            headerText.contains("amount") ||
+            headerText.contains("id") ||
+            headerText.contains("ID"))
         {
             setColumnAlignment(table, col, Qt::AlignRight | Qt::AlignVCenter);
         }

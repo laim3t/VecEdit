@@ -468,6 +468,17 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
     tableWidget->setHorizontalHeaderLabels(headers);
     qDebug() << funcName << " - 设置表头完成，列数:" << headers.size() << "，列表:" << headers.join(", ");
 
+    // 确保所有表头项居中对齐
+    for (int i = 0; i < tableWidget->columnCount(); ++i)
+    {
+        QTableWidgetItem *headerItem = tableWidget->horizontalHeaderItem(i);
+        if (headerItem)
+        {
+            headerItem->setTextAlignment(Qt::AlignCenter);
+            qDebug() << funcName << " - 设置表头项居中对齐:" << i << "," << headerItem->text();
+        }
+    }
+
     // 确保列数与表头列表一致
     if (tableWidget->columnCount() != headers.size())
     {

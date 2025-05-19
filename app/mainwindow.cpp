@@ -799,7 +799,18 @@ void MainWindow::onVectorTableSelectionChanged(int index)
 
         // 确保管脚列宽度设置正确
         QTimer::singleShot(0, [this]()
-                           { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
+                           { 
+                               TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
+                               
+                               // 额外确保表头对齐方式正确
+                               for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
+                                   QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                                   if (headerItem) {
+                                       // 对于所有表头项，确保居中对齐
+                                       headerItem->setTextAlignment(Qt::AlignCenter);
+                                       qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
+                                   }
+                               } });
 
         // 输出每一列的标题，用于调试
         QStringList columnHeaders;
@@ -896,7 +907,18 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
 
                     // 确保管脚列宽度设置正确
                     QTimer::singleShot(0, [this]()
-                                       { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
+                                       { 
+                                           TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
+                                           
+                                           // 额外确保表头对齐方式正确
+                                           for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
+                                               QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                                               if (headerItem) {
+                                                   // 对于所有表头项，确保居中对齐
+                                                   headerItem->setTextAlignment(Qt::AlignCenter);
+                                                   qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
+                                               }
+                                           } });
                 }
             }
 
@@ -1356,7 +1378,18 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
 
                     // 确保管脚列宽度设置正确
                     QTimer::singleShot(0, [this]()
-                                       { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
+                                       { 
+                                           TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
+                                           
+                                           // 额外确保表头对齐方式正确
+                                           for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
+                                               QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                                               if (headerItem) {
+                                                   // 对于所有表头项，确保居中对齐
+                                                   headerItem->setTextAlignment(Qt::AlignCenter);
+                                                   qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
+                                               }
+                                           } });
                 }
                 else
                 {
