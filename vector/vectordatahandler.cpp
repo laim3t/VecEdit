@@ -572,15 +572,79 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
                 qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
                          << " 设置管脚状态为:" << pinStateText;
             }
+            else if (visibleCol.type == Vector::ColumnDataType::INSTRUCTION_ID)
+            {
+                // 处理INSTRUCTION_ID类型，从数据库获取指令文本
+                int instructionId = originalValue.toInt();
+                QString instructionText;
+
+                // 查询指令名称
+                QSqlQuery instructionQuery(db);
+                instructionQuery.prepare("SELECT instruction_value FROM instruction_options WHERE id = ?");
+                instructionQuery.addBindValue(instructionId);
+
+                if (instructionQuery.exec() && instructionQuery.next())
+                {
+                    instructionText = instructionQuery.value(0).toString();
+                }
+                else
+                {
+                    instructionText = QString("未知(%1)").arg(instructionId);
+                    qWarning() << funcName << " - 无法获取指令文本，ID:" << instructionId;
+                }
+
+                QTableWidgetItem *newItem = new QTableWidgetItem(instructionText);
+                newItem->setData(Qt::UserRole, instructionId);
+                tableWidget->setItem(row, visibleColIdx, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
+                         << " 设置指令为:" << instructionText << "(ID:" << instructionId << ")";
+            }
+            else if (visibleCol.type == Vector::ColumnDataType::TIMESET_ID)
+            {
+                // 处理TIMESET_ID类型，从数据库获取TimeSet文本
+                int timesetId = originalValue.toInt();
+                QString timesetText;
+
+                // 查询TimeSet名称
+                QSqlQuery timesetQuery(db);
+                timesetQuery.prepare("SELECT timeset_name FROM timeset_list WHERE id = ?");
+                timesetQuery.addBindValue(timesetId);
+
+                if (timesetQuery.exec() && timesetQuery.next())
+                {
+                    timesetText = timesetQuery.value(0).toString();
+                }
+                else
+                {
+                    timesetText = QString("未知(%1)").arg(timesetId);
+                    qWarning() << funcName << " - 无法获取TimeSet文本，ID:" << timesetId;
+                }
+
+                QTableWidgetItem *newItem = new QTableWidgetItem(timesetText);
+                newItem->setData(Qt::UserRole, timesetId);
+                tableWidget->setItem(row, visibleColIdx, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
+                         << " 设置TimeSet为:" << timesetText << "(ID:" << timesetId << ")";
+            }
+            else if (visibleCol.type == Vector::ColumnDataType::BOOLEAN)
+            {
+                // 处理BOOLEAN类型（如Capture列）
+                bool boolValue = originalValue.toBool();
+                QString displayText = boolValue ? "Y" : "N";
+
+                QTableWidgetItem *newItem = new QTableWidgetItem(displayText);
+                newItem->setData(Qt::UserRole, boolValue);
+                tableWidget->setItem(row, visibleColIdx, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
+                         << " 设置布尔值为:" << displayText << "(" << boolValue << ")";
+            }
             else
             {
                 // 其他类型的列，直接创建QTableWidgetItem
                 QTableWidgetItem *newItem = new QTableWidgetItem();
 
                 // 根据具体类型设置文本
-                if (visibleCol.type == Vector::ColumnDataType::INTEGER ||
-                    visibleCol.type == Vector::ColumnDataType::TIMESET_ID ||
-                    visibleCol.type == Vector::ColumnDataType::INSTRUCTION_ID)
+                if (visibleCol.type == Vector::ColumnDataType::INTEGER)
                 {
                     newItem->setText(originalValue.isValid() ? QString::number(originalValue.toInt()) : "");
                     newItem->setData(Qt::UserRole, originalValue.isValid() ? originalValue.toInt() : 0);
@@ -589,11 +653,6 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
                 {
                     newItem->setText(originalValue.isValid() ? QString::number(originalValue.toDouble()) : "");
                     newItem->setData(Qt::UserRole, originalValue.isValid() ? originalValue.toDouble() : 0.0);
-                }
-                else if (visibleCol.type == Vector::ColumnDataType::BOOLEAN)
-                {
-                    newItem->setText(originalValue.toBool() ? "是" : "否");
-                    newItem->setData(Qt::UserRole, originalValue.toBool());
                 }
                 else
                 {
@@ -704,7 +763,7 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
 
         allColumns.append(col);
         qDebug() << funcName << " - 加载列: ID=" << col.id << ", 名称=" << col.name
-                 << ", 顺序=" << col.order << ", 可见=" << col.is_visible;
+                 << ", 顺序=" << col.order << ", 可见=" << col.is_visible << ", 类型=" << col.original_type_str;
     }
 
     // 构建ID到列索引的映射，用于后续查找
@@ -794,6 +853,44 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
     int tableRowCount = tableWidget->rowCount();
     qDebug() << funcName << " - 从 QTableWidget (行:" << tableRowCount << ", 列:" << tableColCount << ") 收集数据";
 
+    // 预先获取指令和TimeSet的ID映射以便转换
+    QMap<QString, int> instructionNameToIdMap;
+    QMap<QString, int> timesetNameToIdMap;
+
+    // 获取指令名称到ID的映射
+    QSqlQuery instructionQuery(db);
+    if (instructionQuery.exec("SELECT id, instruction_value FROM instruction_options"))
+    {
+        while (instructionQuery.next())
+        {
+            int id = instructionQuery.value(0).toInt();
+            QString name = instructionQuery.value(1).toString();
+            instructionNameToIdMap[name] = id;
+            qDebug() << funcName << " - 指令映射: " << name << " -> ID:" << id;
+        }
+    }
+    else
+    {
+        qWarning() << funcName << " - 获取指令映射失败: " << instructionQuery.lastError().text();
+    }
+
+    // 获取TimeSet名称到ID的映射
+    QSqlQuery timesetQuery(db);
+    if (timesetQuery.exec("SELECT id, timeset_name FROM timeset_list"))
+    {
+        while (timesetQuery.next())
+        {
+            int id = timesetQuery.value(0).toInt();
+            QString name = timesetQuery.value(1).toString();
+            timesetNameToIdMap[name] = id;
+            qDebug() << funcName << " - TimeSet映射: " << name << " -> ID:" << id;
+        }
+    }
+    else
+    {
+        qWarning() << funcName << " - 获取TimeSet映射失败: " << timesetQuery.lastError().text();
+    }
+
     allRows.reserve(tableRowCount);
     for (int row = 0; row < tableRowCount; ++row)
     {
@@ -830,90 +927,106 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             }
 
             int originalColIdx = columnIdToIndexMap[visibleColumn.id];
-
-            // 根据列类型获取值
-            QVariant value;
-
-            // 如果是管脚列，需要从PinValueLineEdit控件获取值
-            if (visibleColumn.type == Vector::ColumnDataType::PIN_STATE_ID)
+            QTableWidgetItem *item = tableWidget->item(row, tableCol);
+            if (!item)
             {
-                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(tableWidget->cellWidget(row, tableCol));
-                if (pinEdit)
+                qDebug() << funcName << " - 行" << row << "列" << tableCol << "项为空，设置为默认值";
+                continue; // 使用默认值
+            }
+
+            // 根据列类型处理不同格式的数据
+            QString cellText = item->text();
+            if (visibleColumn.type == Vector::ColumnDataType::INSTRUCTION_ID)
+            {
+                // 将指令名称转换为ID存储
+                if (instructionNameToIdMap.contains(cellText))
                 {
-                    value = pinEdit->text();
-                    qDebug() << funcName << " - 从管脚控件读取值:" << value;
+                    int instructionId = instructionNameToIdMap[cellText];
+                    rowData[originalColIdx] = instructionId;
+                    qDebug() << funcName << " - 行" << row << "列" << tableCol << " 指令: " << cellText << " -> ID:" << instructionId;
                 }
                 else
                 {
-                    // 如果没有找到控件（罕见情况），尝试从QTableWidgetItem获取
-                    QTableWidgetItem *item = tableWidget->item(row, tableCol);
-                    value = item ? item->data(Qt::DisplayRole) : "X";
-                    qDebug() << funcName << " - 未找到管脚控件，从Item读取值:" << value;
+                    qWarning() << funcName << " - 行" << row << "列" << tableCol << " 未找到指令ID映射: " << cellText;
+                    rowData[originalColIdx] = -1; // 默认未知ID
                 }
-
-                // 如果值为空或无效，使用默认值X
-                if (value.isNull() || !value.isValid() || value.toString().isEmpty())
+            }
+            else if (visibleColumn.type == Vector::ColumnDataType::TIMESET_ID)
+            {
+                // 将TimeSet名称转换为ID存储
+                if (timesetNameToIdMap.contains(cellText))
                 {
-                    value = "X";
+                    int timesetId = timesetNameToIdMap[cellText];
+                    rowData[originalColIdx] = timesetId;
+                    qDebug() << funcName << " - 行" << row << "列" << tableCol << " TimeSet: " << cellText << " -> ID:" << timesetId;
                 }
+                else
+                {
+                    qWarning() << funcName << " - 行" << row << "列" << tableCol << " 未找到TimeSet ID映射: " << cellText;
+                    rowData[originalColIdx] = -1; // 默认未知ID
+                }
+            }
+            else if (visibleColumn.type == Vector::ColumnDataType::BOOLEAN)
+            {
+                // 对于布尔值处理 (Capture)
+                bool boolValue = (cellText.toUpper() == "Y");
+                rowData[originalColIdx] = boolValue;
+                qDebug() << funcName << " - 行" << row << "列" << tableCol << " 布尔值: " << cellText << " -> " << boolValue;
             }
             else
             {
-                // 其他类型的列，从QTableWidgetItem获取值
-                QTableWidgetItem *item = tableWidget->item(row, tableCol);
-                value = item ? item->data(Qt::DisplayRole) : QVariant();
+                // 普通文本或数字值直接存储
+                rowData[originalColIdx] = cellText;
+                qDebug() << funcName << " - 行" << row << "列" << tableCol << " 值: " << cellText;
             }
-
-            // 将值放入原始列索引的位置，确保数据正确放置
-            rowData[originalColIdx] = value;
-            qDebug() << funcName << " - 行" << row << ", 表格列" << tableCol
-                     << " -> 原始列索引" << originalColIdx << " (列名:" << allColumns[originalColIdx].name
-                     << "), 值:" << value;
         }
 
         allRows.append(rowData);
     }
-    qDebug() << funcName << " - 收集了 " << allRows.size() << " 行数据进行保存";
 
     // 5. 写入二进制文件 - 使用allColumns而不是visibleColumns
     qDebug() << funcName << " - 准备写入数据到二进制文件: " << absoluteBinFilePath;
     if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows))
     {
         errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
-        qWarning() << funcName << " - " << errorMessage;
+        qWarning() << funcName << "-" << errorMessage;
         return false;
     }
     qDebug() << funcName << " - 二进制文件写入成功";
 
     // 6. 更新数据库中的行数记录
-    QSqlQuery updateQuery(db);
-
-    // 为 SQL 语句添加 prepare 检查
-    if (!updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?"))
+    if (!db.transaction())
     {
-        errorMessage = QString("数据库更新语句准备失败 (row_count): %1").arg(updateQuery.lastError().text());
-        qWarning() << funcName << " - " << errorMessage;
-        // 即使数据库更新失败，文件已经写入。根据需求决定是否返回 false。
-        // 为了数据一致性，prepare失败通常应视为关键错误。
+        errorMessage = "无法开始数据库事务以更新主记录。";
+        qWarning() << funcName << "-" << errorMessage;
         return false;
     }
 
-    updateQuery.addBindValue(allRows.size());
+    // 计算最终的行数
+    int finalRowCount = allRows.size();
+
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    updateQuery.addBindValue(finalRowCount);
     updateQuery.addBindValue(tableId);
+
     if (!updateQuery.exec())
     {
         errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
-        qWarning() << funcName << " - " << errorMessage;
-        // 即使数据库更新失败，文件已经写入，所以不算完全失败。
-        // 可以选择返回true并记录警告，或者返回false。
-        // 返回true，但errorMsg已设置，调用者可以检查。
-    }
-    else
-    {
-        qDebug() << funcName << " - 数据库元数据行数已更新为:" << allRows.size();
-        errorMessage.clear(); // Clear error message on full success
+        qWarning() << funcName << "-" << errorMessage;
+        db.rollback();
+        return false;
     }
 
+    if (!db.commit())
+    {
+        errorMessage = "提交数据库事务失败。";
+        qWarning() << funcName << "-" << errorMessage;
+        db.rollback();
+        return false;
+    }
+
+    qDebug() << funcName << "- 数据库元数据行数已更新为:" << finalRowCount << " for table ID:" << tableId;
     return true;
 }
 

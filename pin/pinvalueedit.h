@@ -15,6 +15,12 @@ public:
         setAlignment(Qt::AlignCenter); // 文本居中显示
         setToolTip("输入提示：0,1,L,l,H,h,X,x,；默认：X");
 
+        // 设置样式以匹配标准表格单元格
+        setStyleSheet("QLineEdit { border: none; background: transparent; }");
+
+        // 设置帧形状为无框架
+        setFrame(false);
+
         // 设置验证器
         connect(this, &QLineEdit::textChanged, this, &PinValueLineEdit::validateAndConvert);
     }
