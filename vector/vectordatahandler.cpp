@@ -1325,7 +1325,7 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         templateRow[columnNameMap["Label"]] = "";
 
     if (columnNameMap.contains("Instruction"))
-        templateRow[columnNameMap["Instruction"]] = 0; // 使用默认指令ID
+        templateRow[columnNameMap["Instruction"]] = 1; // 使用默认指令ID
 
     if (columnNameMap.contains("TimeSet"))
         templateRow[columnNameMap["TimeSet"]] = timesetId;
