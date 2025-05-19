@@ -104,6 +104,28 @@ void VectorPinSettingsDialog::loadPinsData()
         qWarning() << "VectorPinSettingsDialog::loadPinsData - 无法查询管脚数据:" << pinQuery.lastError().text();
     }
 
+    // 获取可见列的管脚名称集合（从VectorTableColumnConfiguration表）
+    QSet<QString> visibleColumns;
+    QSqlQuery visibleColumnsQuery(db);
+    visibleColumnsQuery.prepare(
+        "SELECT column_name FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND IsVisible = 1 AND column_type = 'PIN_STATE_ID'");
+    visibleColumnsQuery.bindValue(":tableId", m_tableId);
+
+    if (visibleColumnsQuery.exec())
+    {
+        qDebug() << "VectorPinSettingsDialog::loadPinsData - 从VectorTableColumnConfiguration表加载可见管脚列";
+        while (visibleColumnsQuery.next())
+        {
+            QString columnName = visibleColumnsQuery.value(0).toString();
+            visibleColumns.insert(columnName);
+            qDebug() << "  可见管脚列:" << columnName;
+        }
+    }
+    else
+    {
+        qWarning() << "VectorPinSettingsDialog::loadPinsData - 无法查询可见列:" << visibleColumnsQuery.lastError().text();
+    }
+
     // 从vector_table_pins表中加载已经关联到该向量表的管脚
     QSqlQuery existingPinsQuery(db);
     existingPinsQuery.prepare(
@@ -133,8 +155,20 @@ void VectorPinSettingsDialog::loadPinsData()
                 pinType = "InOut";
             }
 
-            m_selectedPins[pinId] = pinType;
-            qDebug() << "  已关联管脚:" << pinId << "类型:" << m_selectedPins[pinId];
+            // 检查该管脚的列是否可见
+            if (m_allPins.contains(pinId) && visibleColumns.contains(m_allPins[pinId]))
+            {
+                m_selectedPins[pinId] = pinType;
+                qDebug() << "  已关联且可见的管脚:" << pinId << "名称:" << m_allPins[pinId] << "类型:" << m_selectedPins[pinId];
+            }
+            else if (m_allPins.contains(pinId))
+            {
+                qDebug() << "  管脚" << pinId << "(" << m_allPins[pinId] << ")已关联但不可见";
+            }
+            else
+            {
+                qDebug() << "  管脚ID" << pinId << "存在但未找到对应名称";
+            }
         }
     }
     else
@@ -148,6 +182,7 @@ void VectorPinSettingsDialog::loadPinsData()
         if (hasPinData(it.key()))
         {
             m_pinsWithData.insert(it.key());
+            qDebug() << "VectorPinSettingsDialog::loadPinsData - 管脚ID" << it.key() << "(" << m_allPins[it.key()] << ")有数据";
         }
     }
 
@@ -169,11 +204,8 @@ void VectorPinSettingsDialog::loadPinsData()
             checkBox->setChecked(true);
         }
 
-        // 如果管脚有数据，连接信号槽检查取消选中
-        if (m_pinsWithData.contains(pinId))
-        {
-            connect(checkBox, &QCheckBox::stateChanged, this, &VectorPinSettingsDialog::onCheckBoxStateChanged);
-        }
+        // 连接信号槽，对所有管脚添加状态改变检测
+        connect(checkBox, &QCheckBox::stateChanged, this, &VectorPinSettingsDialog::onCheckBoxStateChanged);
 
         // 添加复选框到表格
         m_pinsTable->setCellWidget(row, 0, checkBox);
@@ -244,21 +276,81 @@ void VectorPinSettingsDialog::onCheckBoxStateChanged(int state)
         }
     }
 
-    if (pinId != -1 && m_pinsWithData.contains(pinId) && state == Qt::Unchecked)
+    if (pinId != -1)
     {
-        // 显示警告消息
-        QMessageBox::StandardButton reply = QMessageBox::warning(
-            this,
-            "确认取消选择",
-            QString("管脚 %1 已有数据，取消选择将删除所有相关数据，确定要继续吗？").arg(m_allPins[pinId]),
-            QMessageBox::Yes | QMessageBox::No);
+        QString pinName = m_allPins[pinId];
 
-        if (reply == QMessageBox::No)
+        // 处理取消勾选
+        if (state == Qt::Unchecked)
         {
-            // 恢复选中状态并阻断信号，避免递归
-            checkBox->blockSignals(true);
-            checkBox->setChecked(true);
-            checkBox->blockSignals(false);
+            // 如果管脚有数据，需要提示用户
+            if (m_pinsWithData.contains(pinId))
+            {
+                // 显示警告消息
+                QMessageBox::StandardButton reply = QMessageBox::warning(
+                    this,
+                    "确认取消选择",
+                    QString("管脚 %1 已有数据，取消选择将删除所有相关数据，确定要继续吗？").arg(pinName),
+                    QMessageBox::Yes | QMessageBox::No);
+
+                if (reply == QMessageBox::No)
+                {
+                    // 恢复选中状态并阻断信号，避免递归
+                    checkBox->blockSignals(true);
+                    checkBox->setChecked(true);
+                    checkBox->blockSignals(false);
+                    return; // 用户取消操作，直接返回
+                }
+            }
+
+            // 用户确认取消勾选或管脚无数据，立即将该管脚列标记为不可见
+            QString errorMsg;
+
+            qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 用户取消选择管脚:" << pinName << "，立即隐藏对应列";
+
+            if (!VectorDataHandler::instance().hideVectorTableColumn(m_tableId, pinName, errorMsg))
+            {
+                qWarning() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 隐藏管脚列失败:" << errorMsg;
+                // 显示错误消息
+                QMessageBox::warning(this, "操作失败", QString("无法隐藏管脚列 %1: %2").arg(pinName).arg(errorMsg));
+            }
+            else
+            {
+                qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 成功隐藏管脚列:" << pinName;
+            }
+        }
+        else if (state == Qt::Checked)
+        {
+            // 用户勾选管脚，需要在onAccepted中重新显示列
+            qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 用户选择管脚:" << pinName << "，需要在onAccepted中重新显示";
+
+            // 检查是否已存在列配置但处于隐藏状态
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            if (db.isOpen())
+            {
+                QSqlQuery checkQuery(db);
+                checkQuery.prepare("SELECT id, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
+                checkQuery.bindValue(":tableId", m_tableId);
+                checkQuery.bindValue(":pinName", pinName);
+
+                if (checkQuery.exec() && checkQuery.next())
+                {
+                    bool isVisible = checkQuery.value(1).toBool();
+                    if (!isVisible)
+                    {
+                        // 列存在但处于隐藏状态，立即恢复
+                        QString errorMsg;
+                        if (!VectorDataHandler::instance().showVectorTableColumn(m_tableId, pinName, errorMsg))
+                        {
+                            qWarning() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 恢复列可见性失败:" << errorMsg;
+                        }
+                        else
+                        {
+                            qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 成功将列 '" << pinName << "' 恢复为可见状态";
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -284,11 +376,14 @@ void VectorPinSettingsDialog::onAccepted()
 
     // 收集需要删除数据的管脚ID（取消选择的管脚）
     QList<int> pinsToDeleteData;
-    for (int pinId : m_pinsWithData)
+    // 找出所有之前选中但现在取消选择的管脚
+    for (auto it = m_selectedPins.begin(); it != m_selectedPins.end(); ++it)
     {
+        int pinId = it.key();
         if (!newSelectedPins.contains(pinId))
         {
             pinsToDeleteData.append(pinId);
+            qDebug() << "VectorPinSettingsDialog::onAccepted - 管脚ID:" << pinId << "(" << m_allPins[pinId] << ")被取消选择";
         }
     }
 
@@ -298,11 +393,15 @@ void VectorPinSettingsDialog::onAccepted()
 
     try
     {
-        // 删除取消选中的管脚数据
+        // 删除取消选中的管脚数据和记录
         if (!pinsToDeleteData.isEmpty())
         {
             for (int pinId : pinsToDeleteData)
             {
+                QString pinName = m_allPins[pinId];
+                qDebug() << "VectorPinSettingsDialog::onAccepted - 处理取消选择的管脚:" << pinId << "(" << pinName << ")";
+
+                // 1. 删除管脚数据值
                 QSqlQuery dataDeleteQuery(db);
                 dataDeleteQuery.prepare(
                     "DELETE FROM vector_table_pin_values WHERE vector_pin_id IN "
@@ -316,7 +415,7 @@ void VectorPinSettingsDialog::onAccepted()
                     throw std::runtime_error(dataDeleteQuery.lastError().text().toStdString());
                 }
 
-                // 同时删除vector_table_pins记录
+                // 2. 删除vector_table_pins记录
                 QSqlQuery pinDeleteQuery(db);
                 pinDeleteQuery.prepare("DELETE FROM vector_table_pins WHERE table_id = :tableId AND pin_id = :pinId");
                 pinDeleteQuery.bindValue(":tableId", m_tableId);
@@ -328,18 +427,21 @@ void VectorPinSettingsDialog::onAccepted()
                     throw std::runtime_error(pinDeleteQuery.lastError().text().toStdString());
                 }
 
-                // 逻辑删除对应的VectorTableColumnConfiguration记录（设置IsVisible=0）
-                QString pinName = m_allPins[pinId];
+                // 3. 确保VectorTableColumnConfiguration中的列被标记为不可见
                 QString errorMsg;
                 if (!VectorDataHandler::instance().hideVectorTableColumn(m_tableId, pinName, errorMsg))
                 {
-                    qWarning() << "VectorPinSettingsDialog::onAccepted - 逻辑删除列配置失败:" << errorMsg;
-                    throw std::runtime_error(errorMsg.toStdString());
+                    qWarning() << "VectorPinSettingsDialog::onAccepted - 标记列为不可见失败:" << errorMsg;
+                    // 这里不抛出异常，只记录警告，因为列可能已经在onCheckBoxStateChanged中被隐藏
+                }
+                else
+                {
+                    qDebug() << "VectorPinSettingsDialog::onAccepted - 成功标记列'" << pinName << "'为不可见";
                 }
             }
         }
 
-        // 插入或更新vector_table_pins记录
+        // 插入或更新vector_table_pins记录（用于已选中的管脚）
         for (auto it = newSelectedPins.begin(); it != newSelectedPins.end(); ++it)
         {
             int pinId = it.key();
@@ -396,7 +498,7 @@ void VectorPinSettingsDialog::onAccepted()
 
             // 同时检查和更新VectorTableColumnConfiguration表
             QSqlQuery checkColConfigQuery(db);
-            checkColConfigQuery.prepare("SELECT id FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
+            checkColConfigQuery.prepare("SELECT id, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId AND column_name = :pinName");
             checkColConfigQuery.bindValue(":tableId", m_tableId);
             checkColConfigQuery.bindValue(":pinName", pinName);
 
@@ -410,8 +512,22 @@ void VectorPinSettingsDialog::onAccepted()
 
             if (checkColConfigQuery.exec() && checkColConfigQuery.next())
             {
-                // 已存在列配置，更新属性
+                // 已存在列配置，更新属性和可见性
                 int colConfigId = checkColConfigQuery.value(0).toInt();
+                bool isVisible = checkColConfigQuery.value(1).toBool();
+
+                // 如果列是不可见的，需要将其设为可见
+                if (!isVisible)
+                {
+                    QString errorMsg;
+                    if (!VectorDataHandler::instance().showVectorTableColumn(m_tableId, pinName, errorMsg))
+                    {
+                        qWarning() << "VectorPinSettingsDialog::onAccepted - 恢复列可见性失败:" << errorMsg;
+                        throw std::runtime_error(errorMsg.toStdString());
+                    }
+                    qDebug() << "VectorPinSettingsDialog::onAccepted - 成功将列 '" << pinName << "' 恢复为可见状态";
+                }
+
                 QSqlQuery updateColConfigQuery(db);
                 updateColConfigQuery.prepare("UPDATE VectorTableColumnConfiguration SET data_properties = :props WHERE id = :id");
                 updateColConfigQuery.bindValue(":props", propJson);
@@ -439,8 +555,8 @@ void VectorPinSettingsDialog::onAccepted()
 
                 QSqlQuery insertColConfigQuery(db);
                 insertColConfigQuery.prepare(
-                    "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties) "
-                    "VALUES (:tableId, :pinName, :order, 'PIN_STATE_ID', :props)");
+                    "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_order, column_type, data_properties, IsVisible) "
+                    "VALUES (:tableId, :pinName, :order, 'PIN_STATE_ID', :props, 1)");
                 insertColConfigQuery.bindValue(":tableId", m_tableId);
                 insertColConfigQuery.bindValue(":pinName", pinName);
                 insertColConfigQuery.bindValue(":order", nextOrder);

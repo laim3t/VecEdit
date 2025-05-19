@@ -49,6 +49,9 @@ public:
     // 逻辑删除列（设置IsVisible=0）
     bool hideVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage);
 
+    // 逻辑恢复列（设置IsVisible=1）
+    bool showVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage);
+
     // 取消当前操作
     void cancelOperation();
 

@@ -169,7 +169,6 @@ VecEdit_autogen/timestamp: C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qyieldcpu.h \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QBrush \
-  C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QIntValidator \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QStandardItemModel \
@@ -1217,7 +1216,6 @@ VecEdit_autogen/timestamp: C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qyieldcpu.h \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QBrush \
-  C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QIntValidator \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QStandardItemModel \
@@ -3317,7 +3315,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: VecEdit_autogen
   C:/Qt/6.8.2/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qyieldcpu.h \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QBrush \
-  C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QIntValidator \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QStandardItemModel \
@@ -4143,7 +4140,6 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit
   C:/Qt/6.8.2/mingw_64/include/QtCore/qversiontagging.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qyieldcpu.h \
-  C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QTransform \
   C:/Qt/6.8.2/mingw_64/include/QtGui/qaction.h \
@@ -4205,7 +4201,7 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMainWindow \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMessageBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QPushButton \
-  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSplitter \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTabWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableWidget \
@@ -4233,7 +4229,7 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qrubberband.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qslider.h \
-  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsplitter.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyle.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyleoption.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtabbar.h \
@@ -13167,7 +13163,6 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: C:/Users/GIGA/Desktop/QTPr
   C:/Qt/6.8.2/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qyieldcpu.h \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QBrush \
-  C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QColor \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QFont \
   C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
@@ -13244,6 +13239,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: C:/Users/GIGA/Desktop/QTPr
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMessageBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QPushButton \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSplitter \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStyledItemDelegate \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTabWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
@@ -13283,6 +13279,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: C:/Users/GIGA/Desktop/QTPr
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qslider.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsplitter.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyle.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyleditemdelegate.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyleoption.h \
@@ -16701,9 +16698,9 @@ C:/Qt/6.8.2/mingw_64/include/QtCore/qttypetraits.h:
 
 C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/oaidl.h:
 
-C:/Users/GIGA/Desktop/QTProject/VecEdit/resources/qt/icons.qrc:
-
 C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject:
+
+C:/Users/GIGA/Desktop/QTProject/VecEdit/resources/qt/icons.qrc:
 
 C:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/cerrno:
 

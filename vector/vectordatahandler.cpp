@@ -1976,3 +1976,55 @@ bool VectorDataHandler::hideVectorTableColumn(int tableId, const QString &column
     qDebug() << funcName << " - 成功将列 '" << columnName << "' 标记为不可见 (IsVisible=0)";
     return true;
 }
+
+bool VectorDataHandler::showVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage)
+{
+    const QString funcName = "VectorDataHandler::showVectorTableColumn";
+    qDebug() << funcName << " - 开始恢复列显示, 表ID:" << tableId << ", 列名:" << columnName;
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未打开";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 检查列是否存在
+    QSqlQuery checkQuery(db);
+    checkQuery.prepare("SELECT id FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND column_name = ?");
+    checkQuery.addBindValue(tableId);
+    checkQuery.addBindValue(columnName);
+
+    if (!checkQuery.exec())
+    {
+        errorMessage = "查询列信息失败: " + checkQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (!checkQuery.next())
+    {
+        errorMessage = QString("找不到表 %1 中的列 '%2'").arg(tableId).arg(columnName);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    int columnId = checkQuery.value(0).toInt();
+    qDebug() << funcName << " - 找到列ID:" << columnId;
+
+    // 更新IsVisible字段为1（恢复显示）
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET IsVisible = 1 WHERE id = ?");
+    updateQuery.addBindValue(columnId);
+
+    if (!updateQuery.exec())
+    {
+        errorMessage = "更新列可见性失败: " + updateQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 成功将列 '" << columnName << "' 标记为可见 (IsVisible=1)";
+    return true;
+}
