@@ -373,6 +373,7 @@ void MainWindow::setupVectorTableUI()
     // 向量表选择下拉框
     QLabel *selectLabel = new QLabel(tr("选择向量表:"), this);
     m_vectorTableSelector = new QComboBox(this);
+    m_vectorTableSelector->setObjectName(QStringLiteral("m_vectorTableSelector")); // <--- 添加这一行
     m_vectorTableSelector->setMinimumWidth(150);
     controlLayout->addWidget(selectLabel);
     controlLayout->addWidget(m_vectorTableSelector);

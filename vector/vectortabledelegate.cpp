@@ -34,15 +34,29 @@ VectorTableItemDelegate::~VectorTableItemDelegate()
 
 QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
+    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Function entry. Attempting to create editor for cell at row:" << index.row() << "column:" << index.column();
+
     int column = index.column();
 
     // 获取当前列的类型信息
+    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Calling getTableIdForCurrentTable() for column:" << column;
     int tableId = getTableIdForCurrentTable();
+    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Received tableId:" << tableId;
+
+    if (tableId < 0) // Assuming -1 or other negative values indicate an error or invalid table
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::createEditor - Invalid tableId (" << tableId << ") received. Falling back to default editor.";
+        return QStyledItemDelegate::createEditor(parent, option, index);
+    }
+
+    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Calling getColumnInfoByIndex() for tableId:" << tableId << "and uiColumnIndex:" << column;
     Vector::ColumnInfo colInfo = getColumnInfoByIndex(tableId, column);
+    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Received ColumnInfo - Name:" << colInfo.name << "Type String:" << colInfo.original_type_str << "Resolved Type Enum:" << static_cast<int>(colInfo.type) << "Order:" << colInfo.order;
 
     // 根据列类型创建合适的编辑器
     if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
     {
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected INSTRUCTION_ID type for column:" << column << ". Creating QComboBox.";
         // 创建指令下拉框
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getInstructionOptions());
@@ -51,6 +65,7 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     }
     else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
     {
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected TIMESET_ID type for column:" << column << ". Creating QComboBox.";
         // 创建TimeSet下拉框
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getTimeSetOptions());
@@ -59,6 +74,7 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     }
     else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
     {
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected BOOLEAN type for column:" << column << ". Creating QComboBox.";
         // 创建Capture下拉框（Y/N）
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getCaptureOptions());
@@ -67,12 +83,14 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating PinValueLineEdit.";
         // 创建管脚输入框
         PinValueLineEdit *editor = new PinValueLineEdit(parent);
         return editor;
     }
     else
     {
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Column type is" << static_cast<int>(colInfo.type) << "or not specifically handled. Falling back to default editor for column:" << column;
         // 默认使用基类创建
         return QStyledItemDelegate::createEditor(parent, option, index);
     }
@@ -166,15 +184,34 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
 // 辅助函数：获取当前表的ID
 int VectorTableItemDelegate::getTableIdForCurrentTable() const
 {
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Function entry.";
     QComboBox *vectorTableSelector = qobject_cast<QComboBox *>(getVectorTableSelectorPtr());
     if (!vectorTableSelector)
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Failed to get QComboBox* from getVectorTableSelectorPtr().";
         return -1;
+    }
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Successfully got vectorTableSelector. ObjectName:" << vectorTableSelector->objectName();
 
     int currentIndex = vectorTableSelector->currentIndex();
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Current index of vectorTableSelector:" << currentIndex;
     if (currentIndex < 0)
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - vectorTableSelector current index is invalid (" << currentIndex << ").";
         return -1;
+    }
 
-    return vectorTableSelector->itemData(currentIndex).toInt();
+    QVariant itemData = vectorTableSelector->itemData(currentIndex);
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Item data for current index:" << itemData;
+    bool conversionOk = false;
+    int tableId = itemData.toInt(&conversionOk);
+    if (!conversionOk)
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Failed to convert itemData to int. Original data:" << itemData;
+        return -1;
+    }
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Returning tableId:" << tableId;
+    return tableId;
 }
 
 // 辅助函数：通过UI索引获取列信息
@@ -238,11 +275,32 @@ Vector::ColumnInfo VectorTableItemDelegate::getColumnInfoByIndex(int tableId, in
 // 辅助函数：获取向量表选择器指针
 QObject *VectorTableItemDelegate::getVectorTableSelectorPtr() const
 {
+    qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Function entry.";
     QMainWindow *mainWindow = qobject_cast<QMainWindow *>(QApplication::activeWindow());
     if (!mainWindow)
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - QApplication::activeWindow() is not a QMainWindow or is null.";
         return nullptr;
+    }
+    qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Successfully got QMainWindow. Attempting to find child QComboBox 'm_vectorTableSelector'.";
 
-    return mainWindow->findChild<QComboBox *>("m_vectorTableSelector");
+    QComboBox *selector = mainWindow->findChild<QComboBox *>("m_vectorTableSelector");
+    if (!selector)
+    {
+        qWarning() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Did not find QComboBox with object name 'm_vectorTableSelector' in mainWindow.";
+        // Let's list all QComboBox children of mainWindow to help debug
+        QList<QComboBox *> comboBoxes = mainWindow->findChildren<QComboBox *>();
+        qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Found QComboBoxes in mainWindow:";
+        for (QComboBox *cb : comboBoxes)
+        {
+            qDebug() << "[Debug]   - ComboBox Name:" << cb->objectName() << "Visible:" << cb->isVisible();
+        }
+    }
+    else
+    {
+        qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Found 'm_vectorTableSelector'. ObjectName:" << selector->objectName();
+    }
+    return selector;
 }
 
 QStringList VectorTableItemDelegate::getInstructionOptions() const
