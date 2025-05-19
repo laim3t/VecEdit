@@ -54,6 +54,7 @@
 #include <QDir>
 #include <QFile>
 #include <QDateTime>
+#include <QSplitter>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)
@@ -70,6 +71,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 显示就绪状态
     statusBar()->showMessage("就绪");
+
+    // 加载所有向量表
+    loadVectorTable();
+
+    // 设置窗口为最大化
+    setWindowState(Qt::WindowMaximized);
+
+    // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
+    connect(this, &MainWindow::windowResized, [this]()
+            {
+        if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 6) {
+            qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
+            TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+        } });
 }
 
 MainWindow::~MainWindow()
@@ -696,6 +711,10 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         // 应用表格样式
         TableStyleManager::applyTableStyle(m_vectorTableWidget);
 
+        // 确保管脚列宽度设置正确
+        QTimer::singleShot(0, [this]()
+                           { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
+
         // 输出每一列的标题，用于调试
         QStringList columnHeaders;
         for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
@@ -785,8 +804,13 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 // 使用数据处理器加载数据
                 if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
                 {
+                    qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式
                     TableStyleManager::applyTableStyle(m_vectorTableWidget);
+
+                    // 确保管脚列宽度设置正确
+                    QTimer::singleShot(0, [this]()
+                                       { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
                 }
             }
 
@@ -1243,6 +1267,10 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
                     qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式
                     TableStyleManager::applyTableStyle(m_vectorTableWidget);
+
+                    // 确保管脚列宽度设置正确
+                    QTimer::singleShot(0, [this]()
+                                       { TableStyleManager::setPinColumnWidths(m_vectorTableWidget); });
                 }
                 else
                 {
@@ -2944,4 +2972,11 @@ void MainWindow::checkAndFixAllVectorTables()
     }
 
     qDebug() << funcName << " - 检查完成，共 " << totalCount << " 个表，修复了 " << fixedCount << " 个表";
+}
+
+// 添加一个resizeEvent重写，以便发出windowResized信号
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    emit windowResized();
 }

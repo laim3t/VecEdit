@@ -471,6 +471,36 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlistwidget.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlistview.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QListWidgetItem \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QResizeEvent \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qevent.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreevent.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qeventpoint.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qvector2d.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qvectornd.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qpointingdevice.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qinputdevice.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qscreen.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qlist.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qobject.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QRect \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qrect.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QSize \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qsize.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QSizeF \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QTransform \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qtransform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qnativeinterface.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qscreen_platform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qeventloop.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qinputmethod.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
@@ -480,7 +510,6 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qobject.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlQuery \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlquery.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqldatabase.h \
@@ -522,7 +551,6 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QDialogButtonBox \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qdialogbuttonbox.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qlist.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/timeset/timesetdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTreeWidgetItem \
@@ -548,16 +576,6 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectortabledelegate.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QApplication \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qapplication.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreevent.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qeventloop.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qnativeinterface.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qinputmethod.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonobject.h \
@@ -613,23 +631,6 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QGridLayout \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qgridlayout.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QKeyEvent \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qevent.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qeventpoint.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qvector2d.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qvectornd.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qpointingdevice.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qinputdevice.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qscreen.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QRect \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qrect.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QSize \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qsize.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QSizeF \
- C:/Qt/6.8.2/mingw_64/include/QtGui/QTransform \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qtransform.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/qscreen_platform.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QIcon \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qicon.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollArea \

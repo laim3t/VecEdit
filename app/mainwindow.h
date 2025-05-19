@@ -16,6 +16,7 @@
 #include <QTabWidget>
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QResizeEvent>
 #include "../common/tablestylemanager.h"
 
 // 前置声明
@@ -32,6 +33,14 @@ public:
 
     // 辅助函数：添加向量行
     void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
+
+protected:
+    // 处理窗口大小变化事件
+    void resizeEvent(QResizeEvent *event) override;
+
+signals:
+    // 窗口大小变化信号
+    void windowResized();
 
 private slots:
     // 数据库操作

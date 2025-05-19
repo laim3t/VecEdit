@@ -130,3 +130,89 @@ header.timestamp_updated = header.timestamp_created;
 - **版本**：1.0 (对应 `binary_file_format.h` 中 `BinaryFileHeader::file_format_version` 的初始值)
 - **变更历史**：
   - 1.0 (YYYY-MM-DD): 初始定义 `BinaryFileHeader` 结构，包含魔数、版本号、行列计数、时间戳、压缩类型和保留字节。提供构造函数、校验和日志方法。
+
+# 公共组件模块文档
+
+## 功能概述
+
+公共组件模块提供了整个应用程序中共享的实用工具和功能，包括表格样式管理、路径工具、数据格式处理等。
+
+## 表格样式管理器 (TableStyleManager)
+
+### 功能概述
+
+表格样式管理器负责统一设置和维护应用程序中所有表格的视觉样式和行为。主要功能包括：
+
+1. 设置表格的基本样式（边框、颜色、选择效果等）
+2. 根据内容类型自动设置列对齐方式
+3. 设置统一的行高
+4. 管理管脚列的宽度分配
+
+### 管脚列宽度优化
+
+最新版本添加了管脚列宽度优化功能，解决了管脚列宽度不一致的问题：
+
+- 自动识别管脚列（通过列标题中的换行符）
+- 固定前六列为标准列（地址、标签、TimeSet、I_DUT、O_DUT、IO_DUT）
+- 计算表格中剩余可用空间
+- 将剩余空间平均分配给所有管脚列
+- 确保当窗口大小变化时自动调整管脚列宽度
+
+### 使用说明
+
+在加载表格数据并希望应用统一样式时，调用以下函数：
+
+```cpp
+// 应用全部样式（包括管脚列宽度优化）
+TableStyleManager::applyTableStyle(tableWidget);
+
+// 仅优化管脚列宽度
+TableStyleManager::setPinColumnWidths(tableWidget);
+```
+
+为确保窗口大小变化时管脚列宽度能够自动调整，请在窗口类中添加以下代码：
+
+```cpp
+// 在窗口大小变化时更新管脚列宽度
+connect(this, &YourWindow::windowResized, [this]() {
+    if (tableWidget && tableWidget->isVisible() && tableWidget->columnCount() > 6) {
+        TableStyleManager::setPinColumnWidths(tableWidget);
+    }
+});
+
+// 添加窗口大小变化处理
+void YourWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    emit windowResized();
+}
+```
+
+## 二进制文件格式 (BinaryFileFormat)
+
+该模块定义了存储向量数据的二进制文件格式规范，包括文件头、版本信息和数据区。
+
+## 路径工具 (PathUtils)
+
+提供了处理和转换文件路径的实用函数，确保在不同操作系统中保持路径的兼容性。
+
+## 向后兼容性
+
+本模块保持完全向后兼容。所有新功能都是以增量方式添加，不会影响现有功能。
+
+## 版本和变更历史
+
+### 版本 2.5.0 (最新)
+
+- 添加管脚列宽度优化功能，确保所有管脚列宽度一致
+- 添加窗口大小变化时自动调整管脚列宽度的功能
+
+### 版本 2.4.0
+
+- 增强表格样式设置，支持根据列内容类型自动对齐
+- 优化表格刷新机制，减少闪烁
+
+### 版本 2.3.0
+
+- 添加二进制文件格式定义
+- 实现路径工具，支持跨平台路径处理
