@@ -2,6 +2,7 @@
 #include "database/databasemanager.h"
 #include <QMessageBox>
 #include <QIntValidator>
+#include <QDebug>
 
 ReplaceTimeSetDialog::ReplaceTimeSetDialog(QWidget *parent)
     : QDialog(parent), m_vectorRowCount(0)
@@ -177,12 +178,18 @@ void ReplaceTimeSetDialog::setSelectedRange(int startRow, int endRow)
 
 int ReplaceTimeSetDialog::getFromTimeSetId() const
 {
-    return m_fromTimeSetComboBox->currentData().toInt();
+    int id = m_fromTimeSetComboBox->currentData().toInt();
+    QString name = m_fromTimeSetComboBox->currentText();
+    qDebug() << "ReplaceTimeSetDialog::getFromTimeSetId - 选择的TimeSet:" << name << "，ID:" << id;
+    return id;
 }
 
 int ReplaceTimeSetDialog::getToTimeSetId() const
 {
-    return m_toTimeSetComboBox->currentData().toInt();
+    int id = m_toTimeSetComboBox->currentData().toInt();
+    QString name = m_toTimeSetComboBox->currentText();
+    qDebug() << "ReplaceTimeSetDialog::getToTimeSetId - 选择的TimeSet:" << name << "，ID:" << id;
+    return id;
 }
 
 int ReplaceTimeSetDialog::getStartRow() const

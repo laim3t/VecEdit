@@ -1,7 +1,13 @@
 C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/Users/GIGA/Desktop/QTProject/VecEdit/app/mainwindow.h \
   C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDir \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QFile \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QIODevice \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QMap \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
@@ -9,6 +15,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtCore/QSize \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QSizeF \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QVariant \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20functional.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20iterator.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20memory.h \
@@ -30,6 +37,8 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearraylist.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearrayview.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qcalendar.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qcborcommon.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qcborvalue.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qchar.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qcompare.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qcompare_impl.h \
@@ -73,6 +82,8 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtCore/qitemselectionmodel.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qiterable.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qiterator.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonobject.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonvalue.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qlatin1stringview.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qline.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qlist.h \
@@ -146,6 +157,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtCore/qtypes.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qurl.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qutf8stringview.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/quuid.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qvariant.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qvarlengtharray.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qversiontagging.h \
@@ -215,6 +227,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTabWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableWidget \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qabstractbutton.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qabstractitemdelegate.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qabstractitemview.h \
@@ -485,4 +498,8 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/vadefs.h \
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wchar.h \
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wctype.h \
-  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h \
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/binaryfilehelper.h \
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectordatahandler.h

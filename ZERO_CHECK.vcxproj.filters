@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\CMakeFiles\681ee70f8f8b3fa0328fa851d49a1554\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C862882B-DCEC-3D81-9762-4753378D6602}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -3902,3 +3902,8 @@
 [2025-05-20 11:21:15.578] [Debug] "BinaryFileHelper::writeAllRowsToBinary" - File flushed and closed. Exit. (binaryfilehelper.cpp:721, static bool Persistence::BinaryFileHelper::writeAllRowsToBinary(const QString&, const QList<Vector::ColumnInfo>&, int, const QList<QList<QVariant> >&))
 [2025-05-20 11:21:15.578] [Debug] "VectorDataHandler::saveVectorTableData"  - 二进制文件写入成功 (vectordatahandler.cpp:1026, bool VectorDataHandler::saveVectorTableData(int, QTableWidget*, QString&))
 [2025-05-20 11:21:15.606] [Debug] "VectorDataHandler::saveVectorTableData" - 数据库元数据行数已更新为: 4  for table ID: 1 (vectordatahandler.cpp:1060, bool VectorDataHandler::saveVectorTableData(int, QTableWidget*, QString&))
+[2025-05-20 11:21:38.348] [Debug] MainWindow::saveWindowState - 窗口状态已保存 (mainwindow.cpp:3193, void MainWindow::saveWindowState())
+[2025-05-20 11:21:38.393] [Debug] main - 应用程序退出，返回码: 0 (main.cpp:21, int qMain(int, char**))
+[2025-05-20 11:21:38.402] [Warning] QSqlDatabasePrivate::removeDatabase: connection 'qt_sql_default_connection' is still in use, all queries will cease to work.
+[2025-05-20 11:21:38.458] [Info] 数据库连接已关闭 (databasemanager.cpp:272, void DatabaseManager::closeDatabase())
+[2025-05-20 11:21:38.557] [Debug] VectorDataHandler::~VectorDataHandler - 析构 (vectordatahandler.cpp:700, virtual VectorDataHandler::~VectorDataHandler())

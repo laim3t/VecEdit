@@ -1,0 +1,201 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\mocs_compilation_Debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\app\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\app\mainwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\databasemanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\databasemanager_migrator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\databaseviewdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\binaryfilehelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinlistdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pingroupdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetedgedialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\filltimesetdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\replacetimesetdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinvalueedit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\vectorpinsettingsdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinsettingsdialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectortabledelegate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectordatahandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\deleterangevectordialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\dialogmanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestylemanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetdataaccess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetedgemanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinselectionmanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectordatamanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\BUURKL3RHA_Debug\qrc_icons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\mocs_compilation_Release.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\BUURKL3RHA_Release\qrc_icons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\mocs_compilation_MinSizeRel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\BUURKL3RHA_MinSizeRel\qrc_icons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\mocs_compilation_RelWithDebInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\VecEdit_autogen\BUURKL3RHA_RelWithDebInfo\qrc_icons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\app\mainwindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\databasemanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\databaseviewdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\database\binaryfilehelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinlistdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pingroupdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetedgedialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\filltimesetdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\replacetimesetdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinvalueedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\vectorpinsettingsdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinsettingsdialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectortabledelegate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectordatahandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\deleterangevectordialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\dialogmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestylemanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\common\logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetdataaccess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetedgemanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinselectionmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectordatamanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\CMakeFiles\3b32af2dd903fdb2469a55deba539df9\qrc_icons.cpp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\GIGA\Desktop\QTProject\VecEdit\resources\qt\icons.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C862882B-DCEC-3D81-9762-4753378D6602}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{225F3C8F-38E6-309C-8283-B55C30EB68D6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{C8B100BC-A4E4-3F0F-BDDC-11FC17B6EF17}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

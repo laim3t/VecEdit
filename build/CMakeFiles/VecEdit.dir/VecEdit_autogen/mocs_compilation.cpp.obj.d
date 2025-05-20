@@ -504,19 +504,43 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QFile \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qfile.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qfileinfo.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QVariant \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qvariant.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonobject.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonvalue.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcborvalue.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcborcommon.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/quuid.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectordatahandler.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QWidget \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qwidget.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qatomic.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/database/binaryfilehelper.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QIODevice \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearray.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtmochelpers.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\P66WHCG54J/moc_logger.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/logger.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QFile \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qfile.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QTextStream \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtextstream.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDateTime \
@@ -771,8 +795,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqldatabase.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlError \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlerror.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QVariant \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qvariant.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\BL3K65LMA5/moc_databaseviewdialog.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databaseviewdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QDialog \
@@ -800,7 +822,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/pin/pingroupdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QSet \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qset.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QCheckBox \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qcheckbox.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\X6SAMCXN67/moc_pinlistdialog.cpp \
@@ -856,19 +877,8 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qvalidator.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\EFITGCF6GF/moc_vectordatahandler.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectordatahandler.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QWidget \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qwidget.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qatomic.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\EFITGCF6GF/moc_vectortabledelegate.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectortabledelegate.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QApplication \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qapplication.h \
- C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h \
- C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonobject.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonvalue.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qcborvalue.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qcborcommon.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/quuid.h
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h

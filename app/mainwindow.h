@@ -18,6 +18,12 @@
 #include <QListWidgetItem>
 #include <QResizeEvent>
 #include <QStatusBar>
+#include <QFile>
+#include <QFileInfo>
+#include <stdexcept>
+#include "../vector/vector_data_types.h"
+#include "../vector/vectordatahandler.h"
+#include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 
 // 前置声明

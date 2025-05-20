@@ -1,9 +1,0 @@
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/VecEdit.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/edit_cache.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/rebuild_cache.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/list_install_components.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/install.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/install/local.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/install/strip.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/VecEdit_autogen_timestamp_deps.dir
-C:/Users/GIGA/Desktop/QTProject/VecEdit/CMakeFiles/VecEdit_autogen.dir
