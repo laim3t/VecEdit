@@ -1699,12 +1699,33 @@ void MainWindow::showFillTimeSetDialog()
 
     // 显示填充TimeSet对话框
     FillTimeSetDialog dialog(this);
+    // 设置向量表总行数
+    dialog.setVectorRowCount(rowCount);
+
+    // 获取选中的行（如果有）并设置默认范围
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (!selectedIndexes.isEmpty())
+    {
+        // 找出最小和最大行号（1-based）
+        int minRow = INT_MAX;
+        int maxRow = 0;
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            int rowIdx = index.row() + 1; // 转为1-based
+            minRow = qMin(minRow, rowIdx);
+            maxRow = qMax(maxRow, rowIdx);
+        }
+        if (minRow <= maxRow)
+        {
+            dialog.setSelectedRange(minRow, maxRow);
+        }
+    }
+
     if (dialog.exec() == QDialog::Accepted)
     {
         int timeSetId = dialog.getSelectedTimeSetId();
 
         // 获取选中的行
-        QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
         QList<int> selectedRows;
         foreach (const QModelIndex &index, selectedIndexes)
         {
@@ -2204,13 +2225,34 @@ void MainWindow::showReplaceTimeSetDialog()
 
     // 显示替换TimeSet对话框
     ReplaceTimeSetDialog dialog(this);
+    // 设置向量表总行数
+    dialog.setVectorRowCount(rowCount);
+
+    // 获取选中的行（如果有）并设置默认范围
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    if (!selectedIndexes.isEmpty())
+    {
+        // 找出最小和最大行号（1-based）
+        int minRow = INT_MAX;
+        int maxRow = 0;
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            int rowIdx = index.row() + 1; // 转为1-based
+            minRow = qMin(minRow, rowIdx);
+            maxRow = qMax(maxRow, rowIdx);
+        }
+        if (minRow <= maxRow)
+        {
+            dialog.setSelectedRange(minRow, maxRow);
+        }
+    }
+
     if (dialog.exec() == QDialog::Accepted)
     {
         int fromTimeSetId = dialog.getFromTimeSetId();
         int toTimeSetId = dialog.getToTimeSetId();
 
         // 获取选中的行
-        QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
         QList<int> selectedRows;
         foreach (const QModelIndex &index, selectedIndexes)
         {
