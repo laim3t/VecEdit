@@ -58,6 +58,9 @@
 #include <QSizePolicy>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)

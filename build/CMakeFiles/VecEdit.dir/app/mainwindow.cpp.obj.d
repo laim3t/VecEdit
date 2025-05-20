@@ -644,4 +644,7 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QSettings \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qsettings.h \
- C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QCloseEvent \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonDocument \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qjsondocument.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonParseError
