@@ -1778,6 +1778,303 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
 
     try
     {
+        // 1. 查询表对应的二进制文件路径
+        QSqlQuery fileQuery(db);
+        fileQuery.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
+        fileQuery.addBindValue(tableId);
+        if (!fileQuery.exec() || !fileQuery.next())
+        {
+            QString errorText = fileQuery.lastError().text();
+            qDebug() << "填充TimeSet - 查询二进制文件名失败:" << errorText;
+            throw std::runtime_error(("查询二进制文件名失败: " + errorText).toStdString());
+        }
+
+        QString binFileName = fileQuery.value(0).toString();
+        if (binFileName.isEmpty())
+        {
+            qDebug() << "填充TimeSet - 二进制文件名为空，无法进行填充操作";
+            throw std::runtime_error("向量表未配置二进制文件存储，无法进行填充操作");
+        }
+
+        // 2. 解析二进制文件路径
+        // 使用PathUtils获取项目二进制数据目录
+        QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
+        if (projectBinaryDataDir.isEmpty())
+        {
+            QString errorMsg = QString("无法为数据库 '%1' 生成二进制数据目录路径").arg(m_currentDbPath);
+            qWarning() << "填充TimeSet - " << errorMsg;
+            throw std::runtime_error(errorMsg.toStdString());
+        }
+
+        qDebug() << "填充TimeSet - 项目二进制数据目录:" << projectBinaryDataDir;
+
+        // 相对路径转绝对路径
+        QString absoluteBinFilePath;
+        if (QFileInfo(binFileName).isRelative())
+        {
+            absoluteBinFilePath = QDir(projectBinaryDataDir).absoluteFilePath(binFileName);
+            qDebug() << "填充TimeSet - 相对路径转换为绝对路径:" << binFileName << " -> " << absoluteBinFilePath;
+        }
+        else
+        {
+            absoluteBinFilePath = binFileName;
+        }
+
+        // 3. 检查二进制文件是否存在
+        if (!QFile::exists(absoluteBinFilePath))
+        {
+            qWarning() << "填充TimeSet - 二进制文件不存在:" << absoluteBinFilePath;
+            throw std::runtime_error(("二进制文件不存在: " + absoluteBinFilePath).toStdString());
+        }
+
+        // 4. 查询列定义，找出TimeSet列
+        QSqlQuery colQuery(db);
+        colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible "
+                         "FROM VectorTableColumnConfiguration "
+                         "WHERE master_record_id = ? ORDER BY column_order");
+        colQuery.addBindValue(tableId);
+
+        if (!colQuery.exec())
+        {
+            QString errorText = colQuery.lastError().text();
+            qWarning() << "填充TimeSet - 查询列定义失败:" << errorText;
+            throw std::runtime_error(("查询列定义失败: " + errorText).toStdString());
+        }
+
+        QList<Vector::ColumnInfo> columns;
+        int timeSetColumnIndex = -1; // 用于标记TimeSet列的索引
+
+        while (colQuery.next())
+        {
+            Vector::ColumnInfo colInfo;
+            colInfo.id = colQuery.value(0).toInt();
+            colInfo.name = colQuery.value(1).toString();
+            colInfo.order = colQuery.value(2).toInt();
+            colInfo.original_type_str = colQuery.value(3).toString();
+
+            // 解析data_properties
+            QString dataPropertiesStr = colQuery.value(4).toString();
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(dataPropertiesStr.toUtf8());
+            if (!jsonDoc.isNull() && jsonDoc.isObject())
+            {
+                colInfo.data_properties = jsonDoc.object();
+            }
+            else
+            {
+                // 如果解析失败，创建一个空的QJsonObject
+                colInfo.data_properties = QJsonObject();
+            }
+
+            colInfo.is_visible = colQuery.value(5).toBool();
+
+            // 映射列类型字符串到枚举
+            if (colInfo.original_type_str == "TEXT")
+                colInfo.type = Vector::ColumnDataType::TEXT;
+            else if (colInfo.original_type_str == "INTEGER")
+                colInfo.type = Vector::ColumnDataType::INTEGER;
+            else if (colInfo.original_type_str == "BOOLEAN")
+                colInfo.type = Vector::ColumnDataType::BOOLEAN;
+            else if (colInfo.original_type_str == "INSTRUCTION_ID")
+                colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+            else if (colInfo.original_type_str == "TIMESET_ID")
+            {
+                colInfo.type = Vector::ColumnDataType::TIMESET_ID;
+                timeSetColumnIndex = columns.size(); // 记录TimeSet列的索引
+            }
+            else if (colInfo.original_type_str == "PIN_STATE_ID")
+                colInfo.type = Vector::ColumnDataType::PIN_STATE_ID;
+            else
+                colInfo.type = Vector::ColumnDataType::TEXT; // 默认类型
+
+            columns.append(colInfo);
+        }
+
+        if (timeSetColumnIndex == -1)
+        {
+            qWarning() << "填充TimeSet - 未找到TimeSet列，尝试修复表结构";
+
+            // 尝试添加缺失的TimeSet列
+            QSqlQuery addTimeSetColQuery(db);
+            addTimeSetColQuery.prepare("INSERT INTO VectorTableColumnConfiguration "
+                                       "(master_record_id, column_name, column_order, column_type, data_properties, IsVisible) "
+                                       "VALUES (?, ?, ?, ?, ?, 1)");
+
+            // 获取当前最大列序号
+            int maxOrder = -1;
+            QSqlQuery maxOrderQuery(db);
+            maxOrderQuery.prepare("SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+            maxOrderQuery.addBindValue(tableId);
+            if (maxOrderQuery.exec() && maxOrderQuery.next())
+            {
+                maxOrder = maxOrderQuery.value(0).toInt();
+            }
+
+            // 如果无法获取最大列序号，默认放在第2位置
+            if (maxOrder < 0)
+            {
+                maxOrder = 1; // 添加在位置2 (索引为2，实际是第3列)
+            }
+
+            // 添加TimeSet列
+            addTimeSetColQuery.addBindValue(tableId);
+            addTimeSetColQuery.addBindValue("TimeSet");
+            addTimeSetColQuery.addBindValue(2); // 固定在位置2 (通常TimeSet是第3列)
+            addTimeSetColQuery.addBindValue("TIMESET_ID");
+            addTimeSetColQuery.addBindValue("{}");
+
+            if (!addTimeSetColQuery.exec())
+            {
+                qWarning() << "填充TimeSet - 添加TimeSet列失败:" << addTimeSetColQuery.lastError().text();
+                throw std::runtime_error(("未找到TimeSet类型的列，且尝试添加时失败。无法执行填充操作。"));
+            }
+
+            qDebug() << "填充TimeSet - 成功添加TimeSet列，重新获取列定义";
+
+            // 重新查询列定义
+            colQuery.clear();
+            colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible "
+                             "FROM VectorTableColumnConfiguration "
+                             "WHERE master_record_id = ? ORDER BY column_order");
+            colQuery.addBindValue(tableId);
+
+            if (!colQuery.exec())
+            {
+                qWarning() << "填充TimeSet - 重新查询列定义失败:" << colQuery.lastError().text();
+                throw std::runtime_error(("查询列定义失败: " + colQuery.lastError().text()).toStdString());
+            }
+
+            // 重新解析列定义
+            columns.clear();
+            timeSetColumnIndex = -1;
+
+            while (colQuery.next())
+            {
+                Vector::ColumnInfo colInfo;
+                colInfo.id = colQuery.value(0).toInt();
+                colInfo.name = colQuery.value(1).toString();
+                colInfo.order = colQuery.value(2).toInt();
+                colInfo.original_type_str = colQuery.value(3).toString();
+
+                // 解析data_properties
+                QString dataPropertiesStr = colQuery.value(4).toString();
+                QJsonDocument jsonDoc = QJsonDocument::fromJson(dataPropertiesStr.toUtf8());
+                if (!jsonDoc.isNull() && jsonDoc.isObject())
+                {
+                    colInfo.data_properties = jsonDoc.object();
+                }
+                else
+                {
+                    colInfo.data_properties = QJsonObject();
+                }
+
+                colInfo.is_visible = colQuery.value(5).toBool();
+
+                // 映射列类型字符串到枚举
+                if (colInfo.original_type_str == "TEXT")
+                    colInfo.type = Vector::ColumnDataType::TEXT;
+                else if (colInfo.original_type_str == "INTEGER")
+                    colInfo.type = Vector::ColumnDataType::INTEGER;
+                else if (colInfo.original_type_str == "BOOLEAN")
+                    colInfo.type = Vector::ColumnDataType::BOOLEAN;
+                else if (colInfo.original_type_str == "INSTRUCTION_ID")
+                    colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+                else if (colInfo.original_type_str == "TIMESET_ID")
+                {
+                    colInfo.type = Vector::ColumnDataType::TIMESET_ID;
+                    timeSetColumnIndex = columns.size(); // 记录TimeSet列的索引
+                }
+                else if (colInfo.original_type_str == "PIN_STATE_ID")
+                    colInfo.type = Vector::ColumnDataType::PIN_STATE_ID;
+                else
+                    colInfo.type = Vector::ColumnDataType::TEXT; // 默认类型
+
+                columns.append(colInfo);
+            }
+
+            // 再次检查是否找到TimeSet列
+            if (timeSetColumnIndex == -1)
+            {
+                qWarning() << "填充TimeSet - 修复后仍未找到TimeSet列，放弃操作";
+                throw std::runtime_error(("修复后仍未找到TimeSet类型的列，无法执行填充操作"));
+            }
+
+            qDebug() << "填充TimeSet - 成功修复表结构并找到TimeSet列，索引:" << timeSetColumnIndex;
+        }
+
+        // 5. 读取二进制文件数据
+        QList<Vector::RowData> allRows;
+        int schemaVersion = 1; // 默认值
+
+        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+        {
+            qWarning() << "填充TimeSet - 读取二进制文件失败:" << absoluteBinFilePath;
+            QString errorMsg = QString("从二进制文件读取数据失败");
+            throw std::runtime_error(errorMsg.toStdString());
+        }
+
+        qDebug() << "填充TimeSet - 从二进制文件读取到" << allRows.size() << "行数据";
+
+        // 如果行数为0，提示用户
+        if (allRows.size() == 0)
+        {
+            qWarning() << "填充TimeSet - 二进制文件中没有数据，无需填充";
+            QMessageBox::warning(this, tr("警告"), tr("向量表中没有数据，无需填充"));
+            db.rollback();
+            return;
+        }
+
+        // 6. 更新内存中的TimeSet数据
+        int updatedRowCount = 0;
+        for (int i = 0; i < allRows.size(); i++)
+        {
+            Vector::RowData &rowData = allRows[i];
+
+            // 检查行数据大小是否合法
+            if (rowData.size() <= timeSetColumnIndex)
+            {
+                qWarning() << "填充TimeSet - 行" << i << "数据列数" << rowData.size()
+                           << "小于TimeSet列索引" << timeSetColumnIndex << "，跳过此行";
+                continue;
+            }
+
+            // 检查当前行是否是要更新的行
+            bool shouldProcessThisRow = selectedUiRows.isEmpty(); // 如果没有选择行，处理所有行
+
+            // 如果用户选择了特定行，检查当前行是否在选择范围内
+            if (!shouldProcessThisRow && i < allRows.size())
+            {
+                // 注意：selectedUiRows中存储的是UI中的行索引，这与二进制文件中的行索引i可能不完全一致
+                shouldProcessThisRow = selectedUiRows.contains(i);
+
+                if (shouldProcessThisRow)
+                {
+                    qDebug() << "填充TimeSet - 行 " << i << " 在用户选择的行列表中";
+                }
+            }
+
+            if (shouldProcessThisRow)
+            {
+                // 直接更新为新的TimeSet ID
+                int oldTimeSetId = rowData[timeSetColumnIndex].toInt();
+                rowData[timeSetColumnIndex] = timeSetId;
+                updatedRowCount++;
+                qDebug() << "填充TimeSet - 已更新行 " << i << " 的TimeSet ID 从 " << oldTimeSetId << " 到 " << timeSetId;
+            }
+        }
+
+        qDebug() << "填充TimeSet - 内存中更新了" << updatedRowCount << "行数据";
+
+        // 7. 写回二进制文件
+        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+        {
+            qWarning() << "填充TimeSet - 写入二进制文件失败:" << absoluteBinFilePath;
+            QString errorMsg = QString("将更新后的数据写回二进制文件失败");
+            throw std::runtime_error(errorMsg.toStdString());
+        }
+
+        qDebug() << "填充TimeSet - 已成功写入二进制文件:" << absoluteBinFilePath;
+
+        // 更新数据库中的记录
         QList<int> idsToUpdate; // 存储要更新的数据库行的ID
 
         if (!selectedUiRows.isEmpty())
@@ -1870,7 +2167,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
         qDebug() << "填充TimeSet - 已重新加载表格数据";
 
         // 显示成功消息
-        QMessageBox::information(this, tr("成功"), tr("TimeSet填充完成"));
+        QMessageBox::information(this, tr("成功"), tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount));
         qDebug() << "填充TimeSet - 操作成功完成";
     }
     catch (const std::exception &e)
