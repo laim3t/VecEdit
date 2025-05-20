@@ -20,15 +20,14 @@ CMAKE_ADDR2LINE:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/addr2line.exe
 //Path to a program.
 CMAKE_AR:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/ar.exe
 
-//Choose the type of build, options are: None Debug Release RelWithDebInfo
-// MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=
+//No help, variable specified on the command line.
+CMAKE_BUILD_TYPE:STRING=Debug
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
 
-//CXX compiler
-CMAKE_CXX_COMPILER:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/c++.exe
+//No help, variable specified on the command line.
+CMAKE_CXX_COMPILER:FILEPATH=c:/Qt/Tools/mingw1310_64/bin/g++.exe
 
 //A wrapper around 'ar' adding the appropriate '--plugin' option
 // for the GCC compiler
@@ -56,6 +55,9 @@ CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 //Libraries linked by default with all C++ applications.
 CMAKE_CXX_STANDARD_LIBRARIES:STRING=-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
 
+//No help, variable specified on the command line.
+CMAKE_C_COMPILER:FILEPATH=c:/Qt/Tools/mingw1310_64/bin/gcc.exe
+
 //Path to a program.
 CMAKE_DLLTOOL:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/dlltool.exe
 
@@ -73,6 +75,9 @@ CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=
 
 //Flags used by the linker during RELWITHDEBINFO builds.
 CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=
+
+//No help, variable specified on the command line.
+CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE
 
 //Value Computed by CMake.
 CMAKE_FIND_PACKAGE_REDIRECTS_DIR:STATIC=C:/Users/GIGA/Desktop/QTProject/VecEdit/build/CMakeFiles/pkgRedirects
@@ -165,6 +170,9 @@ CMAKE_OBJCOPY:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/objcopy.exe
 
 //Path to a program.
 CMAKE_OBJDUMP:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/objdump.exe
+
+//No help, variable specified on the command line.
+CMAKE_PREFIX_PATH:STRING=C:/Qt/6.8.2/mingw_64
 
 //Value Computed by CMake
 CMAKE_PROJECT_DESCRIPTION:STATIC=
@@ -267,6 +275,9 @@ CMAKE_STRIP:FILEPATH=C:/Qt/Tools/mingw1310_64/bin/strip.exe
 //Path to a program.
 CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 
+//No help, variable specified on the command line.
+CMAKE_TOOLCHAIN_FILE:FILEPATH=c:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake
+
 //If this value is on, makefiles will be generated without the
 // .SILENT directive, and all commands will be echoed to the console
 // during the make.  This is useful for debugging only. With Visual
@@ -282,6 +293,9 @@ QT_ADDITIONAL_PACKAGES_PREFIX_PATH:STRING=
 
 //The directory containing a CMake configuration file for QT.
 QT_DIR:PATH=C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6
+
+//No help, variable specified on the command line.
+QT_QML_GENERATE_QMLLS_INI:STRING=ON
 
 //The directory containing a CMake configuration file for Qt6CoreTools.
 Qt6CoreTools_DIR:PATH=C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6CoreTools
