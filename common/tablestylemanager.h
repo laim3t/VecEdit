@@ -12,6 +12,9 @@ public:
     // 对QTableWidget进行风格设置
     static void applyTableStyle(QTableWidget *table);
 
+    // 对QTableWidget进行风格设置（优化版，减少重绘次数）
+    static void applyTableStyleOptimized(QTableWidget *table);
+
     // 对QTableView进行风格设置
     static void applyTableStyle(QTableView *tableView);
 

@@ -653,8 +653,8 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     QObject::connect(vectorTable, &QTableWidget::cellClicked, [vectorTable](int row, int column)
                      { vectorTable->selectRow(row); });
 
-    // 添加一行默认数据
-    VectorDataHandler::addVectorRow(vectorTable, pinOptions, 0);
+    // 添加一行默认数据（使用批量添加方法，但只添加一行）
+    VectorDataHandler::addVectorRows(vectorTable, pinOptions, 0, 1);
 
     // 添加表格到布局
     mainLayout->addWidget(vectorTable);
@@ -804,7 +804,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     // 连接添加行和删除行按钮信号
     QObject::connect(addRowButton, &QPushButton::clicked, [&]()
                      {
-                         VectorDataHandler::addVectorRow(vectorTable, pinOptions, vectorTable->rowCount());
+                         VectorDataHandler::addVectorRows(vectorTable, pinOptions, vectorTable->rowCount(), 1);
 
                          // 更新行数输入框和剩余可用行数
                          int newRowCount = vectorTable->rowCount();
@@ -867,7 +867,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                          if (newRowCount == 0)
                          {
                              // 如果删除所有行，添加一个默认行
-                             VectorDataHandler::addVectorRow(vectorTable, pinOptions, 0);
+                             VectorDataHandler::addVectorRows(vectorTable, pinOptions, 0, 1);
                              newRowCount = 1;
                          }
 

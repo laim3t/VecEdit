@@ -12,6 +12,8 @@
 #include <QDebug>
 #include <QComboBox>
 #include <QObject>
+#include <QCoreApplication>
+#include <QEventLoop>
 
 VectorDataManager::VectorDataManager(TimeSetDataAccess *dataAccess)
     : m_dataAccess(dataAccess)
@@ -150,8 +152,8 @@ void VectorDataManager::showVectorDataDialog(int tableId, const QString &tableNa
         int newRow = newDataTable->rowCount();
         newDataTable->setRowCount(newRow + 1);
         
-        // 添加新行
-        this->addVectorRow(newDataTable, columnLabels, newRow); });
+        // 添加新行（使用批量添加，但只添加一行）
+        this->addVectorRows(newDataTable, columnLabels, newRow, 1); });
 
     QObject::connect(removeRowButton, &QPushButton::clicked, [newDataTable]()
                      {
@@ -232,4 +234,47 @@ void VectorDataManager::addVectorRow(QTableWidget *table, const QStringList &pin
         QTableWidgetItem *item = new QTableWidgetItem("");
         table->setItem(rowIdx, col, item);
     }
+}
+
+void VectorDataManager::addVectorRows(QTableWidget *table, const QStringList &pinOptions, int startRowIdx, int count)
+{
+    const QString funcName = "VectorDataManager::addVectorRows";
+    qDebug() << funcName << "- 开始批量添加" << count << "行，从索引" << startRowIdx << "开始";
+
+    if (count <= 0)
+    {
+        qDebug() << funcName << "- 要添加的行数必须大于0，当前值:" << count;
+        return;
+    }
+
+    // 预先设置行数，避免多次调整
+    int newRowCount = startRowIdx + count;
+    if (table->rowCount() < newRowCount)
+    {
+        table->setRowCount(newRowCount);
+    }
+
+    // 禁用表格更新，提高性能
+    table->setUpdatesEnabled(false);
+
+    // 批量添加行
+    for (int row = startRowIdx; row < newRowCount; row++)
+    {
+        for (int col = 0; col < pinOptions.size() && col < table->columnCount(); col++)
+        {
+            QTableWidgetItem *item = new QTableWidgetItem("");
+            table->setItem(row, col, item);
+        }
+
+        // 每处理100行，让出一些CPU时间，避免UI完全冻结
+        if ((row - startRowIdx) % 100 == 0 && row > startRowIdx)
+        {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
+    }
+
+    // 恢复表格更新
+    table->setUpdatesEnabled(true);
+
+    qDebug() << funcName << "- 批量添加完成，总行数:" << table->rowCount();
 }

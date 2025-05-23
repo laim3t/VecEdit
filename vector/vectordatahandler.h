@@ -25,6 +25,9 @@ public:
     // 添加向量行
     static void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
+    // 添加批量向量行
+    static void addVectorRows(QTableWidget *table, const QStringList &pinOptions, int startRowIdx, int count);
+
     // 删除向量表
     bool deleteVectorTable(int tableId, QString &errorMessage);
 

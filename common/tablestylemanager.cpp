@@ -59,6 +59,126 @@ void TableStyleManager::applyTableStyle(QTableWidget *table)
     qDebug() << funcName << " - 表格样式设置完成";
 }
 
+void TableStyleManager::applyTableStyleOptimized(QTableWidget *table)
+{
+    const QString funcName = "TableStyleManager::applyTableStyleOptimized";
+    qDebug() << funcName << " - Entry";
+
+    if (!table)
+    {
+        qWarning() << funcName << " - 错误：表格对象为空";
+        return;
+    }
+
+    qDebug() << funcName << " - 开始设置表格样式（优化版）";
+
+    // 禁用表格更新，减少重绘次数
+    table->setUpdatesEnabled(false);
+
+    // 暂时禁用滚动条更新
+    QScrollBar *hScrollBar = table->horizontalScrollBar();
+    QScrollBar *vScrollBar = table->verticalScrollBar();
+    int hScrollValue = hScrollBar ? hScrollBar->value() : 0;
+    int vScrollValue = vScrollBar ? vScrollBar->value() : 0;
+
+    // 设置表格边框和网格线
+    table->setShowGrid(true);
+    table->setStyleSheet(
+        "QTableWidget {"
+        "   border: 1px solid #c0c0c0;"
+        "   gridline-color: #d0d0d0;"
+        "   selection-background-color: #e0e7ff;"
+        "}"
+        "QTableWidget::item {"
+        "   border: 0px;"
+        "   padding-left: 3px;"
+        "}"
+        "QTableWidget::item:selected {"
+        "   background-color: #e0e7ff;"
+        "   color: black;"
+        "}"
+        "QHeaderView::section {"
+        "   background-color: #f0f0f0;"
+        "   border: 1px solid #c0c0c0;"
+        "   font-weight: bold;"
+        "   padding: 4px;"
+        "   text-align: center;"
+        "}"
+        "QHeaderView::section:checked {"
+        "   background-color: #e0e0e0;"
+        "}");
+
+    // 一次性设置所有行的行高
+    int rowHeight = 28; // 默认行高
+    table->verticalHeader()->setDefaultSectionSize(rowHeight);
+
+    // 批量设置列对齐方式
+    int columnCount = table->columnCount();
+    for (int col = 0; col < columnCount; col++)
+    {
+        QTableWidgetItem *headerItem = table->horizontalHeaderItem(col);
+        if (!headerItem)
+            continue;
+
+        QString headerText = headerItem->text();
+        Qt::Alignment alignment;
+
+        // 检查是否包含管脚信息（格式为"名称\nx数量\n类型"）
+        if (headerText.contains("\n"))
+        {
+            // 管脚列，居中对齐
+            alignment = Qt::AlignCenter;
+        }
+        // 数值类型列靠右对齐
+        else if (headerText.contains("数量") || headerText.contains("数值") ||
+                 headerText.contains("count") || headerText.contains("value") ||
+                 headerText.contains("amount") || headerText.contains("id") ||
+                 headerText.contains("ID"))
+        {
+            alignment = Qt::AlignRight | Qt::AlignVCenter;
+        }
+        // 日期时间类型居中对齐
+        else if (headerText.contains("日期") || headerText.contains("时间") ||
+                 headerText.contains("date") || headerText.contains("time") ||
+                 headerText.contains("timeset"))
+        {
+            alignment = Qt::AlignCenter;
+        }
+        // 状态、类型等短文本居中对齐
+        else if (headerText.contains("状态") || headerText.contains("类型") ||
+                 headerText.contains("status") || headerText.contains("type") ||
+                 headerText.contains("capture") || headerText.contains("ext"))
+        {
+            alignment = Qt::AlignCenter;
+        }
+        // 默认为靠左对齐
+        else
+        {
+            alignment = Qt::AlignLeft | Qt::AlignVCenter;
+        }
+
+        // 设置表头对齐方式
+        headerItem->setTextAlignment(alignment);
+    }
+
+    // 设置管脚列的列宽
+    setPinColumnWidths(table);
+
+    // 恢复滚动条位置
+    if (hScrollBar)
+        hScrollBar->setValue(hScrollValue);
+    if (vScrollBar)
+        vScrollBar->setValue(vScrollValue);
+
+    // 恢复表格更新
+    table->setUpdatesEnabled(true);
+
+    // 最后一次性刷新显示
+    table->viewport()->update();
+
+    qDebug() << funcName << " - 表格样式设置完成（优化版）";
+}
+
 void TableStyleManager::applyTableStyle(QTableView *tableView)
 {
     const QString funcName = "TableStyleManager::applyTableStyle(QTableView*)";

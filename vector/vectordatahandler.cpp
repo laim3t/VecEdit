@@ -1077,6 +1077,48 @@ void VectorDataHandler::addVectorRow(QTableWidget *table, const QStringList &pin
     }
 }
 
+void VectorDataHandler::addVectorRows(QTableWidget *table, const QStringList &pinOptions, int startRowIdx, int count)
+{
+    const QString funcName = "VectorDataHandler::addVectorRows";
+    qDebug() << funcName << "- 开始批量添加" << count << "行，从索引" << startRowIdx << "开始";
+
+    if (count <= 0)
+    {
+        qDebug() << funcName << "- 要添加的行数必须大于0，当前值:" << count;
+        return;
+    }
+
+    // 预先设置行数，避免多次调整
+    int newRowCount = startRowIdx + count;
+    table->setRowCount(newRowCount);
+
+    // 禁用表格更新，提高性能
+    table->setUpdatesEnabled(false);
+
+    // 批量添加行
+    for (int row = startRowIdx; row < newRowCount; row++)
+    {
+        // 添加每个管脚的文本输入框
+        for (int col = 0; col < table->columnCount(); col++)
+        {
+            PinValueLineEdit *pinEdit = new PinValueLineEdit(table);
+            pinEdit->setText("X");
+            table->setCellWidget(row, col, pinEdit);
+        }
+
+        // 每处理100行，让出一些CPU时间，避免UI完全冻结
+        if ((row - startRowIdx) % 100 == 0 && row > startRowIdx)
+        {
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
+    }
+
+    // 恢复表格更新
+    table->setUpdatesEnabled(true);
+
+    qDebug() << funcName << "- 批量添加完成，总行数:" << table->rowCount();
+}
+
 bool VectorDataHandler::deleteVectorTable(int tableId, QString &errorMessage)
 {
     // 获取数据库连接

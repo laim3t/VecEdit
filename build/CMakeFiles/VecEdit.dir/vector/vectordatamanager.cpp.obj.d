@@ -447,4 +447,15 @@ CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QComboBox \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qcombobox.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qobject.h
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qobject.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QCoreApplication \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreevent.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qeventloop.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qnativeinterface.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QEventLoop \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qeventloop.h

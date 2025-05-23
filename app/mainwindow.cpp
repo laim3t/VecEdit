@@ -798,7 +798,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         }
 
         // 应用表格样式
-        TableStyleManager::applyTableStyle(m_vectorTableWidget);
+        TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
 
         // 确保管脚列宽度设置正确
         QTimer::singleShot(0, [this]()
@@ -906,7 +906,7 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 {
                     qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式
-                    TableStyleManager::applyTableStyle(m_vectorTableWidget);
+                    TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
 
                     // 确保管脚列宽度设置正确
                     QTimer::singleShot(0, [this]()
@@ -1377,7 +1377,7 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
                 {
                     qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式
-                    TableStyleManager::applyTableStyle(m_vectorTableWidget);
+                    TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
 
                     // 确保管脚列宽度设置正确
                     QTimer::singleShot(0, [this]()
@@ -3167,7 +3167,7 @@ void MainWindow::refreshVectorTableData()
         statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
 
         // 应用表格样式
-        TableStyleManager::applyTableStyle(m_vectorTableWidget);
+        TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
     }
     else
     {

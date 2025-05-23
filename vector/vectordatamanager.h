@@ -14,6 +14,9 @@ public:
     void showVectorDataDialog(int tableId, const QString &tableName, QWidget *parent);
     void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
+    // 添加批量向量行
+    void addVectorRows(QTableWidget *table, const QStringList &pinOptions, int startRowIdx, int count);
+
 private:
     TimeSetDataAccess *m_dataAccess;
 };
