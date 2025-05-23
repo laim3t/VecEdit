@@ -58,6 +58,9 @@ public:
     // 取消当前操作
     void cancelOperation();
 
+    // 清除缓存数据
+    void clearCache();
+
 signals:
     // 进度更新信号
     void progressUpdated(int percentage);
@@ -72,6 +75,20 @@ private:
 
     // 取消操作标志
     QAtomicInt m_cancelRequested;
+
+    // 缓存数据
+    QMap<int, QString> m_instructionCache; // 指令ID到指令文本的缓存
+    QMap<int, QString> m_timesetCache;     // TimeSet ID到TimeSet名称的缓存
+    bool m_cacheInitialized;               // 缓存是否已初始化
+
+    // 初始化缓存
+    void initializeCache();
+
+    // 加载指令缓存
+    void loadInstructionCache();
+
+    // 加载TimeSet缓存
+    void loadTimesetCache();
 
     /**
      * @brief 解析给定表ID的二进制文件的绝对路径

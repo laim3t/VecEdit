@@ -291,6 +291,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         return false;
     }
 
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
+
     tableWidget->clearContents(); // Use clearContents instead of clear to keep headers
     tableWidget->setRowCount(0);
     // Don't clear columns/headers here if they might already be set,
@@ -585,23 +591,35 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
             }
             else if (visibleCol.type == Vector::ColumnDataType::INSTRUCTION_ID)
             {
-                // 处理INSTRUCTION_ID类型，从数据库获取指令文本
+                // 处理INSTRUCTION_ID类型，从缓存获取指令文本
                 int instructionId = originalValue.toInt();
                 QString instructionText;
 
-                // 查询指令名称
-                QSqlQuery instructionQuery(db);
-                instructionQuery.prepare("SELECT instruction_value FROM instruction_options WHERE id = ?");
-                instructionQuery.addBindValue(instructionId);
-
-                if (instructionQuery.exec() && instructionQuery.next())
+                // 从缓存中获取指令文本
+                if (m_instructionCache.contains(instructionId))
                 {
-                    instructionText = instructionQuery.value(0).toString();
+                    instructionText = m_instructionCache.value(instructionId);
+                    qDebug() << funcName << " - 从缓存获取指令文本，ID:" << instructionId << ", 文本:" << instructionText;
                 }
                 else
                 {
-                    instructionText = QString("未知(%1)").arg(instructionId);
-                    qWarning() << funcName << " - 无法获取指令文本，ID:" << instructionId;
+                    // 缓存中没有，从数据库获取
+                    QSqlQuery instructionQuery(db);
+                    instructionQuery.prepare("SELECT instruction_value FROM instruction_options WHERE id = ?");
+                    instructionQuery.addBindValue(instructionId);
+
+                    if (instructionQuery.exec() && instructionQuery.next())
+                    {
+                        instructionText = instructionQuery.value(0).toString();
+                        // 添加到缓存
+                        m_instructionCache[instructionId] = instructionText;
+                        qDebug() << funcName << " - 添加指令到缓存，ID:" << instructionId << ", 文本:" << instructionText;
+                    }
+                    else
+                    {
+                        instructionText = QString("未知(%1)").arg(instructionId);
+                        qWarning() << funcName << " - 无法获取指令文本，ID:" << instructionId;
+                    }
                 }
 
                 QTableWidgetItem *newItem = new QTableWidgetItem(instructionText);
@@ -612,23 +630,35 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
             }
             else if (visibleCol.type == Vector::ColumnDataType::TIMESET_ID)
             {
-                // 处理TIMESET_ID类型，从数据库获取TimeSet文本
+                // 处理TIMESET_ID类型，从缓存获取TimeSet文本
                 int timesetId = originalValue.toInt();
                 QString timesetText;
 
-                // 查询TimeSet名称
-                QSqlQuery timesetQuery(db);
-                timesetQuery.prepare("SELECT timeset_name FROM timeset_list WHERE id = ?");
-                timesetQuery.addBindValue(timesetId);
-
-                if (timesetQuery.exec() && timesetQuery.next())
+                // 从缓存中获取TimeSet文本
+                if (m_timesetCache.contains(timesetId))
                 {
-                    timesetText = timesetQuery.value(0).toString();
+                    timesetText = m_timesetCache.value(timesetId);
+                    qDebug() << funcName << " - 从缓存获取TimeSet文本，ID:" << timesetId << ", 文本:" << timesetText;
                 }
                 else
                 {
-                    timesetText = QString("未知(%1)").arg(timesetId);
-                    qWarning() << funcName << " - 无法获取TimeSet文本，ID:" << timesetId;
+                    // 缓存中没有，从数据库获取
+                    QSqlQuery timesetQuery(db);
+                    timesetQuery.prepare("SELECT timeset_name FROM timeset_list WHERE id = ?");
+                    timesetQuery.addBindValue(timesetId);
+
+                    if (timesetQuery.exec() && timesetQuery.next())
+                    {
+                        timesetText = timesetQuery.value(0).toString();
+                        // 添加到缓存
+                        m_timesetCache[timesetId] = timesetText;
+                        qDebug() << funcName << " - 添加TimeSet到缓存，ID:" << timesetId << ", 文本:" << timesetText;
+                    }
+                    else
+                    {
+                        timesetText = QString("未知(%1)").arg(timesetId);
+                        qWarning() << funcName << " - 无法获取TimeSet文本，ID:" << timesetId;
+                    }
                 }
 
                 QTableWidgetItem *newItem = new QTableWidgetItem(timesetText);
@@ -690,7 +720,7 @@ VectorDataHandler &VectorDataHandler::instance()
     return instance;
 }
 
-VectorDataHandler::VectorDataHandler() : m_cancelRequested(0)
+VectorDataHandler::VectorDataHandler() : m_cancelRequested(0), m_cacheInitialized(false)
 {
     // 构造函数不变
 }
@@ -698,11 +728,102 @@ VectorDataHandler::VectorDataHandler() : m_cancelRequested(0)
 VectorDataHandler::~VectorDataHandler()
 {
     qDebug() << "VectorDataHandler::~VectorDataHandler - 析构";
+    clearCache();
 }
 
 void VectorDataHandler::cancelOperation()
 {
     m_cancelRequested.storeRelease(1);
+}
+
+void VectorDataHandler::clearCache()
+{
+    qDebug() << "VectorDataHandler::clearCache - 清除所有缓存数据";
+    m_instructionCache.clear();
+    m_timesetCache.clear();
+    m_cacheInitialized = false;
+}
+
+void VectorDataHandler::initializeCache()
+{
+    if (m_cacheInitialized)
+    {
+        qDebug() << "VectorDataHandler::initializeCache - 缓存已经初始化，跳过";
+        return;
+    }
+
+    qDebug() << "VectorDataHandler::initializeCache - 开始初始化缓存";
+
+    // 加载指令和TimeSet缓存
+    loadInstructionCache();
+    loadTimesetCache();
+
+    m_cacheInitialized = true;
+    qDebug() << "VectorDataHandler::initializeCache - 缓存初始化完成";
+}
+
+void VectorDataHandler::loadInstructionCache()
+{
+    qDebug() << "VectorDataHandler::loadInstructionCache - 开始加载指令缓存";
+    m_instructionCache.clear();
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorDataHandler::loadInstructionCache - 数据库未打开";
+        return;
+    }
+
+    // 一次性获取所有指令
+    QSqlQuery allInstructionsQuery(db);
+    if (allInstructionsQuery.exec("SELECT id, instruction_value FROM instruction_options"))
+    {
+        int count = 0;
+        while (allInstructionsQuery.next())
+        {
+            int id = allInstructionsQuery.value(0).toInt();
+            QString value = allInstructionsQuery.value(1).toString();
+            m_instructionCache[id] = value;
+            count++;
+        }
+        qDebug() << "VectorDataHandler::loadInstructionCache - 已加载" << count << "个指令到缓存";
+    }
+    else
+    {
+        qWarning() << "VectorDataHandler::loadInstructionCache - 查询失败:" << allInstructionsQuery.lastError().text();
+    }
+}
+
+void VectorDataHandler::loadTimesetCache()
+{
+    qDebug() << "VectorDataHandler::loadTimesetCache - 开始加载TimeSet缓存";
+    m_timesetCache.clear();
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorDataHandler::loadTimesetCache - 数据库未打开";
+        return;
+    }
+
+    // 一次性获取所有TimeSet
+    QSqlQuery allTimesetsQuery(db);
+    if (allTimesetsQuery.exec("SELECT id, timeset_name FROM timeset_list"))
+    {
+        int count = 0;
+        while (allTimesetsQuery.next())
+        {
+            int id = allTimesetsQuery.value(0).toInt();
+            QString name = allTimesetsQuery.value(1).toString();
+            m_timesetCache[id] = name;
+            count++;
+        }
+        qDebug() << "VectorDataHandler::loadTimesetCache - 已加载" << count << "个TimeSet到缓存";
+    }
+    else
+    {
+        qWarning() << "VectorDataHandler::loadTimesetCache - 查询失败:" << allTimesetsQuery.lastError().text();
+    }
 }
 
 bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidget, QString &errorMessage)
@@ -714,6 +835,12 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
         errorMessage = "表控件为空";
         qWarning() << funcName << " - " << errorMessage;
         return false;
+    }
+
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
     }
 
     // 1. 获取列信息和预期 schema version (从元数据 - 只包含可见列)
@@ -877,6 +1004,14 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             int id = instructionQuery.value(0).toInt();
             QString name = instructionQuery.value(1).toString();
             instructionNameToIdMap[name] = id;
+
+            // 同时更新缓存
+            if (!m_instructionCache.contains(id) || m_instructionCache[id] != name)
+            {
+                m_instructionCache[id] = name;
+                qDebug() << funcName << " - 更新指令缓存: " << name << " -> ID:" << id;
+            }
+
             qDebug() << funcName << " - 指令映射: " << name << " -> ID:" << id;
         }
     }
@@ -894,6 +1029,14 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             int id = timesetQuery.value(0).toInt();
             QString name = timesetQuery.value(1).toString();
             timesetNameToIdMap[name] = id;
+
+            // 同时更新缓存
+            if (!m_timesetCache.contains(id) || m_timesetCache[id] != name)
+            {
+                m_timesetCache[id] = name;
+                qDebug() << funcName << " - 更新TimeSet缓存: " << name << " -> ID:" << id;
+            }
+
             qDebug() << funcName << " - TimeSet映射: " << name << " -> ID:" << id;
         }
     }
@@ -1185,6 +1328,12 @@ bool VectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndex
     const QString funcName = "VectorDataHandler::deleteVectorRows";
     qDebug() << funcName << "- 开始删除向量行，表ID:" << tableId << "，选中行数:" << rowIndexes.size();
 
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
@@ -1446,6 +1595,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     qDebug() << funcName << "- 开始插入向量行，表ID:" << tableId
              << "目标行数:" << rowCount << "源数据表行数:" << dataTable->rowCount()
              << "TimesetID:" << timesetId << "Append:" << appendToEnd << "StartIndex:" << startIndex;
+
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
 
     errorMessage.clear();
     emit progressUpdated(2); // Initial checks passed
@@ -1962,6 +2117,12 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
     const QString funcName = "VectorDataHandler::deleteVectorRowsInRange";
     qDebug() << funcName << " - 开始删除范围内的向量行，表ID：" << tableId
              << "，从行：" << fromRow << "，到行：" << toRow;
+
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
