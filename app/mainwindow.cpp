@@ -797,23 +797,8 @@ void MainWindow::onVectorTableSelectionChanged(int index)
                      << "，列数:" << m_vectorTableWidget->columnCount();
         }
 
-        // 应用表格样式
+        // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
         TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
-
-        // 确保管脚列宽度设置正确
-        QTimer::singleShot(0, [this]()
-                           { 
-                               TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
-                               
-                               // 额外确保表头对齐方式正确
-                               for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
-                                   QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                                   if (headerItem) {
-                                       // 对于所有表头项，确保居中对齐
-                                       headerItem->setTextAlignment(Qt::AlignCenter);
-                                       qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
-                                   }
-                               } });
 
         // 输出每一列的标题，用于调试
         QStringList columnHeaders;
@@ -905,23 +890,18 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
                 {
                     qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
-                    // 应用表格样式
+                    // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
                     TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
 
-                    // 确保管脚列宽度设置正确
-                    QTimer::singleShot(0, [this]()
-                                       { 
-                                           TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
-                                           
-                                           // 额外确保表头对齐方式正确
-                                           for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
-                                               QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                                               if (headerItem) {
-                                                   // 对于所有表头项，确保居中对齐
-                                                   headerItem->setTextAlignment(Qt::AlignCenter);
-                                                   qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
-                                               }
-                                           } });
+                    // 输出每一列的标题，用于调试
+                    QStringList columnHeaders;
+                    for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
+                    {
+                        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                        QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
+                        columnHeaders << headerText;
+                    }
+                    qDebug() << "MainWindow::syncComboBoxWithTab - 表头列表:" << columnHeaders.join(", ");
                 }
             }
 
@@ -1376,23 +1356,18 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
                 if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
                 {
                     qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
-                    // 应用表格样式
+                    // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
                     TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
 
-                    // 确保管脚列宽度设置正确
-                    QTimer::singleShot(0, [this]()
-                                       { 
-                                           TableStyleManager::setPinColumnWidths(m_vectorTableWidget); 
-                                           
-                                           // 额外确保表头对齐方式正确
-                                           for (int i = 0; i < m_vectorTableWidget->columnCount(); ++i) {
-                                               QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                                               if (headerItem) {
-                                                   // 对于所有表头项，确保居中对齐
-                                                   headerItem->setTextAlignment(Qt::AlignCenter);
-                                                   qDebug() << "MainWindow - 再次确保表头项居中对齐:" << i << "," << headerItem->text();
-                                               }
-                                           } });
+                    // 输出每一列的标题，用于调试
+                    QStringList columnHeaders;
+                    for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
+                    {
+                        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                        QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
+                        columnHeaders << headerText;
+                    }
+                    qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
                 }
                 else
                 {
@@ -3166,7 +3141,7 @@ void MainWindow::refreshVectorTableData()
     {
         statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
 
-        // 应用表格样式
+        // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
         TableStyleManager::applyTableStyleOptimized(m_vectorTableWidget);
     }
     else

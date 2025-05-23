@@ -72,14 +72,27 @@ void TableStyleManager::applyTableStyleOptimized(QTableWidget *table)
 
     qDebug() << funcName << " - 开始设置表格样式（优化版）";
 
-    // 禁用表格更新，减少重绘次数
+    // 完全禁用表格更新，减少重绘次数
     table->setUpdatesEnabled(false);
 
-    // 暂时禁用滚动条更新
+    // 暂时禁用所有子组件的重绘和布局更新，进一步减少UI更新
+    table->viewport()->setUpdatesEnabled(false);
+    table->horizontalHeader()->setUpdatesEnabled(false);
+    table->verticalHeader()->setUpdatesEnabled(false);
+
+    // 暂时禁用滚动条更新并记录当前位置
     QScrollBar *hScrollBar = table->horizontalScrollBar();
     QScrollBar *vScrollBar = table->verticalScrollBar();
     int hScrollValue = hScrollBar ? hScrollBar->value() : 0;
     int vScrollValue = vScrollBar ? vScrollBar->value() : 0;
+
+    if (hScrollBar)
+        hScrollBar->setUpdatesEnabled(false);
+    if (vScrollBar)
+        vScrollBar->setUpdatesEnabled(false);
+
+    // 开始批量处理，避免每次小改动都触发信号
+    table->blockSignals(true);
 
     // 设置表格边框和网格线
     table->setShowGrid(true);
@@ -158,19 +171,41 @@ void TableStyleManager::applyTableStyleOptimized(QTableWidget *table)
         }
 
         // 设置表头对齐方式
-        headerItem->setTextAlignment(alignment);
+        headerItem->setTextAlignment(Qt::AlignCenter); // 表头总是居中对齐
+
+        // 同时设置所有单元格的对齐方式，避免后续逐个设置
+        for (int row = 0; row < table->rowCount(); row++)
+        {
+            QTableWidgetItem *item = table->item(row, col);
+            if (item)
+            {
+                item->setTextAlignment(alignment);
+            }
+        }
     }
 
-    // 设置管脚列的列宽
+    // 设置管脚列的列宽（只调用一次）
     setPinColumnWidths(table);
 
     // 恢复滚动条位置
     if (hScrollBar)
+    {
+        hScrollBar->setUpdatesEnabled(true);
         hScrollBar->setValue(hScrollValue);
+    }
     if (vScrollBar)
+    {
+        vScrollBar->setUpdatesEnabled(true);
         vScrollBar->setValue(vScrollValue);
+    }
 
-    // 恢复表格更新
+    // 恢复信号处理
+    table->blockSignals(false);
+
+    // 恢复表格更新（按顺序启用各部分的更新）
+    table->horizontalHeader()->setUpdatesEnabled(true);
+    table->verticalHeader()->setUpdatesEnabled(true);
+    table->viewport()->setUpdatesEnabled(true);
     table->setUpdatesEnabled(true);
 
     // 最后一次性刷新显示
