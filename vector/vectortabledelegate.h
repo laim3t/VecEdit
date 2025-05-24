@@ -33,6 +33,9 @@ public:
     // 刷新缓存数据
     void refreshCache();
 
+    // 刷新表ID缓存
+    void refreshTableIdCache();
+
 private:
     // 获取指令选项
     QStringList getInstructionOptions() const;
@@ -56,6 +59,10 @@ private:
     mutable QStringList m_instructionOptions;
     mutable QStringList m_timeSetOptions;
     mutable QStringList m_captureOptions;
+
+    // 表ID缓存
+    mutable bool m_tableIdCached;
+    mutable int m_cachedTableId;
 };
 
 #endif // VECTORTABLEDELEGATE_H

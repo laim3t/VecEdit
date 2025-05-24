@@ -11,7 +11,9 @@
 #include <algorithm>
 
 VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent)
-    : QStyledItemDelegate(parent)
+    : QStyledItemDelegate(parent),
+      m_tableIdCached(false),
+      m_cachedTableId(-1)
 {
     // 清空缓存，确保每次创建代理时都重新从数据库获取选项
     refreshCache();
@@ -24,7 +26,18 @@ void VectorTableItemDelegate::refreshCache()
     m_timeSetOptions.clear();
     m_captureOptions.clear();
 
+    // 同时刷新表ID缓存
+    refreshTableIdCache();
+
     qDebug() << "VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载";
+}
+
+// 刷新表ID缓存方法实现
+void VectorTableItemDelegate::refreshTableIdCache()
+{
+    m_tableIdCached = false;
+    m_cachedTableId = -1;
+    qDebug() << "VectorTableItemDelegate::refreshTableIdCache - 表ID缓存已重置";
 }
 
 VectorTableItemDelegate::~VectorTableItemDelegate()
@@ -185,6 +198,15 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
 int VectorTableItemDelegate::getTableIdForCurrentTable() const
 {
     qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Function entry.";
+
+    // 如果已经缓存了表ID，直接返回
+    if (m_tableIdCached)
+    {
+        qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - 使用缓存的表ID:" << m_cachedTableId;
+        return m_cachedTableId;
+    }
+
+    // 否则执行正常的查找流程
     QComboBox *vectorTableSelector = qobject_cast<QComboBox *>(getVectorTableSelectorPtr());
     if (!vectorTableSelector)
     {
@@ -210,6 +232,12 @@ int VectorTableItemDelegate::getTableIdForCurrentTable() const
         qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Failed to convert itemData to int. Original data:" << itemData;
         return -1;
     }
+
+    // 缓存结果
+    m_tableIdCached = true;
+    m_cachedTableId = tableId;
+
+    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - 缓存表ID:" << tableId;
     qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Returning tableId:" << tableId;
     return tableId;
 }

@@ -752,6 +752,13 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     int tableId = m_vectorTableSelector->currentData().toInt();
     qDebug() << funcName << " - 当前表ID:" << tableId;
 
+    // 刷新代理的表ID缓存
+    if (m_itemDelegate)
+    {
+        qDebug() << funcName << " - 刷新代理表ID缓存";
+        m_itemDelegate->refreshTableIdCache();
+    }
+
     // 同步Tab页签选择
     syncTabWithComboBox(index);
 
@@ -875,6 +882,13 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
         if (m_vectorTableSelector->itemData(i).toInt() == tableId)
         {
             m_vectorTableSelector->setCurrentIndex(i);
+
+            // 刷新代理的表ID缓存
+            if (m_itemDelegate)
+            {
+                qDebug() << "MainWindow::syncComboBoxWithTab - 刷新代理表ID缓存";
+                m_itemDelegate->refreshTableIdCache();
+            }
 
             // 检查当前是否显示向量表界面，如果不是则切换
             if (m_welcomeWidget->isVisible())
