@@ -400,11 +400,26 @@ CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.s"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestylemanager.cpp -o CMakeFiles\VecEdit.dir\common\tablestylemanager.cpp.s
 
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.cpp
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj"
+	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj -MF CMakeFiles\VecEdit.dir\common\tablestyleperformancetester.cpp.obj.d -o CMakeFiles\VecEdit.dir\common\tablestyleperformancetester.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestyleperformancetester.cpp
+
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.i"
+	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestyleperformancetester.cpp > CMakeFiles\VecEdit.dir\common\tablestyleperformancetester.cpp.i
+
+CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.s"
+	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\GIGA\Desktop\QTProject\VecEdit\common\tablestyleperformancetester.cpp -o CMakeFiles\VecEdit.dir\common\tablestyleperformancetester.cpp.s
+
 CMakeFiles/VecEdit.dir/common/logger.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
 CMakeFiles/VecEdit.dir/common/logger.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/common/logger.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/common/logger.cpp
 CMakeFiles/VecEdit.dir/common/logger.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/VecEdit.dir/common/logger.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/VecEdit.dir/common/logger.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/common/logger.cpp.obj -MF CMakeFiles\VecEdit.dir\common\logger.cpp.obj.d -o CMakeFiles\VecEdit.dir\common\logger.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\common\logger.cpp
 
 CMakeFiles/VecEdit.dir/common/logger.cpp.i: cmake_force
@@ -419,7 +434,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: CMakeFiles/VecEdit.dir
 CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/timeset/timesetdataaccess.cpp
 CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj -MF CMakeFiles\VecEdit.dir\timeset\timesetdataaccess.cpp.obj.d -o CMakeFiles\VecEdit.dir\timeset\timesetdataaccess.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetdataaccess.cpp
 
 CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.i: cmake_force
@@ -434,7 +449,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj: CMakeFiles/VecEdit.dir/flags.m
 CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/timeset/timesetui.cpp
 CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj -MF CMakeFiles\VecEdit.dir\timeset\timesetui.cpp.obj.d -o CMakeFiles\VecEdit.dir\timeset\timesetui.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetui.cpp
 
 CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.i: cmake_force
@@ -449,7 +464,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: CMakeFiles/VecEdit.di
 CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/timeset/timesetedgemanager.cpp
 CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj -MF CMakeFiles\VecEdit.dir\timeset\timesetedgemanager.cpp.obj.d -o CMakeFiles\VecEdit.dir\timeset\timesetedgemanager.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\timeset\timesetedgemanager.cpp
 
 CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.i: cmake_force
@@ -464,7 +479,7 @@ CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj: CMakeFiles/VecEdit.dir/f
 CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/pin/pinselectionmanager.cpp
 CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj -MF CMakeFiles\VecEdit.dir\pin\pinselectionmanager.cpp.obj.d -o CMakeFiles\VecEdit.dir\pin\pinselectionmanager.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\pin\pinselectionmanager.cpp
 
 CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.i: cmake_force
@@ -479,7 +494,7 @@ CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: CMakeFiles/VecEdit.dir/
 CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vectordatamanager.cpp
 CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj -MF CMakeFiles\VecEdit.dir\vector\vectordatamanager.cpp.obj.d -o CMakeFiles\VecEdit.dir\vector\vectordatamanager.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\vector\vectordatamanager.cpp
 
 CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.i: cmake_force
@@ -494,7 +509,7 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
 	c:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj -MF CMakeFiles\VecEdit.dir\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp.obj.d -o CMakeFiles\VecEdit.dir\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp.obj -c C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp
 
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.i: cmake_force
@@ -528,6 +543,7 @@ VecEdit_OBJECTS = \
 "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj" \
+"CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/logger.cpp.obj" \
 "CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj" \
 "CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj" \
@@ -560,6 +576,7 @@ VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj
+VecEdit.exe: CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/logger.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj
@@ -576,7 +593,7 @@ VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6EntryPoint.a
 VecEdit.exe: CMakeFiles/VecEdit.dir/linkLibs.rsp
 VecEdit.exe: CMakeFiles/VecEdit.dir/objects1.rsp
 VecEdit.exe: CMakeFiles/VecEdit.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Linking CXX executable VecEdit.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Users\GIGA\Desktop\QTProject\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Linking CXX executable VecEdit.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\VecEdit.dir\link.txt --verbose=$(VERBOSE)
 	C:\Qt\6.8.2\mingw_64\lib\cmake\Qt6\..\..\..\bin\windeployqt --no-translations --no-quick-import C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit.exe
 

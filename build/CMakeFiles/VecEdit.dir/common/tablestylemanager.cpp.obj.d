@@ -395,6 +395,10 @@ CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qstring.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QColor \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qcolor.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
@@ -412,4 +416,8 @@ CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qinputmethod.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qguiapplication_platform.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStyleFactory \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstylefactory.h
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstylefactory.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMetaEnum \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmetaobject.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QElapsedTimer \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h

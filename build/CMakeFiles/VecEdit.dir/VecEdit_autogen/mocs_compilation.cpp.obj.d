@@ -538,6 +538,8 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtmochelpers.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\P66WHCG54J/moc_logger.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/logger.h \
@@ -788,6 +790,10 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/winsvc.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/mcx.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/imm.h \
+ C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\P66WHCG54J/moc_tablestyleperformancetester.cpp \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QElapsedTimer \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\BL3K65LMA5/moc_databasemanager.cpp \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlQuery \

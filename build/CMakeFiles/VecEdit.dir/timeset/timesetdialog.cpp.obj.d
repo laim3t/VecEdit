@@ -577,6 +577,8 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QApplication \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qapplication.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QColor \

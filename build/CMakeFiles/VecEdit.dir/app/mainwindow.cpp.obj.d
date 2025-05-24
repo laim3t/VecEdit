@@ -537,6 +537,8 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlQuery \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlquery.h \

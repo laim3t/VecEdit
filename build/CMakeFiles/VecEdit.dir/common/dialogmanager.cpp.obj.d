@@ -497,6 +497,8 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qpen.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qtextoption.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/pin/pinlistdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QStandardItemModel \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qstandarditemmodel.h \

@@ -409,6 +409,10 @@ CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qstring.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \

@@ -6,6 +6,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDir \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QFile \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QIODevice \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QList \

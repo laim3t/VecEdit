@@ -127,6 +127,12 @@
 },
 {
   "directory": "C:/Users/GIGA/Desktop/QTProject/VecEdit/build",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\tablestyleperformancetester.cpp.obj -c C:\\Users\\GIGA\\Desktop\\QTProject\\VecEdit\\common\\tablestyleperformancetester.cpp",
+  "file": "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.cpp",
+  "output": "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj"
+},
+{
+  "directory": "C:/Users/GIGA/Desktop/QTProject/VecEdit/build",
   "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\logger.cpp.obj -c C:\\Users\\GIGA\\Desktop\\QTProject\\VecEdit\\common\\logger.cpp",
   "file": "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/logger.cpp",
   "output": "CMakeFiles/VecEdit.dir/common/logger.cpp.obj"

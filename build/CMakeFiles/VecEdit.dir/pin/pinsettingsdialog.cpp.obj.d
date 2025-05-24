@@ -417,6 +417,10 @@ CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdebug.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qstring.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qobject.h \
@@ -472,8 +476,6 @@ CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qfile.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qfileinfo.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtimezone.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qstring.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QVariant \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qvariant.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \

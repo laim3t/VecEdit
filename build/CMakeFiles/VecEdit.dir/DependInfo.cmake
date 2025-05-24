@@ -16,6 +16,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/dialogmanager.cpp" "CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj.d"
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/logger.cpp" "CMakeFiles/VecEdit.dir/common/logger.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/logger.cpp.obj.d"
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.cpp" "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj.d"
+  "C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.cpp" "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj.d"
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/database/binaryfilehelper.cpp" "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj.d"
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager.cpp" "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj.d"
   "C:/Users/GIGA/Desktop/QTProject/VecEdit/database/databasemanager_migrator.cpp" "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj.d"

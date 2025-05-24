@@ -367,6 +367,30 @@ common/tablestylemanager.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.s
 .PHONY : common/tablestylemanager.cpp.s
 
+common/tablestyleperformancetester.obj: common/tablestyleperformancetester.cpp.obj
+.PHONY : common/tablestyleperformancetester.obj
+
+# target to build an object file
+common/tablestyleperformancetester.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj
+.PHONY : common/tablestyleperformancetester.cpp.obj
+
+common/tablestyleperformancetester.i: common/tablestyleperformancetester.cpp.i
+.PHONY : common/tablestyleperformancetester.i
+
+# target to preprocess a source file
+common/tablestyleperformancetester.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.i
+.PHONY : common/tablestyleperformancetester.cpp.i
+
+common/tablestyleperformancetester.s: common/tablestyleperformancetester.cpp.s
+.PHONY : common/tablestyleperformancetester.s
+
+# target to generate assembly for a file
+common/tablestyleperformancetester.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.s
+.PHONY : common/tablestyleperformancetester.cpp.s
+
 database/binaryfilehelper.obj: database/binaryfilehelper.cpp.obj
 .PHONY : database/binaryfilehelper.obj
 
@@ -907,6 +931,9 @@ help:
 	@echo ... common/tablestylemanager.obj
 	@echo ... common/tablestylemanager.i
 	@echo ... common/tablestylemanager.s
+	@echo ... common/tablestyleperformancetester.obj
+	@echo ... common/tablestyleperformancetester.i
+	@echo ... common/tablestyleperformancetester.s
 	@echo ... database/binaryfilehelper.obj
 	@echo ... database/binaryfilehelper.i
 	@echo ... database/binaryfilehelper.s

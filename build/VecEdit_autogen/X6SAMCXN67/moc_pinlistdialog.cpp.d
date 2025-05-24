@@ -1,7 +1,9 @@
 C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_pinlistdialog.cpp: C:/Users/GIGA/Desktop/QTProject/VecEdit/pin/pinlistdialog.h \
   C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20functional.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20iterator.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/q20memory.h \

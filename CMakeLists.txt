@@ -55,6 +55,8 @@ set(PROJECT_SOURCES
         common/dialogmanager.cpp
         common/tablestylemanager.h
         common/tablestylemanager.cpp
+        common/tablestyleperformancetester.h
+        common/tablestyleperformancetester.cpp
         common/logger.h
         common/logger.cpp
         timeset/timesetdataaccess.h

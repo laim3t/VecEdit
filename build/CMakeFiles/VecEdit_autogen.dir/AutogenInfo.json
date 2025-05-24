@@ -393,6 +393,12 @@
 			null
 		],
 		[
+			"C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.h",
+			"Mu",
+			"P66WHCG54J/moc_tablestyleperformancetester.cpp",
+			null
+		],
+		[
 			"C:/Users/GIGA/Desktop/QTProject/VecEdit/database/binaryfilehelper.h",
 			"Mu",
 			"BL3K65LMA5/moc_binaryfilehelper.cpp",
@@ -612,6 +618,11 @@
 		],
 		[
 			"C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.cpp",
+			"Mu",
+			null
+		],
+		[
+			"C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestyleperformancetester.cpp",
 			"Mu",
 			null
 		],
