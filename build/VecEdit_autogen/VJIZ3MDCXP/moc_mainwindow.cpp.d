@@ -224,6 +224,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMainWindow \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMessageBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QPushButton \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTabWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
@@ -252,6 +253,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qrubberband.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qslider.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyle.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyleoption.h \

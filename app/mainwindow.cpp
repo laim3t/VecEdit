@@ -593,12 +593,79 @@ void MainWindow::setupVectorTableUI()
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
+    // 创建分页控件
+    m_paginationWidget = new QWidget(this);
+    QHBoxLayout *paginationLayout = new QHBoxLayout(m_paginationWidget);
+    paginationLayout->setContentsMargins(5, 5, 5, 5);
+
+    // 上一页按钮
+    m_prevPageButton = new QPushButton(tr("上一页"), this);
+    m_prevPageButton->setFixedWidth(80);
+    connect(m_prevPageButton, &QPushButton::clicked, this, &MainWindow::loadPrevPage);
+    paginationLayout->addWidget(m_prevPageButton);
+
+    // 页码信息标签
+    m_pageInfoLabel = new QLabel(tr("第 0/0 页，共 0 行"), this);
+    paginationLayout->addWidget(m_pageInfoLabel);
+
+    // 下一页按钮
+    m_nextPageButton = new QPushButton(tr("下一页"), this);
+    m_nextPageButton->setFixedWidth(80);
+    connect(m_nextPageButton, &QPushButton::clicked, this, &MainWindow::loadNextPage);
+    paginationLayout->addWidget(m_nextPageButton);
+
+    // 每页行数选择
+    QLabel *pageSizeLabel = new QLabel(tr("每页行数:"), this);
+    paginationLayout->addWidget(pageSizeLabel);
+
+    m_pageSizeSelector = new QComboBox(this);
+    m_pageSizeSelector->addItem("100", 100);
+    m_pageSizeSelector->addItem("500", 500);
+    m_pageSizeSelector->addItem("1000", 1000);
+    m_pageSizeSelector->addItem("5000", 5000);
+    m_pageSizeSelector->setCurrentIndex(0);
+    connect(m_pageSizeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            [this](int index)
+            {
+                int newPageSize = m_pageSizeSelector->itemData(index).toInt();
+                this->changePageSize(newPageSize);
+            });
+    paginationLayout->addWidget(m_pageSizeSelector);
+
+    // 页码跳转
+    QLabel *jumpLabel = new QLabel(tr("跳转到:"), this);
+    paginationLayout->addWidget(jumpLabel);
+
+    m_pageJumper = new QSpinBox(this);
+    m_pageJumper->setMinimum(1);
+    m_pageJumper->setMaximum(1);
+    m_pageJumper->setFixedWidth(60);
+    paginationLayout->addWidget(m_pageJumper);
+
+    m_jumpButton = new QPushButton(tr("确定"), this);
+    m_jumpButton->setFixedWidth(50);
+    connect(m_jumpButton, &QPushButton::clicked, [this]()
+            {
+        int pageNum = m_pageJumper->value() - 1; // 转换为0-based索引
+        this->jumpToPage(pageNum); });
+    paginationLayout->addWidget(m_jumpButton);
+
+    // 添加伸缩项
+    paginationLayout->addStretch();
+
+    // 初始化分页相关变量
+    m_currentPage = 0;
+    m_pageSize = 100; // 默认每页100行
+    m_totalPages = 0;
+    m_totalRows = 0;
+
     // 创建Tab栏
     setupTabBar();
 
     // 将布局添加到容器
     containerLayout->addLayout(controlLayout);
     containerLayout->addWidget(m_vectorTableWidget);
+    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
 
     // 将容器添加到主布局
@@ -607,6 +674,162 @@ void MainWindow::setupVectorTableUI()
     {
         mainLayout->addWidget(m_vectorTableContainer);
     }
+}
+
+// 更新分页信息显示
+void MainWindow::updatePaginationInfo()
+{
+    const QString funcName = "MainWindow::updatePaginationInfo";
+    qDebug() << funcName << " - 更新分页信息，当前页:" << m_currentPage << "，总页数:" << m_totalPages << "，总行数:" << m_totalRows;
+
+    // 更新页码信息标签
+    m_pageInfoLabel->setText(tr("第 %1/%2 页，共 %3 行").arg(m_currentPage + 1).arg(m_totalPages).arg(m_totalRows));
+
+    // 更新上一页按钮状态
+    m_prevPageButton->setEnabled(m_currentPage > 0);
+
+    // 更新下一页按钮状态
+    m_nextPageButton->setEnabled(m_currentPage < m_totalPages - 1 && m_totalPages > 0);
+
+    // 更新页码跳转输入框
+    m_pageJumper->setMaximum(m_totalPages > 0 ? m_totalPages : 1);
+    m_pageJumper->setValue(m_currentPage + 1);
+
+    // 根据总页数启用或禁用跳转按钮
+    m_jumpButton->setEnabled(m_totalPages > 1);
+}
+
+// 加载当前页数据
+void MainWindow::loadCurrentPage()
+{
+    const QString funcName = "MainWindow::loadCurrentPage";
+    qDebug() << funcName << " - 加载当前页数据，页码:" << m_currentPage;
+
+    // 获取当前选中的向量表ID
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        qWarning() << funcName << " - 没有选中有效的向量表";
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+    qDebug() << funcName << " - 当前向量表ID:" << tableId;
+
+    // 获取向量表总行数
+    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+
+    // 计算总页数
+    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+
+    // 确保当前页码在有效范围内
+    if (m_currentPage < 0)
+        m_currentPage = 0;
+    if (m_currentPage >= m_totalPages && m_totalPages > 0)
+        m_currentPage = m_totalPages - 1;
+
+    qDebug() << funcName << " - 总行数:" << m_totalRows << "，总页数:" << m_totalPages << "，当前页:" << m_currentPage;
+
+    // 在加载新页面数据前，自动保存当前页面的修改
+    QString errorMsg;
+    if (m_vectorTableWidget->rowCount() > 0) // 确保当前有数据需要保存
+    {
+        qDebug() << funcName << " - 在切换页面前自动保存当前页面修改";
+        if (!VectorDataHandler::instance().saveVectorTableData(tableId, m_vectorTableWidget, errorMsg))
+        {
+            qWarning() << funcName << " - 保存当前页面失败:" << errorMsg;
+        }
+        else
+        {
+            qDebug() << funcName << " - 当前页面保存成功";
+        }
+    }
+
+    // 加载当前页数据
+    bool success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+
+    if (!success)
+    {
+        qWarning() << funcName << " - 加载页面数据失败";
+    }
+
+    // 更新分页信息显示
+    updatePaginationInfo();
+}
+
+// 加载下一页
+void MainWindow::loadNextPage()
+{
+    const QString funcName = "MainWindow::loadNextPage";
+    qDebug() << funcName << " - 加载下一页";
+
+    if (m_currentPage < m_totalPages - 1)
+    {
+        m_currentPage++;
+        loadCurrentPage();
+    }
+    else
+    {
+        qWarning() << funcName << " - 已经是最后一页";
+    }
+}
+
+// 加载上一页
+void MainWindow::loadPrevPage()
+{
+    const QString funcName = "MainWindow::loadPrevPage";
+    qDebug() << funcName << " - 加载上一页";
+
+    if (m_currentPage > 0)
+    {
+        m_currentPage--;
+        loadCurrentPage();
+    }
+    else
+    {
+        qWarning() << funcName << " - 已经是第一页";
+    }
+}
+
+// 修改每页行数
+void MainWindow::changePageSize(int newSize)
+{
+    const QString funcName = "MainWindow::changePageSize";
+    qDebug() << funcName << " - 修改每页行数为:" << newSize;
+
+    if (newSize <= 0)
+    {
+        qWarning() << funcName << " - 无效的页面大小:" << newSize;
+        return;
+    }
+
+    // 保存当前页的第一行在整个数据集中的索引
+    int currentFirstRow = m_currentPage * m_pageSize;
+
+    // 更新页面大小
+    m_pageSize = newSize;
+
+    // 计算新的页码
+    m_currentPage = currentFirstRow / m_pageSize;
+
+    // 重新加载当前页
+    loadCurrentPage();
+}
+
+// 跳转到指定页
+void MainWindow::jumpToPage(int pageNum)
+{
+    const QString funcName = "MainWindow::jumpToPage";
+    qDebug() << funcName << " - 跳转到页码:" << pageNum;
+
+    if (pageNum < 0 || pageNum >= m_totalPages)
+    {
+        qWarning() << funcName << " - 无效的页码:" << pageNum;
+        return;
+    }
+
+    m_currentPage = pageNum;
+    loadCurrentPage();
 }
 
 void MainWindow::setupTabBar()
@@ -781,10 +1004,20 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         fixExistingTableWithoutColumns(tableId);
     }
 
-    // 使用数据处理器加载数据
-    qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId;
-    bool loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
-    qDebug() << funcName << " - VectorDataHandler::loadVectorTableData 返回:" << loadSuccess
+    // 重置分页状态
+    m_currentPage = 0;
+
+    // 获取总行数并更新页面信息
+    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+
+    // 更新分页信息显示
+    updatePaginationInfo();
+
+    // 使用分页方式加载数据
+    qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
+    bool loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+    qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
              << "，表ID:" << tableId
              << "，列数:" << m_vectorTableWidget->columnCount();
 
@@ -798,8 +1031,8 @@ void MainWindow::onVectorTableSelectionChanged(int index)
             qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
                        << "），可能缺少标准列。尝试修复...";
             fixExistingTableWithoutColumns(tableId);
-            // 重新加载表格
-            loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
+            // 重新加载表格（使用分页）
+            loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
             qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
                      << "，列数:" << m_vectorTableWidget->columnCount();
         }
@@ -900,10 +1133,21 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
             // 重新加载数据
             if (tableId > 0)
             {
-                // 使用数据处理器加载数据
-                if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+                // 重置分页状态
+                m_currentPage = 0;
+
+                // 获取总行数并更新页面信息
+                m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+                m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+
+                // 更新分页信息显示
+                updatePaginationInfo();
+
+                // 使用分页方式加载数据
+                if (VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize))
                 {
-                    qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
+                    qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，页码:" << m_currentPage
+                             << "，每页行数:" << m_pageSize << "，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
                     TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
 
@@ -979,17 +1223,91 @@ void MainWindow::saveVectorTableData()
     }
     qDebug() << funcName << " - 目标表格控件已确定。";
 
+    // 保存当前表格的状态信息
+    int currentPage = m_currentPage;
+    int pageSize = m_pageSize;
+    QTableWidget *tempFullDataTable = nullptr;
+    bool useFullDataTable = false;
+
+    // 在分页模式下，我们需要加载完整数据来保存，而不是只保存当前页的数据
+    if (m_totalRows > pageSize)
+    {
+        qDebug() << funcName << " - 检测到分页模式，创建临时表格以加载完整数据";
+
+        // 创建临时表格用于保存完整数据
+        tempFullDataTable = new QTableWidget(this);
+        tempFullDataTable->setVisible(false);
+
+        // 复制列结构
+        tempFullDataTable->setColumnCount(targetTableWidget->columnCount());
+        for (int col = 0; col < targetTableWidget->columnCount(); col++)
+        {
+            QTableWidgetItem *headerItem = targetTableWidget->horizontalHeaderItem(col);
+            if (headerItem)
+            {
+                tempFullDataTable->setHorizontalHeaderItem(col, headerItem->clone());
+            }
+        }
+
+        // 加载完整数据到临时表格
+        qDebug() << funcName << " - 加载完整数据到临时表格";
+        bool loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, tempFullDataTable);
+        if (!loadSuccess)
+        {
+            qWarning() << funcName << " - 加载完整数据到临时表格失败";
+            QMessageBox::critical(this, "保存失败", "无法加载完整数据进行保存。");
+            delete tempFullDataTable;
+            return;
+        }
+
+        // 将当前页的编辑更新回完整数据表格
+        qDebug() << funcName << " - 合并当前页面的编辑更改到完整数据";
+        int startRow = currentPage * pageSize;
+        int endRow = qMin(startRow + pageSize, m_totalRows);
+        for (int row = 0; row < (endRow - startRow); row++)
+        {
+            int tempRow = startRow + row;
+            if (row < targetTableWidget->rowCount() && tempRow < tempFullDataTable->rowCount())
+            {
+                for (int col = 0; col < targetTableWidget->columnCount(); col++)
+                {
+                    QTableWidgetItem *sourceItem = targetTableWidget->item(row, col);
+                    if (sourceItem)
+                    {
+                        QTableWidgetItem *destItem = new QTableWidgetItem(*sourceItem);
+                        tempFullDataTable->setItem(tempRow, col, destItem);
+                    }
+                }
+            }
+        }
+
+        // 使用临时表格进行保存
+        targetTableWidget = tempFullDataTable;
+        useFullDataTable = true;
+        qDebug() << funcName << " - 已准备完整数据用于保存，总行数:" << tempFullDataTable->rowCount();
+    }
+
     // 使用数据处理器保存数据
     QString errorMessage;
     if (VectorDataHandler::instance().saveVectorTableData(tableId, targetTableWidget, errorMessage))
     {
         QMessageBox::information(this, "保存成功", "向量表数据已成功保存");
         statusBar()->showMessage("向量表数据已成功保存");
+
+        // 不再重新加载当前页数据，保留用户的编辑状态
+        qDebug() << funcName << " - 保存成功，保留用户当前的界面编辑状态";
     }
     else
     {
         QMessageBox::critical(this, "保存失败", errorMessage);
         statusBar()->showMessage("保存失败: " + errorMessage);
+    }
+
+    // 清理临时表格
+    if (useFullDataTable && tempFullDataTable)
+    {
+        qDebug() << funcName << " - 清理临时表格";
+        delete tempFullDataTable;
     }
 }
 
@@ -3151,18 +3469,16 @@ void MainWindow::refreshVectorTableData()
     }
     qDebug() << funcName << " - 用于刷新的表格控件已确定。";
 
-    if (VectorDataHandler::instance().loadVectorTableData(tableId, targetTableWidget))
-    {
-        statusBar()->showMessage(QString("已刷新向量表: %1").arg(tableName));
+    // 不重置分页状态和不重新加载数据，只刷新表格样式
+    qDebug() << funcName << " - 保留当前数据，只刷新表格样式";
 
-        // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-        TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-    }
-    else
-    {
-        statusBar()->showMessage("刷新向量表失败");
-        QMessageBox::warning(this, "刷新失败", "无法刷新向量表数据，请检查数据库连接");
-    }
+    // 只应用表格样式刷新，不重新加载数据，这样不会丢失用户的修改
+    TableStyleManager::applyBatchTableStyle(targetTableWidget);
+
+    // 可以选择性地刷新表格视觉元素，但不重新加载数据内容
+    TableStyleManager::refreshTable(targetTableWidget);
+
+    statusBar()->showMessage(QString("已刷新表格样式: %1，当前修改已保留").arg(tableName));
 }
 
 // 打开TimeSet设置对话框
@@ -3268,7 +3584,8 @@ void MainWindow::openPinSettingsDialog()
 // 跳转到指定行
 void MainWindow::gotoLine()
 {
-    qDebug() << "MainWindow::gotoLine - 开始跳转到指定行";
+    const QString funcName = "MainWindow::gotoLine";
+    qDebug() << funcName << " - 开始跳转到指定行";
 
     // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
@@ -3284,49 +3601,66 @@ void MainWindow::gotoLine()
         return;
     }
 
-    // 检查表格是否有数据
-    int rowCount = m_vectorTableWidget->rowCount();
-    if (rowCount <= 0)
+    // 获取当前表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 获取表的总行数
+    int totalRowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+
+    if (totalRowCount <= 0)
     {
         QMessageBox::warning(this, "警告", "当前向量表没有数据");
         return;
     }
 
-    qDebug() << "MainWindow::gotoLine - 当前表格有" << rowCount << "行数据";
+    qDebug() << funcName << " - 当前表格总共有" << totalRowCount << "行数据";
 
     // 输入对话框获取行号
     bool ok;
     int targetLine = QInputDialog::getInt(this, "跳转到行",
-                                          "请输入行号 (1-" + QString::number(rowCount) + "):",
-                                          1, 1, rowCount, 1, &ok);
+                                          "请输入行号 (1-" + QString::number(totalRowCount) + "):",
+                                          1, 1, totalRowCount, 1, &ok);
 
     if (!ok)
     {
-        qDebug() << "MainWindow::gotoLine - 用户取消了跳转";
+        qDebug() << funcName << " - 用户取消了跳转";
         return;
     }
 
-    qDebug() << "MainWindow::gotoLine - 用户输入的行号:" << targetLine;
+    qDebug() << funcName << " - 用户输入的行号:" << targetLine;
 
-    // 跳转到指定行（行号需要转换为0-based索引）
-    int rowIndex = targetLine - 1;
-    if (rowIndex >= 0 && rowIndex < rowCount)
+    // 计算目标行所在的页码
+    int targetPage = (targetLine - 1) / m_pageSize;
+    int rowInPage = (targetLine - 1) % m_pageSize;
+
+    qDebug() << funcName << " - 目标行" << targetLine << "在第" << (targetPage + 1) << "页，页内行号:" << (rowInPage + 1);
+
+    // 如果不是当前页，需要切换页面
+    if (targetPage != m_currentPage)
+    {
+        m_currentPage = targetPage;
+        loadCurrentPage();
+    }
+
+    // 在页面中选中行（使用页内索引）
+    if (rowInPage >= 0 && rowInPage < m_vectorTableWidget->rowCount())
     {
         // 清除当前选择
         m_vectorTableWidget->clearSelection();
 
         // 选中目标行
-        m_vectorTableWidget->selectRow(rowIndex);
+        m_vectorTableWidget->selectRow(rowInPage);
 
         // 滚动到目标行
-        m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(rowIndex, 0), QAbstractItemView::PositionAtCenter);
+        m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(rowInPage, 0), QAbstractItemView::PositionAtCenter);
 
-        qDebug() << "MainWindow::gotoLine - 已跳转到第" << targetLine << "行";
+        qDebug() << funcName << " - 已跳转到第" << targetLine << "行 (第" << (targetPage + 1) << "页，页内行:" << (rowInPage + 1) << ")";
+        statusBar()->showMessage(tr("已跳转到第 %1 行（第 %2 页）").arg(targetLine).arg(targetPage + 1));
     }
     else
     {
         QMessageBox::warning(this, "错误", "无效的行号");
-        qDebug() << "MainWindow::gotoLine - 无效的行号:" << targetLine;
+        qDebug() << funcName << " - 无效的行号:" << targetLine << ", 页内索引:" << rowInPage;
     }
 }
 

@@ -43,6 +43,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicTestHelpers.cmake"
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicToolHelpers.cmake"
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake"
+  "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake"
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreAdditionalTargetInfo.cmake"
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfig.cmake"
   "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfigExtras.cmake"

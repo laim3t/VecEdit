@@ -353,6 +353,7 @@ VecEdit_autogen/timestamp: C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicTestHelpers.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicToolHelpers.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake \
+  C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreAdditionalTargetInfo.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfig.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfigExtras.cmake \
@@ -1408,6 +1409,7 @@ VecEdit_autogen/timestamp: C:/Qt/6.8.2/mingw_64/include/QtCore/QAtomicInt \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicTestHelpers.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicToolHelpers.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake \
+  C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreAdditionalTargetInfo.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfig.cmake \
   C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfigExtras.cmake \
@@ -3191,6 +3193,7 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMainWindow \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMessageBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QPushButton \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTabWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
@@ -3220,6 +3223,7 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/Users/GIGA/Desktop/QTProject/VecEdit
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qrubberband.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qslider.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstatusbar.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyle.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyleoption.h \
@@ -12663,6 +12667,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: C:/Users/GIGA/Desktop/QTPr
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMainWindow \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QMessageBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QPushButton \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSplitter \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStatusBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QStyledItemDelegate \
@@ -14670,6 +14675,7 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: C:/Users/GIGA/Desktop/Q
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDateTime \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDebug \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QDir \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QElapsedTimer \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QEventLoop \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QFile \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
@@ -14874,7 +14880,9 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: C:/Users/GIGA/Desktop/Q
   C:/Qt/6.8.2/mingw_64/include/QtSql/qtsql-config.h \
   C:/Qt/6.8.2/mingw_64/include/QtSql/qtsqlexports.h \
   C:/Qt/6.8.2/mingw_64/include/QtSql/qtsqlglobal.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QLineEdit \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableWidget \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableWidgetItem \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/QWidget \
@@ -14884,8 +14892,10 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: C:/Users/GIGA/Desktop/Q
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qabstractslider.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qabstractspinbox.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qframe.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlineedit.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qrubberband.h \
+  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qsizepolicy.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qslider.h \
   C:/Qt/6.8.2/mingw_64/include/QtWidgets/qstyle.h \
@@ -17301,6 +17311,10 @@ C:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/avx512vbmi2in
 
 C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake:
 
+C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Sql/Qt6SqlDependencies.cmake:
+
+C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake:
+
 C:/Qt/Tools/CMake_64/share/cmake-3.29/Modules/FindPackageHandleStandardArgs.cmake:
 
 C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfigExtras.cmake:
@@ -17488,8 +17502,6 @@ C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wtypesbase.h:
 C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h:
 
 C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Sql/Qt6SqlConfigVersionImpl.cmake:
-
-C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Sql/Qt6SqlDependencies.cmake:
 
 C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Sql/Qt6SqlTargets-relwithdebinfo.cmake:
 

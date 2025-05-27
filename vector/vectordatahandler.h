@@ -61,6 +61,9 @@ public:
     // 清除缓存数据
     void clearCache();
 
+    // 添加分页数据加载方法
+    bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int pageIndex, int pageSize);
+
 signals:
     // 进度更新信号
     void progressUpdated(int percentage);

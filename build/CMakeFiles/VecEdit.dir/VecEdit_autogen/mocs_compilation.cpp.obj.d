@@ -508,6 +508,8 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qfile.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qfileinfo.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/vector/vector_data_types.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QVariant \
@@ -843,8 +845,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/pin/pinsettingsdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QPair \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qpair.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\build\VecEdit_autogen\X6SAMCXN67/moc_pinvalueedit.cpp \

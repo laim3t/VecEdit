@@ -20,6 +20,7 @@
 #include <QStatusBar>
 #include <QFile>
 #include <QFileInfo>
+#include <QSpinBox>
 #include <stdexcept>
 #include "../vector/vector_data_types.h"
 #include "../vector/vectordatahandler.h"
@@ -139,6 +140,13 @@ private slots:
     void onFontZoomReset();
     void closeTab(int index);
 
+    // 分页功能相关方法
+    void loadCurrentPage();
+    void loadNextPage();
+    void loadPrevPage();
+    void changePageSize(int newSize);
+    void jumpToPage(int pageNum);
+
 private:
     void setupUI();
     void setupMenu();
@@ -167,6 +175,9 @@ private:
     // 检查和修复所有向量表的列配置
     void checkAndFixAllVectorTables();
 
+    // 更新分页信息显示
+    void updatePaginationInfo();
+
     // 当前项目的数据库路径
     QString m_currentDbPath;
 
@@ -187,6 +198,21 @@ private:
     QPushButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
     QPushButton *m_gotoLineButton;    // 跳转到某行按钮
     QPushButton *m_addGroupButton;    // 添加管脚分组按钮
+
+    // 分页相关UI组件
+    QWidget *m_paginationWidget;   // 分页控件容器
+    QPushButton *m_prevPageButton; // 上一页按钮
+    QPushButton *m_nextPageButton; // 下一页按钮
+    QLabel *m_pageInfoLabel;       // 页码信息标签
+    QComboBox *m_pageSizeSelector; // 每页行数选择器
+    QSpinBox *m_pageJumper;        // 页码跳转输入框
+    QPushButton *m_jumpButton;     // 跳转按钮
+
+    // 分页相关数据
+    int m_currentPage; // 当前页码(从0开始)
+    int m_pageSize;    // 每页行数
+    int m_totalPages;  // 总页数
+    int m_totalRows;   // 总行数
 
     // Tab页签组件
     QTabWidget *m_vectorTabWidget;
