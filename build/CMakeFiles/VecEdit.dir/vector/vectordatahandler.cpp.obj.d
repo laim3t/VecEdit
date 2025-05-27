@@ -487,6 +487,8 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlRecord \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlrecord.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableWidgetItem \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDateTime \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdatetime.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QCoreApplication \
@@ -505,5 +507,7 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonValue \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qjsonvalue.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonParseError \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QSet \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qset.h

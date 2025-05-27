@@ -12,6 +12,7 @@
 #include <QSqlRecord>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QHeaderView>
 #include <QDir>
 #include <QFile>
 #include <QDebug>
@@ -23,6 +24,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QJsonParseError>
+#include <QScrollBar>
 #include <QSet>
 #include <algorithm>
 
@@ -297,6 +299,21 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         initializeCache();
     }
 
+    // 禁用表格更新，减少UI重绘，提升性能
+    tableWidget->setUpdatesEnabled(false);
+    tableWidget->horizontalHeader()->setUpdatesEnabled(false);
+    tableWidget->verticalHeader()->setUpdatesEnabled(false);
+
+    // 保存当前滚动条位置
+    QScrollBar *vScrollBar = tableWidget->verticalScrollBar();
+    QScrollBar *hScrollBar = tableWidget->horizontalScrollBar();
+    int vScrollValue = vScrollBar ? vScrollBar->value() : 0;
+    int hScrollValue = hScrollBar ? hScrollBar->value() : 0;
+
+    // 阻止信号以避免不必要的更新
+    tableWidget->blockSignals(true);
+
+    // 原有的清理逻辑
     tableWidget->clearContents(); // Use clearContents instead of clear to keep headers
     tableWidget->setRowCount(0);
     // Don't clear columns/headers here if they might already be set,
@@ -313,6 +330,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         // Clear the table to indicate failure
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return false;
     }
     qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", DB记录行数:" << rowCountFromMeta;
@@ -323,7 +346,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         qWarning() << funcName << " - 表 " << tableId << " 没有列配置。";
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
-        // Consider if this is an error or just an empty table state
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return true; // Return true as metadata loaded, but table is empty/unconfigured
     }
 
@@ -336,6 +364,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         // Indicate error state, e.g., clear table, show message
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return false;
     }
 
@@ -350,6 +384,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         // or an old table where the file was lost. Treat as error for now.
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return false; // Return false as data is missing
     }
 
@@ -367,6 +407,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         qWarning() << funcName << " - 查询完整列结构失败, 错误:" << colQuery.lastError().text();
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return false;
     }
 
@@ -416,6 +462,12 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         qWarning() << funcName << " - 二进制数据加载失败 (readAllRowsFromBinary 返回 false), 文件:" << absoluteBinFilePath;
         tableWidget->setColumnCount(0);
         tableWidget->setRowCount(0);
+
+        // 恢复更新和信号
+        tableWidget->blockSignals(false);
+        tableWidget->verticalHeader()->setUpdatesEnabled(true);
+        tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+        tableWidget->setUpdatesEnabled(true);
         return false;
     }
     qDebug() << funcName << " - 从二进制文件加载了 " << allRowsOriginal.size() << " 行, 原始列数:" << allColumns.size() << ", 可见列数:" << columns.size();
@@ -707,6 +759,27 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
             }
         }
     }
+
+    // 在函数结束前恢复更新和信号
+    tableWidget->blockSignals(false);
+
+    // 恢复滚动条位置
+    if (vScrollBar)
+    {
+        vScrollBar->setValue(vScrollValue);
+    }
+    if (hScrollBar)
+    {
+        hScrollBar->setValue(hScrollValue);
+    }
+
+    // 恢复UI更新
+    tableWidget->verticalHeader()->setUpdatesEnabled(true);
+    tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+    tableWidget->setUpdatesEnabled(true);
+
+    // 强制刷新视图
+    tableWidget->viewport()->update();
 
     qDebug() << funcName << " - 表格填充完成, 总行数:" << tableWidget->rowCount()
              << ", 总列数:" << tableWidget->columnCount();
