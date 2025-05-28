@@ -483,4 +483,11 @@ CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtGui/qtextoption.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonDocument \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qjsondocument.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonParseError
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonParseError \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QSpinBox \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qspinbox.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QDoubleSpinBox \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QIntValidator \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qvalidator.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QDoubleValidator \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_field_lengths.h

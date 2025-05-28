@@ -18,7 +18,7 @@ class VectorTableItemDelegate : public QStyledItemDelegate
     Q_OBJECT
 
 public:
-    explicit VectorTableItemDelegate(QObject *parent = nullptr);
+    explicit VectorTableItemDelegate(QObject *parent = nullptr, const QVector<int> &cellEditTypes = QVector<int>());
     ~VectorTableItemDelegate() override;
 
     // 创建编辑器
@@ -63,6 +63,9 @@ private:
     // 表ID缓存
     mutable bool m_tableIdCached;
     mutable int m_cachedTableId;
+
+    // 单元格编辑类型，用于支持不同类型的编辑器
+    QVector<int> m_cellTypes;
 };
 
 #endif // VECTORTABLEDELEGATE_H

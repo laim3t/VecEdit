@@ -501,6 +501,7 @@ C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mai
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/vadefs.h \
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wchar.h \
   C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wctype.h \
+  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_field_lengths.h \
   C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h \
   C:/Users/GIGA/Desktop/QTProject/VecEdit/common/tablestylemanager.h \
   C:/Users/GIGA/Desktop/QTProject/VecEdit/database/binaryfilehelper.h \

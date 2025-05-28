@@ -150,164 +150,339 @@ namespace Persistence
         return true;
     }
 
-    bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow)
+    int BinaryFileHelper::getFixedLengthForType(Vector::ColumnDataType type, const QString &columnName)
+    {
+        const QString funcName = "BinaryFileHelper::getFixedLengthForType";
+        qDebug() << funcName << " - 获取数据类型的固定长度, 类型:" << static_cast<int>(type) << ", 列名:" << columnName;
+
+        // 首先检查是否是特殊命名的字段
+        if (!columnName.isEmpty())
+        {
+            if (columnName.compare("Label", Qt::CaseInsensitive) == 0)
+            {
+                qDebug() << funcName << " - 使用Label字段特定长度:" << LABEL_FIELD_MAX_LENGTH;
+                return LABEL_FIELD_MAX_LENGTH;
+            }
+            else if (columnName.compare("Comment", Qt::CaseInsensitive) == 0)
+            {
+                qDebug() << funcName << " - 使用Comment字段特定长度:" << COMMENT_FIELD_MAX_LENGTH;
+                return COMMENT_FIELD_MAX_LENGTH;
+            }
+            else if (columnName.compare("EXT", Qt::CaseInsensitive) == 0)
+            {
+                qDebug() << funcName << " - 使用EXT字段特定长度:" << EXT_FIELD_MAX_LENGTH;
+                return EXT_FIELD_MAX_LENGTH;
+            }
+        }
+
+        // 如果不是特定命名字段，则根据数据类型返回默认长度
+        switch (type)
+        {
+        case Vector::ColumnDataType::TEXT:
+            return TEXT_FIELD_MAX_LENGTH;
+        case Vector::ColumnDataType::PIN_STATE_ID:
+            return PIN_STATE_FIELD_MAX_LENGTH;
+        case Vector::ColumnDataType::INTEGER:
+        case Vector::ColumnDataType::INSTRUCTION_ID:
+        case Vector::ColumnDataType::TIMESET_ID:
+            return INTEGER_FIELD_MAX_LENGTH;
+        case Vector::ColumnDataType::REAL:
+            return REAL_FIELD_MAX_LENGTH;
+        case Vector::ColumnDataType::BOOLEAN:
+            return BOOLEAN_FIELD_MAX_LENGTH;
+        case Vector::ColumnDataType::JSON_PROPERTIES:
+            return JSON_PROPERTIES_MAX_LENGTH;
+        default:
+            qWarning() << funcName << " - 未知数据类型:" << static_cast<int>(type) << ", 返回默认长度(TEXT)";
+            return TEXT_FIELD_MAX_LENGTH;
+        }
+    }
+
+    bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::serializeRow";
-        qDebug().nospace() << funcName << " - 开始序列化行数据, 列数:" << columns.size() << ", 数据项数:" << rowData.size();
+        qDebug().nospace() << funcName << " - 开始序列化行数据, 列数:" << columns.size() << ", 数据项数:" << rowData.size() << ", 使用固定长度:" << useFixedLength;
         serializedRow.clear();
+
         if (rowData.size() != columns.size())
         {
             qWarning() << funcName << " - 列数与数据项数不一致!";
             return false;
         }
-        QDataStream out(&serializedRow, QIODevice::WriteOnly);
+
+        QByteArray tempData;
+        QDataStream out(&tempData, QIODevice::WriteOnly);
         out.setByteOrder(QDataStream::LittleEndian);
+
         for (int i = 0; i < columns.size(); ++i)
         {
             const auto &col = columns[i];
             const QVariant &val = rowData[i];
             qDebug().nospace() << funcName << " - 序列化第" << i << "列, 名称:" << col.name << ", 类型:" << static_cast<int>(col.type) << ", 值:" << val;
+
+            // 使用列名称和类型获取该字段的固定长度
+            int fieldLength = useFixedLength ? getFixedLengthForType(col.type, col.name) : 0;
+            qDebug() << funcName << " - 字段固定长度:" << fieldLength;
+
             switch (col.type)
             {
             case Vector::ColumnDataType::TEXT:
-                out << val.toString();
-                break;
-            case Vector::ColumnDataType::PIN_STATE_ID:
-                // 对管脚状态特殊处理
-                // 确保管脚状态始终保存为字符串类型
-                if (val.isNull() || !val.isValid() || val.toString().isEmpty())
+            {
+                QString text = val.toString();
+                if (useFixedLength)
                 {
-                    // 如果值为空、无效或空字符串，写入"X"作为默认值
-                    out << QString("X");
-                    qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
-                }
-                else if (val.type() == QVariant::String || val.type() == QVariant::Char)
-                {
-                    // 如果值已经是字符串，检查是否为空字符串
-                    QString pinValue = val.toString().trimmed();
-                    if (pinValue.isEmpty())
+                    // 确保文本不超过字段的固定长度限制
+                    if (text.toUtf8().size() > fieldLength - 4) // 减去4字节用于存储长度字段
                     {
-                        out << QString("X");
-                        qDebug() << funcName << " - 管脚状态列为空字符串，使用默认值'X'，列名:" << col.name;
+                        qWarning() << funcName << " - 文本长度超出限制，将被截断!";
+                        // 截断文本，确保UTF-8编码后不超过限制
+                        while (text.toUtf8().size() > fieldLength - 4)
+                        {
+                            text.chop(1);
+                        }
                     }
-                    else
+
+                    // 写入文本的实际长度
+                    qint32 textLength = text.toUtf8().size();
+                    out << textLength;
+
+                    // 写入文本内容
+                    out.writeRawData(text.toUtf8().constData(), textLength);
+
+                    // 填充剩余空间
+                    int paddingNeeded = fieldLength - 4 - textLength; // 4字节长度字段
+                    if (paddingNeeded > 0)
                     {
-                        qDebug() << funcName << " - 管脚状态列写入有效值:" << pinValue << "，列名:" << col.name;
-                        out << pinValue;
+                        QByteArray padding(paddingNeeded, '\0');
+                        out.writeRawData(padding.constData(), paddingNeeded);
                     }
                 }
                 else
                 {
-                    // 如果是整数等其他类型，转换为字符串
-                    QString pinValue = val.toString().trimmed();
-                    if (pinValue.isEmpty() || val.toInt() == 0)
-                    {
-                        out << QString("X");
-                        qDebug() << funcName << " - 管脚状态列值为0或转换后为空，使用默认值'X'，列名:" << col.name;
-                    }
-                    else
-                    {
-                        qDebug() << funcName << " - 管脚状态列写入转换值:" << pinValue << "，列名:" << col.name;
-                        out << pinValue;
-                    }
+                    // 可变长度格式
+                    out << text;
                 }
                 break;
+            }
+            case Vector::ColumnDataType::PIN_STATE_ID:
+            {
+                // 管脚状态总是1个字符
+                QString pinValue;
+                if (val.isNull() || !val.isValid() || val.toString().isEmpty())
+                {
+                    // 使用默认值'X'
+                    pinValue = "X";
+                    qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
+                }
+                else
+                {
+                    pinValue = val.toString().left(1).toUpper(); // 只取第一个字符并转为大写
+                    // 验证是否为有效的管脚状态
+                    if (pinValue != "0" && pinValue != "1" && pinValue != "X" && pinValue != "L" && pinValue != "H" && pinValue != "Z")
+                    {
+                        pinValue = "X"; // 无效的状态使用X
+                        qDebug() << funcName << " - 管脚状态值无效，使用默认值'X'，列名:" << col.name;
+                    }
+                }
+                // 直接写入字符
+                char pinChar = pinValue.at(0).toLatin1();
+                out.writeRawData(&pinChar, PIN_STATE_FIELD_MAX_LENGTH);
+                break;
+            }
             case Vector::ColumnDataType::INTEGER:
             case Vector::ColumnDataType::INSTRUCTION_ID:
             case Vector::ColumnDataType::TIMESET_ID:
-                out << val.toInt();
+            {
+                int intValue = val.toInt();
+                out << quint32(intValue);
                 break;
+            }
             case Vector::ColumnDataType::REAL:
-                out << val.toDouble();
+            {
+                double realValue = val.toDouble();
+                out << realValue;
                 break;
+            }
             case Vector::ColumnDataType::BOOLEAN:
-                out << static_cast<quint8>(val.toBool() ? 1 : 0);
+            {
+                quint8 boolValue = val.toBool() ? 1 : 0;
+                out << boolValue;
                 break;
+            }
             case Vector::ColumnDataType::JSON_PROPERTIES:
-                out << QString(QJsonDocument(val.toJsonObject()).toJson(QJsonDocument::Compact));
+            {
+                QString jsonStr = QString(QJsonDocument(val.toJsonObject()).toJson(QJsonDocument::Compact));
+                if (jsonStr.length() > JSON_PROPERTIES_MAX_LENGTH / 2)
+                {
+                    qWarning() << funcName << " - JSON属性超出最大长度限制! 原长度:" << jsonStr.length() << ", 最大允许:" << JSON_PROPERTIES_MAX_LENGTH / 2;
+                    // 这里我们选择截断JSON，但在实际应用中可能需要更优雅的处理
+                    jsonStr = jsonStr.left(JSON_PROPERTIES_MAX_LENGTH / 2);
+                }
+                out << quint32(jsonStr.length()); // 先写入实际长度
+                out.writeRawData(jsonStr.toUtf8().constData(), jsonStr.toUtf8().size());
+                // 填充剩余空间
+                int padding = JSON_PROPERTIES_MAX_LENGTH - jsonStr.toUtf8().size() - sizeof(quint32);
+                if (padding > 0)
+                {
+                    QByteArray paddingData(padding, '\0');
+                    out.writeRawData(paddingData.constData(), paddingData.size());
+                }
                 break;
+            }
             default:
                 qWarning() << funcName << " - 不支持的列类型:" << static_cast<int>(col.type) << ", 列名:" << col.name;
                 return false;
             }
+
             if (out.status() != QDataStream::Ok)
             {
                 qWarning() << funcName << " - QDataStream 写入失败, 列:" << col.name;
                 return false;
             }
         }
+
+        // 将临时数据复制到输出
+        serializedRow = tempData;
         qDebug() << funcName << " - 序列化完成, 字节长度:" << serializedRow.size();
         return true;
     }
 
-    bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData)
+    bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::deserializeRow";
-        qDebug().nospace() << funcName << " - 开始反序列化行数据, 列数:" << columns.size() << ", 字节长度:" << bytes.size() << ", 文件版本:" << fileVersion;
+        qDebug() << funcName << " - 开始反序列化二进制数据，字节数:" << bytes.size() << ", 列数:" << columns.size() << ", 文件版本:" << fileVersion;
+
         rowData.clear();
+
+        if (bytes.isEmpty())
+        {
+            qWarning() << funcName << " - 输入的二进制数据为空!";
+            return false;
+        }
+
         QDataStream in(bytes);
         in.setByteOrder(QDataStream::LittleEndian);
 
-        // 为每个列创建一个空值
-        rowData.resize(columns.size());
-        // 为所有列设置默认值
-        for (int i = 0; i < columns.size(); ++i)
+        for (const auto &col : columns)
         {
-            const auto &col = columns[i];
-            switch (col.type)
+            // 获取该字段的固定长度
+            int fieldLength = useFixedLength ? getFixedLengthForType(col.type, col.name) : 0;
+            qDebug().nospace() << funcName << " - 处理列: " << col.name << ", 类型: " << static_cast<int>(col.type) << ", 固定长度: " << fieldLength;
+
+            QVariant value;
+            if (useFixedLength)
             {
-            case Vector::ColumnDataType::TEXT:
-                rowData[i] = QString("");
-                break;
-            case Vector::ColumnDataType::PIN_STATE_ID:
-                rowData[i] = QString("X"); // 管脚状态默认为"X"
-                break;
-            case Vector::ColumnDataType::INTEGER:
-            case Vector::ColumnDataType::INSTRUCTION_ID:
-            case Vector::ColumnDataType::TIMESET_ID:
-                rowData[i] = 0;
-                break;
-            case Vector::ColumnDataType::REAL:
-                rowData[i] = 0.0;
-                break;
-            case Vector::ColumnDataType::BOOLEAN:
-                rowData[i] = false;
-                break;
-            case Vector::ColumnDataType::JSON_PROPERTIES:
-                rowData[i] = QJsonObject();
-                break;
-            default:
-                rowData[i] = QVariant();
-                break;
-            }
-        }
-
-        // 根据文件版本选择不同的反序列化方法
-        if (fileVersion == 1)
-        {
-            // 版本1的反序列化逻辑
-            for (int i = 0; i < columns.size(); ++i)
-            {
-                const auto &col = columns[i];
-                QVariant val;
-                qDebug().nospace() << funcName << " - 反序列化第" << i << "列, 名称:" << col.name << ", 类型:" << static_cast<int>(col.type);
-
-                // 检查数据流是否已经到达末尾
-                if (in.atEnd())
-                {
-                    qWarning() << funcName << " - 数据流已到达末尾，列:" << col.name << "使用默认值";
-                    // 保留之前设置的默认值
-                    continue; // 继续处理下一列
-                }
-
-                // 尝试读取数据
+                // 使用固定长度格式
                 switch (col.type)
                 {
                 case Vector::ColumnDataType::TEXT:
                 {
-                    QString s;
-                    in >> s;
-                    val = s;
+                    // 读取文本实际长度
+                    qint32 textLength;
+                    in >> textLength;
+
+                    if (textLength < 0 || textLength > fieldLength - 4)
+                    {
+                        qWarning() << funcName << " - 反序列化TEXT字段时长度无效:" << textLength << ", 列名:" << col.name;
+                        textLength = qMin(textLength, fieldLength - 4);
+                    }
+
+                    // 读取实际文本内容
+                    QByteArray textData(textLength, Qt::Uninitialized);
+                    in.readRawData(textData.data(), textLength);
+                    value = QString::fromUtf8(textData);
+
+                    // 跳过填充字节
+                    int paddingToSkip = fieldLength - 4 - textLength;
+                    if (paddingToSkip > 0)
+                    {
+                        in.skipRawData(paddingToSkip);
+                    }
+                    break;
+                }
+                case Vector::ColumnDataType::PIN_STATE_ID:
+                {
+                    // 管脚状态是1个字符
+                    char pinState;
+                    in.readRawData(&pinState, PIN_STATE_FIELD_MAX_LENGTH);
+                    value = QString(QChar(pinState));
+                    break;
+                }
+                case Vector::ColumnDataType::INTEGER:
+                case Vector::ColumnDataType::INSTRUCTION_ID:
+                case Vector::ColumnDataType::TIMESET_ID:
+                {
+                    qint32 intValue;
+                    in.readRawData(reinterpret_cast<char *>(&intValue), INTEGER_FIELD_MAX_LENGTH);
+                    value = intValue;
+                    break;
+                }
+                case Vector::ColumnDataType::REAL:
+                {
+                    double doubleValue;
+                    in.readRawData(reinterpret_cast<char *>(&doubleValue), REAL_FIELD_MAX_LENGTH);
+                    value = doubleValue;
+                    break;
+                }
+                case Vector::ColumnDataType::BOOLEAN:
+                {
+                    quint8 boolValue;
+                    in.readRawData(reinterpret_cast<char *>(&boolValue), BOOLEAN_FIELD_MAX_LENGTH);
+                    value = bool(boolValue);
+                    break;
+                }
+                case Vector::ColumnDataType::JSON_PROPERTIES:
+                {
+                    // 读取JSON字符串长度
+                    qint32 jsonLength;
+                    in >> jsonLength;
+
+                    if (jsonLength < 0 || jsonLength > JSON_PROPERTIES_MAX_LENGTH - 4)
+                    {
+                        qWarning() << funcName << " - 反序列化JSON字段时长度无效:" << jsonLength;
+                        jsonLength = qMin(jsonLength, JSON_PROPERTIES_MAX_LENGTH - 4);
+                    }
+
+                    // 读取JSON字符串
+                    QByteArray jsonData(jsonLength, Qt::Uninitialized);
+                    in.readRawData(jsonData.data(), jsonLength);
+                    QString jsonString = QString::fromUtf8(jsonData);
+                    QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+
+                    if (doc.isNull() || !doc.isObject())
+                    {
+                        qWarning() << funcName << " - 解析JSON数据失败，列名:" << col.name;
+                        value = QJsonObject();
+                    }
+                    else
+                    {
+                        value = doc.object();
+                    }
+
+                    // 跳过填充字节
+                    int paddingToSkip = JSON_PROPERTIES_MAX_LENGTH - 4 - jsonLength;
+                    if (paddingToSkip > 0)
+                    {
+                        in.skipRawData(paddingToSkip);
+                    }
+                    break;
+                }
+                default:
+                    qWarning() << funcName << " - 不支持的列类型:" << static_cast<int>(col.type) << ", 列名:" << col.name;
+                    value = QVariant();
+                    break;
+                }
+            }
+            else
+            {
+                // 使用可变长度格式
+                switch (col.type)
+                {
+                case Vector::ColumnDataType::TEXT:
+                {
+                    QString text;
+                    in >> text;
+                    value = text;
                     break;
                 }
                 case Vector::ColumnDataType::PIN_STATE_ID:
@@ -325,7 +500,7 @@ namespace Persistence
                     {
                         qDebug() << funcName << " - 管脚状态列读取到有效值:" << s << "，列名:" << col.name;
                     }
-                    val = s;
+                    value = s;
                     break;
                 }
                 case Vector::ColumnDataType::INTEGER:
@@ -334,21 +509,21 @@ namespace Persistence
                 {
                     int v = 0;
                     in >> v;
-                    val = v;
+                    value = v;
                     break;
                 }
                 case Vector::ColumnDataType::REAL:
                 {
                     double d = 0.0;
                     in >> d;
-                    val = d;
+                    value = d;
                     break;
                 }
                 case Vector::ColumnDataType::BOOLEAN:
                 {
                     quint8 b = 0;
                     in >> b;
-                    val = b != 0;
+                    value = b != 0;
                     break;
                 }
                 case Vector::ColumnDataType::JSON_PROPERTIES:
@@ -356,78 +531,35 @@ namespace Persistence
                     QString jsonStr;
                     in >> jsonStr;
                     QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-                    val = doc.object();
+                    value = doc.object();
                     break;
                 }
                 default:
                     qWarning() << funcName << " - 不支持的列类型:" << static_cast<int>(col.type) << ", 列名:" << col.name;
                     // 使用默认空值
-                    val = QVariant();
+                    value = QVariant();
                     break;
                 }
-
-                // 检查读取是否成功
-                if (in.status() != QDataStream::Ok)
-                {
-                    qWarning() << funcName << " - QDataStream 读取失败, 列:" << col.name << ", 状态:" << in.status() << ", 使用默认值";
-                    // 保留之前设置的默认值
-                    // 重置状态以继续处理后续列
-                    in.resetStatus();
-                }
-                else
-                {
-                    // 读取成功，更新行数据
-                    rowData[i] = val;
-                }
             }
+
+            rowData.append(value);
+            qDebug().nospace() << funcName << " - 解析列: " << col.name << ", 值: " << value;
         }
-        else if (fileVersion > 1)
+
+        if (in.status() != QDataStream::Ok)
         {
-            // 未来版本的反序列化逻辑
-            qWarning() << funcName << " - 不支持的文件版本:" << fileVersion << ", 尝试以最高支持版本解析";
-            // 这里可以实现对未来可能添加的新版本的支持
-            // 现在就简单地按版本1处理
-            return deserializeRow(bytes, columns, 1, rowData);
-        }
-        else
-        {
-            qWarning() << funcName << " - 无效的文件版本:" << fileVersion;
+            qWarning() << funcName << " - 反序列化过程中发生错误，QDataStream状态:" << in.status();
             return false;
         }
 
-        // 最后检查所有PIN_STATE_ID类型的列，确保它们都有有效的值
-        for (int i = 0; i < columns.size(); ++i)
-        {
-            if (columns[i].type == Vector::ColumnDataType::PIN_STATE_ID)
-            {
-                QVariant &val = rowData[i];
-                QString strValue = val.toString().trimmed();
-                if (val.isNull() || !val.isValid() || strValue.isEmpty())
-                {
-                    val = QString("X");
-                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值为空，设置为默认值'X'";
-                }
-                else if (strValue != "0" && strValue != "1" && strValue != "X" && strValue != "L" && strValue != "H" && strValue != "Z")
-                {
-                    // 添加额外检查，确保管脚值是有效的状态
-                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值" << strValue << "不是有效的管脚状态，保留原值";
-                }
-                else
-                {
-                    qDebug() << funcName << " - 最终检查：管脚状态列" << columns[i].name << "值" << strValue << "是有效值";
-                }
-            }
-        }
-
-        qDebug() << funcName << " - 反序列化完成, 行数据项:" << rowData.size();
         return true;
     }
 
     bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                                 int schemaVersion, QList<Vector::RowData> &rows)
+                                                 int schemaVersion, QList<Vector::RowData> &rows, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::readAllRowsFromBinary";
-        qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << "Num Columns Expected:" << columns.size();
+        qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << "Num Columns Expected:" << columns.size() << "Use Fixed Length:" << useFixedLength;
         rows.clear(); // Ensure the output list is empty initially
 
         QFile file(binFilePath);
@@ -497,229 +629,131 @@ namespace Persistence
         while (!in.atEnd() && actualRowsRead < header.row_count_in_file)
         {
             // Read the size of the next row block
-            quint32 rowBlockSize = 0;
-            in >> rowBlockSize;
-            if (in.status() != QDataStream::Ok || rowBlockSize == 0)
+            quint32 rowByteSize;
+            in >> rowByteSize;
+
+            if (in.status() != QDataStream::Ok || rowByteSize == 0)
             {
-                qWarning() << funcName << "- Error reading row block size. Status:" << in.status() << "Size read:" << rowBlockSize << ". Read" << actualRowsRead << "rows so far.";
-                file.close();
-                return false;
+                qWarning() << funcName << "- Error reading row size at position" << file.pos() << ". Status:" << in.status();
+                break;
             }
 
-            // Read the row data block itself
-            QByteArray rowDataBlock;
-            rowDataBlock.resize(rowBlockSize);
-            qint64 bytesRead = in.readRawData(rowDataBlock.data(), rowBlockSize);
-
-            if (bytesRead != rowBlockSize || in.status() != QDataStream::Ok)
+            // Read the actual bytes for this row
+            QByteArray rowBytes = file.read(rowByteSize);
+            if (rowBytes.size() != static_cast<int>(rowByteSize))
             {
-                qWarning() << funcName << "- Error reading row data block. Expected size:" << rowBlockSize << ", Bytes read:" << bytesRead << ", Stream status:" << in.status() << ". Read" << actualRowsRead << "rows so far.";
-                file.close();
-                return false; // Treat stream read error as failure
+                qWarning() << funcName << "- Error reading row bytes. Expected:" << rowByteSize << "Got:" << rowBytes.size();
+                break;
             }
 
-            // Deserialize the block using the specific deserializeRow function
-            Vector::RowData deserializedRow;
-            if (!deserializeRow(rowDataBlock, columns, header.data_schema_version, deserializedRow))
+            // Deserialize the row bytes into a row data object
+            Vector::RowData rowData;
+            if (deserializeRow(rowBytes, columns, header.data_schema_version, rowData, useFixedLength))
             {
-                qWarning() << funcName << "- Failed to deserialize row" << actualRowsRead << ". Using empty row instead.";
-                // 创建一个空行，填充默认值
-                deserializedRow.clear();
-                for (int i = 0; i < columns.size(); ++i)
+                rows.append(rowData);
+                actualRowsRead++;
+
+                if (actualRowsRead % 1000 == 0)
                 {
-                    const auto &col = columns[i];
-                    switch (col.type)
-                    {
-                    case Vector::ColumnDataType::TEXT:
-                        deserializedRow.append(QString(""));
-                        break;
-                    case Vector::ColumnDataType::PIN_STATE_ID:
-                        deserializedRow.append(QString("X")); // 管脚状态默认为"X"
-                        break;
-                    case Vector::ColumnDataType::INTEGER:
-                    case Vector::ColumnDataType::INSTRUCTION_ID:
-                    case Vector::ColumnDataType::TIMESET_ID:
-                        deserializedRow.append(0);
-                        break;
-                    case Vector::ColumnDataType::REAL:
-                        deserializedRow.append(0.0);
-                        break;
-                    case Vector::ColumnDataType::BOOLEAN:
-                        deserializedRow.append(false);
-                        break;
-                    case Vector::ColumnDataType::JSON_PROPERTIES:
-                        deserializedRow.append(QJsonObject());
-                        break;
-                    default:
-                        deserializedRow.append(QVariant());
-                        break;
-                    }
+                    qDebug() << funcName << "- Progress:" << actualRowsRead << "rows read.";
                 }
             }
-
-            rows.append(deserializedRow);
-            actualRowsRead++;
-            // Verbose log (optional):
-            // qDebug() << funcName << "- Successfully deserialized row" << actualRowsRead;
-
-        } // End while loop
-
-        qDebug() << funcName << "- Finished reading loop. Expected rows based on header:" << header.row_count_in_file << ". Actual rows successfully deserialized:" << actualRowsRead << ". Stream at end:" << in.atEnd();
+            else
+            {
+                qWarning() << funcName << "- Failed to deserialize row at position" << actualRowsRead + 1 << ". Continuing to next row.";
+                // Option: We could break here to abort on first error, but continuing allows for more resilience
+            }
+        }
 
         file.close();
+        qDebug() << funcName << "- File closed. Total rows read:" << rows.size() << "Expected:" << header.row_count_in_file;
 
-        // Check if the number of rows read matches the header count *exactly*
         if (actualRowsRead != header.row_count_in_file)
         {
-            qWarning() << funcName << "- CRITICAL WARNING: Number of rows successfully read (" << actualRowsRead << ") does not match header count (" << header.row_count_in_file << "). File IS likely truncated or corrupted.";
-            // Return false because the file state is inconsistent with its header.
-            return false;
-        }
-        // Optional check: ensure stream is exactly at the end if expected
-        if (!in.atEnd() && actualRowsRead == header.row_count_in_file)
-        {
-            qDebug() << funcName << "- Warning: Reached expected row count but stream is not at end. Extra data present?";
-            // Decide if this is an error or acceptable.
+            qWarning() << funcName << "- Warning: Actual rows read (" << actualRowsRead << ") does not match header row count (" << header.row_count_in_file << ")";
         }
 
-        qDebug() << funcName << "- Exit. Returning" << rows.size() << "rows. Operation successful.";
-        return true; // Only return true if header count matches rows read.
+        return !rows.isEmpty() || header.row_count_in_file == 0; // Consider empty file as success if header indicates 0 rows
     }
 
     bool BinaryFileHelper::writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                                int schemaVersion, const QList<Vector::RowData> &rows)
+                                                int schemaVersion, const QList<Vector::RowData> &rows, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::writeAllRowsToBinary";
-        qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << ". Attempting to write" << rows.size() << "rows with" << columns.size() << "columns.";
-
-        // 打印列信息以便诊断
-        qDebug() << funcName << "- 列信息详情:";
-        for (int i = 0; i < columns.size(); ++i)
-        {
-            qDebug() << funcName << "  列[" << i << "]: ID=" << columns[i].id
-                     << ", 名称=" << columns[i].name
-                     << ", 顺序=" << columns[i].order
-                     << ", 类型=" << columns[i].original_type_str
-                     << ", 可见=" << columns[i].is_visible;
-        }
+        qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << "Rows to write:" << rows.size() << "Use Fixed Length:" << useFixedLength;
 
         QFile file(binFilePath);
-        qDebug() << funcName << "- Attempting to open file for writing (Truncate).";
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        qDebug() << funcName << "- Attempting to open file for writing.";
+        if (!file.open(QIODevice::WriteOnly))
         {
             qWarning() << funcName << "- Error: Failed to open file for writing:" << binFilePath << "Error:" << file.errorString();
             return false;
         }
         qDebug() << funcName << "- File opened successfully.";
 
-        // --- Prepare Header ---
-        BinaryFileHeader headerToWrite;
-        headerToWrite.magic_number = VBIN_MAGIC_NUMBER;                  // Set magic number
-        headerToWrite.file_format_version = CURRENT_FILE_FORMAT_VERSION; // Use constant for current format version
-        headerToWrite.data_schema_version = schemaVersion;               // Use the provided schema version
-        headerToWrite.row_count_in_file = static_cast<uint64_t>(rows.size());
-        headerToWrite.column_count_in_file = static_cast<uint32_t>(columns.size());
-        headerToWrite.timestamp_created = static_cast<uint64_t>(QDateTime::currentSecsSinceEpoch());
-        headerToWrite.timestamp_updated = headerToWrite.timestamp_created;
-        headerToWrite.compression_type = 0; // Set compression type (e.g., 0 for none)
-        // Ensure reserved bytes are initialized (e.g., to zero)
-        memset(headerToWrite.reserved_bytes, 0, sizeof(headerToWrite.reserved_bytes));
-        // --- End Prepare Header ---
+        // Prepare and write the header
+        BinaryFileHeader header;
+        header.magic_number = VEC_BINDATA_MAGIC; // Using the correct constant from your namespace
+        header.file_format_version = CURRENT_FILE_FORMAT_VERSION;
+        header.data_schema_version = schemaVersion;
+        header.row_count_in_file = rows.size();
+        header.column_count_in_file = columns.size();
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch(); // Current time
+        header.timestamp_updated = header.timestamp_created;           // Same as created for a new file
+        header.compression_type = 0;                                   // No compression for now
+        std::memset(header.reserved_bytes, 0, sizeof(header.reserved_bytes));
 
-        qDebug() << funcName << "- Attempting to write binary header.";
-        headerToWrite.logDetails(funcName + " - Header to Write");
-        if (!writeBinaryHeader(&file, headerToWrite))
+        qDebug() << funcName << "- Writing file header.";
+        header.logDetails(funcName); // Log header details
+
+        if (!writeBinaryHeader(&file, header))
         {
-            qWarning() << funcName << "- Error: Failed to write binary header.";
+            qWarning() << funcName << "- Error: Failed to write header.";
             file.close();
-            // Attempt to remove the potentially corrupt file
-            if (QFile::exists(binFilePath))
-            {
-                QFile::remove(binFilePath);
-                qDebug() << funcName << "- Removed partially written file due to header write error.";
-            }
             return false;
         }
-        qDebug() << funcName << "- Binary header written successfully.";
 
-        if (rows.isEmpty())
-        {
-            qDebug() << funcName << "- No rows to write. File contains only the header.";
-            file.flush();
-            file.close();
-            qDebug() << funcName << "- File flushed and closed. Exit (0 rows written).";
-            return true;
-        }
+        qDebug() << funcName << "- Header written successfully. Now writing rows...";
 
-        qDebug() << funcName << "- Starting data serialization loop for" << rows.size() << "rows.";
+        quint64 rowsWritten = 0;
         QDataStream out(&file);
         out.setByteOrder(QDataStream::LittleEndian); // Ensure consistency
-        // Set QDataStream version if needed
-        // out.setVersion(QDataStream::Qt_5_15);
 
-        quint32 rowsWritten = 0;
-        for (const Vector::RowData &row : rows)
+        for (const auto &rowData : rows)
         {
-            // Verify row consistency (column count)
-            if (static_cast<uint32_t>(row.size()) != headerToWrite.column_count_in_file)
+            QByteArray serializedRow;
+            if (serializeRow(rowData, columns, serializedRow, useFixedLength))
             {
-                qWarning() << funcName << "- Error: Row" << rowsWritten << "has" << row.size() << "columns, but header expects" << headerToWrite.column_count_in_file << ". Aborting write.";
-                file.close();
-                // Remove the inconsistent file
-                if (QFile::exists(binFilePath))
+                // First write the size of the row's data
+                out << static_cast<quint32>(serializedRow.size());
+
+                // Then write the actual data
+                if (file.write(serializedRow) == serializedRow.size())
                 {
-                    QFile::remove(binFilePath);
-                    qDebug() << funcName << "- Removed inconsistent file due to row column count mismatch.";
-                }
-                return false;
-            }
+                    rowsWritten++;
 
-            // Serialize the row data using the specific serializeRow function
-            QByteArray serializedRowData;
-            if (!serializeRow(row, columns, serializedRowData))
-            {
-                qWarning() << funcName << "- Error serializing data for row" << rowsWritten << ". Aborting write.";
-                file.close();
-                if (QFile::exists(binFilePath))
+                    if (rowsWritten % 1000 == 0 || rowsWritten == rows.size())
+                    {
+                        qDebug() << funcName << "- Progress:" << rowsWritten << "rows written.";
+                    }
+                }
+                else
                 {
-                    QFile::remove(binFilePath);
-                    qDebug() << funcName << "- Removed inconsistent file due to row serialization error.";
+                    qWarning() << funcName << "- Error writing row data at position" << rowsWritten + 1;
+                    break;
                 }
-                return false;
             }
-
-            // Write the size of the serialized row block first
-            quint32 rowBlockSize = static_cast<quint32>(serializedRowData.size());
-            out << rowBlockSize;
-            if (out.status() != QDataStream::Ok)
+            else
             {
-                qWarning() << funcName << "- Error writing row size for row" << rowsWritten << ". Status:" << out.status();
-                file.close();
-                if (QFile::exists(binFilePath))
-                    QFile::remove(binFilePath);
-                return false;
+                qWarning() << funcName << "- Error serializing row at position" << rowsWritten + 1;
+                break;
             }
+        }
 
-            // Write the actual serialized row data block
-            qint64 bytesWritten = out.writeRawData(serializedRowData.constData(), rowBlockSize);
-            if (bytesWritten != rowBlockSize || out.status() != QDataStream::Ok)
-            { // Check both bytes written and stream status
-                qWarning() << funcName << "- Error writing row block for row" << rowsWritten << ". Expected:" << rowBlockSize << ", Written:" << bytesWritten << ", Status:" << out.status();
-                file.close();
-                if (QFile::exists(binFilePath))
-                    QFile::remove(binFilePath); // Clean up potentially corrupt file
-                return false;                   // Abort on stream error
-            }
-            rowsWritten++;
-        } // End for loop
+        file.close();
+        qDebug() << funcName << "- File closed. Total rows written:" << rowsWritten << "Expected:" << rows.size();
 
-        qDebug() << funcName << "- Finished writing loop. Successfully wrote" << rowsWritten << "rows.";
-
-        file.flush(); // Ensure all data is written to the OS buffer
-        file.close(); // Close the file
-
-        qDebug() << funcName << "- File flushed and closed. Exit.";
-        return true;
+        return rowsWritten == static_cast<quint64>(rows.size()); // Only success if all rows were written
     }
 
 } // namespace Persistence

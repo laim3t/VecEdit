@@ -1,7 +1,8 @@
 #ifndef BINARY_FILE_HELPER_H
 #define BINARY_FILE_HELPER_H
 
-#include "common/binary_file_format.h" // For BinaryFileHeader
+#include "common/binary_file_format.h"   // For BinaryFileHeader structure
+#include "common/binary_field_lengths.h" // 添加对固定长度定义的引用
 #include <QString>
 #include <QIODevice>
 #include <QByteArray>
@@ -12,14 +13,22 @@
 // class MemoryRowObject; // Placeholder for the actual C++ data structure for a row
 // class ColumnSchema;    // Placeholder for column definition/schema information
 
+namespace Vector
+{
+    struct ColumnInfo;
+    using RowData = QList<QVariant>;
+} // namespace Vector
+
 namespace Persistence
 {
 
     /**
-     * @brief Provides utility functions for reading and writing binary data files,
-     *        including headers and row-level data serialization/deserialization.
+     * @brief Helper class for working with binary file I/O.
      *
-     * This class is intended to be used internally by the persistence layer.
+     * This class provides static utility methods for reading and writing
+     * binary files, particularly those with the BinaryFileHeader structure.
+     * It also handles serialization and deserialization of row data to and
+     * from binary form.
      */
     class BinaryFileHelper
     {
@@ -42,17 +51,27 @@ namespace Persistence
          */
         static bool writeBinaryHeader(QIODevice *device, const BinaryFileHeader &header);
 
-        // --- Placeholder methods for row data ---
-        // These will need to be implemented once MemoryRowObject and ColumnSchema are defined.
+        /**
+         * @brief 获取给定数据类型和列名在二进制存储中的固定长度
+         *
+         * 如果是特殊字段（如Label、Comment、EXT），将返回它们的特定长度
+         * 否则根据数据类型返回默认长度
+         *
+         * @param type 列数据类型
+         * @param columnName 列名称，用于判断是否为特殊字段
+         * @return 字段的固定存储长度
+         */
+        static int getFixedLengthForType(Vector::ColumnDataType type, const QString &columnName = QString());
 
         /**
          * @brief 序列化一行数据为二进制字节流
          * @param rowData 内存中的一行数据（与列顺序一致）
          * @param columns 列信息（顺序与 rowData 对应）
          * @param serializedRow 输出的二进制字节流
+         * @param useFixedLength 是否使用固定长度存储（默认为true）
          * @return 成功返回 true，失败返回 false
          */
-        static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow);
+        static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow, bool useFixedLength = true);
 
         /**
          * @brief 从二进制字节流反序列化为一行数据
@@ -60,9 +79,10 @@ namespace Persistence
          * @param columns 列信息（顺序与目标 rowData 对应）
          * @param fileVersion 文件头中的数据 schema 版本
          * @param rowData 输出的内存行数据
+         * @param useFixedLength 是否使用固定长度存储（默认为true）
          * @return 成功返回 true，失败返回 false
          */
-        static bool deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData);
+        static bool deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData, bool useFixedLength = true);
 
         /**
          * @brief 从二进制文件读取所有行数据
@@ -71,10 +91,11 @@ namespace Persistence
          * @param columns 列信息
          * @param schemaVersion 数据库中的schema版本
          * @param rows 输出参数，存储读取的所有行数据
+         * @param useFixedLength 是否使用固定长度存储（默认为true）
          * @return bool 成功返回true，失败返回false
          */
         static bool readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                          int schemaVersion, QList<Vector::RowData> &rows);
+                                          int schemaVersion, QList<Vector::RowData> &rows, bool useFixedLength = true);
 
         /**
          * @brief 将所有行数据写入二进制文件
@@ -83,10 +104,19 @@ namespace Persistence
          * @param columns 列信息
          * @param schemaVersion 数据库中的schema版本
          * @param rows 要写入的所有行数据
+         * @param useFixedLength 是否使用固定长度存储（默认为true）
          * @return bool 成功返回true，失败返回false
          */
         static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                         int schemaVersion, const QList<Vector::RowData> &rows);
+                                         int schemaVersion, const QList<Vector::RowData> &rows, bool useFixedLength = true);
+
+    private:
+        /**
+         * @brief 获取列数据类型对应的固定长度
+         * @param type 列数据类型
+         * @return 对应数据类型的固定长度（字节数）
+         */
+        static int getFixedLengthForType(Vector::ColumnDataType type);
     };
 
 } // namespace Persistence

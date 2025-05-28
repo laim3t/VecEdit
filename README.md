@@ -404,3 +404,19 @@ x通道数
   - **Details**: The data merging logic within `MainWindow::saveVectorTableData` was updated to explicitly check for and handle `sourceCellWidget` from the UI's current page view (`m_vectorTableWidget`). If a `PinValueLineEdit` is found, its text content is now correctly transferred to the corresponding `PinValueLineEdit` in the temporary full data table (`tempFullDataTable`) before the full data is passed to `VectorDataHandler` for serialization. Also improved handling for empty/cleared cells in the source view to ensure they correctly clear the corresponding cells in the full data table.
 - **Author**: AI Assistant
 - **Rationale**: The previous merging logic in `MainWindow::saveVectorTableData` primarily relied on `QTableWidget::item()`, which returns `nullptr` for cells managed by `QTableWidget::cellWidget()`. This oversight caused data from `PinValueLineEdit` (and potentially other cell widgets) to be ignored during the merge process when in paged-saving mode, leading to data loss for those specific cells.
+
+## 版本更新说明
+
+### 2023年7月更新 - 固定长度二进制存储格式
+
+为了优化数据存储和提高读写效率，本次更新将二进制存储格式从可变长度改为固定长度。主要特性包括：
+
+1. 定义了各种数据类型的固定存储长度，如TEXT(256字节)、INTEGER(4字节)等
+2. 在前端实现了相应的输入长度限制，确保数据一致性
+3. 保持向后兼容性，能够读取旧的二进制文件格式
+
+详细信息请参考以下文档：
+
+- 文件长度定义：`common/binary_field_lengths.h`
+- 二进制文件处理：`database/binaryfilehelper.cpp`
+- 前端输入限制：`vector/vectortabledelegate.cpp`

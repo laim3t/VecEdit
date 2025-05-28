@@ -9,11 +9,18 @@
 #include <QJsonParseError>
 #include <QJsonObject>
 #include <algorithm>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QIntValidator>
+#include <QDoubleValidator>
+#include "common/binary_field_lengths.h"
 
-VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent)
+VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent, const QVector<int> &cellEditTypes)
     : QStyledItemDelegate(parent),
       m_tableIdCached(false),
-      m_cachedTableId(-1)
+      m_cachedTableId(-1),
+      m_cellTypes(cellEditTypes)
 {
     // 清空缓存，确保每次创建代理时都重新从数据库获取选项
     refreshCache();
@@ -50,6 +57,7 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Function entry. Attempting to create editor for cell at row:" << index.row() << "column:" << index.column();
 
     int column = index.column();
+    QWidget *editor = nullptr;
 
     // 获取当前列的类型信息
     qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Calling getTableIdForCurrentTable() for column:" << column;
@@ -74,7 +82,8 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getInstructionOptions());
         comboBox->setEditable(false);
-        return comboBox;
+        editor = comboBox;
+        qDebug() << "VectorTableDelegate::createEditor - 创建指令下拉框编辑器";
     }
     else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
     {
@@ -83,30 +92,94 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getTimeSetOptions());
         comboBox->setEditable(false);
-        return comboBox;
+        editor = comboBox;
+        qDebug() << "VectorTableDelegate::createEditor - 创建TimeSet下拉框编辑器";
     }
     else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
     {
         qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected BOOLEAN type for column:" << column << ". Creating QComboBox.";
         // 创建Capture下拉框（Y/N）
         QComboBox *comboBox = new QComboBox(parent);
-        comboBox->addItems(getCaptureOptions());
-        comboBox->setEditable(false);
-        return comboBox;
+        comboBox->addItem("False");
+        comboBox->addItem("True");
+        editor = comboBox;
+        qDebug() << "VectorTableDelegate::createEditor - 创建布尔值下拉框编辑器";
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
         qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating PinValueLineEdit.";
         // 创建管脚输入框
         PinValueLineEdit *editor = new PinValueLineEdit(parent);
-        return editor;
+        editor = editor;
+        qDebug() << "VectorTableDelegate::createEditor - 创建管脚状态编辑器";
+    }
+    else if (colInfo.type == Vector::ColumnDataType::INTEGER)
+    {
+        QLineEdit *lineEdit = new QLineEdit(parent);
+        QIntValidator *validator = new QIntValidator(lineEdit);
+        lineEdit->setValidator(validator);
+        lineEdit->setMaxLength(10); // INT32范围的最大位数
+        editor = lineEdit;
+        qDebug() << "VectorTableDelegate::createEditor - 创建整数编辑器";
+    }
+    else if (colInfo.type == Vector::ColumnDataType::REAL)
+    {
+        QLineEdit *lineEdit = new QLineEdit(parent);
+        QDoubleValidator *validator = new QDoubleValidator(-1000000, 1000000, 6, lineEdit);
+        validator->setNotation(QDoubleValidator::StandardNotation);
+        lineEdit->setValidator(validator);
+        lineEdit->setMaxLength(20); // 包含小数点和正负号的双精度浮点数
+        editor = lineEdit;
+        qDebug() << "VectorTableDelegate::createEditor - 创建浮点数编辑器";
+    }
+    else if (colInfo.type == Vector::ColumnDataType::TEXT)
+    {
+        QLineEdit *lineEdit = new QLineEdit(parent);
+
+        // 根据字段名称设置不同的长度限制
+        if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
+        {
+            // Label字段限制为15个字节
+            lineEdit->setMaxLength(15);
+            qDebug() << "创建Label字段编辑器，限制长度为15字节";
+        }
+        else if (colInfo.name.compare("Comment", Qt::CaseInsensitive) == 0)
+        {
+            // Comment字段限制为30个字节
+            lineEdit->setMaxLength(30);
+            qDebug() << "创建Comment字段编辑器，限制长度为30字节";
+        }
+        else if (colInfo.name.compare("EXT", Qt::CaseInsensitive) == 0)
+        {
+            // EXT字段限制为5个字节
+            lineEdit->setMaxLength(5);
+            qDebug() << "创建EXT字段编辑器，限制长度为5字节";
+        }
+        else
+        {
+            // 其他文本字段默认限制为255个字符
+            lineEdit->setMaxLength(255);
+            qDebug() << "创建普通文本字段编辑器，限制长度为255字符";
+        }
+
+        editor = lineEdit;
+    }
+    else if (colInfo.type == Vector::ColumnDataType::JSON_PROPERTIES)
+    {
+        QLineEdit *lineEdit = new QLineEdit(parent);
+        // JSON属性限制最大长度
+        lineEdit->setMaxLength(Persistence::JSON_PROPERTIES_MAX_LENGTH / 2 - 50); // 留一些空间给JSON格式化和内部存储
+        editor = lineEdit;
+        qDebug() << "VectorTableDelegate::createEditor - 创建JSON属性编辑器, 最大长度:" << lineEdit->maxLength();
     }
     else
     {
         qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Column type is" << static_cast<int>(colInfo.type) << "or not specifically handled. Falling back to default editor for column:" << column;
         // 默认使用基类创建
-        return QStyledItemDelegate::createEditor(parent, option, index);
+        editor = QStyledItemDelegate::createEditor(parent, option, index);
     }
+
+    return editor;
 }
 
 void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const

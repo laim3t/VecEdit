@@ -394,6 +394,7 @@ CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qvariant.h \
  C:\Users\GIGA\Desktop\QTProject\VecEdit\database\binaryfilehelper.h \
  C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_field_lengths.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QIODevice \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \

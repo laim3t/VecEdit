@@ -265,3 +265,93 @@ TableStyleManager 提供以下预定义样式类：
 
 - 添加二进制文件格式定义
 - 实现路径工具，支持跨平台路径处理
+
+# 通用工具模块文档
+
+本文档描述了VecEdit项目中common目录下的公共组件和工具类。
+
+## binary_file_format.h
+
+### 功能概述
+
+`common/binary_file_format.h` 文件定义了项目中自定义二进制数据文件（例如 `.vbindata`）的文件头部结构 `BinaryFileHeader`。这个头部用于存储二进制文件的元数据，如文件标识、版本信息、数据维度和时间戳等，确保文件可以被正确解析和版本管理。
+
+### 使用说明
+
+当持久化层需要读取或写入二进制数据文件时，会首先处理这个 `BinaryFileHeader`。
+
+### 结构体定义
+
+```cpp
+#include "common/binary_file_format.h"
+
+// 示例：创建一个新的文件头
+BinaryFileHeader header;
+header.magic_number = VBIN_MAGIC_NUMBER; // "VBIN"
+header.file_format_version = 1;
+header.data_schema_version = 1; // 应与数据库中表的 schema_version 对应
+header.row_count_in_file = 0;   // 实际行数
+header.column_count_in_file = 0; // 实际列数
+header.timestamp_created = static_cast<uint64_t>(QDateTime::currentSecsSinceEpoch());
+header.timestamp_updated = header.timestamp_created;
+// ... 其他字段根据需要设置
+
+// 示例：从文件读取头部后进行校验
+// (假设 'readHeader' 是一个读取文件头并填充 BinaryFileHeader 对象的函数)
+// BinaryFileHeader loadedHeader = readHeader(fileDevice);
+// if (loadedHeader.isValid()) {
+//     qDebug() << "Binary file header is valid.";
+//     loadedHeader.logDetails("ReadFile");
+// } else {
+//     qWarning() << "Invalid binary file header!";
+// }
+```
+
+`BinaryFileHeader` 结构体包含以下主要字段：
+
+- `magic_number`: 用于快速识别文件类型的魔数 (例如 `0x5642494E` 代表 "VBIN")。
+- `file_format_version`: 二进制文件本身的结构版本。
+- `data_schema_version`: 文件中存储的数据的模式版本，应与数据库中对应的元数据版本同步。
+- `row_count_in_file`: 文件中存储的数据行数。
+- `column_count_in_file`: 每行数据的列数。
+- `timestamp_created`: 文件创建时的时间戳。
+- `timestamp_updated`: 文件最后更新时的时间戳。
+
+## binary_field_lengths.h
+
+### 功能概述
+
+`common/binary_field_lengths.h` 文件定义了二进制数据存储中各种数据类型的固定字段长度。通过预定义固定长度，优化了二进制数据的存储和读取效率，同时也为前端输入提供了相应的长度限制指导。
+
+### 使用说明
+
+这些常量在序列化和反序列化代码中使用，以确保字段长度一致。
+
+```cpp
+#include "common/binary_field_lengths.h"
+
+// 使用示例
+int textFieldMaxLen = Persistence::TEXT_FIELD_MAX_LENGTH;
+int pinStateLen = Persistence::PIN_STATE_FIELD_MAX_LENGTH;
+
+// 根据固定长度限制输入
+QLineEdit *lineEdit = new QLineEdit();
+lineEdit->setMaxLength(Persistence::TEXT_FIELD_MAX_LENGTH / 2); // UTF-16字符占两字节
+```
+
+### 常量定义
+
+文件定义了以下常量：
+
+| 常量名 | 值(字节) | 描述 |
+|--------|---------|------|
+| TEXT_FIELD_MAX_LENGTH | 256 | 文本字段最大长度 |
+| PIN_STATE_FIELD_MAX_LENGTH | 1 | 管脚状态字段长度 |
+| INTEGER_FIELD_MAX_LENGTH | 4 | 整数类型字段长度 |
+| REAL_FIELD_MAX_LENGTH | 8 | 浮点数字段长度 |
+| BOOLEAN_FIELD_MAX_LENGTH | 1 | 布尔值字段长度 |
+| JSON_PROPERTIES_MAX_LENGTH | 1024 | JSON属性字段最大长度 |
+
+## utils 目录
+
+utils目录包含了各种通用工具类和函数，用于简化整个项目中的常见任务。

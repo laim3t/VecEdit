@@ -327,6 +327,7 @@ CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qset.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qvarlengtharray.h \
+ C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_field_lengths.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QString \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qstring.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QIODevice \

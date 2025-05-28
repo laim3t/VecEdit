@@ -1001,6 +1001,7 @@ VecEdit_autogen/timestamp: \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/build/CMakeFiles/3.29.3/CMakeRCCompiler.cmake \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/build/CMakeFiles/3.29.3/CMakeSystem.cmake \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+	C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_field_lengths.h \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/common/binary_file_format.h \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/common/dialogmanager.cpp \
 	C:/Users/GIGA/Desktop/QTProject/VecEdit/common/dialogmanager.h \
