@@ -730,21 +730,6 @@ void MainWindow::loadCurrentPage()
 
     qDebug() << funcName << " - 总行数:" << m_totalRows << "，总页数:" << m_totalPages << "，当前页:" << m_currentPage;
 
-    // 在加载新页面数据前，自动保存当前页面的修改
-    QString errorMsg;
-    if (m_vectorTableWidget->rowCount() > 0) // 确保当前有数据需要保存
-    {
-        qDebug() << funcName << " - 在切换页面前自动保存当前页面修改";
-        if (!VectorDataHandler::instance().saveVectorTableData(tableId, m_vectorTableWidget, errorMsg))
-        {
-            qWarning() << funcName << " - 保存当前页面失败:" << errorMsg;
-        }
-        else
-        {
-            qDebug() << funcName << " - 当前页面保存成功";
-        }
-    }
-
     // 加载当前页数据
     bool success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
 
