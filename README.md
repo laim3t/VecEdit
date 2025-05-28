@@ -370,3 +370,37 @@ x通道数
   - 优化二进制文件读取，支持指定范围读取
   - 添加页面跳转与导航功能
   - 与现有功能完全集成，确保无缝体验
+
+## Feature Overview
+
+本次更新修复了手动保存功能在分页模式下的一个BUG。该BUG导致用户在分页视图中对管脚列（使用 `PinValueLineEdit` 的列）所做的修改在保存后，切换页面再返回时会丢失，数据恢复为修改前的值。
+
+## Usage Instructions
+
+手动保存功能（通过"保存"按钮触发）现在应能正确处理分页数据：
+
+- 当用户在分页视图中修改了任何单元格（包括标准单元格和使用如 `PinValueLineEdit` 的自定义编辑器单元格）。
+- 点击"保存"按钮。
+- 这些修改会被正确合并到完整数据集中并持久化。
+- 之后切换到其他页面再返回该已修改并保存的页面时，用户应能看到他们保存的修改，数据不再丢失或恢复为默认值。
+
+**注意**：在之前版本中，为解决另一分页BUG而暂时禁用的"页面切换时自动保存"功能仍然保持禁用状态。用户需要通过主菜单的"保存"按钮来保存对向量表数据的修改。
+
+## Input/Output Specification
+
+- **输入**: 用户在UI的分页表格视图中修改数据（特别是管脚列），然后点击"保存"按钮。
+- **输出**: 修改后的数据应被正确写入后端的二进制存储文件。当用户后续重新加载该数据页时，表格应显示已保存的修改。
+
+## Backward Compatibility
+
+此更改是向后兼容的。它修复了现有保存功能的错误行为，没有改变数据格式或核心API。
+
+## Versioning and Change History
+
+- **Module Version**: N/A (Applies to MainWindow data saving logic)
+- **Date**: 2023-10-27 (假设日期)
+- **Change Description**:
+  - **Fixed**: Resolved a bug in `MainWindow::saveVectorTableData` where modifications made to `cellWidget` based columns (e.g., `PinValueLineEdit` for pin states) in a paged view were not correctly merged into the full dataset before saving. This resulted in such changes being lost upon saving and subsequent page navigation.
+  - **Details**: The data merging logic within `MainWindow::saveVectorTableData` was updated to explicitly check for and handle `sourceCellWidget` from the UI's current page view (`m_vectorTableWidget`). If a `PinValueLineEdit` is found, its text content is now correctly transferred to the corresponding `PinValueLineEdit` in the temporary full data table (`tempFullDataTable`) before the full data is passed to `VectorDataHandler` for serialization. Also improved handling for empty/cleared cells in the source view to ensure they correctly clear the corresponding cells in the full data table.
+- **Author**: AI Assistant
+- **Rationale**: The previous merging logic in `MainWindow::saveVectorTableData` primarily relied on `QTableWidget::item()`, which returns `nullptr` for cells managed by `QTableWidget::cellWidget()`. This oversight caused data from `PinValueLineEdit` (and potentially other cell widgets) to be ignored during the merge process when in paged-saving mode, leading to data loss for those specific cells.
