@@ -721,7 +721,7 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
             }
             else if (visibleCol.type == Vector::ColumnDataType::BOOLEAN)
             {
-                // 处理BOOLEAN类型（如Capture列）
+                // 对于布尔值处理 (Capture)
                 bool boolValue = originalValue.toBool();
                 QString displayText = boolValue ? "Y" : "N";
 
@@ -1227,15 +1227,40 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             else if (visibleColumn.type == Vector::ColumnDataType::BOOLEAN)
             {
                 // 对于布尔值处理 (Capture)
-                bool boolValue = (cellText.toUpper() == "Y");
-                rowData[originalColIdx] = boolValue;
-                qDebug() << funcName << " - 行" << row << "列" << tableCol << " 布尔值: " << cellText << " -> " << boolValue;
+                bool boolValue = rowData[originalColIdx].toBool();
+                QString displayText = boolValue ? "Y" : "N";
+
+                QTableWidgetItem *newItem = new QTableWidgetItem(displayText);
+                newItem->setData(Qt::UserRole, boolValue);
+                tableWidget->setItem(row, tableCol, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << tableCol
+                         << " 设置布尔值为:" << displayText << "(" << boolValue << ")";
             }
             else
             {
-                // 普通文本或数字值直接存储
-                rowData[originalColIdx] = cellText;
-                qDebug() << funcName << " - 行" << row << "列" << tableCol << " 值: " << cellText;
+                // 其他类型的列，直接创建QTableWidgetItem
+                QTableWidgetItem *newItem = new QTableWidgetItem();
+
+                // 根据具体类型设置文本
+                if (visibleColumn.type == Vector::ColumnDataType::INTEGER)
+                {
+                    newItem->setText(rowData[originalColIdx].isValid() ? QString::number(rowData[originalColIdx].toInt()) : "");
+                    newItem->setData(Qt::UserRole, rowData[originalColIdx].isValid() ? rowData[originalColIdx].toInt() : 0);
+                }
+                else if (visibleColumn.type == Vector::ColumnDataType::REAL)
+                {
+                    newItem->setText(rowData[originalColIdx].isValid() ? QString::number(rowData[originalColIdx].toDouble()) : "");
+                    newItem->setData(Qt::UserRole, rowData[originalColIdx].isValid() ? rowData[originalColIdx].toDouble() : 0.0);
+                }
+                else
+                {
+                    // TEXT 或其他类型，直接转换为字符串
+                    newItem->setText(rowData[originalColIdx].toString());
+                }
+
+                tableWidget->setItem(row, tableCol, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << tableCol
+                         << " 设置为:" << newItem->text();
             }
         }
 
@@ -1506,7 +1531,7 @@ bool VectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndex
     // 验证实际读取的行数与元数据中的行数是否一致
     if (allRows.size() != currentRowCount)
     {
-        qWarning() << funcName << "- 警告: 元数据中的行数(" << currentRowCount
+        qWarning() << funcName << " - 警告: 元数据中的行数(" << currentRowCount
                    << ")与二进制文件中的行数(" << allRows.size() << ")不一致";
     }
 
@@ -2529,43 +2554,30 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
                    << ")与二进制文件中的行数(" << allRows.size() << ")不一致";
     }
 
-    // 5. 调整索引范围
-    if (fromRow < 1)
-        fromRow = 1;
-
-    if (toRow > allRows.size())
-        toRow = allRows.size();
-
-    if (fromRow > toRow)
+    // 5. 检查行范围是否有效
+    if (fromRow > toRow || fromRow < 1 || toRow > allRows.size())
     {
-        int temp = fromRow;
-        fromRow = toRow;
-        toRow = temp;
-    }
-
-    qDebug() << funcName << " - 调整后的删除范围：" << fromRow << " 到 " << toRow;
-
-    // 检查范围是否有效
-    if (fromRow > allRows.size() || toRow < 1)
-    {
-        errorMessage = "指定的行范围超出了可用范围";
+        errorMessage = QString("无效的行范围：从%1到%2，表总行数为%3").arg(fromRow).arg(toRow).arg(allRows.size());
         qWarning() << funcName << " - 错误：" << errorMessage;
         return false;
     }
 
-    // 6. 计算要删除的行数
-    int rowsToDelete = toRow - fromRow + 1;
-    qDebug() << funcName << " - 将删除 " << rowsToDelete << " 行";
+    // 调整为基于0的索引
+    int startIndex = fromRow - 1;
+    int endIndex = toRow - 1;
+    
+    // 计算要删除的行数
+    int rowsToDelete = endIndex - startIndex + 1;
+    qDebug() << funcName << "- 将删除从索引" << startIndex << "到" << endIndex << "的" << rowsToDelete << "行";
 
-    // 7. 删除范围内的行（从后向前删除，避免索引变化）
-    // 注意：fromRow和toRow是基于1的索引，而QList是基于0的索引
-    for (int i = toRow - 1; i >= fromRow - 1; i--)
+    // 6. 删除指定范围的行（从大到小删除，避免索引变化）
+    for (int i = endIndex; i >= startIndex; i--)
     {
         allRows.removeAt(i);
-        qDebug() << funcName << " - 已删除行索引:" << i;
+        qDebug() << funcName << "- 已删除行索引:" << i;
     }
 
-    // 8. 将更新后的数据写回文件
+    // 7. 将更新后的数据写回文件
     if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
     {
         errorMessage = "将更新后的数据写回二进制文件失败";
@@ -2573,7 +2585,7 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
         return false;
     }
 
-    // 9. 更新数据库中的行数记录
+    // 8. 更新数据库中的行数记录
     QSqlQuery updateRowCountQuery(db);
     updateRowCountQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
     updateRowCountQuery.addBindValue(allRows.size());
@@ -3265,13 +3277,15 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             }
             else if (visibleCol.type == Vector::ColumnDataType::BOOLEAN)
             {
-                // 处理BOOLEAN类型（如Capture列）
+                // 对于布尔值处理 (Capture)
                 bool boolValue = originalValue.toBool();
                 QString displayText = boolValue ? "Y" : "N";
 
                 QTableWidgetItem *newItem = new QTableWidgetItem(displayText);
                 newItem->setData(Qt::UserRole, boolValue);
                 tableWidget->setItem(row, visibleColIdx, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
+                         << " 设置布尔值为:" << displayText << "(" << boolValue << ")";
             }
             else
             {
@@ -3296,6 +3310,8 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
                 }
 
                 tableWidget->setItem(row, visibleColIdx, newItem);
+                qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
+                         << " 设置为:" << newItem->text();
             }
         }
     }
@@ -3338,15 +3354,31 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
 void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)
 {
     const QString funcName = "VectorDataHandler::markRowAsModified";
-    qDebug() << funcName << " - 标记表ID:" << tableId << "的行:" << rowIndex << "为已修改";
+    
+    // 添加到修改行集合中
+    m_modifiedRows[tableId].insert(rowIndex);
+    qDebug() << funcName << " - 已标记表ID:" << tableId << "的行:" << rowIndex << "为已修改，当前修改行数:" 
+             << m_modifiedRows[tableId].size();
+}
 
-    // 此方法是为未来支持增量保存/脏数据跟踪预留的
-    // 目前仅记录日志，实际的数据保存是在saveVectorTableData中一次性处理的
+// 清除指定表的所有修改标记
+void VectorDataHandler::clearModifiedRows(int tableId)
+{
+    const QString funcName = "VectorDataHandler::clearModifiedRows";
+    
+    int clearedCount = 0;
+    if (m_modifiedRows.contains(tableId)) {
+        clearedCount = m_modifiedRows[tableId].size();
+        m_modifiedRows[tableId].clear();
+    }
+    
+    qDebug() << funcName << " - 已清除表ID:" << tableId << "的所有修改标记，共" << clearedCount << "行";
+}
 
-    // 未来这里可以实现:
-    // 1. 维护一个修改行的集合 (例如: m_modifiedRows[tableId].insert(rowIndex))
-    // 2. 提供一个查询方法判断某行是否已修改
-    // 3. 在保存时仅保存修改过的行以提高性能
+// 检查行是否被修改过
+bool VectorDataHandler::isRowModified(int tableId, int rowIndex)
+{
+    return m_modifiedRows.contains(tableId) && m_modifiedRows[tableId].contains(rowIndex);
 }
 
 // 实现优化版本的保存分页数据函数
@@ -3761,7 +3793,56 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
 
     // 6. 写入二进制文件 - 使用优化的方式
     qDebug() << funcName << " - 准备写入数据到二进制文件，已修改 " << modifiedCount << " 行数据";
-    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows))
+    
+    // 创建modifiedRowsMap，只包含修改过的行
+    QMap<int, Vector::RowData> modifiedRowsMap;
+    
+    for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
+    {
+        int rowInFullData = startRowIndex + rowInPage;
+        if (rowInFullData >= allRows.size())
+        {
+            break; // 防止越界
+        }
+        
+        // 检查此行是否被修改过
+        if (m_modifiedRows.contains(tableId) && m_modifiedRows[tableId].contains(rowInFullData))
+        {
+            modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
+        }
+    }
+    
+    // 如果没有确切的修改记录，则将整个当前页作为修改页面处理
+    if (modifiedRowsMap.isEmpty() && modifiedCount > 0)
+    {
+        for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
+        {
+            int rowInFullData = startRowIndex + rowInPage;
+            if (rowInFullData >= allRows.size())
+            {
+                break; // 防止越界
+            }
+            
+            modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
+        }
+    }
+    
+    // 使用优化的方法只更新修改过的行
+    bool writeSuccess = false;
+    if (!modifiedRowsMap.isEmpty())
+    {
+        // 尝试使用增量更新方法
+        writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
+        
+        if (!writeSuccess)
+        {
+            // 如果增量更新失败，回退到完整重写
+            qWarning() << funcName << " - 增量更新失败，尝试完整重写";
+            writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+        }
+    }
+    
+    if (!writeSuccess)
     {
         errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
         qWarning() << funcName << " - " << errorMessage;
@@ -3799,6 +3880,9 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         db.rollback();
         return false;
     }
+
+    // 清除当前表的修改标记
+    clearModifiedRows(tableId);
 
     errorMessage = QString("已成功保存数据，更新了 %1 行").arg(modifiedCount);
     qDebug() << funcName << " - 保存成功，修改行数:" << modifiedCount << ", 总行数:" << finalRowCount;

@@ -152,25 +152,26 @@ namespace Persistence
 
     int BinaryFileHelper::getFixedLengthForType(Vector::ColumnDataType type, const QString &columnName)
     {
-        const QString funcName = "BinaryFileHelper::getFixedLengthForType";
-        qDebug() << funcName << " - 获取数据类型的固定长度, 类型:" << static_cast<int>(type) << ", 列名:" << columnName;
+        // 移除日志输出以提高性能
+        // const QString funcName = "BinaryFileHelper::getFixedLengthForType";
+        // qDebug() << funcName << " - 获取数据类型的固定长度, 类型:" << static_cast<int>(type) << ", 列名:" << columnName;
 
         // 首先检查是否是特殊命名的字段
         if (!columnName.isEmpty())
         {
             if (columnName.compare("Label", Qt::CaseInsensitive) == 0)
             {
-                qDebug() << funcName << " - 使用Label字段特定长度:" << LABEL_FIELD_MAX_LENGTH;
+                // qDebug() << funcName << " - 使用Label字段特定长度:" << LABEL_FIELD_MAX_LENGTH;
                 return LABEL_FIELD_MAX_LENGTH;
             }
             else if (columnName.compare("Comment", Qt::CaseInsensitive) == 0)
             {
-                qDebug() << funcName << " - 使用Comment字段特定长度:" << COMMENT_FIELD_MAX_LENGTH;
+                // qDebug() << funcName << " - 使用Comment字段特定长度:" << COMMENT_FIELD_MAX_LENGTH;
                 return COMMENT_FIELD_MAX_LENGTH;
             }
             else if (columnName.compare("EXT", Qt::CaseInsensitive) == 0)
             {
-                qDebug() << funcName << " - 使用EXT字段特定长度:" << EXT_FIELD_MAX_LENGTH;
+                // qDebug() << funcName << " - 使用EXT字段特定长度:" << EXT_FIELD_MAX_LENGTH;
                 return EXT_FIELD_MAX_LENGTH;
             }
         }
@@ -193,7 +194,8 @@ namespace Persistence
         case Vector::ColumnDataType::JSON_PROPERTIES:
             return JSON_PROPERTIES_MAX_LENGTH;
         default:
-            qWarning() << funcName << " - 未知数据类型:" << static_cast<int>(type) << ", 返回默认长度(TEXT)";
+            // 保留警告日志以便于问题排查
+            qWarning() << "BinaryFileHelper::getFixedLengthForType - 未知数据类型:" << static_cast<int>(type) << ", 返回默认长度(TEXT)";
             return TEXT_FIELD_MAX_LENGTH;
         }
     }
@@ -201,7 +203,10 @@ namespace Persistence
     bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::serializeRow";
+        
+        // 仅在入口和出口记录日志，减少日志量
         qDebug().nospace() << funcName << " - 开始序列化行数据, 列数:" << columns.size() << ", 数据项数:" << rowData.size() << ", 使用固定长度:" << useFixedLength;
+        
         serializedRow.clear();
 
         if (rowData.size() != columns.size())
@@ -218,11 +223,14 @@ namespace Persistence
         {
             const auto &col = columns[i];
             const QVariant &val = rowData[i];
-            qDebug().nospace() << funcName << " - 序列化第" << i << "列, 名称:" << col.name << ", 类型:" << static_cast<int>(col.type) << ", 值:" << val;
+            
+            // 移除循环中的日志，显著提高性能
+            // qDebug().nospace() << funcName << " - 序列化第" << i << "列, 名称:" << col.name << ", 类型:" << static_cast<int>(col.type) << ", 值:" << val;
 
             // 使用列名称和类型获取该字段的固定长度
             int fieldLength = useFixedLength ? getFixedLengthForType(col.type, col.name) : 0;
-            qDebug() << funcName << " - 字段固定长度:" << fieldLength;
+            // 移除循环中的日志
+            // qDebug() << funcName << " - 字段固定长度:" << fieldLength;
 
             switch (col.type)
             {
@@ -272,7 +280,8 @@ namespace Persistence
                 {
                     // 使用默认值'X'
                     pinValue = "X";
-                    qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
+                    // 移除循环中的日志
+                    // qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
                 }
                 else
                 {
@@ -281,7 +290,8 @@ namespace Persistence
                     if (pinValue != "0" && pinValue != "1" && pinValue != "X" && pinValue != "L" && pinValue != "H" && pinValue != "Z")
                     {
                         pinValue = "X"; // 无效的状态使用X
-                        qDebug() << funcName << " - 管脚状态值无效，使用默认值'X'，列名:" << col.name;
+                        // 移除循环中的日志
+                        // qDebug() << funcName << " - 管脚状态值无效，使用默认值'X'，列名:" << col.name;
                     }
                 }
                 // 直接写入字符
@@ -680,80 +690,286 @@ namespace Persistence
                                                 int schemaVersion, const QList<Vector::RowData> &rows, bool useFixedLength)
     {
         const QString funcName = "BinaryFileHelper::writeAllRowsToBinary";
-        qDebug() << funcName << "- Entry. File path:" << binFilePath << "DB Schema Version:" << schemaVersion << "Rows to write:" << rows.size() << "Use Fixed Length:" << useFixedLength;
+        // 减少日志输出
+        qDebug() << funcName << "- 开始写入文件:" << binFilePath << ", 行数:" << rows.size();
 
         QFile file(binFilePath);
-        qDebug() << funcName << "- Attempting to open file for writing.";
         if (!file.open(QIODevice::WriteOnly))
         {
-            qWarning() << funcName << "- Error: Failed to open file for writing:" << binFilePath << "Error:" << file.errorString();
+            qWarning() << funcName << "- 无法打开文件进行写入:" << binFilePath << ", 错误:" << file.errorString();
             return false;
         }
-        qDebug() << funcName << "- File opened successfully.";
 
-        // Prepare and write the header
+        // 准备并写入文件头
         BinaryFileHeader header;
-        header.magic_number = VEC_BINDATA_MAGIC; // Using the correct constant from your namespace
+        header.magic_number = VEC_BINDATA_MAGIC;
         header.file_format_version = CURRENT_FILE_FORMAT_VERSION;
         header.data_schema_version = schemaVersion;
         header.row_count_in_file = rows.size();
         header.column_count_in_file = columns.size();
-        header.timestamp_created = QDateTime::currentSecsSinceEpoch(); // Current time
-        header.timestamp_updated = header.timestamp_created;           // Same as created for a new file
-        header.compression_type = 0;                                   // No compression for now
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+        header.timestamp_updated = header.timestamp_created;
+        header.compression_type = 0;
         std::memset(header.reserved_bytes, 0, sizeof(header.reserved_bytes));
-
-        qDebug() << funcName << "- Writing file header.";
-        header.logDetails(funcName); // Log header details
 
         if (!writeBinaryHeader(&file, header))
         {
-            qWarning() << funcName << "- Error: Failed to write header.";
+            qWarning() << funcName << "- 写入文件头失败";
             file.close();
             return false;
         }
 
-        qDebug() << funcName << "- Header written successfully. Now writing rows...";
-
         quint64 rowsWritten = 0;
         QDataStream out(&file);
-        out.setByteOrder(QDataStream::LittleEndian); // Ensure consistency
+        out.setByteOrder(QDataStream::LittleEndian);
+
+        // 设置更大的进度日志间隔
+        const int logInterval = 5000;
 
         for (const auto &rowData : rows)
         {
             QByteArray serializedRow;
             if (serializeRow(rowData, columns, serializedRow, useFixedLength))
             {
-                // First write the size of the row's data
+                // 写入行数据大小
                 out << static_cast<quint32>(serializedRow.size());
 
-                // Then write the actual data
+                // 写入行数据
                 if (file.write(serializedRow) == serializedRow.size())
                 {
                     rowsWritten++;
 
-                    if (rowsWritten % 1000 == 0 || rowsWritten == rows.size())
+                    // 降低日志频率
+                    if (rowsWritten % logInterval == 0)
                     {
-                        qDebug() << funcName << "- Progress:" << rowsWritten << "rows written.";
+                        qDebug() << funcName << "- 进度:" << rowsWritten << "行已写入";
                     }
                 }
                 else
                 {
-                    qWarning() << funcName << "- Error writing row data at position" << rowsWritten + 1;
+                    qWarning() << funcName << "- 写入行数据失败，位置:" << rowsWritten + 1;
                     break;
                 }
             }
             else
             {
-                qWarning() << funcName << "- Error serializing row at position" << rowsWritten + 1;
+                qWarning() << funcName << "- 序列化行数据失败，位置:" << rowsWritten + 1;
                 break;
             }
         }
 
         file.close();
-        qDebug() << funcName << "- File closed. Total rows written:" << rowsWritten << "Expected:" << rows.size();
+        qDebug() << funcName << "- 文件已关闭. 总计写入:" << rowsWritten << "行, 预期:" << rows.size() << "行";
 
-        return rowsWritten == static_cast<quint64>(rows.size()); // Only success if all rows were written
+        return rowsWritten == static_cast<quint64>(rows.size());
+    }
+
+    bool BinaryFileHelper::updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                            int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows, 
+                                            bool useFixedLength)
+    {
+        const QString funcName = "BinaryFileHelper::updateRowsInBinary";
+        
+        // 如果没有修改的行，直接返回成功
+        if (modifiedRows.isEmpty()) {
+            // qDebug() << funcName << "- 没有修改的行，直接返回成功";
+            return true;
+        }
+        
+        // 首先，检查文件是否存在
+        QFile file(binFilePath);
+        if (!file.exists()) {
+            qWarning() << funcName << "- 二进制文件不存在，无法更新: " << binFilePath;
+            return false;
+        }
+        
+        // 打开文件用于读取
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << funcName << "- 无法打开文件进行读取: " << binFilePath << ", 错误: " << file.errorString();
+            return false;
+        }
+        
+        // 读取文件头
+        BinaryFileHeader header;
+        if (!readBinaryHeader(&file, header)) {
+            qWarning() << funcName << "- 无法读取或验证二进制文件头";
+            file.close();
+            return false;
+        }
+        
+        // 版本兼容性检查
+        if (header.data_schema_version != schemaVersion) {
+            qWarning() << funcName << "- 文件数据schema版本(" << header.data_schema_version
+                       << ")与期望的DB schema版本(" << schemaVersion << ")不匹配";
+            file.close();
+            return false;
+        }
+        
+        // 列数检查
+        if (header.column_count_in_file != static_cast<uint32_t>(columns.size())) {
+            qWarning() << funcName << "- 文件头列数(" << header.column_count_in_file
+                      << ")与期望的列数(" << columns.size() << ")不匹配";
+            file.close();
+            return false;
+        }
+        
+        // 获取每行数据在文件中的位置
+        struct RowInfo {
+            qint64 offset;      // 行数据在文件中的起始位置
+            quint32 size;       // 行数据的大小
+        };
+        
+        QVector<RowInfo> rowPositions;
+        rowPositions.reserve(header.row_count_in_file);
+        
+        QDataStream in(&file);
+        in.setByteOrder(QDataStream::LittleEndian);
+        
+        // 计算文件头后的位置，即第一行数据的开始位置
+        qint64 currentPos = sizeof(BinaryFileHeader);
+        file.seek(currentPos);
+        
+        // 记录每行数据的位置和大小
+        for (quint64 i = 0; i < header.row_count_in_file; ++i) {
+            quint32 rowSize;
+            in >> rowSize;
+            
+            RowInfo rowInfo;
+            rowInfo.offset = file.pos() - sizeof(quint32);  // 减去刚读取的大小字段的4字节
+            rowInfo.size = rowSize + sizeof(quint32);       // 加上大小字段的4字节
+            
+            rowPositions.append(rowInfo);
+            
+            // 跳过这行数据，定位到下一行
+            file.seek(file.pos() + rowSize);
+        }
+        
+        // 关闭文件，准备重新打开用于读写
+        file.close();
+        
+        // 检查要修改的行是否都在范围内
+        int maxRowIndex = rowPositions.size() - 1;
+        QList<int> validModifiedRows;
+        
+        for (auto it = modifiedRows.constBegin(); it != modifiedRows.constEnd(); ++it) {
+            int rowIndex = it.key();
+            if (rowIndex < 0 || rowIndex > maxRowIndex) {
+                qWarning() << funcName << "- 行索引超出范围: " << rowIndex << ", 最大有效索引: " << maxRowIndex;
+                continue;
+            }
+            validModifiedRows.append(rowIndex);
+        }
+        
+        if (validModifiedRows.isEmpty()) {
+            qWarning() << funcName << "- 没有有效的行需要更新";
+            return false;
+        }
+        
+        // 创建临时文件用于存储更新后的内容
+        QString tempFilePath = binFilePath + ".tmp";
+        QFile tempFile(tempFilePath);
+        if (!tempFile.open(QIODevice::WriteOnly)) {
+            qWarning() << funcName << "- 无法创建临时文件: " << tempFilePath << ", 错误: " << tempFile.errorString();
+            return false;
+        }
+        
+        // 重新打开原文件用于读取
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << funcName << "- 无法重新打开原文件进行读取: " << binFilePath << ", 错误: " << file.errorString();
+            tempFile.close();
+            return false;
+        }
+        
+        // 更新文件头的时间戳
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+        
+        // 写入临时文件头
+        if (!writeBinaryHeader(&tempFile, header)) {
+            qWarning() << funcName << "- 写入临时文件头失败";
+            tempFile.close();
+            file.close();
+            return false;
+        }
+        
+        // 遍历所有行，更新修改过的行
+        bool success = true;
+        QDataStream outTemp(&tempFile);
+        outTemp.setByteOrder(QDataStream::LittleEndian);
+        
+        // 设置更大的日志间隔
+        const int logInterval = 5000;
+        int processedRows = 0;
+        
+        for (int rowIdx = 0; rowIdx < rowPositions.size(); ++rowIdx) {
+            if (modifiedRows.contains(rowIdx)) {
+                // 这行需要更新，序列化新数据
+                QByteArray serializedRow;
+                if (!serializeRow(modifiedRows[rowIdx], columns, serializedRow, useFixedLength)) {
+                    qWarning() << funcName << "- 序列化行数据失败，行索引: " << rowIdx;
+                    success = false;
+                    break;
+                }
+                
+                // 写入行大小
+                outTemp << static_cast<quint32>(serializedRow.size());
+                
+                // 写入行数据
+                if (tempFile.write(serializedRow) != serializedRow.size()) {
+                    qWarning() << funcName << "- 写入修改后的行数据失败，行索引: " << rowIdx;
+                    success = false;
+                    break;
+                }
+            } else {
+                // 这行未修改，直接从原文件复制
+                const RowInfo &rowInfo = rowPositions[rowIdx];
+                file.seek(rowInfo.offset);
+                QByteArray rowData = file.read(rowInfo.size);
+                
+                if (rowData.size() != rowInfo.size) {
+                    qWarning() << funcName << "- 读取原始行数据失败，行索引: " << rowIdx;
+                    success = false;
+                    break;
+                }
+                
+                if (tempFile.write(rowData) != rowData.size()) {
+                    qWarning() << funcName << "- 写入未修改的行数据失败，行索引: " << rowIdx;
+                    success = false;
+                    break;
+                }
+            }
+            
+            // 记录处理进度
+            processedRows++;
+            if (processedRows % logInterval == 0) {
+                qDebug() << funcName << "- 进度: 已处理 " << processedRows << " 行，总计 " << rowPositions.size() << " 行";
+            }
+        }
+        
+        // 关闭文件
+        file.close();
+        tempFile.close();
+        
+        // 如果成功，用临时文件替换原文件
+        if (success) {
+            // 首先删除原文件
+            if (!QFile::remove(binFilePath)) {
+                qWarning() << funcName << "- 无法删除原文件: " << binFilePath;
+                return false;
+            }
+            
+            // 然后重命名临时文件
+            if (!QFile::rename(tempFilePath, binFilePath)) {
+                qWarning() << funcName << "- 无法重命名临时文件: " << tempFilePath << " 到 " << binFilePath;
+                return false;
+            }
+            
+            qDebug() << funcName << "- 成功更新 " << modifiedRows.size() << " 行数据";
+        } else {
+            // 失败时删除临时文件
+            QFile::remove(tempFilePath);
+        }
+        
+        return success;
     }
 
 } // namespace Persistence

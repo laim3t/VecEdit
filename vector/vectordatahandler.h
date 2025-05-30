@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QObject>
 #include <QAtomicInt>
+#include <QSet>
 
 class VectorDataHandler : public QObject
 {
@@ -71,6 +72,12 @@ public:
 
     // 标记行已被修改
     void markRowAsModified(int tableId, int rowIndex);
+    
+    // 清除指定表的所有修改标记
+    void clearModifiedRows(int tableId);
+    
+    // 检查行是否被修改过
+    bool isRowModified(int tableId, int rowIndex);
 
 signals:
     // 进度更新信号
@@ -91,6 +98,9 @@ private:
     QMap<int, QString> m_instructionCache; // 指令ID到指令文本的缓存
     QMap<int, QString> m_timesetCache;     // TimeSet ID到TimeSet名称的缓存
     bool m_cacheInitialized;               // 缓存是否已初始化
+    
+    // 修改跟踪数据
+    QMap<int, QSet<int>> m_modifiedRows;   // 表ID -> 修改行索引集合的映射
 
     // 初始化缓存
     void initializeCache();

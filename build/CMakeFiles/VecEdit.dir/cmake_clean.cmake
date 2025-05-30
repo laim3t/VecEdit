@@ -1,7 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/VecEdit_autogen.dir/AutogenUsed.txt"
-  "CMakeFiles/VecEdit_autogen.dir/ParseCache.txt"
-  "VecEdit_autogen"
   "CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
   "CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj"
@@ -60,6 +57,9 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj"
   "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj.d"
+  "CMakeFiles/VecEdit_autogen.dir/AutogenUsed.txt"
+  "CMakeFiles/VecEdit_autogen.dir/ParseCache.txt"
+  "VecEdit_autogen"
   "VecEdit.exe"
   "VecEdit.exe.manifest"
   "VecEdit.pdb"

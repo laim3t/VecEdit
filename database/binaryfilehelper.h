@@ -109,6 +109,22 @@ namespace Persistence
          */
         static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                          int schemaVersion, const QList<Vector::RowData> &rows, bool useFixedLength = true);
+        
+        /**
+         * @brief 只更新二进制文件中被修改的行数据
+         *
+         * 与writeAllRowsToBinary不同，此方法只更新被修改的行，避免重写整个文件
+         * 
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息
+         * @param schemaVersion 数据库中的schema版本
+         * @param modifiedRows 键为行索引，值为行数据的Map
+         * @param useFixedLength 是否使用固定长度存储（默认为true）
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                      int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows, 
+                                      bool useFixedLength = true);
 
     private:
         /**
