@@ -1241,126 +1241,50 @@ void MainWindow::saveVectorTableData()
     // 保存当前表格的状态信息
     int currentPage = m_currentPage;
     int pageSize = m_pageSize;
-    QTableWidget *tempFullDataTable = nullptr;
-    bool useFullDataTable = false;
 
-    // 在分页模式下，我们需要加载完整数据来保存，而不是只保存当前页的数据
+    // 性能优化：检查是否在分页模式下，是否有待保存的修改
     if (m_totalRows > pageSize)
     {
-        qDebug() << funcName << " - 检测到分页模式，创建临时表格以加载完整数据";
+        qDebug() << funcName << " - 检测到分页模式，准备保存数据";
 
-        // 创建临时表格用于保存完整数据
-        tempFullDataTable = new QTableWidget(this);
-        tempFullDataTable->setVisible(false);
-
-        // 复制列结构
-        tempFullDataTable->setColumnCount(targetTableWidget->columnCount());
-        for (int col = 0; col < targetTableWidget->columnCount(); col++)
+        // 优化：直接传递分页信息到VectorDataHandler，避免创建临时表格
+        QString errorMessage;
+        if (VectorDataHandler::instance().saveVectorTableDataPaged(
+                tableId,
+                targetTableWidget,
+                currentPage,
+                pageSize,
+                m_totalRows,
+                errorMessage))
         {
-            QTableWidgetItem *headerItem = targetTableWidget->horizontalHeaderItem(col);
-            if (headerItem)
+            // 检查errorMessage中是否包含"没有检测到数据变更"消息
+            if (errorMessage.contains("没有检测到数据变更"))
             {
-                tempFullDataTable->setHorizontalHeaderItem(col, headerItem->clone());
+                // 无变更的情况
+                QMessageBox::information(this, "保存结果", errorMessage);
+                statusBar()->showMessage(errorMessage);
             }
-        }
-
-        // 加载完整数据到临时表格
-        qDebug() << funcName << " - 加载完整数据到临时表格";
-        bool loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, tempFullDataTable);
-        if (!loadSuccess)
-        {
-            qWarning() << funcName << " - 加载完整数据到临时表格失败";
-            QMessageBox::critical(this, "保存失败", "无法加载完整数据进行保存。");
-            delete tempFullDataTable;
-            return;
-        }
-
-        // 将当前页的编辑更新回完整数据表格
-        qDebug() << funcName << " - 合并当前页面的编辑更改到完整数据";
-        int startRow = currentPage * pageSize;
-        int rowsInCurrentPageWidget = m_vectorTableWidget->rowCount();
-
-        for (int rowInPage = 0; rowInPage < rowsInCurrentPageWidget; ++rowInPage)
-        {
-            int rowInFullData = startRow + rowInPage;
-            if (rowInFullData < tempFullDataTable->rowCount())
+            else
             {
-                for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
-                {
-                    // Source data from the UI table (m_vectorTableWidget)
-                    QTableWidgetItem *sourceItem = m_vectorTableWidget->item(rowInPage, col);
-                    QWidget *sourceCellWidget = m_vectorTableWidget->cellWidget(rowInPage, col);
-
-                    // Destination widgets/items in the full data table (tempFullDataTable)
-                    QTableWidgetItem *destItem = tempFullDataTable->item(rowInFullData, col);
-                    QWidget *destCellWidget = tempFullDataTable->cellWidget(rowInFullData, col);
-
-                    if (sourceCellWidget) // 优先处理source中的cellWidget
-                    {
-                        if (PinValueLineEdit *sourcePinEdit = qobject_cast<PinValueLineEdit *>(sourceCellWidget))
-                        {
-                            if (PinValueLineEdit *destPinEdit = qobject_cast<PinValueLineEdit *>(destCellWidget))
-                            {
-                                destPinEdit->setText(sourcePinEdit->text());
-                            }
-                            else
-                            {
-                                // 如果tempFullDataTable中对应位置不是PinValueLineEdit，这通常表示结构不一致或加载问题
-                                // 但为了数据能保存，我们尝试创建一个新的并设置
-                                qDebug() << funcName << " - 警告: tempFullDataTable在(" << rowInFullData << "," << col << ")处期望PinValueLineEdit但未找到，将创建新的。";
-                                if (destItem)
-                                { // 如果错误地存在item，移除它
-                                    delete tempFullDataTable->takeItem(rowInFullData, col);
-                                    destItem = nullptr; // 置空，避免后续处理
-                                }
-                                PinValueLineEdit *newDestPinEdit = new PinValueLineEdit(tempFullDataTable);
-                                newDestPinEdit->setText(sourcePinEdit->text());
-                                tempFullDataTable->setCellWidget(rowInFullData, col, newDestPinEdit);
-                            }
-                        }
-                        // TODO: Handle other types of sourceCellWidget if necessary (e.g. QComboBox, QCheckBox)
-                    }
-                    else if (sourceItem) // 如果source是QTableWidgetItem
-                    {
-                        if (destCellWidget)
-                        { // 如果目标位置错误地是cellWidget，移除它
-                            qDebug() << funcName << " - 警告: tempFullDataTable在(" << rowInFullData << "," << col << ")处有cellWidget但源是item，将移除widget。";
-                            tempFullDataTable->removeCellWidget(rowInFullData, col);
-                            delete destCellWidget; // 确保删除
-                            destCellWidget = nullptr;
-                        }
-                        if (destItem)
-                        {
-                            *destItem = *sourceItem; // 使用QTableWidgetItem的赋值操作符
-                        }
-                        else
-                        {
-                            tempFullDataTable->setItem(rowInFullData, col, new QTableWidgetItem(*sourceItem));
-                        }
-                    }
-                    else // sourceItem 和 sourceCellWidget 都为 nullptr (UI单元格为空)
-                    {
-                        if (destItem)
-                        {
-                            delete tempFullDataTable->takeItem(rowInFullData, col);
-                        }
-                        if (destCellWidget)
-                        {
-                            tempFullDataTable->removeCellWidget(rowInFullData, col);
-                            delete destCellWidget; // 确保删除
-                        }
-                    }
-                }
+                // 有变更的情况，显示保存了多少行
+                QMessageBox::information(this, "保存成功", errorMessage);
+                statusBar()->showMessage(errorMessage);
             }
+
+            // 不再重新加载当前页数据，保留用户的编辑状态
+            qDebug() << funcName << " - 保存操作完成，保留用户当前的界面编辑状态";
+        }
+        else
+        {
+            // 保存失败的情况
+            QMessageBox::critical(this, "保存失败", errorMessage);
+            statusBar()->showMessage("保存失败: " + errorMessage);
         }
 
-        // 使用临时表格进行保存
-        targetTableWidget = tempFullDataTable;
-        useFullDataTable = true;
-        qDebug() << funcName << " - 已准备完整数据用于保存，总行数:" << tempFullDataTable->rowCount();
+        return;
     }
 
-    // 使用数据处理器保存数据
+    // 非分页模式，直接保存当前表格数据
     QString errorMessage;
     if (VectorDataHandler::instance().saveVectorTableData(tableId, targetTableWidget, errorMessage))
     {
@@ -1386,13 +1310,6 @@ void MainWindow::saveVectorTableData()
         // 保存失败的情况
         QMessageBox::critical(this, "保存失败", errorMessage);
         statusBar()->showMessage("保存失败: " + errorMessage);
-    }
-
-    // 清理临时表格
-    if (useFullDataTable && tempFullDataTable)
-    {
-        qDebug() << funcName << " - 清理临时表格";
-        delete tempFullDataTable;
     }
 }
 

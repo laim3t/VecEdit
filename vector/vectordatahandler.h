@@ -22,6 +22,11 @@ public:
     // 保存表格控件数据到数据库
     bool saveVectorTableData(int tableId, QTableWidget *tableWidget, QString &errorMessage);
 
+    // 保存分页模式下的表格数据 - 优化版本，避免创建临时表格
+    bool saveVectorTableDataPaged(int tableId, QTableWidget *currentPageTable,
+                                  int currentPage, int pageSize, int totalRows,
+                                  QString &errorMessage);
+
     // 添加向量行
     static void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 

@@ -3348,3 +3348,460 @@ void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)
     // 2. 提供一个查询方法判断某行是否已修改
     // 3. 在保存时仅保存修改过的行以提高性能
 }
+
+// 实现优化版本的保存分页数据函数
+bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *currentPageTable,
+                                                 int currentPage, int pageSize, int totalRows,
+                                                 QString &errorMessage)
+{
+    const QString funcName = "VectorDataHandler::saveVectorTableDataPaged";
+
+    // 只记录关键日志，减少日志量提升性能
+    qDebug() << funcName << " - 开始保存分页数据, 表ID:" << tableId
+             << ", 当前页:" << currentPage << ", 页大小:" << pageSize;
+
+    if (!currentPageTable)
+    {
+        errorMessage = "表控件为空";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
+
+    // 1. 获取列信息和预期 schema version (从元数据 - 只包含可见列)
+    QString binFileName;
+    QList<Vector::ColumnInfo> visibleColumns;
+    int schemaVersion = 0;
+    int rowCount = 0;
+    if (!loadVectorTableMeta(tableId, binFileName, visibleColumns, schemaVersion, rowCount))
+    {
+        errorMessage = "元数据加载失败，无法确定列结构和版本";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 如果没有列配置，则无法保存
+    if (visibleColumns.isEmpty())
+    {
+        errorMessage = QString("表 %1 没有可见的列配置，无法保存数据。").arg(tableId);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 1.1 加载所有列信息（包括隐藏列）- 这对于正确序列化至关重要
+    QList<Vector::ColumnInfo> allColumns;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery allColQuery(db);
+    allColQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    allColQuery.addBindValue(tableId);
+    if (!allColQuery.exec())
+    {
+        errorMessage = "查询完整列结构失败: " + allColQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    while (allColQuery.next())
+    {
+        Vector::ColumnInfo col;
+        col.id = allColQuery.value(0).toInt();
+        col.vector_table_id = tableId;
+        col.name = allColQuery.value(1).toString();
+        col.order = allColQuery.value(2).toInt();
+        col.original_type_str = allColQuery.value(3).toString();
+        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.is_visible = allColQuery.value(5).toBool();
+
+        QString propStr = allColQuery.value(4).toString();
+        if (!propStr.isEmpty())
+        {
+            QJsonParseError err;
+            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+            {
+                col.data_properties = doc.object();
+            }
+        }
+
+        allColumns.append(col);
+    }
+
+    // 构建ID到列索引的映射
+    QMap<int, int> columnIdToIndexMap;
+    for (int i = 0; i < allColumns.size(); ++i)
+    {
+        columnIdToIndexMap[allColumns[i].id] = i;
+    }
+
+    // 2. 解析二进制文件路径
+    QString resolveErrorMsg;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, resolveErrorMsg);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        errorMessage = "无法解析二进制文件路径: " + resolveErrorMsg;
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 检查目标目录是否存在
+    QFileInfo binFileInfo(absoluteBinFilePath);
+    QDir binDir = binFileInfo.dir();
+    if (!binDir.exists() && !binDir.mkpath("."))
+    {
+        errorMessage = QString("无法创建目标二进制目录: %1").arg(binDir.absolutePath());
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 3. 建立表格控件列与数据库可见列之间的映射关系
+    int tableColCount = currentPageTable->columnCount();
+    int visibleDbColCount = visibleColumns.size();
+
+    // 确保表头与数据库列名一致，构建映射关系
+    QMap<int, int> tableColToVisibleDbColMap; // 键: 表格列索引, 值: 数据库可见列索引
+
+    for (int tableCol = 0; tableCol < tableColCount; ++tableCol)
+    {
+        QString tableHeader = currentPageTable->horizontalHeaderItem(tableCol)->text();
+        // 对于包含换行符的列名（如管脚列），只取第一行作为管脚名
+        QString simplifiedHeader = tableHeader.split("\n").first();
+
+        // 查找匹配的数据库可见列
+        bool found = false;
+        for (int dbCol = 0; dbCol < visibleDbColCount; ++dbCol)
+        {
+            // 对于管脚列，只比较管脚名部分
+            if (visibleColumns[dbCol].name == simplifiedHeader ||
+                (visibleColumns[dbCol].type == Vector::ColumnDataType::PIN_STATE_ID &&
+                 tableHeader.startsWith(visibleColumns[dbCol].name + "\n")))
+            {
+                tableColToVisibleDbColMap[tableCol] = dbCol;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            errorMessage = QString("无法找到表格列 '%1' 对应的数据库可见列").arg(tableHeader);
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
+        }
+    }
+
+    // 如果映射关系不完整，无法保存
+    if (tableColToVisibleDbColMap.size() != tableColCount)
+    {
+        errorMessage = QString("表格列与数据库可见列映射不完整，无法保存");
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 4. 性能优化: 直接从文件加载所有行数据，而不创建临时QTableWidget
+    QList<Vector::RowData> allRows;
+
+    // 从二进制文件读取所有行
+    if (!readAllRowsFromBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows))
+    {
+        // 如果读取失败，可能是文件不存在或格式有问题，尝试创建新数据
+        qWarning() << funcName << " - 读取现有二进制数据失败，将创建新数据";
+        allRows.clear();
+
+        // 确保行数量足够
+        allRows.reserve(totalRows);
+        for (int row = 0; row < totalRows; ++row)
+        {
+            Vector::RowData rowData;
+            rowData.resize(allColumns.size());
+
+            // 设置所有列的默认值
+            for (int colIdx = 0; colIdx < allColumns.size(); ++colIdx)
+            {
+                const auto &col = allColumns[colIdx];
+                if (col.type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    rowData[colIdx] = "X"; // 管脚列默认为X
+                }
+                else
+                {
+                    rowData[colIdx] = QVariant(); // 其他列使用默认空值
+                }
+            }
+
+            allRows.append(rowData);
+        }
+    }
+
+    // 确保数据行数与totalRows匹配
+    if (allRows.size() < totalRows)
+    {
+        int additionalRows = totalRows - allRows.size();
+
+        for (int i = 0; i < additionalRows; ++i)
+        {
+            Vector::RowData rowData;
+            rowData.resize(allColumns.size());
+
+            // 设置默认值
+            for (int colIdx = 0; colIdx < allColumns.size(); ++colIdx)
+            {
+                const auto &col = allColumns[colIdx];
+                if (col.type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    rowData[colIdx] = "X";
+                }
+                else
+                {
+                    rowData[colIdx] = QVariant();
+                }
+            }
+
+            allRows.append(rowData);
+        }
+    }
+
+    // 预先获取指令和TimeSet的ID映射以便转换
+    QMap<QString, int> instructionNameToIdMap;
+    QMap<QString, int> timesetNameToIdMap;
+
+    // 获取指令名称到ID的映射
+    QSqlQuery instructionQuery(db);
+    if (instructionQuery.exec("SELECT id, instruction_value FROM instruction_options"))
+    {
+        while (instructionQuery.next())
+        {
+            int id = instructionQuery.value(0).toInt();
+            QString name = instructionQuery.value(1).toString();
+            instructionNameToIdMap[name] = id;
+
+            // 更新缓存
+            if (!m_instructionCache.contains(id) || m_instructionCache[id] != name)
+            {
+                m_instructionCache[id] = name;
+            }
+        }
+    }
+
+    // 获取TimeSet名称到ID的映射
+    QSqlQuery timesetQuery(db);
+    if (timesetQuery.exec("SELECT id, timeset_name FROM timeset_list"))
+    {
+        while (timesetQuery.next())
+        {
+            int id = timesetQuery.value(0).toInt();
+            QString name = timesetQuery.value(1).toString();
+            timesetNameToIdMap[name] = id;
+
+            // 更新缓存
+            if (!m_timesetCache.contains(id) || m_timesetCache[id] != name)
+            {
+                m_timesetCache[id] = name;
+            }
+        }
+    }
+
+    // 5. 更新当前页的数据到内存中，而不创建临时表格
+    int startRowIndex = currentPage * pageSize;
+    int rowsInCurrentPage = currentPageTable->rowCount();
+    int modifiedCount = 0; // 记录修改的行数
+
+    // 确保不会越界
+    if (startRowIndex >= allRows.size())
+    {
+        errorMessage = QString("当前页起始行(%1)超出总行数(%2)").arg(startRowIndex).arg(allRows.size());
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 更新当前页的行数据到allRows
+    for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
+    {
+        int rowInFullData = startRowIndex + rowInPage;
+        if (rowInFullData >= allRows.size())
+        {
+            break; // 防止越界
+        }
+
+        bool rowModified = false; // 标记此行是否有修改
+
+        // 为行创建一份新数据
+        Vector::RowData &rowData = allRows[rowInFullData];
+
+        // 从当前页表格更新数据
+        for (int tableCol = 0; tableCol < tableColCount; ++tableCol)
+        {
+            int visibleDbCol = tableColToVisibleDbColMap[tableCol];
+            const auto &visibleColumn = visibleColumns[visibleDbCol];
+
+            // 找到此可见列对应的原始列索引
+            if (!columnIdToIndexMap.contains(visibleColumn.id))
+            {
+                continue; // 跳过找不到的列
+            }
+
+            int originalColIdx = columnIdToIndexMap[visibleColumn.id];
+            QVariant oldValue = rowData[originalColIdx]; // 保存旧值用于比较
+
+            // 处理单元格内容 - 特殊处理管脚列（单元格控件）
+            if (visibleColumn.type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
+                // 对于管脚列，优先从单元格控件获取值
+                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(currentPageTable->cellWidget(rowInPage, tableCol));
+                if (pinEdit)
+                {
+                    QString pinStateText = pinEdit->text();
+                    if (pinStateText.isEmpty())
+                    {
+                        pinStateText = "X"; // 默认值
+                    }
+
+                    // 检查数据是否有变更
+                    if (oldValue.toString() != pinStateText)
+                    {
+                        rowData[originalColIdx] = pinStateText;
+                        rowModified = true;
+                    }
+
+                    continue; // 已处理，跳过下面的处理
+                }
+
+                // 如果没有找到编辑控件，尝试从QTableWidgetItem获取值
+                QTableWidgetItem *item = currentPageTable->item(rowInPage, tableCol);
+                if (item && !item->text().isEmpty())
+                {
+                    QString pinStateText = item->text();
+
+                    // 检查数据是否有变更
+                    if (oldValue.toString() != pinStateText)
+                    {
+                        rowData[originalColIdx] = pinStateText;
+                        rowModified = true;
+                    }
+
+                    continue;
+                }
+            }
+            else
+            {
+                // 非管脚列
+                QTableWidgetItem *item = currentPageTable->item(rowInPage, tableCol);
+                if (!item)
+                {
+                    continue; // 不更新空单元格
+                }
+
+                // 获取单元格文本
+                QString cellText = item->text();
+                QVariant newValue;
+
+                // 根据列类型处理不同格式的数据
+                if (visibleColumn.type == Vector::ColumnDataType::INSTRUCTION_ID)
+                {
+                    // 将指令名称转换为ID存储
+                    if (instructionNameToIdMap.contains(cellText))
+                    {
+                        int instructionId = instructionNameToIdMap[cellText];
+                        newValue = instructionId;
+                    }
+                    else
+                    {
+                        newValue = -1; // 默认未知ID
+                    }
+                }
+                else if (visibleColumn.type == Vector::ColumnDataType::TIMESET_ID)
+                {
+                    // 将TimeSet名称转换为ID存储
+                    if (timesetNameToIdMap.contains(cellText))
+                    {
+                        int timesetId = timesetNameToIdMap[cellText];
+                        newValue = timesetId;
+                    }
+                    else
+                    {
+                        newValue = -1; // 默认未知ID
+                    }
+                }
+                else if (visibleColumn.type == Vector::ColumnDataType::BOOLEAN)
+                {
+                    // 布尔值处理
+                    newValue = (cellText.toUpper() == "Y");
+                }
+                else
+                {
+                    // 普通文本或数字值
+                    newValue = cellText;
+                }
+
+                // 检查数据是否有变更
+                if (oldValue != newValue)
+                {
+                    rowData[originalColIdx] = newValue;
+                    rowModified = true;
+                }
+            }
+        }
+
+        if (rowModified)
+        {
+            modifiedCount++;
+        }
+    }
+
+    // 如果没有检测到任何数据变更，可以直接返回成功
+    if (modifiedCount == 0)
+    {
+        errorMessage = "没有检测到数据变更，跳过保存";
+        qDebug() << funcName << " - " << errorMessage;
+        return true;
+    }
+
+    // 6. 写入二进制文件 - 使用优化的方式
+    qDebug() << funcName << " - 准备写入数据到二进制文件，已修改 " << modifiedCount << " 行数据";
+    if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows))
+    {
+        errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 7. 更新数据库中的行数记录
+    if (!db.transaction())
+    {
+        errorMessage = "无法开始数据库事务以更新主记录。";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 计算最终的行数
+    int finalRowCount = allRows.size();
+
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    updateQuery.addBindValue(finalRowCount);
+    updateQuery.addBindValue(tableId);
+
+    if (!updateQuery.exec())
+    {
+        errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
+        qWarning() << funcName << " - " << errorMessage;
+        db.rollback();
+        return false;
+    }
+
+    if (!db.commit())
+    {
+        errorMessage = "提交数据库事务失败。";
+        qWarning() << funcName << " - " << errorMessage;
+        db.rollback();
+        return false;
+    }
+
+    errorMessage = QString("已成功保存数据，更新了 %1 行").arg(modifiedCount);
+    qDebug() << funcName << " - 保存成功，修改行数:" << modifiedCount << ", 总行数:" << finalRowCount;
+
+    return true;
+}
