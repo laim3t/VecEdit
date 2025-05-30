@@ -3333,3 +3333,18 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
 }
 
 // 此处删除重复定义的getVectorTableRowCount函数
+
+// 实现标记行已修改的方法
+void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)
+{
+    const QString funcName = "VectorDataHandler::markRowAsModified";
+    qDebug() << funcName << " - 标记表ID:" << tableId << "的行:" << rowIndex << "为已修改";
+
+    // 此方法是为未来支持增量保存/脏数据跟踪预留的
+    // 目前仅记录日志，实际的数据保存是在saveVectorTableData中一次性处理的
+
+    // 未来这里可以实现:
+    // 1. 维护一个修改行的集合 (例如: m_modifiedRows[tableId].insert(rowIndex))
+    // 2. 提供一个查询方法判断某行是否已修改
+    // 3. 在保存时仅保存修改过的行以提高性能
+}

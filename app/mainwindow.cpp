@@ -585,6 +585,19 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
 
+    // 连接单元格修改信号
+    connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
+
+    // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
+    connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
+            {
+        QWidget *widget = m_vectorTableWidget->cellWidget(row, column);
+        if (PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(widget)) {
+            connect(pinEdit, &PinValueLineEdit::textChanged, [this, row]() {
+                onTableRowModified(row);
+            });
+        } });
+
     // 连接向量表选择器信号
     connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onVectorTableSelectionChanged);
@@ -1351,14 +1364,26 @@ void MainWindow::saveVectorTableData()
     QString errorMessage;
     if (VectorDataHandler::instance().saveVectorTableData(tableId, targetTableWidget, errorMessage))
     {
-        QMessageBox::information(this, "保存成功", "向量表数据已成功保存");
-        statusBar()->showMessage("向量表数据已成功保存");
+        // 检查errorMessage中是否包含"没有检测到数据变更"消息
+        if (errorMessage.contains("没有检测到数据变更"))
+        {
+            // 无变更的情况
+            QMessageBox::information(this, "保存结果", errorMessage);
+            statusBar()->showMessage(errorMessage);
+        }
+        else
+        {
+            // 有变更的情况，显示保存了多少行
+            QMessageBox::information(this, "保存成功", errorMessage);
+            statusBar()->showMessage(errorMessage);
+        }
 
         // 不再重新加载当前页数据，保留用户的编辑状态
-        qDebug() << funcName << " - 保存成功，保留用户当前的界面编辑状态";
+        qDebug() << funcName << " - 保存操作完成，保留用户当前的界面编辑状态";
     }
     else
     {
+        // 保存失败的情况
         QMessageBox::critical(this, "保存失败", errorMessage);
         statusBar()->showMessage("保存失败: " + errorMessage);
     }
@@ -4294,4 +4319,32 @@ void MainWindow::restoreWindowState()
     updateWindowSizeInfo();
 
     qDebug() << "MainWindow::restoreWindowState - 窗口状态已恢复";
+}
+
+// 处理表格单元格变更
+void MainWindow::onTableCellChanged(int row, int column)
+{
+    qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
+    onTableRowModified(row);
+}
+
+// 处理表格行修改
+void MainWindow::onTableRowModified(int row)
+{
+    // 获取当前选中的向量表ID
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        qWarning() << "MainWindow::onTableRowModified - 没有选中有效的向量表";
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 计算实际数据库中的行索引（考虑分页）
+    int actualRowIndex = m_currentPage * m_pageSize + row;
+    qDebug() << "MainWindow::onTableRowModified - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
+
+    // 标记行为已修改
+    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
 }

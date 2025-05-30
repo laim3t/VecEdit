@@ -147,6 +147,10 @@ private slots:
     void changePageSize(int newSize);
     void jumpToPage(int pageNum);
 
+    // 表格数据变更监听
+    void onTableCellChanged(int row, int column);
+    void onTableRowModified(int row);
+
 private:
     void setupUI();
     void setupMenu();
@@ -177,6 +181,9 @@ private:
 
     // 更新分页信息显示
     void updatePaginationInfo();
+
+    // 辅助方法：从数据库加载向量表元数据
+    bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;

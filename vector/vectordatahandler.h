@@ -64,6 +64,9 @@ public:
     // 添加分页数据加载方法
     bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int pageIndex, int pageSize);
 
+    // 标记行已被修改
+    void markRowAsModified(int tableId, int rowIndex);
+
 signals:
     // 进度更新信号
     void progressUpdated(int percentage);

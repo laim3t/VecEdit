@@ -93,7 +93,11 @@ static constexpr auto qt_meta_stringdata_ZN10MainWindowE = QtMocHelpers::stringD
     "changePageSize",
     "newSize",
     "jumpToPage",
-    "pageNum"
+    "pageNum",
+    "onTableCellChanged",
+    "row",
+    "column",
+    "onTableRowModified"
 );
 #else  // !QT_MOC_HAS_STRINGDATA
 #error "qtmochelpers.h not found or too old."
@@ -105,7 +109,7 @@ Q_CONSTINIT static const uint qt_meta_data_ZN10MainWindowE[] = {
       12,       // revision
        0,       // classname
        0,    0, // classinfo
-      41,   14, // methods
+      43,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -113,49 +117,51 @@ Q_CONSTINIT static const uint qt_meta_data_ZN10MainWindowE[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,  260,    2, 0x06,    1 /* Public */,
+       1,    0,  272,    2, 0x06,    1 /* Public */,
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       3,    0,  261,    2, 0x08,    2 /* Private */,
-       4,    0,  262,    2, 0x08,    3 /* Private */,
-       5,    0,  263,    2, 0x08,    4 /* Private */,
-       6,    0,  264,    2, 0x08,    5 /* Private */,
-       7,    0,  265,    2, 0x08,    6 /* Private */,
-       8,    0,  266,    2, 0x08,    7 /* Private */,
-       9,    0,  267,    2, 0x08,    8 /* Private */,
-      10,    1,  268,    2, 0x08,    9 /* Private */,
-      12,    1,  271,    2, 0x08,   11 /* Private */,
-      12,    0,  274,    2, 0x28,   13 /* Private | MethodCloned */,
-      14,    0,  275,    2, 0x08,   14 /* Private */,
-      15,    0,  276,    2, 0x08,   15 /* Private */,
-      16,    1,  277,    2, 0x08,   16 /* Private */,
-      18,    1,  280,    2, 0x08,   18 /* Private */,
-      19,    0,  283,    2, 0x08,   20 /* Private */,
-      20,    0,  284,    2, 0x08,   21 /* Private */,
-      21,    2,  285,    2, 0x08,   22 /* Private */,
-      24,    3,  290,    2, 0x08,   25 /* Private */,
-      24,    2,  297,    2, 0x28,   29 /* Private | MethodCloned */,
-      26,    0,  302,    2, 0x08,   32 /* Private */,
-      27,    0,  303,    2, 0x08,   33 /* Private */,
-      28,    0,  304,    2, 0x08,   34 /* Private */,
-      29,    0,  305,    2, 0x08,   35 /* Private */,
-      30,    0,  306,    2, 0x08,   36 /* Private */,
-      31,    2,  307,    2, 0x08,   37 /* Private */,
-      35,    0,  312,    2, 0x08,   40 /* Private */,
-      36,    3,  313,    2, 0x08,   41 /* Private */,
-      39,    0,  320,    2, 0x08,   45 /* Private */,
-      40,    0,  321,    2, 0x08,   46 /* Private */,
-      41,    0,  322,    2, 0x08,   47 /* Private */,
-      42,    0,  323,    2, 0x08,   48 /* Private */,
-      43,    0,  324,    2, 0x08,   49 /* Private */,
-      44,    1,  325,    2, 0x08,   50 /* Private */,
-      46,    0,  328,    2, 0x08,   52 /* Private */,
-      47,    1,  329,    2, 0x08,   53 /* Private */,
-      48,    0,  332,    2, 0x08,   55 /* Private */,
-      49,    0,  333,    2, 0x08,   56 /* Private */,
-      50,    0,  334,    2, 0x08,   57 /* Private */,
-      51,    1,  335,    2, 0x08,   58 /* Private */,
-      53,    1,  338,    2, 0x08,   60 /* Private */,
+       3,    0,  273,    2, 0x08,    2 /* Private */,
+       4,    0,  274,    2, 0x08,    3 /* Private */,
+       5,    0,  275,    2, 0x08,    4 /* Private */,
+       6,    0,  276,    2, 0x08,    5 /* Private */,
+       7,    0,  277,    2, 0x08,    6 /* Private */,
+       8,    0,  278,    2, 0x08,    7 /* Private */,
+       9,    0,  279,    2, 0x08,    8 /* Private */,
+      10,    1,  280,    2, 0x08,    9 /* Private */,
+      12,    1,  283,    2, 0x08,   11 /* Private */,
+      12,    0,  286,    2, 0x28,   13 /* Private | MethodCloned */,
+      14,    0,  287,    2, 0x08,   14 /* Private */,
+      15,    0,  288,    2, 0x08,   15 /* Private */,
+      16,    1,  289,    2, 0x08,   16 /* Private */,
+      18,    1,  292,    2, 0x08,   18 /* Private */,
+      19,    0,  295,    2, 0x08,   20 /* Private */,
+      20,    0,  296,    2, 0x08,   21 /* Private */,
+      21,    2,  297,    2, 0x08,   22 /* Private */,
+      24,    3,  302,    2, 0x08,   25 /* Private */,
+      24,    2,  309,    2, 0x28,   29 /* Private | MethodCloned */,
+      26,    0,  314,    2, 0x08,   32 /* Private */,
+      27,    0,  315,    2, 0x08,   33 /* Private */,
+      28,    0,  316,    2, 0x08,   34 /* Private */,
+      29,    0,  317,    2, 0x08,   35 /* Private */,
+      30,    0,  318,    2, 0x08,   36 /* Private */,
+      31,    2,  319,    2, 0x08,   37 /* Private */,
+      35,    0,  324,    2, 0x08,   40 /* Private */,
+      36,    3,  325,    2, 0x08,   41 /* Private */,
+      39,    0,  332,    2, 0x08,   45 /* Private */,
+      40,    0,  333,    2, 0x08,   46 /* Private */,
+      41,    0,  334,    2, 0x08,   47 /* Private */,
+      42,    0,  335,    2, 0x08,   48 /* Private */,
+      43,    0,  336,    2, 0x08,   49 /* Private */,
+      44,    1,  337,    2, 0x08,   50 /* Private */,
+      46,    0,  340,    2, 0x08,   52 /* Private */,
+      47,    1,  341,    2, 0x08,   53 /* Private */,
+      48,    0,  344,    2, 0x08,   55 /* Private */,
+      49,    0,  345,    2, 0x08,   56 /* Private */,
+      50,    0,  346,    2, 0x08,   57 /* Private */,
+      51,    1,  347,    2, 0x08,   58 /* Private */,
+      53,    1,  350,    2, 0x08,   60 /* Private */,
+      55,    2,  353,    2, 0x08,   62 /* Private */,
+      58,    1,  358,    2, 0x08,   65 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -201,6 +207,8 @@ Q_CONSTINIT static const uint qt_meta_data_ZN10MainWindowE[] = {
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int,   52,
     QMetaType::Void, QMetaType::Int,   54,
+    QMetaType::Void, QMetaType::Int, QMetaType::Int,   56,   57,
+    QMetaType::Void, QMetaType::Int,   56,
 
        0        // eod
 };
@@ -315,6 +323,13 @@ Q_CONSTINIT const QMetaObject MainWindow::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<int, std::false_type>,
         // method 'jumpToPage'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        // method 'onTableCellChanged'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        // method 'onTableRowModified'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
         QtPrivate::TypeAndForceComplete<int, std::false_type>
     >,
     nullptr
@@ -370,6 +385,8 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 38: _t->loadPrevPage(); break;
         case 39: _t->changePageSize((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         case 40: _t->jumpToPage((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 41: _t->onTableCellChanged((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
+        case 42: _t->onTableRowModified((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         default: ;
         }
     }
@@ -423,14 +440,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 41)
+        if (_id < 43)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 41;
+        _id -= 43;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 41)
+        if (_id < 43)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 41;
+        _id -= 43;
     }
     return _id;
 }
