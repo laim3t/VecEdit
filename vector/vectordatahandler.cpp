@@ -736,6 +736,7 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
             {
                 // 其他类型的列，直接创建QTableWidgetItem
                 QTableWidgetItem *newItem = new QTableWidgetItem();
+                QVariant originalValue = originalRowData[originalColIdx]; // 添加声明
 
                 // 根据具体类型设置文本
                 if (visibleCol.type == Vector::ColumnDataType::INTEGER)
@@ -1241,22 +1242,23 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
             {
                 // 其他类型的列，直接创建QTableWidgetItem
                 QTableWidgetItem *newItem = new QTableWidgetItem();
+                QVariant originalValue = rowData[originalColIdx]; // 添加声明
 
                 // 根据具体类型设置文本
                 if (visibleColumn.type == Vector::ColumnDataType::INTEGER)
                 {
-                    newItem->setText(rowData[originalColIdx].isValid() ? QString::number(rowData[originalColIdx].toInt()) : "");
-                    newItem->setData(Qt::UserRole, rowData[originalColIdx].isValid() ? rowData[originalColIdx].toInt() : 0);
+                    newItem->setText(originalValue.isValid() ? QString::number(originalValue.toInt()) : "");
+                    newItem->setData(Qt::UserRole, originalValue.isValid() ? originalValue.toInt() : 0);
                 }
                 else if (visibleColumn.type == Vector::ColumnDataType::REAL)
                 {
-                    newItem->setText(rowData[originalColIdx].isValid() ? QString::number(rowData[originalColIdx].toDouble()) : "");
-                    newItem->setData(Qt::UserRole, rowData[originalColIdx].isValid() ? rowData[originalColIdx].toDouble() : 0.0);
+                    newItem->setText(originalValue.isValid() ? QString::number(originalValue.toDouble()) : "");
+                    newItem->setData(Qt::UserRole, originalValue.isValid() ? originalValue.toDouble() : 0.0);
                 }
                 else
                 {
                     // TEXT 或其他类型，直接转换为字符串
-                    newItem->setText(rowData[originalColIdx].toString());
+                    newItem->setText(originalValue.toString());
                 }
 
                 tableWidget->setItem(row, tableCol, newItem);
@@ -3322,6 +3324,7 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             {
                 // 其他类型的列，直接创建QTableWidgetItem
                 QTableWidgetItem *newItem = new QTableWidgetItem();
+                QVariant originalValue = originalRowData[originalColIdx]; // 添加声明
 
                 // 根据具体类型设置文本
                 if (visibleCol.type == Vector::ColumnDataType::INTEGER)
@@ -3842,77 +3845,109 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
     }
 
     // 如果没有检测到任何数据变更，可以直接返回成功
-    if (modifiedCount == 0)
+    if (modifiedCount == 0 && m_modifiedRows.value(tableId, QSet<int>()).isEmpty()) // 确保同时检查modifiedCount和m_modifiedRows
     {
-        errorMessage = "没有检测到数据变更，跳过保存";
-        qDebug() << funcName << " - " << errorMessage;
+        errorMessage = "没有检测到数据变更 (modifiedCount is 0 and m_modifiedRows is empty for tableId)，跳过保存";
+        qInfo() << funcName << " - " << errorMessage; // 改为qInfo以便区分
         return true;
     }
+    qDebug() << funcName << " - 检测到 modifiedCount:" << modifiedCount << "，或 m_modifiedRows 非空。准备保存。";
 
     // 6. 写入二进制文件 - 使用优化的方式
-    qDebug() << funcName << " - 准备写入数据到二进制文件，已修改 " << modifiedCount << " 行数据";
+    qDebug() << funcName << " - 准备写入数据到二进制文件，报告的 modifiedCount:" << modifiedCount;
 
-    // 创建modifiedRowsMap，只包含修改过的行
     QMap<int, Vector::RowData> modifiedRowsMap;
-
-    for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
-    {
-        int rowInFullData = startRowIndex + rowInPage;
-        if (rowInFullData >= allRows.size())
-        {
-            break; // 防止越界
+    if (m_modifiedRows.contains(tableId)) {
+        const QSet<int>& rowsActuallyMarked = m_modifiedRows.value(tableId);
+        qDebug() << funcName << " - m_modifiedRows for table" << tableId << "contains" << rowsActuallyMarked.size() << "indices:" << rowsActuallyMarked;
+        for (int rowIndex : rowsActuallyMarked) {
+            if (rowIndex >= 0 && rowIndex < allRows.size()) {
+                modifiedRowsMap[rowIndex] = allRows[rowIndex];
+            } else {
+                qWarning() << funcName << " - Invalid rowIndex" << rowIndex << "found in m_modifiedRows. Skipping.";
+            }
         }
-
-        // 检查此行是否被修改过
-        if (m_modifiedRows.contains(tableId) && m_modifiedRows[tableId].contains(rowInFullData))
-        {
-            modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
-        }
+    } else {
+        qDebug() << funcName << " - m_modifiedRows does not contain tableId" << tableId;
     }
-
-    // 如果没有确切的修改记录，则将整个当前页作为修改页面处理
+    
+    // 备用逻辑检查：如果UI报告有修改，但内部标记的修改行集合为空或未填充到map
     if (modifiedRowsMap.isEmpty() && modifiedCount > 0)
     {
+        qWarning() << funcName << " - WARNING: modifiedRowsMap is empty BUT modifiedCount is" << modifiedCount
+                   << ". This might indicate an issue with how m_modifiedRows is populated or cleared."
+                   << "Falling back to considering all rows in the current page as modified for the map.";
+        // 重新从当前页构建（这通常不应该发生如果 markRowAsModified 正常工作）
         for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
         {
             int rowInFullData = startRowIndex + rowInPage;
-            if (rowInFullData >= allRows.size())
-            {
-                break; // 防止越界
+            if (rowInFullData >= 0 && rowInFullData < allRows.size()) {
+                 // 只添加当前页内且在 allRows 范围内的行
+                if(isRowModified(tableId, rowInFullData)) { // 再次检查是否真的被标记为修改
+                    modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
+                }
             }
-
-            modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
         }
+        qDebug() << funcName << " - After fallback population from current page, modifiedRowsMap.size() is now:" << modifiedRowsMap.size();
     }
 
-    // 使用优化的方法只更新修改过的行
+    qDebug() << funcName << " - Final check before deciding write strategy: modifiedCount =" << modifiedCount 
+             << ", modifiedRowsMap.size() =" << modifiedRowsMap.size();
+
     bool writeSuccess = false;
-    if (!modifiedRowsMap.isEmpty())
-    {
-        // 尝试使用增量更新方法
-        writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
-
-        if (!writeSuccess)
+    if (modifiedCount > 0) { // 主要条件：确实有修改发生
+        if (!modifiedRowsMap.isEmpty())
         {
-            // 如果增量更新失败，回退到完整重写
-            qWarning() << funcName << " - 增量更新失败，尝试完整重写";
-            writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+            qInfo() << funcName << " - Attempting INCREMENTAL update with" << modifiedRowsMap.size() << "rows in modifiedRowsMap.";
+            writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
+
+            if (!writeSuccess)
+            {
+                qWarning() << funcName << " - INCREMENTAL update FAILED. Attempting FULL rewrite.";
+                // 在这里，我们期望 Persistence::BinaryFileHelper::updateRowsInBinary 内部已经打印了 qCritical 日志指明具体失败原因
+                writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+                if(writeSuccess) {
+                    qInfo() << funcName << " - FULL rewrite successful after incremental update failed.";
+                } else {
+                    qCritical() << funcName << " - CRITICAL: FULL rewrite ALSO FAILED after incremental update failed. Data NOT saved for file:" << absoluteBinFilePath;
+                }
+            } else {
+                qInfo() << funcName << " - INCREMENTAL update successful.";
+            }
         }
+        else // modifiedRowsMap is empty, but modifiedCount > 0
+        {
+            qWarning() << funcName << " - modifiedRowsMap is EMPTY, but modifiedCount is" << modifiedCount
+                       << ". This is unexpected if changes were properly tracked."
+                       << "Proceeding with FULL rewrite to ensure data integrity.";
+            writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+            if(writeSuccess) {
+                qInfo() << funcName << " - FULL rewrite successful (due to empty modifiedRowsMap but positive modifiedCount).";
+            } else {
+                qCritical() << funcName << " - CRITICAL: FULL rewrite FAILED (due to empty modifiedRowsMap but positive modifiedCount). Data NOT saved for file:" << absoluteBinFilePath;
+            }
+        }
+    } else { // modifiedCount == 0 (and m_modifiedRows was also empty from earlier check)
+        qInfo() << funcName << " - No modifications detected (modifiedCount is 0), no save operation performed.";
+        //  errorMessage = "没有检测到数据变更，跳过保存"; // Set earlier
+        return true; // No changes, so considered a "successful" save of no changes.
     }
+
 
     if (!writeSuccess)
     {
-        errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
-        qWarning() << funcName << " - " << errorMessage;
+        errorMessage = QString("写入二进制文件失败 (final check): %1").arg(absoluteBinFilePath);
+        // qWarning 已经被上面的逻辑覆盖，这里可以不用重复，除非上面的逻辑有遗漏
+        // qWarning() << funcName << " - " << errorMessage; // Redundant if qCritical used above for write failures
         return false;
     }
     else
     {
-        // 写入成功后更新缓存
-        updateTableDataCache(tableId, allRows, absoluteBinFilePath);
+        qInfo() << funcName << " - Data saved successfully to" << absoluteBinFilePath << "(Cache will be updated).";
+        updateTableDataCache(tableId, allRows, absoluteBinFilePath); // 更新缓存
     }
 
-    // 7. 更新数据库中的行数记录
+    // 7. 更新数据库中的行数和时间戳记录 (这部分逻辑保持不变)
     if (!db.transaction())
     {
         errorMessage = "无法开始数据库事务以更新主记录。";

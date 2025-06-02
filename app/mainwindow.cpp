@@ -1366,10 +1366,15 @@ void MainWindow::saveVectorTableData()
     }
     else
     {
-        // 非分页模式，直接保存当前表格数据
-        saveSuccess = VectorDataHandler::instance().saveVectorTableData(
+        // 非分页模式，统一使用 saveVectorTableDataPaged 进行保存
+        qDebug() << funcName << " - 非分页模式，但仍调用 saveVectorTableDataPaged 以启用增量更新尝试";
+        int currentRowCount = targetTableWidget ? targetTableWidget->rowCount() : 0;
+        saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
             tableId,
             targetTableWidget,
+            0,               // currentPage 设为 0
+            currentRowCount, // pageSize 设为当前行数
+            currentRowCount, // totalRows 设为当前行数
             errorMessage);
     }
 
