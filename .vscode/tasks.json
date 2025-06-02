@@ -1,0 +1,48 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-G",
+                "MinGW Makefiles",
+                "-DCMAKE_PREFIX_PATH=C:/Qt/6.8.2/mingw_64",
+                "-DCMAKE_BUILD_TYPE=Debug",
+                ".."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make",
+            "type": "shell",
+            "command": "mingw32-make",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "problemMatcher": [],
+            "dependsOn": [
+                "cmake"
+            ]
+        },
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "mkdir -p build && cd build && cmake -G \"MinGW Makefiles\" -DCMAKE_PREFIX_PATH=C:/Qt/6.8.2/mingw_64 -DCMAKE_BUILD_TYPE=Debug .. && mingw32-make",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

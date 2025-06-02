@@ -1,0 +1,2 @@
+# 忽略所有 logs 目录下的内容
+build/logs/

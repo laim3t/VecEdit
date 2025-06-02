@@ -1,0 +1,151 @@
+11:23:55: Starting C:\Users\GIGA\Desktop\QTProject\VecEdit\build\Desktop_Qt_6_8_2_MinGW_64_bit-Release\VecEdit.exe...
+VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载
+数据库已成功打开:  "C:/Users/GIGA/Documents/59.db" ，当前版本:  1
+MainWindow::loadVectorTable - 开始加载向量表
+MainWindow::loadVectorTable - 数据库已打开，开始查询向量表
+MainWindow::loadVectorTable - 刷新TimeSet选项缓存
+VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载
+MainWindow::loadVectorTable - 向量表查询执行成功
+MainWindow::loadVectorTable - 找到向量表: "555" ID: 1
+MainWindow::loadVectorTable - 总共找到 1 个向量表
+MainWindow::loadVectorTable - 有向量表，显示向量表窗口
+DialogManager::showTimeSetDialog - 开始显示TimeSet对话框，初始设置模式: false
+DialogManager::showTimeSetDialog - 检查向量表数量: 1
+DialogManager::showTimeSetDialog - 创建TimeSet对话框实例
+开始加载TimeSet列表到UI
+开始加载TimeSet数据...
+执行SQL查询: SELECT id, timeset_name, period FROM timeset_list ORDER BY id
+查询执行成功，开始遍历结果
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+加载TimeSet: id= 1 , name= "timeset_2" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 2
+加载TimeSet: id= 2 , name= "timeset_3" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 2
+成功加载 2 个TimeSet记录
+成功从数据库加载，TimeSet数量： 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+已添加TimeSet到UI: id= 1 , name= "timeset_2"
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 2
+已添加TimeSet到UI: id= 2 , name= "timeset_3"
+DialogManager::showTimeSetDialog - 显示对话框
+TimeSetDialog::onAccepted - 开始处理确定按钮事件
+TimeSetDialog::onAccepted - 检查待删除TimeSet列表: 0 个
+TimeSetDialog::onAccepted - 没有需要删除的TimeSet
+TimeSetDialog::onAccepted - 开始保存所有TimeSet的边沿设置
+TimeSetDialog::onAccepted - 准备保存 TimeSet ID: 1 的边沿
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 开始为 TimeSet ID: 1 保存边沿参数
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 准备执行删除SQL: "DELETE FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功删除旧边沿参数 for TimeSet ID: 1
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 开始添加 2 个新的边沿参数 for TimeSet ID: 1
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功添加边沿: TS ID= 1 , Pin ID= 2
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功添加边沿: TS ID= 1 , Pin ID= 3
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功完成 for TimeSet ID: 1
+TimeSetDialog::onAccepted - 成功保存 TimeSet ID: 1 的边沿
+TimeSetDialog::onAccepted - 准备保存 TimeSet ID: 2 的边沿
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 开始为 TimeSet ID: 2 保存边沿参数
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 准备执行删除SQL: "DELETE FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功删除旧边沿参数 for TimeSet ID: 2
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 开始添加 1 个新的边沿参数 for TimeSet ID: 2
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功添加边沿: TS ID= 2 , Pin ID= 2
+TimeSetDataAccess::saveTimeSetEdgesToDatabase - 成功完成 for TimeSet ID: 2
+TimeSetDialog::onAccepted - 成功保存 TimeSet ID: 2 的边沿
+TimeSetDialog::onAccepted - 所有TimeSet的边沿设置已尝试保存
+TimeSetDialog::onAccepted - 检查向量表数量： 1
+TimeSetDialog::onAccepted - 检查已配置的TimeSet数量： 2
+TimeSetDialog::onAccepted - 关闭对话框并接受更改
+DialogManager::showTimeSetDialog - 用户接受了对话框
+MainWindow::showTimeSetDialog - 刷新TimeSet选项缓存
+VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载
+MainWindow::loadVectorTable - 开始加载向量表
+MainWindow::loadVectorTable - 数据库已打开，开始查询向量表
+MainWindow::loadVectorTable - 刷新TimeSet选项缓存
+VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载
+MainWindow::loadVectorTable - 向量表查询执行成功
+MainWindow::loadVectorTable - 找到向量表: "555" ID: 1
+MainWindow::loadVectorTable - 总共找到 1 个向量表
+MainWindow::loadVectorTable - 有向量表，显示向量表窗口
+DialogManager::showTimeSetDialog - 开始显示TimeSet对话框，初始设置模式: false
+DialogManager::showTimeSetDialog - 检查向量表数量: 1
+DialogManager::showTimeSetDialog - 创建TimeSet对话框实例
+开始加载TimeSet列表到UI
+开始加载TimeSet数据...
+执行SQL查询: SELECT id, timeset_name, period FROM timeset_list ORDER BY id
+查询执行成功，开始遍历结果
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+加载TimeSet: id= 1 , name= "timeset_2" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 1 个边沿 for TimeSet ID: 2
+加载TimeSet: id= 2 , name= "timeset_3" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 1
+成功加载 2 个TimeSet记录
+成功从数据库加载，TimeSet数量： 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+已添加TimeSet到UI: id= 1 , name= "timeset_2"
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 1 个边沿 for TimeSet ID: 2
+已添加TimeSet到UI: id= 2 , name= "timeset_3"
+DialogManager::showTimeSetDialog - 显示对话框
+TimeSetDialog::removeTimeSet - 将TimeSet ID添加到待删除列表: 2
+TimeSetDialog::removeTimeSet - 从UI移除TimeSet项: 2
+TimeSetDialog::onAccepted - 开始处理确定按钮事件
+TimeSetDialog::onAccepted - 检查待删除TimeSet列表: 1 个
+TimeSetDataAccess::isTimeSetInUse - TimeSet ID: 2 在vector_table_data中的引用计数: 0
+TimeSetDialog::onAccepted - TimeSet ID: 2 ( "timeset_3" ) 未在使用，可以删除
+TimeSetDialog::onAccepted - 开始执行删除操作，共 1 个TimeSet
+删除关联的边沿参数失败: "Parameter count mismatch"
+TimeSetDialog::onAccepted - 删除TimeSet失败: ID= 2 , Name= "timeset_3"
+TimeSetDialog::onAccepted - 删除过程中发生错误，事务已回滚
+开始加载TimeSet列表到UI
+开始加载TimeSet数据...
+执行SQL查询: SELECT id, timeset_name, period FROM timeset_list ORDER BY id
+查询执行成功，开始遍历结果
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+加载TimeSet: id= 1 , name= "timeset_2" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 1 个边沿 for TimeSet ID: 2
+加载TimeSet: id= 2 , name= "timeset_3" , period= 1000 , 关联管脚数: 0 , 边缘设置数: 1
+成功加载 2 个TimeSet记录
+成功从数据库加载，TimeSet数量： 2
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 1
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 3
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 2 个边沿 for TimeSet ID: 1
+已添加TimeSet到UI: id= 1 , name= "timeset_2"
+TimeSetDataAccess::loadTimeSetEdges - 准备执行查询SQL: "SELECT timeset_id, pin_id, T1R, T1F, STBR, wave_id FROM timeset_settings WHERE timeset_id = ?" with ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 查询成功 for TimeSet ID: 2
+TimeSetDataAccess::loadTimeSetEdges - 加载边沿: Pin ID= 2
+TimeSetDataAccess::loadTimeSetEdges - 总共加载 1 个边沿 for TimeSet ID: 2
+已添加TimeSet到UI: id= 2 , name= "timeset_3"

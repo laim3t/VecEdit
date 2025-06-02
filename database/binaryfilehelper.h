@@ -1,0 +1,147 @@
+#ifndef BINARY_FILE_HELPER_H
+#define BINARY_FILE_HELPER_H
+
+#include "common/binary_file_format.h"   // For BinaryFileHeader structure
+#include "common/binary_field_lengths.h" // 添加对固定长度定义的引用
+#include <QString>
+#include <QIODevice>
+#include <QByteArray>
+#include <QDebug> // For qDebug()
+#include "vector/vector_data_types.h"
+
+// Forward declarations for placeholder types (replace with actual types later)
+// class MemoryRowObject; // Placeholder for the actual C++ data structure for a row
+// class ColumnSchema;    // Placeholder for column definition/schema information
+
+namespace Vector
+{
+    struct ColumnInfo;
+    using RowData = QList<QVariant>;
+} // namespace Vector
+
+namespace Persistence
+{
+
+    /**
+     * @brief Helper class for working with binary file I/O.
+     *
+     * This class provides static utility methods for reading and writing
+     * binary files, particularly those with the BinaryFileHeader structure.
+     * It also handles serialization and deserialization of row data to and
+     * from binary form.
+     */
+    class BinaryFileHelper
+    {
+    public:
+        BinaryFileHelper();
+
+        /**
+         * @brief Reads the BinaryFileHeader from the given I/O device.
+         * @param device The I/O device to read from. Must be open and readable.
+         * @param header Output parameter to store the read header.
+         * @return True if the header was read and validated successfully, false otherwise.
+         */
+        static bool readBinaryHeader(QIODevice *device, BinaryFileHeader &header);
+
+        /**
+         * @brief Writes the BinaryFileHeader to the given I/O device.
+         * @param device The I/O device to write to. Must be open and writable.
+         * @param header The header data to write.
+         * @return True if the header was written successfully, false otherwise.
+         */
+        static bool writeBinaryHeader(QIODevice *device, const BinaryFileHeader &header);
+
+        /**
+         * @brief 获取给定数据类型和列名在二进制存储中的固定长度
+         *
+         * 如果是特殊字段（如Label、Comment、EXT），将返回它们的特定长度
+         * 否则根据数据类型返回默认长度
+         *
+         * @param type 列数据类型
+         * @param columnName 列名称，用于判断是否为特殊字段
+         * @return 字段的固定存储长度
+         */
+        static int getFixedLengthForType(Vector::ColumnDataType type, const QString &columnName = QString());
+
+        /**
+         * @brief 序列化一行数据为二进制字节流
+         * @param rowData 内存中的一行数据（与列顺序一致）
+         * @param columns 列信息（顺序与 rowData 对应）
+         * @param serializedRow 输出的二进制字节流
+         * @return 成功返回 true，失败返回 false
+         */
+        static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow);
+
+        /**
+         * @brief 从二进制字节流反序列化为一行数据
+         * @param bytes 输入的二进制字节流
+         * @param columns 列信息（顺序与目标 rowData 对应）
+         * @param fileVersion 文件头中的数据 schema 版本
+         * @param rowData 输出的内存行数据
+         * @return 成功返回 true，失败返回 false
+         */
+        static bool deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData);
+
+        /**
+         * @brief 从二进制文件读取所有行数据
+         *
+         * 支持文件格式特性：
+         * 1. 能够处理标准行数据格式
+         * 2. 支持重定位标记(0xFFFFFFFF)识别，可以跟随重定位指针读取实际数据
+         * 3. 在遇到重定位指针时，自动跳转到指定位置读取数据，然后返回继续处理后续行
+         *
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息
+         * @param schemaVersion 数据库中的schema版本
+         * @param rows 输出参数，存储读取的所有行数据
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                          int schemaVersion, QList<Vector::RowData> &rows);
+
+        /**
+         * @brief 将所有行数据写入二进制文件
+         *
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息
+         * @param schemaVersion 数据库中的schema版本
+         * @param rows 要写入的所有行数据
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                         int schemaVersion, const QList<Vector::RowData> &rows);
+        
+        /**
+         * @brief 只更新二进制文件中被修改的行数据
+         *
+         * 与writeAllRowsToBinary不同，此方法只更新被修改的行，采用随机写入方式，避免重写整个文件
+         * 
+         * 优化特点：
+         * 1. 直接对原文件进行随机写入，无需创建临时文件
+         * 2. 对于不需要更改的行数据，完全不读取，减少I/O操作
+         * 3. 当新数据大于原数据空间时，使用重定位机制：
+         *    - 将大数据写到文件末尾
+         *    - 在原位置留下重定位指针(0xFFFFFFFF标记 + qint64位置)
+         * 4. 能够处理大文件的部分更新，显著提高性能
+         * 
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息
+         * @param schemaVersion 数据库中的schema版本
+         * @param modifiedRows 键为行索引，值为行数据的Map
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                      int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
+
+    private:
+        /**
+         * @brief 获取列数据类型对应的固定长度
+         * @param type 列数据类型
+         * @return 对应数据类型的固定长度（字节数）
+         */
+        static int getFixedLengthForType(Vector::ColumnDataType type);
+    };
+
+} // namespace Persistence
+
+#endif // BINARY_FILE_HELPER_H
