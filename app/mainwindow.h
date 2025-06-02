@@ -198,6 +198,12 @@ private:
     // 辅助方法：从数据库加载向量表元数据
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount);
 
+    // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
+    void updateBinaryHeaderColumnCount(int tableId);
+
+    // 新增：重新加载并刷新指定的向量表视图
+    void reloadAndRefreshVectorTable(int tableId);
+
     // 当前项目的数据库路径
     QString m_currentDbPath;
 

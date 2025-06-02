@@ -1747,20 +1747,32 @@ void MainWindow::addRowToCurrentVectorTable()
 
 void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 {
-    if (m_dialogManager)
-    {
-        qDebug() << "MainWindow::showPinSelectionDialog - 开始显示管脚选择对话框";
-        bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
-        qDebug() << "MainWindow::showPinSelectionDialog - 管脚选择对话框返回结果:" << success;
+    const QString funcName = "MainWindow::showPinSelectionDialog";
+    qDebug() << funcName << " - 开始显示管脚选择对话框 for tableId:" << tableId << "Name:" << tableName;
 
-        // 无论对话框结果如何，都刷新表格显示
-        int currentIndex = m_vectorTableSelector->findData(tableId);
-        if (currentIndex >= 0)
-        {
-            qDebug() << "MainWindow::showPinSelectionDialog - 刷新表格显示，表ID:" << tableId;
-            m_vectorTableSelector->setCurrentIndex(currentIndex);
-            onVectorTableSelectionChanged(currentIndex);
-        }
+    // 确保数据库已连接且表ID有效
+    if (!DatabaseManager::instance()->isDatabaseConnected() || tableId <= 0) { // Corrected: ->isDatabaseConnected()
+        qWarning() << funcName << " - 数据库未连接或表ID无效 (" << tableId << ")";
+        return;
+    }
+
+    // Corrected: use m_dialogManager instance
+    bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
+
+    if (success) {
+        qInfo() << funcName << " - 管脚配置成功完成 for table ID:" << tableId;
+
+        // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
+        updateBinaryHeaderColumnCount(tableId);
+
+        // 重新加载并刷新向量表视图以反映更改
+        reloadAndRefreshVectorTable(tableId); // Implementation will be added
+    } else {
+        qWarning() << funcName << " - 管脚配置被取消或失败 for table ID:" << tableId;
+        // 如果这是新表创建流程的一部分，并且管脚配置失败/取消，
+        // 可能需要考虑是否回滚表的创建或进行其他清理。
+        // 目前，我们只重新加载以确保UI与DB（可能部分配置的）状态一致。
+        reloadAndRefreshVectorTable(tableId); // Implementation will be added
     }
 }
 
@@ -4903,4 +4915,171 @@ bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Ve
         columns.append(col);
     }
     return true;
+}
+
+// Add the new private helper method
+void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
+    const QString funcName = "MainWindow::updateBinaryHeaderColumnCount";
+    qDebug() << funcName << "- Attempting to update binary header column count for table ID:" << tableId;
+
+    QString errorMessage;
+    QList<Vector::ColumnInfo> columns;
+    int dbSchemaVersion = -1;
+    QString binaryFileNameBase; // Base name like "table_1_data.vbindata"
+
+    DatabaseManager* dbManager = DatabaseManager::instance(); // Corrected: Pointer type
+    if (!dbManager->isDatabaseConnected()) { // Corrected: ->isDatabaseConnected()
+        qWarning() << funcName << "- Database not open.";
+        return;
+    }
+    QSqlDatabase db = dbManager->database();
+
+    // 1. Get master record info (schema version, binary file name)
+    QSqlQuery masterQuery(db);
+    // Corrected: VectorTableMasterRecord table name, and use 'id' for tableId
+    masterQuery.prepare("SELECT data_schema_version, binary_data_filename FROM VectorTableMasterRecord WHERE id = :tableId");
+    masterQuery.bindValue(":tableId", tableId);
+
+
+    if (!masterQuery.exec()) {
+        qWarning() << funcName << "- Failed to execute query for VectorTableMasterRecord:" << masterQuery.lastError().text();
+        return;
+    }
+
+    if (masterQuery.next()) {
+        dbSchemaVersion = masterQuery.value("data_schema_version").toInt(); // Corrected column name
+        binaryFileNameBase = masterQuery.value("binary_data_filename").toString(); // Corrected column name
+    } else {
+        qWarning() << funcName << "- No VectorTableMasterRecord found for table ID:" << tableId;
+        return;
+    }
+
+    if (binaryFileNameBase.isEmpty()) {
+        qWarning() << funcName << "- Binary file name is empty in master record for table ID:" << tableId;
+        return;
+    }
+
+    // 2. Get column configurations from DB to count actual columns
+    QSqlQuery columnQuery(db);
+    // Query to get the actual number of columns configured for this table in the database
+    // This includes standard columns and any pin-specific columns
+    // Corrected: VectorTableColumnConfiguration table name, master_record_id for tableId relation
+    QString columnSql = QString(
+        "SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?"); // 使用位置占位符
+
+    if (!columnQuery.prepare(columnSql)) {
+        qWarning() << funcName << "- CRITICAL_WARNING: Failed to PREPARE query for actual column count. SQL:" << columnSql
+                   << ". Error:" << columnQuery.lastError().text();
+        return;
+    }
+    columnQuery.addBindValue(tableId); // 使用 addBindValue
+
+    int actualColumnCount = 0;
+    if (columnQuery.exec()) {
+        if (columnQuery.next()) {
+            actualColumnCount = columnQuery.value(0).toInt();
+        }
+        // No 'else' here, if query returns no rows, actualColumnCount remains 0, which is handled below.
+    } else {
+        qWarning() << funcName << "- CRITICAL_WARNING: Failed to EXECUTE query for actual column count. TableId:" << tableId
+                   << ". SQL:" << columnSql << ". Error:" << columnQuery.lastError().text()
+                   << "(Reason: DB query for actual column count failed after successful prepare)";
+        return;
+    }
+
+    qDebug() << funcName << "- Actual column count from DB for tableId" << tableId << "is" << actualColumnCount;
+
+    if (actualColumnCount == 0 && tableId > 0) {
+        qWarning() << funcName << "- No columns found in DB configuration for table ID:" << tableId << ". Header update may not be meaningful (or it's a new table). Continuing.";
+    }
+
+
+    // 3. Construct full binary file path
+    // QString projectDbPath = dbManager->getCurrentDatabasePath(); // Incorrect method
+    QString projectDbPath = m_currentDbPath; // Use MainWindow's member
+    QString projBinDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(projectDbPath);
+    QString binFilePath = projBinDataDir + QDir::separator() + binaryFileNameBase;
+
+    QFile file(binFilePath);
+    if (!file.exists()) {
+        qWarning() << funcName << "- Binary file does not exist, cannot update header:" << binFilePath;
+        return;
+    }
+
+    if (!file.open(QIODevice::ReadWrite)) {
+        qWarning() << funcName << "- Failed to open binary file for ReadWrite:" << binFilePath << file.errorString();
+        return;
+    }
+
+    BinaryFileHeader header;
+    bool existingHeaderRead = Persistence::BinaryFileHelper::readBinaryHeader(&file, header);
+
+    if (existingHeaderRead) {
+        // Corrected member access to use column_count_in_file
+        if (header.column_count_in_file == actualColumnCount && header.data_schema_version == dbSchemaVersion) {
+            qDebug() << funcName << "- Header column count (" << header.column_count_in_file 
+                     << ") and schema version (" << header.data_schema_version
+                     << ") already match DB. No update needed for table" << tableId;
+            file.close();
+            return;
+        }
+        // Preserve creation time and row count from existing header
+        header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
+        header.data_schema_version = dbSchemaVersion; // Update schema version from DB
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+    } else {
+        qWarning() << funcName << "- Failed to read existing header from" << binFilePath << ". This is unexpected if addNewVectorTable created it. Re-initializing header for update.";
+        header.magic_number = Persistence::VEC_BINDATA_MAGIC;
+        header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
+        header.data_schema_version = dbSchemaVersion;
+        header.row_count_in_file = 0; 
+        header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+        header.compression_type = 0; 
+        // Removed memset calls for header.reserved and header.future_use as they are not members
+    }
+
+    file.seek(0);
+    if (Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+        qInfo() << funcName << "- Successfully updated binary file header for table" << tableId
+                << ". Path:" << binFilePath
+                << ". New ColumnCount:" << actualColumnCount
+                << ", SchemaVersion:" << dbSchemaVersion;
+    } else {
+        qWarning() << funcName << "- Failed to write updated binary file header for table" << tableId
+                   << ". Path:" << binFilePath;
+    }
+    file.close();
+
+    // Corrected cache invalidation method name
+    VectorDataHandler::instance().clearTableDataCache(tableId);
+    // Clearing data cache is often sufficient. If specific metadata cache for columns/schema
+    // exists and needs explicit invalidation, that would require a specific method in VectorDataHandler.
+    // For now, assuming clearTableDataCache() and subsequent reloads handle it.
+}
+
+// Add implementation for reloadAndRefreshVectorTable
+void MainWindow::reloadAndRefreshVectorTable(int tableId)
+{
+    const QString funcName = "MainWindow::reloadAndRefreshVectorTable";
+    qDebug() << funcName << "- Reloading and refreshing UI for table ID:" << tableId;
+
+    // 1. Ensure the table is selected in the ComboBox and TabWidget
+    int comboBoxIndex = m_vectorTableSelector->findData(tableId);
+    if (comboBoxIndex != -1) {
+        if (m_vectorTableSelector->currentIndex() != comboBoxIndex) {
+            m_vectorTableSelector->setCurrentIndex(comboBoxIndex); // This should trigger onVectorTableSelectionChanged
+        } else {
+            // If it's already selected, force a refresh of its data
+            onVectorTableSelectionChanged(comboBoxIndex);
+        }
+    } else {
+        qWarning() << funcName << "- Table ID" << tableId << "not found in selector. Cannot refresh.";
+        // Fallback: reload all tables if the specific one isn't found (might be a new table not yet in UI)
+        loadVectorTable();
+    }
+
+    // 2. Refresh the sidebar (in case table names or other project components changed)
+    refreshSidebarNavigator();
 }
