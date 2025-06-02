@@ -11,8 +11,6 @@ namespace Persistence
     const uint32_t VEC_BINDATA_MAGIC = 0x56454342; // "VECB" in ASCII
     // 当前文件格式版本
     const uint16_t CURRENT_FILE_FORMAT_VERSION = 1;
-    // 行重定向标记
-    const uint32_t VBIN_ROW_REDIRECT_MARKER = 0xFFFFFFFF;
 }
 
 // Magic number to identify our binary file type

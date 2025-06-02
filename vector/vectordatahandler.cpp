@@ -3697,8 +3697,6 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
     int rowsInCurrentPage = currentPageTable->rowCount();
     int modifiedCount = 0; // 记录修改的行数
 
-    qDebug() << funcName << " - 进入保存。表ID " << tableId << ", m_modifiedRows 中已标记的行数: " << m_modifiedRows[tableId].size(); // <--- 新增日志 ①
-
     // 确保不会越界
     if (startRowIndex >= allRows.size())
     {
@@ -3843,8 +3841,6 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         }
     }
 
-    qDebug() << funcName << " - 当前页面数据与allRows比较后，检测到本页修改行数 (modifiedCount): " << modifiedCount; // <--- 新增日志 ②
-
     // 如果没有检测到任何数据变更，可以直接返回成功
     if (modifiedCount == 0)
     {
@@ -3874,12 +3870,9 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         }
     }
 
-    qDebug() << funcName << " - 从 m_modifiedRows 填充后，modifiedRowsMap 大小: " << modifiedRowsMap.size(); // <--- 新增日志 ③
-
     // 如果没有确切的修改记录，则将整个当前页作为修改页面处理
     if (modifiedRowsMap.isEmpty() && modifiedCount > 0)
     {
-        qDebug() << funcName << " - modifiedRowsMap 为空但 modifiedCount > 0，将使用当前页数据填充 modifiedRowsMap"; // <--- 新增日志
         for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
         {
             int rowInFullData = startRowIndex + rowInPage;
@@ -3887,68 +3880,27 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
             {
                 break; // 防止越界
             }
+
             modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
         }
-        qDebug() << funcName << " - m_modifiedRows 为空但本页有修改，回退逻辑填充后 modifiedRowsMap 大小: " << modifiedRowsMap.size(); // <--- 新增日志 ④
     }
 
     // 使用优化的方法只更新修改过的行
     bool writeSuccess = false;
     if (!modifiedRowsMap.isEmpty())
     {
-        qInfo() << funcName << " - 检测到 " << modifiedRowsMap.size() << " 行已修改，尝试进行增量更新 (调用 updateRowsInBinary)。";
-        // bool incrementalUpdateAttempted = true; // 标记尝试过，如果需要此信息的话
-        bool incrementalUpdateSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
-        qInfo() << funcName << " - updateRowsInBinary 返回: " << incrementalUpdateSuccess;
+        // 尝试使用增量更新方法
+        writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
 
-        if (incrementalUpdateSuccess)
+        if (!writeSuccess)
         {
-            qInfo() << funcName << " - 增量更新 (updateRowsInBinary) 成功。";
-            writeSuccess = true;
-        }
-        else
-        {
-            qWarning() << funcName << " - 增量更新 (updateRowsInBinary) 失败，将回退到完整重写 (writeAllRowsToBinary)。";
+            // 如果增量更新失败，回退到完整重写
+            qWarning() << funcName << " - 增量更新失败，尝试完整重写";
             writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
-            if (writeSuccess)
-            {
-                qInfo() << funcName << " - 完整重写 (writeAllRowsToBinary) 在增量更新失败后成功。";
-            }
-            else
-            {
-                qWarning() << funcName << " - 致命错误: 增量更新和完整重写 (writeAllRowsToBinary) 全部失败！";
-            }
-        }
-    }
-    else
-    {
-        // 此分支的逻辑：如果 modifiedCount > 0 但 modifiedRowsMap 仍然为空
-        // （例如，如果上面填充 modifiedRowsMap 的逻辑失败或被跳过）
-        if (modifiedCount > 0)
-        {
-            qWarning() << funcName << " - modifiedCount 为 " << modifiedCount
-                       << " 但 modifiedRowsMap 为空。这可能表示数据收集或修改标记逻辑存在问题。"
-                       << "将尝试进行完整文件重写作为安全措施。";
-            writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
-            if (writeSuccess)
-            {
-                qInfo() << funcName << " - 完整重写 (writeAllRowsToBinary) 成功 (由于 modifiedRowsMap 为空但有修改计数)。";
-            }
-            else
-            {
-                qWarning() << funcName << " - 致命错误: modifiedRowsMap 为空（但有修改计数）且完整重写 (writeAllRowsToBinary) 也失败了！";
-            }
-        }
-        else
-        {
-            // modifiedCount 为 0 的情况，已在函数更早的部分处理并返回 true。
-            // 如果代码能执行到这里且 modifiedCount == 0，说明之前的返回逻辑被绕过，这是非预期的。
-            qWarning() << funcName << " - 非预期状态: modifiedRowsMap 为空且 modifiedCount 也为 0，但未提前返回。检查函数流程。";
-            // 在这种非预期情况下，不应尝试写入，但为了安全，也不将 writeSuccess 设为 true，让后续逻辑处理。
         }
     }
 
-    if (!writeSuccess && modifiedCount > 0) // 仅当有修改时，写入失败才是一个需要报告错误的问题
+    if (!writeSuccess)
     {
         errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
         qWarning() << funcName << " - " << errorMessage;

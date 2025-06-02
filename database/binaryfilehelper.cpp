@@ -876,307 +876,342 @@ namespace Persistence
                                               int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows)
     {
         const QString funcName = "BinaryFileHelper::updateRowsInBinary";
-        qInfo().nospace() << funcName << " - 开始增量更新文件: " << binFilePath
-                          << ", 需要更新的行数: " << modifiedRows.size()
-                          << ", 期望Schema版本: " << schemaVersion
-                          << ", 期望列数: " << columns.size();
+        qDebug() << funcName << "- 开始更新文件:" << binFilePath << ", 修改行数:" << modifiedRows.size() << ", 使用随机写入";
 
+        // 如果没有修改的行，直接返回成功
         if (modifiedRows.isEmpty())
         {
-            qInfo() << funcName << " - 没有需要修改的行，直接返回 true。";
+            qDebug() << funcName << "- 没有需要修改的行，直接返回 true";
             return true;
         }
 
+        // 首先，检查文件是否存在
         QFile file(binFilePath);
         if (!file.exists())
         {
-            qWarning() << funcName << " - 失败(返回false): 二进制文件不存在: " << binFilePath;
+            qWarning() << funcName << "- 错误: 二进制文件不存在，无法更新:" << binFilePath;
             return false;
         }
 
+        // 打开文件用于读写
         if (!file.open(QIODevice::ReadWrite))
         {
-            qWarning() << funcName << " - 失败(返回false): 无法以读写模式打开文件: " << binFilePath << ", 错误: " << file.errorString();
+            qWarning() << funcName << "- 错误: 无法以读写模式打开文件:" << binFilePath << ", OS错误:" << file.errorString();
             return false;
         }
+        qDebug() << funcName << "- 文件已成功以读写模式打开:" << binFilePath;
 
-        qInfo() << funcName << " - 文件已成功打开: " << binFilePath;
-
+        // 读取文件头
         BinaryFileHeader header;
         if (!readBinaryHeader(&file, header))
         {
-            qWarning() << funcName << " - 失败(返回false): 无法读取或验证二进制文件头。";
+            qWarning() << funcName << "- 错误: 无法读取或验证二进制文件头, 文件:" << binFilePath;
             file.close();
             return false;
         }
-        qInfo() << funcName << " - 文件头读取成功。";
+        qDebug() << funcName << "- 文件头读取成功. 文件版本:" << header.file_format_version << "Schema版本:" << header.data_schema_version << "行数:" << header.row_count_in_file;
 
+        // 版本兼容性检查
         if (header.data_schema_version != schemaVersion)
         {
-            qWarning() << funcName << " - 失败(返回false): 文件数据schema版本(" << header.data_schema_version
-                       << ")与期望的DB schema版本(" << schemaVersion << ")不匹配。";
+            qWarning() << funcName << "- 错误: 文件数据schema版本(" << header.data_schema_version
+                       << ")与期望的DB schema版本(" << schemaVersion << ")不匹配, 文件:" << binFilePath;
             file.close();
             return false;
         }
 
+        // 列数检查
         if (header.column_count_in_file != static_cast<uint32_t>(columns.size()))
         {
-            qWarning() << funcName << " - 失败(返回false): 文件头列数(" << header.column_count_in_file
-                       << ")与期望的列数(" << columns.size() << ")不匹配。";
+            qWarning() << funcName << "- 错误: 文件头列数(" << header.column_count_in_file
+                       << ")与期望的列数(" << columns.size() << ")不匹配, 文件:" << binFilePath;
             file.close();
             return false;
         }
-        qInfo() << funcName << " - 文件头 Schema 版本和列数校验通过。";
+        qDebug() << funcName << "- Schema版本和列数检查通过.";
 
+        // 获取每行数据在文件中的位置
         struct RowInfo
         {
-            qint64 offset;
-            quint32 size; // 包括4字节长度前缀的总大小
+            qint64 offset;      // 行数据在文件中的起始位置 (包括4字节长度前缀)
+            quint32 data_size;  // 实际行数据的大小 (不包括4字节长度前缀)
+            quint32 total_size; // 行总大小 (data_size + 4字节长度前缀)
         };
 
         QVector<RowInfo> rowPositions;
         rowPositions.reserve(header.row_count_in_file);
+
         QDataStream in(&file);
         in.setByteOrder(QDataStream::LittleEndian);
 
-        qint64 headerSize = file.pos(); // 当前位置即为文件头之后
+        // 计算文件头后的位置，即第一行数据的开始位置
+        // QFile::seek()的参数是qint64. sizeof(BinaryFileHeader) 通常是int, 需要转换.
+        qint64 initialDataPos = static_cast<qint64>(sizeof(BinaryFileHeader));
+        if (!file.seek(initialDataPos))
+        {
+            qWarning() << funcName << "- 错误: Seek到初始数据位置失败:" << initialDataPos << ", 文件:" << binFilePath << ", OS错误:" << file.errorString();
+            file.close();
+            return false;
+        }
+        qDebug() << funcName << "- 定位到初始数据位置:" << initialDataPos;
 
-        qDebug() << funcName << " - 开始解析每行数据的位置和大小。文件总行数: " << header.row_count_in_file << ", 起始扫描位置: " << headerSize;
-
+        // 记录每行数据的位置和大小
         for (quint64 i = 0; i < header.row_count_in_file; ++i)
         {
-            if (file.atEnd())
-            {
-                qWarning() << funcName << " - 失败(返回false): 文件在读取第 " << i << " 行大小时意外结束。预期总行数: " << header.row_count_in_file;
-                file.close();
-                return false;
-            }
-            quint32 rowDataSize; // 不包含自身长度字段的大小
+            qint64 currentRowOffset = file.pos();
+            quint32 rowDataSize;
             in >> rowDataSize;
+
             if (in.status() != QDataStream::Ok)
             {
-                qWarning() << funcName << " - 失败(返回false): 读取第 " << i << " 行数据大小时发生流错误。Status: " << in.status();
+                qWarning() << funcName << "- 错误: 读取行" << i << "的数据大小时发生错误. Stream status:" << in.status() << ", 文件:" << binFilePath;
                 file.close();
                 return false;
             }
 
             RowInfo rowInfo;
-            rowInfo.offset = file.pos() - static_cast<qint64>(sizeof(quint32)); // 指向行大小字段的起始
-            rowInfo.size = rowDataSize + sizeof(quint32);                       // 存储的是数据本身大小+长度字段大小
+            rowInfo.offset = currentRowOffset;
+            rowInfo.data_size = rowDataSize;
+            rowInfo.total_size = rowDataSize + sizeof(quint32);
 
             rowPositions.append(rowInfo);
-            qDebug() << funcName << " - 第 " << i << " 行: offset=" << rowInfo.offset << ", total_size=" << rowInfo.size << " (data_size=" << rowDataSize << ")";
+            qDebug() << funcName << "- 读取行信息: Index=" << i << "Offset=" << rowInfo.offset << "DataSize=" << rowInfo.data_size;
 
-            if (!file.seek(rowInfo.offset + rowInfo.size))
+            // 跳过这行数据，定位到下一行
+            if (!file.seek(currentRowOffset + rowInfo.total_size))
             {
-                qWarning() << funcName << " - 失败(返回false): 跳转到第 " << (i + 1) << " 行的起始位置失败。当前行 offset: " << rowInfo.offset << " size: " << rowInfo.size << " target_seek_pos: " << (rowInfo.offset + rowInfo.size);
+                qWarning() << funcName << "- 错误: Seek到下一行" << (i + 1) << "数据位置失败. 当前行Offset:" << currentRowOffset << "当前行TotalSize:" << rowInfo.total_size << ", 文件:" << binFilePath << ", OS错误:" << file.errorString();
                 file.close();
                 return false;
             }
         }
-        qInfo() << funcName << " - 所有 " << rowPositions.size() << " 行的位置和大小解析完成。";
+        qDebug() << funcName << "- 所有" << header.row_count_in_file << "行的位置信息读取完毕.";
 
-        int maxValidRowIndex = rowPositions.size() - 1;
-        QList<int> validModifiedRowsIndices;
+        // 检查要修改的行是否都在范围内
+        int maxRowIndex = (header.row_count_in_file > 0) ? (static_cast<int>(header.row_count_in_file) - 1) : -1;
+
+        QList<int> invalidRowIndices;
         for (auto it = modifiedRows.constBegin(); it != modifiedRows.constEnd(); ++it)
         {
             int rowIndex = it.key();
-            if (rowIndex < 0 || rowIndex > maxValidRowIndex)
+            if (rowIndex < 0 || rowIndex > maxRowIndex)
             {
-                qWarning() << funcName << " - 注意: 行索引 " << rowIndex << " 超出有效范围 (0-" << maxValidRowIndex << ")，将被忽略。";
-            }
-            else
-            {
-                validModifiedRowsIndices.append(rowIndex);
+                qWarning() << funcName << "- 警告: 行索引" << rowIndex << "超出范围 [0," << maxRowIndex << "]. 该行将被忽略.";
+                invalidRowIndices.append(rowIndex);
             }
         }
 
-        if (validModifiedRowsIndices.isEmpty() && !modifiedRows.isEmpty())
+        // 如果所有请求修改的行都是无效的
+        if (!invalidRowIndices.isEmpty() && invalidRowIndices.size() == modifiedRows.size())
         {
-            qWarning() << funcName << " - 失败(返回false): 所有请求修改的行索引都无效。";
+            qWarning() << funcName << "- 错误: 所有请求修改的行索引都无效. 文件:" << binFilePath;
             file.close();
-            return false;
+            return false; // Consider this a failure if no valid rows to update
         }
-        qInfo() << funcName << " - 有 " << validModifiedRowsIndices.size() << " 个有效行需要更新。";
+        qDebug() << funcName << "- 行索引范围检查完成. 无效行数:" << invalidRowIndices.size();
 
-        header.timestamp_updated = static_cast<uint64_t>(QDateTime::currentSecsSinceEpoch());
+        // 更新文件头的时间戳
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+
+        // 将文件指针重置到开头
         if (!file.seek(0))
         {
-            qWarning() << funcName << " - 失败(返回false): 无法跳转到文件开头以更新文件头。";
+            qWarning() << funcName << "- 错误: Seek到文件开头失败 (更新文件头前). 文件:" << binFilePath << ", OS错误:" << file.errorString();
             file.close();
             return false;
         }
+        qDebug() << funcName << "- 定位到文件开头准备更新文件头.";
+
+        // 更新文件头
         if (!writeBinaryHeader(&file, header))
         {
-            qWarning() << funcName << " - 失败(返回false): 更新文件头失败。";
+            qWarning() << funcName << "- 错误: 更新文件头失败, 文件:" << binFilePath;
             file.close();
             return false;
         }
-        qInfo() << funcName << " - 文件头时间戳已更新。";
+        qDebug() << funcName << "- 文件头更新成功 (时间戳).";
 
-        QMap<int, QByteArray> serializedModifiedRowsData; // 存储已序列化的行数据 (不含长度前缀)
-        QMap<int, RowInfo> relocations;                   // key: original rowIndex, value: new RowInfo (offset and size at new location)
+        QMap<int, qint64> needRelocateRows;           // 行索引 -> 新数据大小
+        QMap<int, QByteArray> serializedModifiedRows; // 行索引 -> 序列化后的行数据
 
-        // 步骤1: 序列化所有有效的修改行，并确定哪些需要重定位
-        qDebug() << funcName << " - 开始序列化修改的行并检查是否需要重定位...";
-        for (int rowIndex : validModifiedRowsIndices)
+        // 先序列化所有要修改的行数据并检查是否需要重定位
+        for (auto it = modifiedRows.constBegin(); it != modifiedRows.constEnd(); ++it)
         {
-            QByteArray serializedData; // 仅数据，不含长度前缀
-            if (!serializeRow(modifiedRows.value(rowIndex), columns, serializedData))
+            int rowIndex = it.key();
+            if (invalidRowIndices.contains(rowIndex))
+            { // 跳过之前标记为无效的行
+                continue;
+            }
+
+            QByteArray currentSerializedRow;
+            if (!serializeRow(it.value(), columns, currentSerializedRow))
             {
-                qWarning() << funcName << " - 失败(返回false): 序列化行数据失败，行索引: " << rowIndex;
+                qWarning() << funcName << "- 错误: 序列化行数据失败，行索引:" << rowIndex << ", 文件:" << binFilePath;
                 file.close();
                 return false;
             }
-            serializedModifiedRowsData[rowIndex] = serializedData;
+            serializedModifiedRows[rowIndex] = currentSerializedRow;
+            qDebug() << funcName << "- 行" << rowIndex << "序列化成功, 新数据大小:" << currentSerializedRow.size();
 
-            quint32 originalAllocatedDataSize = rowPositions[rowIndex].size - sizeof(quint32);
-            quint32 newDataSize = static_cast<quint32>(serializedData.size());
+            quint32 originalDataSize = rowPositions[rowIndex].data_size;
+            quint32 newDataSize = currentSerializedRow.size();
 
-            if (newDataSize > originalAllocatedDataSize)
+            if (newDataSize > originalDataSize)
             {
-                qDebug() << funcName << " - 行 " << rowIndex << " 需要重定位: 原数据大小="
-                         << originalAllocatedDataSize << "，新数据大小=" << newDataSize;
-                relocations[rowIndex].size = newDataSize + sizeof(quint32); // 新的总大小
+                needRelocateRows[rowIndex] = newDataSize;
+                qDebug() << funcName << "- 行" << rowIndex << "需要重定位: 原数据大小="
+                         << originalDataSize << "，新数据大小=" << newDataSize;
             }
         }
-        qInfo() << funcName << " - 序列化和重定位检查完成。有 " << relocations.size() << " 行需要重定位。";
+        qDebug() << funcName << "- 所有有效修改行已序列化. 需要重定位的行数:" << needRelocateRows.size();
 
-        // 步骤2: 如果有需要重定位的行，在文件末尾追加它们
-        if (!relocations.isEmpty())
+        QMap<int, qint64> newRowActualPositions; // 行索引 -> 在文件中的新绝对偏移量
+
+        // 处理需要重定位的行
+        if (!needRelocateRows.isEmpty())
         {
-            qDebug() << funcName << " - 开始处理 " << relocations.size() << " 个需要重定位的行...";
-            if (!file.seek(file.size()))
-            { // 跳转到文件末尾
-                qWarning() << funcName << " - 失败(返回false): 无法跳转到文件末尾以追加重定位的行。当前文件大小: " << file.size();
+            qDebug() << funcName << "- 开始处理" << needRelocateRows.size() << "个需要重定位的行.";
+            qint64 endOfFilePos = file.size();
+            qDebug() << funcName << "- 当前文件大小 (重定位前):" << endOfFilePos;
+
+            if (!file.seek(endOfFilePos))
+            {
+                qWarning() << funcName << "- 错误: Seek到文件末尾失败 (准备写入重定位行). 当前末尾:" << endOfFilePos << ", 文件:" << binFilePath << ", OS错误:" << file.errorString();
                 file.close();
                 return false;
             }
-            qint64 currentAppendPos = file.pos();
-            qDebug() << funcName << " - 文件末尾位置: " << currentAppendPos;
+            qDebug() << funcName << "- 定位到文件末尾:" << endOfFilePos << "准备写入重定位数据.";
 
-            QDataStream appendStream(&file); // 使用同一个文件设备，但独立流用于追加
-            appendStream.setByteOrder(QDataStream::LittleEndian);
-
-            // 创建一个新的 map 来存储实际写入后的新位置信息
-            QMap<int, RowInfo> actualRelocatedPositions;
-
-            for (auto it = relocations.begin(); it != relocations.end(); ++it)
+            for (auto it = needRelocateRows.constBegin(); it != needRelocateRows.constEnd(); ++it)
             {
                 int rowIndex = it.key();
-                const QByteArray &dataToWrite = serializedModifiedRowsData.value(rowIndex);
-                quint32 dataSize = static_cast<quint32>(dataToWrite.size());
+                const QByteArray &dataToWrite = serializedModifiedRows[rowIndex];
+                quint32 dataSize = dataToWrite.size();
 
-                RowInfo newRowInfo;
-                newRowInfo.offset = file.pos();               // 当前写入位置即为新 offset (指向长度字段)
-                newRowInfo.size = dataSize + sizeof(quint32); // 新的总大小
+                qint64 newPosForThisRow = file.pos();
+                newRowActualPositions[rowIndex] = newPosForThisRow;
+                qDebug() << funcName << "- 重定位行" << rowIndex << ": 将写入到新位置" << newPosForThisRow << ", 数据大小:" << dataSize;
 
                 QByteArray sizeBytes;
-                QDataStream tempSizeStream(&sizeBytes, QIODevice::WriteOnly);
-                tempSizeStream.setByteOrder(QDataStream::LittleEndian);
-                tempSizeStream << dataSize;
+                QDataStream sizeStream(&sizeBytes, QIODevice::WriteOnly);
+                sizeStream.setByteOrder(QDataStream::LittleEndian);
+                sizeStream << dataSize;
+
                 if (file.write(sizeBytes) != sizeBytes.size())
                 {
-                    qWarning() << funcName << " - 失败(返回false): 写入重定位行 " << rowIndex << " 的数据大小时发生错误。目标位置: " << newRowInfo.offset << "错误: " << file.errorString();
+                    qWarning() << funcName << "- 错误: 写入重定位行" << rowIndex << "的大小(" << dataSize << ")到位置" << newPosForThisRow << "失败. 文件:" << binFilePath << ", OS错误:" << file.errorString();
                     file.close();
                     return false;
                 }
 
                 if (file.write(dataToWrite) != dataToWrite.size())
                 {
-                    qWarning() << funcName << " - 失败(返回false): 写入重定位行 " << rowIndex << " 的数据时发生错误。目标位置: " << (newRowInfo.offset + sizeof(quint32)) << "错误: " << file.errorString();
+                    qWarning() << funcName << "- 错误: 写入重定位行" << rowIndex << "的数据(大小" << dataSize << ")到位置" << (newPosForThisRow + sizeBytes.size()) << "失败. 文件:" << binFilePath << ", OS错误:" << file.errorString();
                     file.close();
                     return false;
                 }
-                qDebug() << funcName << " - 重定位行 " << rowIndex << " 已成功追加到文件末尾。新 offset=" << newRowInfo.offset << ", 新 total_size=" << newRowInfo.size;
-                actualRelocatedPositions[rowIndex] = newRowInfo;
+                qDebug() << funcName << "- 重定位行" << rowIndex << "已成功写入到新位置:" << newPosForThisRow << ", 总写入:" << (sizeBytes.size() + dataToWrite.size()) << "字节.";
             }
-            // 用实际写入后的信息更新 relocations map
-            relocations = actualRelocatedPositions;
-            qInfo() << funcName << " - 所有 " << relocations.size() << " 个重定位行已追加到文件末尾。";
+
+            qDebug() << funcName << "- 所有" << needRelocateRows.size() << "个重定位行已写入文件末尾. 开始更新原位置指针.";
+            // 更新原位置的指针，指向新位置
+            for (auto it = newRowActualPositions.constBegin(); it != newRowActualPositions.constEnd(); ++it)
+            {
+                int rowIndex = it.key();
+                qint64 newPos = it.value();
+                qint64 originalRowOffset = rowPositions[rowIndex].offset;
+
+                if (!file.seek(originalRowOffset))
+                {
+                    qWarning() << funcName << "- 错误: Seek到行" << rowIndex << "的原位置(" << originalRowOffset << ")失败 (准备写入重定位标记). 文件:" << binFilePath << ", OS错误:" << file.errorString();
+                    file.close();
+                    return false;
+                }
+                qDebug() << funcName << "- 定位到行" << rowIndex << "的原位置:" << originalRowOffset << "准备写入重定位标记.";
+
+                QByteArray redirectData;
+                QDataStream redirectStream(&redirectData, QIODevice::WriteOnly);
+                redirectStream.setByteOrder(QDataStream::LittleEndian);
+                redirectStream << static_cast<quint32>(0xFFFFFFFF); // 特殊大小标记
+                redirectStream << newPos;                           // 重定位位置 (qint64)
+
+                if (file.write(redirectData) != redirectData.size())
+                {
+                    qWarning() << funcName << "- 错误: 写入重定位标记到行" << rowIndex << "的原位置(" << originalRowOffset << ")失败. 标记大小:" << redirectData.size() << ", 文件:" << binFilePath << ", OS错误:" << file.errorString();
+                    file.close();
+                    return false;
+                }
+                qDebug() << funcName << "- 行" << rowIndex << "的原位置已成功更新为重定位标记 (指向" << newPos << ").";
+            }
+            qDebug() << funcName << "- 所有重定位行的原位置指针更新完毕.";
+        }
+        else
+        {
+            qDebug() << funcName << "- 没有需要重定位的行.";
         }
 
-        // 步骤3: 更新原始行位置。对于重定位的行，写入指针；对于未重定位的行，直接覆盖。
-        qDebug() << funcName << " - 开始更新原始行位置...";
-        QDataStream updateStream(&file); // 使用同一个文件设备
-        updateStream.setByteOrder(QDataStream::LittleEndian);
-
-        for (int rowIndex : validModifiedRowsIndices)
+        // 处理可以直接覆盖的行 (新数据大小 <= 原数据大小)
+        qDebug() << funcName << "- 开始处理可以直接覆盖的行.";
+        for (auto it = serializedModifiedRows.constBegin(); it != serializedModifiedRows.constEnd(); ++it)
         {
-            if (!file.seek(rowPositions[rowIndex].offset))
+            int rowIndex = it.key();
+
+            if (invalidRowIndices.contains(rowIndex) || needRelocateRows.contains(rowIndex)) // 跳过无效或已重定位的行
             {
-                qWarning() << funcName << " - 失败(返回false): 无法跳转到行 " << rowIndex << " 的原始位置 (" << rowPositions[rowIndex].offset << ") 以进行更新。";
+                continue;
+            }
+
+            const QByteArray &dataToWrite = it.value();
+            quint32 newDataSize = dataToWrite.size();
+            RowInfo originalRowInfo = rowPositions[rowIndex];
+
+            qDebug() << funcName << "- 处理可覆盖行" << rowIndex << ": 原偏移=" << originalRowInfo.offset << ", 原数据大小=" << originalRowInfo.data_size << ", 新数据大小=" << newDataSize;
+
+            if (!file.seek(originalRowInfo.offset))
+            {
+                qWarning() << funcName << "- 错误: Seek到行" << rowIndex << "的原位置(" << originalRowInfo.offset << ")失败 (准备写入可覆盖数据). 文件:" << binFilePath << ", OS错误:" << file.errorString();
                 file.close();
                 return false;
             }
 
-            if (relocations.contains(rowIndex)) // 此行已被重定位
+            QByteArray sizeBytes;
+            QDataStream sizeStream(&sizeBytes, QIODevice::WriteOnly);
+            sizeStream.setByteOrder(QDataStream::LittleEndian);
+            sizeStream << newDataSize;
+
+            if (file.write(sizeBytes) != sizeBytes.size())
             {
-                const RowInfo &newPosInfo = relocations.value(rowIndex);
-                quint32 redirectMarker = VBIN_ROW_REDIRECT_MARKER; // 特殊大小标记
-                qint64 newOffset = newPosInfo.offset;
-
-                qDebug() << funcName << " - 行 " << rowIndex << " 已重定位。在原位置(" << rowPositions[rowIndex].offset
-                         << ")写入重定向标记(size=" << Qt::hex << redirectMarker << Qt::dec << ", new_offset=" << newOffset << ")";
-
-                QByteArray redirectBytes;
-                QDataStream tempRedirectStream(&redirectBytes, QIODevice::WriteOnly);
-                tempRedirectStream.setByteOrder(QDataStream::LittleEndian);
-                tempRedirectStream << redirectMarker;
-                tempRedirectStream << newOffset;
-
-                if (file.write(redirectBytes) != redirectBytes.size())
-                {
-                    qWarning() << funcName << " - 失败(返回false): 写入行 " << rowIndex << " 的重定位标记时出错。错误: " << file.errorString();
-                    file.close();
-                    return false;
-                }
+                qWarning() << funcName << "- 错误: 写入可覆盖行" << rowIndex << "的新大小(" << newDataSize << ")到位置" << originalRowInfo.offset << "失败. 文件:" << binFilePath << ", OS错误:" << file.errorString();
+                file.close();
+                return false;
             }
-            else // 此行未重定位，可以直接覆盖 (新数据大小 <= 原分配大小)
+
+            if (file.write(dataToWrite) != dataToWrite.size())
             {
-                const QByteArray &dataToWrite = serializedModifiedRowsData.value(rowIndex);
-                quint32 dataSize = static_cast<quint32>(dataToWrite.size());
-                quint32 originalAllocatedTotalSize = rowPositions[rowIndex].size;
-                quint32 newTotalSize = dataSize + sizeof(quint32);
-
-                if (newTotalSize > originalAllocatedTotalSize)
-                {
-                    qCritical() << funcName << " - 严重逻辑错误: 行 " << rowIndex << " 未标记为重定位，但新数据大小 (" << dataSize
-                                << ") 大于原分配空间 (" << (originalAllocatedTotalSize - sizeof(quint32)) << ").";
-                    file.close();
-                    return false;
-                }
-
-                qDebug() << funcName << " - 行 " << rowIndex << " 未重定位。在原位置(" << rowPositions[rowIndex].offset
-                         << ")直接覆盖。原total_size=" << originalAllocatedTotalSize << ", 新data_size=" << dataSize;
-
-                QByteArray sizeBytes;
-                QDataStream tempSizeStream(&sizeBytes, QIODevice::WriteOnly);
-                tempSizeStream.setByteOrder(QDataStream::LittleEndian);
-                tempSizeStream << dataSize; // 写入新的数据大小
-                if (file.write(sizeBytes) != sizeBytes.size())
-                {
-                    qWarning() << funcName << " - 失败(返回false): 写入行 " << rowIndex << " 的新数据大小时出错。错误: " << file.errorString();
-                    file.close();
-                    return false;
-                }
-
-                if (file.write(dataToWrite) != dataToWrite.size())
-                {
-                    qWarning() << funcName << " - 失败(返回false): 写入行 " << rowIndex << " 的新数据时出错。错误: " << file.errorString();
-                    file.close();
-                    return false;
-                }
-
-                // 如果新数据比旧数据小，用0填充剩余空间以避免旧数据残留（可选，但更安全）
-                // 或者确保后续读取能正确处理较短的数据。当前设计是只读取 size 指定的长度。
-                // 为简单起见，目前不填充。依赖读取逻辑。
+                qWarning() << funcName << "- 错误: 写入可覆盖行" << rowIndex << "的新数据(大小" << newDataSize << ")到位置" << (originalRowInfo.offset + sizeBytes.size()) << "失败. 文件:" << binFilePath << ", OS错误:" << file.errorString();
+                file.close();
+                return false;
             }
+
+            // 如果新数据比旧数据小，可能需要用0填充剩余空间，但这通常不是必须的，
+            // 因为后续读取会依赖于新的大小。但为了文件"整洁"，可以考虑。
+            // 目前实现：不填充。旧数据尾部可能残留，但不影响逻辑。
+            qDebug() << funcName << "- 可覆盖行" << rowIndex << "已成功写入新数据.";
         }
-        qInfo() << funcName << " - 所有修改行的原始位置已更新。";
+        qDebug() << funcName << "- 所有可直接覆盖的行处理完毕.";
 
+        // 确保数据写入磁盘
+        if (!file.flush())
+        {
+            qWarning() << funcName << "- 警告: file.flush() 返回false. OS错误:" << file.errorString() << ". 文件:" << binFilePath;
+            // 不一定致命，但值得记录
+        }
         file.close();
-        qInfo() << funcName << " - 文件已关闭。增量更新成功完成。";
+        qDebug() << funcName << "- 文件已刷新并关闭.";
+
+        int validModifiedCount = modifiedRows.size() - invalidRowIndices.size();
+        qDebug() << funcName << "- 成功更新" << validModifiedCount << "行数据, 其中重定位" << needRelocateRows.size() << "行. 文件:" << binFilePath;
+
         return true;
     }
 
