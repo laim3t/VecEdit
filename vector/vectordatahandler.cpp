@@ -2566,7 +2566,7 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
     // 调整为基于0的索引
     int startIndex = fromRow - 1;
     int endIndex = toRow - 1;
-    
+
     // 计算要删除的行数
     int rowsToDelete = endIndex - startIndex + 1;
     qDebug() << funcName << "- 将删除从索引" << startIndex << "到" << endIndex << "的" << rowsToDelete << "行";
@@ -3094,12 +3094,12 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
 
     // 读取当前页的行数据
     pageRows.reserve(rowsToLoad);
-    
+
     // 记录加载开始时间，用于计算性能统计
     QDateTime startTime = QDateTime::currentDateTime();
     int lastReportedPercent = -1;
     const int LOG_INTERVAL = 100; // 分页加载使用较小的日志间隔
-    
+
     for (int i = 0; i < rowsToLoad; ++i)
     {
         quint32 rowBlockSize = 0;
@@ -3135,16 +3135,18 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
         }
 
         pageRows.append(rowData);
-        
+
         // 记录进度
-        if (rowsToLoad > LOG_INTERVAL) {
-            int percent = static_cast<int>((i+1) * 100 / rowsToLoad);
-            if (percent != lastReportedPercent && (i % LOG_INTERVAL == LOG_INTERVAL-1 || percent - lastReportedPercent >= 10)) {
+        if (rowsToLoad > LOG_INTERVAL)
+        {
+            int percent = static_cast<int>((i + 1) * 100 / rowsToLoad);
+            if (percent != lastReportedPercent && (i % LOG_INTERVAL == LOG_INTERVAL - 1 || percent - lastReportedPercent >= 10))
+            {
                 QDateTime currentTime = QDateTime::currentDateTime();
                 qint64 elapsedMs = startTime.msecsTo(currentTime);
-                double rowsPerSecond = (elapsedMs > 0) ? ((i+1) * 1000.0 / elapsedMs) : 0;
-                qDebug() << funcName << " - 页面数据加载进度: " << (i+1) << "/" << rowsToLoad 
-                        << " (" << percent << "%), 速度: " << rowsPerSecond << " 行/秒";
+                double rowsPerSecond = (elapsedMs > 0) ? ((i + 1) * 1000.0 / elapsedMs) : 0;
+                qDebug() << funcName << " - 页面数据加载进度: " << (i + 1) << "/" << rowsToLoad
+                         << " (" << percent << "%), 速度: " << rowsPerSecond << " 行/秒";
                 lastReportedPercent = percent;
             }
         }
@@ -3152,10 +3154,11 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
 
     QDateTime endTime = QDateTime::currentDateTime();
     qint64 totalElapsedMs = startTime.msecsTo(endTime);
-    if (pageRows.size() > 0 && totalElapsedMs > 100) { // 仅当加载时间超过100毫秒时记录
+    if (pageRows.size() > 0 && totalElapsedMs > 100)
+    { // 仅当加载时间超过100毫秒时记录
         double avgRowsPerSecond = (totalElapsedMs > 0) ? (pageRows.size() * 1000.0 / totalElapsedMs) : 0;
-        qDebug() << funcName << " - 页面数据加载完成: 读取" << pageRows.size() << "行, 耗时: " 
-                << (totalElapsedMs / 1000.0) << "秒, 平均速度: " << avgRowsPerSecond << "行/秒";
+        qDebug() << funcName << " - 页面数据加载完成: 读取" << pageRows.size() << "行, 耗时: "
+                 << (totalElapsedMs / 1000.0) << "秒, 平均速度: " << avgRowsPerSecond << "行/秒";
     }
 
     file.close();
@@ -3382,10 +3385,10 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
 void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)
 {
     const QString funcName = "VectorDataHandler::markRowAsModified";
-    
+
     // 添加到修改行集合中
     m_modifiedRows[tableId].insert(rowIndex);
-    qDebug() << funcName << " - 已标记表ID:" << tableId << "的行:" << rowIndex << "为已修改，当前修改行数:" 
+    qDebug() << funcName << " - 已标记表ID:" << tableId << "的行:" << rowIndex << "为已修改，当前修改行数:"
              << m_modifiedRows[tableId].size();
 }
 
@@ -3393,13 +3396,14 @@ void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)
 void VectorDataHandler::clearModifiedRows(int tableId)
 {
     const QString funcName = "VectorDataHandler::clearModifiedRows";
-    
+
     int clearedCount = 0;
-    if (m_modifiedRows.contains(tableId)) {
+    if (m_modifiedRows.contains(tableId))
+    {
         clearedCount = m_modifiedRows[tableId].size();
         m_modifiedRows[tableId].clear();
     }
-    
+
     qDebug() << funcName << " - 已清除表ID:" << tableId << "的所有修改标记，共" << clearedCount << "行";
 }
 
@@ -3563,18 +3567,21 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
 
     // 4. 性能优化: 使用缓存机制避免每次都从文件读取所有行数据
     QList<Vector::RowData> allRows;
-    
+
     // 检查缓存是否有效
     bool useCachedData = isTableDataCacheValid(tableId, absoluteBinFilePath);
-    
-    if (useCachedData) {
+
+    if (useCachedData)
+    {
         // 使用缓存数据
         allRows = m_tableDataCache[tableId];
         qDebug() << funcName << " - 使用表" << tableId << "的缓存数据，包含" << allRows.size() << "行";
-    } else {
+    }
+    else
+    {
         // 缓存无效，从文件读取所有行
         qDebug() << funcName << " - 表" << tableId << "的缓存无效或不存在，从文件读取";
-        
+
         // 从二进制文件读取所有行
         if (!readAllRowsFromBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows))
         {
@@ -3606,7 +3613,7 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                 allRows.append(rowData);
             }
         }
-        
+
         // 更新缓存
         updateTableDataCache(tableId, allRows, absoluteBinFilePath);
     }
@@ -3637,9 +3644,10 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
 
             allRows.append(rowData);
         }
-        
+
         // 如果添加了行，更新缓存
-        if (additionalRows > 0) {
+        if (additionalRows > 0)
+        {
             updateTableDataCache(tableId, allRows, absoluteBinFilePath);
         }
     }
@@ -3688,6 +3696,8 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
     int startRowIndex = currentPage * pageSize;
     int rowsInCurrentPage = currentPageTable->rowCount();
     int modifiedCount = 0; // 记录修改的行数
+
+    qDebug() << funcName << " - 进入保存。表ID " << tableId << ", m_modifiedRows 中已标记的行数: " << m_modifiedRows[tableId].size(); // <--- 新增日志 ①
 
     // 确保不会越界
     if (startRowIndex >= allRows.size())
@@ -3833,6 +3843,8 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         }
     }
 
+    qDebug() << funcName << " - 当前页面数据与allRows比较后，检测到本页修改行数 (modifiedCount): " << modifiedCount; // <--- 新增日志 ②
+
     // 如果没有检测到任何数据变更，可以直接返回成功
     if (modifiedCount == 0)
     {
@@ -3843,10 +3855,10 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
 
     // 6. 写入二进制文件 - 使用优化的方式
     qDebug() << funcName << " - 准备写入数据到二进制文件，已修改 " << modifiedCount << " 行数据";
-    
+
     // 创建modifiedRowsMap，只包含修改过的行
     QMap<int, Vector::RowData> modifiedRowsMap;
-    
+
     for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
     {
         int rowInFullData = startRowIndex + rowInPage;
@@ -3854,17 +3866,20 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         {
             break; // 防止越界
         }
-        
+
         // 检查此行是否被修改过
         if (m_modifiedRows.contains(tableId) && m_modifiedRows[tableId].contains(rowInFullData))
         {
             modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
         }
     }
-    
+
+    qDebug() << funcName << " - 从 m_modifiedRows 填充后，modifiedRowsMap 大小: " << modifiedRowsMap.size(); // <--- 新增日志 ③
+
     // 如果没有确切的修改记录，则将整个当前页作为修改页面处理
     if (modifiedRowsMap.isEmpty() && modifiedCount > 0)
     {
+        qDebug() << funcName << " - modifiedRowsMap 为空但 modifiedCount > 0，将使用当前页数据填充 modifiedRowsMap"; // <--- 新增日志
         for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
         {
             int rowInFullData = startRowIndex + rowInPage;
@@ -3872,32 +3887,75 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
             {
                 break; // 防止越界
             }
-            
             modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
         }
+        qDebug() << funcName << " - m_modifiedRows 为空但本页有修改，回退逻辑填充后 modifiedRowsMap 大小: " << modifiedRowsMap.size(); // <--- 新增日志 ④
     }
-    
+
     // 使用优化的方法只更新修改过的行
     bool writeSuccess = false;
     if (!modifiedRowsMap.isEmpty())
     {
-        // 尝试使用增量更新方法
-        writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
-        
-        if (!writeSuccess)
+        qInfo() << funcName << " - 检测到 " << modifiedRowsMap.size() << " 行已修改，尝试进行增量更新 (调用 updateRowsInBinary)。";
+        // bool incrementalUpdateAttempted = true; // 标记尝试过，如果需要此信息的话
+        bool incrementalUpdateSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
+        qInfo() << funcName << " - updateRowsInBinary 返回: " << incrementalUpdateSuccess;
+
+        if (incrementalUpdateSuccess)
         {
-            // 如果增量更新失败，回退到完整重写
-            qWarning() << funcName << " - 增量更新失败，尝试完整重写";
+            qInfo() << funcName << " - 增量更新 (updateRowsInBinary) 成功。";
+            writeSuccess = true;
+        }
+        else
+        {
+            qWarning() << funcName << " - 增量更新 (updateRowsInBinary) 失败，将回退到完整重写 (writeAllRowsToBinary)。";
             writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+            if (writeSuccess)
+            {
+                qInfo() << funcName << " - 完整重写 (writeAllRowsToBinary) 在增量更新失败后成功。";
+            }
+            else
+            {
+                qWarning() << funcName << " - 致命错误: 增量更新和完整重写 (writeAllRowsToBinary) 全部失败！";
+            }
         }
     }
-    
-    if (!writeSuccess)
+    else
+    {
+        // 此分支的逻辑：如果 modifiedCount > 0 但 modifiedRowsMap 仍然为空
+        // （例如，如果上面填充 modifiedRowsMap 的逻辑失败或被跳过）
+        if (modifiedCount > 0)
+        {
+            qWarning() << funcName << " - modifiedCount 为 " << modifiedCount
+                       << " 但 modifiedRowsMap 为空。这可能表示数据收集或修改标记逻辑存在问题。"
+                       << "将尝试进行完整文件重写作为安全措施。";
+            writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
+            if (writeSuccess)
+            {
+                qInfo() << funcName << " - 完整重写 (writeAllRowsToBinary) 成功 (由于 modifiedRowsMap 为空但有修改计数)。";
+            }
+            else
+            {
+                qWarning() << funcName << " - 致命错误: modifiedRowsMap 为空（但有修改计数）且完整重写 (writeAllRowsToBinary) 也失败了！";
+            }
+        }
+        else
+        {
+            // modifiedCount 为 0 的情况，已在函数更早的部分处理并返回 true。
+            // 如果代码能执行到这里且 modifiedCount == 0，说明之前的返回逻辑被绕过，这是非预期的。
+            qWarning() << funcName << " - 非预期状态: modifiedRowsMap 为空且 modifiedCount 也为 0，但未提前返回。检查函数流程。";
+            // 在这种非预期情况下，不应尝试写入，但为了安全，也不将 writeSuccess 设为 true，让后续逻辑处理。
+        }
+    }
+
+    if (!writeSuccess && modifiedCount > 0) // 仅当有修改时，写入失败才是一个需要报告错误的问题
     {
         errorMessage = QString("写入二进制文件失败: %1").arg(absoluteBinFilePath);
         qWarning() << funcName << " - " << errorMessage;
         return false;
-    } else {
+    }
+    else
+    {
         // 写入成功后更新缓存
         updateTableDataCache(tableId, allRows, absoluteBinFilePath);
     }
@@ -3946,8 +4004,9 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
 void VectorDataHandler::clearTableDataCache(int tableId)
 {
     const QString funcName = "VectorDataHandler::clearTableDataCache";
-    
-    if (m_tableDataCache.contains(tableId)) {
+
+    if (m_tableDataCache.contains(tableId))
+    {
         qDebug() << funcName << " - 清除表" << tableId << "的数据缓存";
         m_tableDataCache.remove(tableId);
         m_tableCacheTimestamp.remove(tableId);
@@ -3960,7 +4019,7 @@ void VectorDataHandler::clearAllTableDataCache()
 {
     const QString funcName = "VectorDataHandler::clearAllTableDataCache";
     qDebug() << funcName << " - 清除所有表数据缓存";
-    
+
     m_tableDataCache.clear();
     m_tableCacheTimestamp.clear();
     m_tableBinaryFilePath.clear();
@@ -3971,43 +4030,51 @@ void VectorDataHandler::clearAllTableDataCache()
 bool VectorDataHandler::isTableDataCacheValid(int tableId, const QString &binFilePath)
 {
     const QString funcName = "VectorDataHandler::isTableDataCacheValid";
-    
+
     // 检查是否有缓存
-    if (!m_tableDataCache.contains(tableId)) {
+    if (!m_tableDataCache.contains(tableId))
+    {
         qDebug() << funcName << " - 表" << tableId << "没有缓存数据";
         return false;
     }
-    
+
     // 检查文件路径是否匹配
-    if (m_tableBinaryFilePath.value(tableId) != binFilePath) {
+    if (m_tableBinaryFilePath.value(tableId) != binFilePath)
+    {
         qDebug() << funcName << " - 表" << tableId << "的文件路径已变更";
         return false;
     }
-    
+
     // 检查文件是否存在
     QFile file(binFilePath);
-    if (!file.exists()) {
+    if (!file.exists())
+    {
         qDebug() << funcName << " - 表" << tableId << "的二进制文件不存在";
         return false;
     }
-    
+
     // 检查文件修改时间是否晚于缓存时间
     QFileInfo fileInfo(binFilePath);
     QDateTime fileModTime = fileInfo.lastModified();
     QDateTime cacheTime = m_tableCacheTimestamp.value(tableId);
-    
-    if (cacheTime.isValid() && fileModTime > cacheTime) {
+
+    if (cacheTime.isValid() && fileModTime > cacheTime)
+    {
         qDebug() << funcName << " - 表" << tableId << "的文件已被修改，缓存已过期";
         return false;
     }
-    
+
     // 可选：检查MD5校验和
-    if (m_tableBinaryFileMD5.contains(tableId)) {
-        if (file.open(QIODevice::ReadOnly)) {
+    if (m_tableBinaryFileMD5.contains(tableId))
+    {
+        if (file.open(QIODevice::ReadOnly))
+        {
             QCryptographicHash hash(QCryptographicHash::Md5);
-            if (hash.addData(&file)) {
+            if (hash.addData(&file))
+            {
                 QByteArray fileHash = hash.result();
-                if (fileHash != m_tableBinaryFileMD5.value(tableId)) {
+                if (fileHash != m_tableBinaryFileMD5.value(tableId))
+                {
                     qDebug() << funcName << " - 表" << tableId << "的文件内容已变更，MD5不匹配";
                     file.close();
                     return false;
@@ -4016,7 +4083,7 @@ bool VectorDataHandler::isTableDataCacheValid(int tableId, const QString &binFil
             file.close();
         }
     }
-    
+
     qDebug() << funcName << " - 表" << tableId << "的缓存有效";
     return true;
 }
@@ -4025,25 +4092,27 @@ bool VectorDataHandler::isTableDataCacheValid(int tableId, const QString &binFil
 void VectorDataHandler::updateTableDataCache(int tableId, const QList<Vector::RowData> &rows, const QString &binFilePath)
 {
     const QString funcName = "VectorDataHandler::updateTableDataCache";
-    
+
     // 更新缓存数据
     m_tableDataCache[tableId] = rows;
-    
+
     // 更新时间戳
     m_tableCacheTimestamp[tableId] = QDateTime::currentDateTime();
-    
+
     // 更新文件路径
     m_tableBinaryFilePath[tableId] = binFilePath;
-    
+
     // 可选：更新MD5校验和
     QFile file(binFilePath);
-    if (file.open(QIODevice::ReadOnly)) {
+    if (file.open(QIODevice::ReadOnly))
+    {
         QCryptographicHash hash(QCryptographicHash::Md5);
-        if (hash.addData(&file)) {
+        if (hash.addData(&file))
+        {
             m_tableBinaryFileMD5[tableId] = hash.result();
         }
         file.close();
     }
-    
+
     qDebug() << funcName << " - 已更新表" << tableId << "的缓存，" << rows.size() << "行数据";
 }

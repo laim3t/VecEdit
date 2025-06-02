@@ -69,7 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     setupMenu();
-    setupSidebarNavigator();  // 添加侧边导航栏设置
+    setupSidebarNavigator(); // 添加侧边导航栏设置
 
     // 创建对话框管理器
     m_dialogManager = new DialogManager(this);
@@ -374,7 +374,7 @@ void MainWindow::openExistingProject()
 
         // 检查和修复所有向量表的列配置
         checkAndFixAllVectorTables();
-        
+
         // 刷新侧边导航栏
         refreshSidebarNavigator();
 
@@ -412,7 +412,7 @@ void MainWindow::closeCurrentProject()
         {
             for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
             {
-                QTreeWidgetItem* root = m_sidebarTree->topLevelItem(i);
+                QTreeWidgetItem *root = m_sidebarTree->topLevelItem(i);
                 while (root->childCount() > 0)
                 {
                     delete root->takeChild(0);
@@ -474,10 +474,10 @@ bool MainWindow::showTimeSetDialog(bool isNewTable)
     if (dialog.exec() == QDialog::Accepted)
     {
         qDebug() << "MainWindow::showTimeSetDialog - 用户确认TimeSet设置";
-        
+
         // 刷新侧边导航栏
         refreshSidebarNavigator();
-        
+
         return true;
     }
     else
@@ -500,8 +500,8 @@ void MainWindow::setupVectorTableUI()
     // 默认使用图标+文本模式，但根据窗口大小可能动态调整
     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolBar->setStyleSheet("QToolBar { spacing: 1px; } QToolButton { padding: 2px; font-size: 9pt; }"); // 进一步紧凑化
-    toolBar->setMovable(false); // 禁止移动工具栏
-    
+    toolBar->setMovable(false);                                                                         // 禁止移动工具栏
+
     // 添加刷新和保存按钮到工具栏前面（确保这些重要操作按钮可见）
     // 刷新按钮
     m_refreshButton = new QToolButton(this);
@@ -510,7 +510,7 @@ void MainWindow::setupVectorTableUI()
     m_refreshButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     connect(m_refreshButton, &QToolButton::clicked, this, &MainWindow::refreshVectorTableData);
     toolBar->addWidget(m_refreshButton);
-    
+
     // 保存按钮
     QToolButton *saveButton = new QToolButton(this);
     saveButton->setText(tr("保存"));
@@ -518,7 +518,7 @@ void MainWindow::setupVectorTableUI()
     saveButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     connect(saveButton, &QToolButton::clicked, this, &MainWindow::saveVectorTableData);
     toolBar->addWidget(saveButton);
-    
+
     // 新建向量表按钮 - 移到前面显眼位置
     QToolButton *addTableButton = new QToolButton(this);
     addTableButton->setText(tr("新建向量表"));
@@ -526,7 +526,7 @@ void MainWindow::setupVectorTableUI()
     addTableButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     connect(addTableButton, &QToolButton::clicked, this, &MainWindow::addNewVectorTable);
     toolBar->addWidget(addTableButton);
-    
+
     toolBar->addSeparator();
 
     // 向量表选择下拉框
@@ -534,7 +534,7 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableSelector = new QComboBox(this);
     m_vectorTableSelector->setObjectName(QStringLiteral("m_vectorTableSelector"));
     m_vectorTableSelector->setMinimumWidth(150);
-    
+
     QWidget *selectorWidget = new QWidget(toolBar);
     QHBoxLayout *selectorLayout = new QHBoxLayout(selectorWidget);
     selectorLayout->setContentsMargins(5, 0, 5, 0);
@@ -542,7 +542,7 @@ void MainWindow::setupVectorTableUI()
     selectorLayout->addWidget(selectLabel);
     selectorLayout->addWidget(m_vectorTableSelector);
     toolBar->addWidget(selectorWidget);
-    
+
     toolBar->addSeparator();
 
     // 创建按钮分组1 - 管脚相关
@@ -629,7 +629,7 @@ void MainWindow::setupVectorTableUI()
     deleteRowButton->setText(tr("删除向量行"));
     deleteRowButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton));
     deleteRowButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    deleteRowButton->setToolTip(tr("删除向量行")); // 添加工具提示
+    deleteRowButton->setToolTip(tr("删除向量行"));               // 添加工具提示
     connect(deleteRowButton, &QToolButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
     toolBar->addWidget(deleteRowButton);
 
@@ -638,7 +638,7 @@ void MainWindow::setupVectorTableUI()
     m_deleteRangeButton->setText(tr("删除范围"));
     m_deleteRangeButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TrashIcon));
     m_deleteRangeButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    m_deleteRangeButton->setToolTip(tr("删除范围")); // 添加工具提示
+    m_deleteRangeButton->setToolTip(tr("删除范围"));                 // 添加工具提示
     connect(m_deleteRangeButton, &QToolButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
     toolBar->addWidget(m_deleteRangeButton);
 
@@ -647,7 +647,7 @@ void MainWindow::setupVectorTableUI()
     m_gotoLineButton->setText(tr("跳转到行"));
     m_gotoLineButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowForward));
     m_gotoLineButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    m_gotoLineButton->setToolTip(tr("跳转到行")); // 添加工具提示
+    m_gotoLineButton->setToolTip(tr("跳转到行"));                 // 添加工具提示
     connect(m_gotoLineButton, &QToolButton::clicked, this, &MainWindow::gotoLine);
     toolBar->addWidget(m_gotoLineButton);
 
@@ -655,13 +655,13 @@ void MainWindow::setupVectorTableUI()
 
     // 创建按钮分组4 - 向量表操作和杂项
     // 新建向量表按钮已移动到前面，不需要重复添加
-    
+
     // 删除向量表按钮 - 只显示图标模式
     QToolButton *deleteTableButton = new QToolButton(this);
     deleteTableButton->setText(tr("删除向量表"));
     deleteTableButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton));
     deleteTableButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    deleteTableButton->setToolTip(tr("删除向量表")); // 添加工具提示
+    deleteTableButton->setToolTip(tr("删除向量表"));               // 添加工具提示
     connect(deleteTableButton, &QToolButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
     toolBar->addWidget(deleteTableButton);
 
@@ -1334,18 +1334,18 @@ void MainWindow::saveVectorTableData()
     savingDialog.setText("正在保存数据，请稍候...");
     savingDialog.setStandardButtons(QMessageBox::NoButton);
     savingDialog.setIcon(QMessageBox::Information);
-    
+
     // 使对话框非模态，并立即显示
     savingDialog.setModal(false);
     savingDialog.show();
-    
+
     // 立即处理事件，确保对话框显示出来
     QCoreApplication::processEvents();
 
     // 保存当前表格的状态信息
     int currentPage = m_currentPage;
     int pageSize = m_pageSize;
-    
+
     // 保存结果变量
     bool saveSuccess = false;
     QString errorMessage;
@@ -1368,14 +1368,14 @@ void MainWindow::saveVectorTableData()
     {
         // 非分页模式，直接保存当前表格数据
         saveSuccess = VectorDataHandler::instance().saveVectorTableData(
-            tableId, 
-            targetTableWidget, 
+            tableId,
+            targetTableWidget,
             errorMessage);
     }
-    
+
     // 关闭"保存中"对话框
     savingDialog.close();
-    
+
     // 根据保存结果显示相应的消息
     if (saveSuccess)
     {
@@ -3212,10 +3212,10 @@ void MainWindow::addSinglePin()
     if (ok && !pinName.isEmpty())
     {
         // 添加到数据库
-    QList<QString> pins;
-    pins << pinName;
-    if (addPinsToDatabase(pins))
-    {
+        QList<QString> pins;
+        pins << pinName;
+        if (addPinsToDatabase(pins))
+        {
             statusBar()->showMessage(tr("管脚 \"%1\" 添加成功").arg(pinName));
 
             // 刷新侧边导航栏
@@ -3298,8 +3298,8 @@ void MainWindow::deletePins()
 
         // 确认删除
         if (QMessageBox::question(this, tr("确认删除"),
-                                tr("确定要删除选中的 %1 个管脚吗？").arg(selectedItems.count()),
-                                QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+                                  tr("确定要删除选中的 %1 个管脚吗？").arg(selectedItems.count()),
+                                  QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         {
             return;
         }
@@ -3327,7 +3327,7 @@ void MainWindow::deletePins()
             findTablesQuery.addBindValue(pinId);
 
             if (findTablesQuery.exec())
-                {
+            {
                 QStringList tablesUsingPin;
                 while (findTablesQuery.next())
                 {
@@ -3337,25 +3337,25 @@ void MainWindow::deletePins()
                 if (!tablesUsingPin.isEmpty())
                 {
                     QMessageBox::warning(this, tr("警告"),
-                                        tr("无法删除管脚 \"%1\"，因为以下向量表正在使用它：\n%2")
-                                            .arg(pinMap[pinId])
-                                            .arg(tablesUsingPin.join("\n")));
+                                         tr("无法删除管脚 \"%1\"，因为以下向量表正在使用它：\n%2")
+                                             .arg(pinMap[pinId])
+                                             .arg(tablesUsingPin.join("\n")));
                     success = false;
                     continue;
-                    }
                 }
+            }
 
             // 删除管脚
-                QSqlQuery deletePinQuery(db);
+            QSqlQuery deletePinQuery(db);
             deletePinQuery.prepare("DELETE FROM pins WHERE id = ?");
-                deletePinQuery.addBindValue(pinId);
+            deletePinQuery.addBindValue(pinId);
 
-                if (!deletePinQuery.exec())
-                {
+            if (!deletePinQuery.exec())
+            {
                 errorMsg = tr("删除管脚 \"%1\" 时出错: %2")
-                            .arg(pinMap[pinId])
-                            .arg(deletePinQuery.lastError().text());
-                    success = false;
+                               .arg(pinMap[pinId])
+                               .arg(deletePinQuery.lastError().text());
+                success = false;
                 break;
             }
         }
@@ -4101,23 +4101,30 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         updateWindowSizeInfo();
 
         // 根据窗口宽度动态调整工具栏按钮显示模式
-        if (m_vectorTableContainer && m_vectorTableContainer->isVisible()) {
+        if (m_vectorTableContainer && m_vectorTableContainer->isVisible())
+        {
             // 获取工具栏
-            QToolBar* toolBar = m_vectorTableContainer->findChild<QToolBar*>();
-            if (toolBar) {
+            QToolBar *toolBar = m_vectorTableContainer->findChild<QToolBar *>();
+            if (toolBar)
+            {
                 // 如果窗口宽度小于阈值，则将所有按钮设置为仅图标模式
-                if (event->size().width() < 800) {
+                if (event->size().width() < 800)
+                {
                     toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-                } else {
+                }
+                else
+                {
                     // 恢复为图标+文本模式
                     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-                    
+
                     // 但保持某些按钮仍为仅图标模式
-                    for (QToolButton* btn : toolBar->findChildren<QToolButton*>()) {
-                        if (btn->toolTip() == tr("删除向量行") || 
-                            btn->toolTip() == tr("删除范围") || 
-                            btn->toolTip() == tr("跳转到行") || 
-                            btn->toolTip() == tr("删除向量表")) {
+                    for (QToolButton *btn : toolBar->findChildren<QToolButton *>())
+                    {
+                        if (btn->toolTip() == tr("删除向量行") ||
+                            btn->toolTip() == tr("删除范围") ||
+                            btn->toolTip() == tr("跳转到行") ||
+                            btn->toolTip() == tr("删除向量表"))
+                        {
                             btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
                         }
                     }
@@ -4184,7 +4191,7 @@ void MainWindow::saveWindowState()
     {
         settings.setValue("MainWindow/lastSelectedVectorTable", m_vectorTableSelector->currentText());
     }
-    
+
     // 保存侧边栏状态
     if (m_sidebarDock)
     {
@@ -4223,17 +4230,17 @@ void MainWindow::restoreWindowState()
                 for (int i = 0; i < m_pageSizeSelector->count(); ++i)
                 {
                     if (m_pageSizeSelector->itemData(i).toInt() == savedPageSize)
-    {
+                    {
                         m_pageSizeSelector->setCurrentIndex(i);
                         break;
                     }
                 }
             }
-            
+
             m_pageSize = savedPageSize;
         }
     }
-    
+
     // 恢复向量表选择
     if (settings.contains("MainWindow/lastSelectedVectorTable") && m_vectorTableSelector && m_vectorTableSelector->count() > 0)
     {
@@ -4252,7 +4259,7 @@ void MainWindow::restoreWindowState()
         {
             bool visible = settings.value("MainWindow/sidebarVisible").toBool();
             m_sidebarDock->setVisible(visible);
-    }
+        }
 
         if (settings.contains("MainWindow/sidebarDocked") && settings.contains("MainWindow/sidebarArea"))
         {
@@ -4306,13 +4313,13 @@ void MainWindow::setupSidebarNavigator()
     m_sidebarDock->setObjectName("sidebarDock");
     m_sidebarDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_sidebarDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-    
+
     // 创建树形控件
     m_sidebarTree = new QTreeWidget(m_sidebarDock);
     m_sidebarTree->setHeaderLabel(tr("项目组件"));
     m_sidebarTree->setColumnCount(1);
     m_sidebarTree->setIconSize(QSize(16, 16));
-    
+
     // 设置树形控件样式
     QString treeStyle = R"(
         QTreeWidget {
@@ -4328,34 +4335,34 @@ void MainWindow::setupSidebarNavigator()
         }
     )";
     m_sidebarTree->setStyleSheet(treeStyle);
-    
+
     // 创建根节点
-    QTreeWidgetItem* pinRoot = new QTreeWidgetItem(m_sidebarTree);
+    QTreeWidgetItem *pinRoot = new QTreeWidgetItem(m_sidebarTree);
     pinRoot->setText(0, tr("管脚"));
     pinRoot->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_FileDialogDetailedView));
     pinRoot->setData(0, Qt::UserRole, "pins");
-    
-    QTreeWidgetItem* timeSetRoot = new QTreeWidgetItem(m_sidebarTree);
+
+    QTreeWidgetItem *timeSetRoot = new QTreeWidgetItem(m_sidebarTree);
     timeSetRoot->setText(0, tr("TimeSets"));
     timeSetRoot->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_ComputerIcon));
     timeSetRoot->setData(0, Qt::UserRole, "timesets");
-    
-    QTreeWidgetItem* vectorTableRoot = new QTreeWidgetItem(m_sidebarTree);
+
+    QTreeWidgetItem *vectorTableRoot = new QTreeWidgetItem(m_sidebarTree);
     vectorTableRoot->setText(0, tr("向量表"));
     vectorTableRoot->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_FileDialogListView));
     vectorTableRoot->setData(0, Qt::UserRole, "vectortables");
-    
-    QTreeWidgetItem* labelRoot = new QTreeWidgetItem(m_sidebarTree);
+
+    QTreeWidgetItem *labelRoot = new QTreeWidgetItem(m_sidebarTree);
     labelRoot->setText(0, tr("标签"));
     labelRoot->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_FileDialogInfoView));
     labelRoot->setData(0, Qt::UserRole, "labels");
-    
+
     // 连接信号槽
     connect(m_sidebarTree, &QTreeWidget::itemClicked, this, &MainWindow::onSidebarItemClicked);
-    
+
     // 将树形控件设置为停靠部件的内容
     m_sidebarDock->setWidget(m_sidebarTree);
-    
+
     // 将侧边栏添加到主窗口的左侧
     addDockWidget(Qt::LeftDockWidgetArea, m_sidebarDock);
 }
@@ -4367,35 +4374,35 @@ void MainWindow::refreshSidebarNavigator()
     {
         return;
     }
-    
+
     // 临时保存选中状态
     QMap<QString, QString> selectedItems;
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
-        QTreeWidgetItem* root = m_sidebarTree->topLevelItem(i);
+        QTreeWidgetItem *root = m_sidebarTree->topLevelItem(i);
         QString rootType = root->data(0, Qt::UserRole).toString();
-        
+
         for (int j = 0; j < root->childCount(); j++)
         {
-            QTreeWidgetItem* child = root->child(j);
+            QTreeWidgetItem *child = root->child(j);
             if (child->isSelected())
             {
                 selectedItems[rootType] = child->data(0, Qt::UserRole).toString();
             }
         }
-        
+
         // 清空子节点，准备重新加载
         while (root->childCount() > 0)
         {
             delete root->takeChild(0);
         }
     }
-    
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
-    
+
     // 获取管脚列表
-    QTreeWidgetItem* pinRoot = nullptr;
+    QTreeWidgetItem *pinRoot = nullptr;
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
         if (m_sidebarTree->topLevelItem(i)->data(0, Qt::UserRole).toString() == "pins")
@@ -4404,7 +4411,7 @@ void MainWindow::refreshSidebarNavigator()
             break;
         }
     }
-    
+
     if (pinRoot)
     {
         QSqlQuery pinQuery(db);
@@ -4414,11 +4421,11 @@ void MainWindow::refreshSidebarNavigator()
         {
             int pinId = pinQuery.value(0).toInt();
             QString pinName = pinQuery.value(1).toString();
-            
-            QTreeWidgetItem* pinItem = new QTreeWidgetItem(pinRoot);
+
+            QTreeWidgetItem *pinItem = new QTreeWidgetItem(pinRoot);
             pinItem->setText(0, pinName);
             pinItem->setData(0, Qt::UserRole, QString::number(pinId));
-            
+
             // 恢复选中状态
             if (selectedItems.contains("pins") && selectedItems["pins"] == QString::number(pinId))
             {
@@ -4426,9 +4433,9 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
     }
-    
+
     // 获取TimeSet列表
-    QTreeWidgetItem* timeSetRoot = nullptr;
+    QTreeWidgetItem *timeSetRoot = nullptr;
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
         if (m_sidebarTree->topLevelItem(i)->data(0, Qt::UserRole).toString() == "timesets")
@@ -4437,7 +4444,7 @@ void MainWindow::refreshSidebarNavigator()
             break;
         }
     }
-    
+
     if (timeSetRoot)
     {
         QSqlQuery timeSetQuery(db);
@@ -4447,11 +4454,11 @@ void MainWindow::refreshSidebarNavigator()
         {
             int timeSetId = timeSetQuery.value(0).toInt();
             QString timeSetName = timeSetQuery.value(1).toString();
-            
-            QTreeWidgetItem* timeSetItem = new QTreeWidgetItem(timeSetRoot);
+
+            QTreeWidgetItem *timeSetItem = new QTreeWidgetItem(timeSetRoot);
             timeSetItem->setText(0, timeSetName);
             timeSetItem->setData(0, Qt::UserRole, QString::number(timeSetId));
-            
+
             // 恢复选中状态
             if (selectedItems.contains("timesets") && selectedItems["timesets"] == QString::number(timeSetId))
             {
@@ -4459,9 +4466,9 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
     }
-    
+
     // 获取向量表列表
-    QTreeWidgetItem* vectorTableRoot = nullptr;
+    QTreeWidgetItem *vectorTableRoot = nullptr;
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
         if (m_sidebarTree->topLevelItem(i)->data(0, Qt::UserRole).toString() == "vectortables")
@@ -4470,7 +4477,7 @@ void MainWindow::refreshSidebarNavigator()
             break;
         }
     }
-    
+
     if (vectorTableRoot)
     {
         QSqlQuery tableQuery(db);
@@ -4479,11 +4486,11 @@ void MainWindow::refreshSidebarNavigator()
         {
             int tableId = tableQuery.value(0).toInt();
             QString tableName = tableQuery.value(1).toString();
-            
-            QTreeWidgetItem* tableItem = new QTreeWidgetItem(vectorTableRoot);
+
+            QTreeWidgetItem *tableItem = new QTreeWidgetItem(vectorTableRoot);
             tableItem->setText(0, tableName);
             tableItem->setData(0, Qt::UserRole, QString::number(tableId));
-            
+
             // 恢复选中状态
             if (selectedItems.contains("vectortables") && selectedItems["vectortables"] == QString::number(tableId))
             {
@@ -4491,9 +4498,9 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
     }
-    
+
     // 获取标签列表（从所有向量表中获取唯一的Label值）
-    QTreeWidgetItem* labelRoot = nullptr;
+    QTreeWidgetItem *labelRoot = nullptr;
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
         if (m_sidebarTree->topLevelItem(i)->data(0, Qt::UserRole).toString() == "labels")
@@ -4502,24 +4509,24 @@ void MainWindow::refreshSidebarNavigator()
             break;
         }
     }
-    
+
     if (labelRoot)
     {
         // 获取所有向量表
         QSet<QString> uniqueLabels;
         QSqlQuery tablesQuery(db);
         tablesQuery.exec("SELECT id FROM vector_tables");
-        
+
         while (tablesQuery.next())
         {
             int tableId = tablesQuery.value(0).toInt();
-            
+
             // 从每个表获取Label列信息和二进制文件
             QString binFileName;
             QList<Vector::ColumnInfo> columns;
             int schemaVersion = 0;
             int rowCount = 0;
-            
+
             if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
             {
                 // 查找Label列的索引
@@ -4532,18 +4539,18 @@ void MainWindow::refreshSidebarNavigator()
                         break;
                     }
                 }
-                
+
                 if (labelColumnIndex >= 0)
                 {
                     // 从二进制文件中读取Label数据
                     QString errorMsg;
                     QString binFilePath = "";
-                    
+
                     // 使用SQL查询获取二进制文件路径，而不是调用私有方法
                     QSqlQuery getBinFileQuery(db);
                     getBinFileQuery.prepare("SELECT binary_file FROM vector_tables WHERE id = ?");
                     getBinFileQuery.addBindValue(tableId);
-                    
+
                     if (getBinFileQuery.exec() && getBinFileQuery.next())
                     {
                         QString binFileName = getBinFileQuery.value(0).toString();
@@ -4557,13 +4564,13 @@ void MainWindow::refreshSidebarNavigator()
                         // 构造完整的二进制文件路径
                         binFilePath = binDir.absoluteFilePath(binFileName);
                     }
-                    
+
                     if (!binFilePath.isEmpty())
                     {
                         QList<Vector::RowData> rowData;
                         if (Persistence::BinaryFileHelper::readAllRowsFromBinary(binFilePath, columns, schemaVersion, rowData))
                         {
-                            for (const auto& row : rowData)
+                            for (const auto &row : rowData)
                             {
                                 if (labelColumnIndex < row.size())
                                 {
@@ -4579,22 +4586,22 @@ void MainWindow::refreshSidebarNavigator()
                 }
             }
         }
-        
+
         // 添加唯一标签
         QList<QString> sortedLabels;
         // 将QSet中的元素转换为QList - 使用正确的方式从QSet获取元素
-        for (const QString& label : uniqueLabels)
+        for (const QString &label : uniqueLabels)
         {
             sortedLabels.append(label);
         }
         std::sort(sortedLabels.begin(), sortedLabels.end());
-        
-        for (const QString& label : sortedLabels)
+
+        for (const QString &label : sortedLabels)
         {
-            QTreeWidgetItem* labelItem = new QTreeWidgetItem(labelRoot);
+            QTreeWidgetItem *labelItem = new QTreeWidgetItem(labelRoot);
             labelItem->setText(0, label);
             labelItem->setData(0, Qt::UserRole, label);
-            
+
             // 恢复选中状态
             if (selectedItems.contains("labels") && selectedItems["labels"] == label)
             {
@@ -4602,7 +4609,7 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
     }
-    
+
     // 展开所有根节点
     for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
     {
@@ -4611,15 +4618,15 @@ void MainWindow::refreshSidebarNavigator()
 }
 
 // 侧边栏项目点击事件处理
-void MainWindow::onSidebarItemClicked(QTreeWidgetItem* item, int column)
+void MainWindow::onSidebarItemClicked(QTreeWidgetItem *item, int column)
 {
     if (!item)
         return;
-    
+
     if (item->parent() == nullptr) // 根节点点击
     {
         QString rootType = item->data(0, Qt::UserRole).toString();
-        
+
         if (rootType == "pins")
         {
             // 不打开设置对话框，只展开或收起节点
@@ -4641,12 +4648,12 @@ void MainWindow::onSidebarItemClicked(QTreeWidgetItem* item, int column)
         }
         return;
     }
-    
+
     // 子节点点击处理
-    QTreeWidgetItem* parentItem = item->parent();
+    QTreeWidgetItem *parentItem = item->parent();
     QString itemType = parentItem->data(0, Qt::UserRole).toString();
     QString itemValue = item->data(0, Qt::UserRole).toString();
-    
+
     if (itemType == "pins")
     {
         onPinItemClicked(item, column);
@@ -4666,38 +4673,38 @@ void MainWindow::onSidebarItemClicked(QTreeWidgetItem* item, int column)
 }
 
 // 管脚项目点击事件
-void MainWindow::onPinItemClicked(QTreeWidgetItem* item, int column)
+void MainWindow::onPinItemClicked(QTreeWidgetItem *item, int column)
 {
     if (!item)
         return;
-    
+
     int pinId = item->data(0, Qt::UserRole).toString().toInt();
-    
+
     // 查找当前表中与此管脚相关的所有列
     if (m_vectorTableWidget && m_vectorTableWidget->columnCount() > 0)
     {
         bool found = false;
         QString pinName = item->text(0);
-        
+
         // 遍历所有列，寻找与此管脚名匹配的列
         for (int col = 0; col < m_vectorTableWidget->columnCount(); col++)
         {
-            QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
             // 修改匹配逻辑：检查列头是否以管脚名开头，而不是精确匹配
             if (headerItem && headerItem->text().startsWith(pinName))
             {
                 // 找到了匹配的列，高亮显示该列
                 m_vectorTableWidget->setSelectionMode(QAbstractItemView::MultiSelection);
                 m_vectorTableWidget->selectColumn(col);
-                
+
                 // 滚动到该列
                 m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(0, col));
-                
+
                 found = true;
                 break;
             }
         }
-        
+
         if (!found)
         {
             QMessageBox::information(this, "提示", QString("当前表中没有找到管脚 '%1' 对应的列").arg(pinName));
@@ -4710,38 +4717,38 @@ void MainWindow::onPinItemClicked(QTreeWidgetItem* item, int column)
 }
 
 // TimeSet项目点击事件
-void MainWindow::onTimeSetItemClicked(QTreeWidgetItem* item, int column)
+void MainWindow::onTimeSetItemClicked(QTreeWidgetItem *item, int column)
 {
     if (!item)
         return;
-    
+
     int timeSetId = item->data(0, Qt::UserRole).toString().toInt();
     QString timeSetName = item->text(0);
-    
+
     // 在当前表中查找并高亮使用此TimeSet的所有行
     if (m_vectorTableWidget && m_vectorTableWidget->rowCount() > 0)
     {
         bool found = false;
         m_vectorTableWidget->setSelectionMode(QAbstractItemView::MultiSelection);
-        
+
         // 假设TimeSet列是第三列（索引2），您可能需要根据实际情况进行调整
         int timeSetColumn = -1;
         for (int col = 0; col < m_vectorTableWidget->columnCount(); col++)
         {
-            QTableWidgetItem* headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
             if (headerItem && headerItem->text().toLower() == "timeset")
             {
                 timeSetColumn = col;
                 break;
             }
         }
-        
+
         if (timeSetColumn >= 0)
         {
             // 遍历所有行，查找使用此TimeSet的行
             for (int row = 0; row < m_vectorTableWidget->rowCount(); row++)
             {
-                QTableWidgetItem* item = m_vectorTableWidget->item(row, timeSetColumn);
+                QTableWidgetItem *item = m_vectorTableWidget->item(row, timeSetColumn);
                 if (item && item->text() == timeSetName)
                 {
                     m_vectorTableWidget->selectRow(row);
@@ -4753,7 +4760,7 @@ void MainWindow::onTimeSetItemClicked(QTreeWidgetItem* item, int column)
                     }
                 }
             }
-            
+
             if (!found)
             {
                 QMessageBox::information(this, "提示", QString("当前表中没有使用TimeSet '%1' 的行").arg(timeSetName));
@@ -4763,7 +4770,7 @@ void MainWindow::onTimeSetItemClicked(QTreeWidgetItem* item, int column)
         {
             QMessageBox::information(this, "提示", "当前表中没有找到TimeSet列");
         }
-        
+
         // 恢复为SingleSelection选择模式
         m_vectorTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     }
@@ -4774,13 +4781,13 @@ void MainWindow::onTimeSetItemClicked(QTreeWidgetItem* item, int column)
 }
 
 // 向量表项目点击事件
-void MainWindow::onVectorTableItemClicked(QTreeWidgetItem* item, int column)
+void MainWindow::onVectorTableItemClicked(QTreeWidgetItem *item, int column)
 {
     if (!item)
         return;
-    
+
     int tableId = item->data(0, Qt::UserRole).toString().toInt();
-    
+
     // 在combobox中选中对应的向量表
     for (int i = 0; i < m_vectorTableSelector->count(); i++)
     {
@@ -4793,20 +4800,20 @@ void MainWindow::onVectorTableItemClicked(QTreeWidgetItem* item, int column)
 }
 
 // 标签项目点击事件
-void MainWindow::onLabelItemClicked(QTreeWidgetItem* item, int column)
+void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 {
     if (!item)
         return;
-    
+
     QString labelText = item->data(0, Qt::UserRole).toString();
-    
+
     // 在当前表中查找并跳转到对应标签的行
     if (m_vectorTableWidget && m_vectorTableWidget->rowCount() > 0)
     {
         for (int row = 0; row < m_vectorTableWidget->rowCount(); row++)
         {
             // 假设第一列是Label列
-            QTableWidgetItem* labelItem = m_vectorTableWidget->item(row, 0);
+            QTableWidgetItem *labelItem = m_vectorTableWidget->item(row, 0);
             if (labelItem && labelItem->text() == labelText)
             {
                 m_vectorTableWidget->selectRow(row);

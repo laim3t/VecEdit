@@ -68,10 +68,10 @@ public:
 
     // 清除缓存数据
     void clearCache();
-    
+
     // 清除特定表的数据缓存
     void clearTableDataCache(int tableId);
-    
+
     // 清除所有表的数据缓存
     void clearAllTableDataCache();
 
@@ -80,10 +80,10 @@ public:
 
     // 标记行已被修改
     void markRowAsModified(int tableId, int rowIndex);
-    
+
     // 清除指定表的所有修改标记
     void clearModifiedRows(int tableId);
-    
+
     // 检查行是否被修改过
     bool isRowModified(int tableId, int rowIndex);
 
@@ -106,15 +106,15 @@ private:
     QMap<int, QString> m_instructionCache; // 指令ID到指令文本的缓存
     QMap<int, QString> m_timesetCache;     // TimeSet ID到TimeSet名称的缓存
     bool m_cacheInitialized;               // 缓存是否已初始化
-    
+
     // 表数据缓存 - 性能优化
-    QMap<int, QList<Vector::RowData>> m_tableDataCache;   // 表ID -> 行数据的缓存
-    QMap<int, QDateTime> m_tableCacheTimestamp;           // 表ID -> 缓存时间戳
-    QMap<int, QString> m_tableBinaryFilePath;             // 表ID -> 二进制文件路径
-    QMap<int, QByteArray> m_tableBinaryFileMD5;           // 表ID -> 二进制文件MD5校验和
-    
+    QMap<int, QList<Vector::RowData>> m_tableDataCache; // 表ID -> 行数据的缓存
+    QMap<int, QDateTime> m_tableCacheTimestamp;         // 表ID -> 缓存时间戳
+    QMap<int, QString> m_tableBinaryFilePath;           // 表ID -> 二进制文件路径
+    QMap<int, QByteArray> m_tableBinaryFileMD5;         // 表ID -> 二进制文件MD5校验和
+
     // 修改跟踪数据
-    QMap<int, QSet<int>> m_modifiedRows;   // 表ID -> 修改行索引集合的映射
+    QMap<int, QSet<int>> m_modifiedRows; // 表ID -> 修改行索引集合的映射
 
     // 初始化缓存
     void initializeCache();
@@ -124,10 +124,10 @@ private:
 
     // 加载TimeSet缓存
     void loadTimesetCache();
-    
+
     // 检查表数据缓存是否有效
     bool isTableDataCacheValid(int tableId, const QString &binFilePath);
-    
+
     // 更新表数据缓存
     void updateTableDataCache(int tableId, const QList<Vector::RowData> &rows, const QString &binFilePath);
 

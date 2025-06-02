@@ -110,12 +110,12 @@ namespace Persistence
          */
         static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                          int schemaVersion, const QList<Vector::RowData> &rows);
-        
+
         /**
          * @brief 只更新二进制文件中被修改的行数据
          *
          * 与writeAllRowsToBinary不同，此方法只更新被修改的行，采用随机写入方式，避免重写整个文件
-         * 
+         *
          * 优化特点：
          * 1. 直接对原文件进行随机写入，无需创建临时文件
          * 2. 对于不需要更改的行数据，完全不读取，减少I/O操作
@@ -123,7 +123,7 @@ namespace Persistence
          *    - 将大数据写到文件末尾
          *    - 在原位置留下重定位指针(0xFFFFFFFF标记 + qint64位置)
          * 4. 能够处理大文件的部分更新，显著提高性能
-         * 
+         *
          * @param binFilePath 二进制文件的绝对路径
          * @param columns 列信息
          * @param schemaVersion 数据库中的schema版本
@@ -131,7 +131,7 @@ namespace Persistence
          * @return bool 成功返回true，失败返回false
          */
         static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                      int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
+                                       int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
 
     private:
         /**
