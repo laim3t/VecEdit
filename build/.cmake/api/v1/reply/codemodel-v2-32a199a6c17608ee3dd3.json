@@ -44,7 +44,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "VecEdit::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-VecEdit-Debug-94879354f46b7e583579.json",
+					"jsonFile" : "target-VecEdit-Debug-a58510b8290d0936691e.json",
 					"name" : "VecEdit",
 					"projectIndex" : 0
 				},
@@ -68,12 +68,12 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "E:/QT project/1/VecEdit/build",
-		"source" : "E:/QT project/1/VecEdit"
+		"build" : "C:/VecEdit/build",
+		"source" : "C:/VecEdit"
 	},
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 8
+		"minor" : 7
 	}
 }

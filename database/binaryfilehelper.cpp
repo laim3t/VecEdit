@@ -7,6 +7,18 @@
 #include <QDebug>
 #include <string.h>
 #include <QDir>
+#include <cstdio>    // Added for fprintf
+#include <QDateTime> // Added for QDateTime
+
+// Macro for direct stderr logging
+#define BFH_LOG_STDERR(funcName, format, ...)                                                           \
+    do                                                                                                  \
+    {                                                                                                   \
+        fprintf(stderr, "[BFH_STDERR][%s] %s: " format "\n",                                            \
+                QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz").toStdString().c_str(), \
+                funcName, ##__VA_ARGS__);                                                               \
+        fflush(stderr);                                                                                 \
+    } while (0)
 
 namespace Persistence
 {
@@ -17,7 +29,7 @@ namespace Persistence
         {
             // 设置BinaryFileHelper模块的日志级别
             // 可根据需要调整级别：Debug, Info, Warning, Critical, Fatal
-            Logger::instance().setModuleLogLevel("BinaryFileHelper", Logger::LogLevel::Info);
+            Logger::instance().setModuleLogLevel("BinaryFileHelper", Logger::LogLevel::Debug);
         }
     } __binaryFileHelperLoggerInitializer;
 
@@ -875,54 +887,81 @@ namespace Persistence
     bool BinaryFileHelper::updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                               int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows)
     {
-        const QString funcName = "BinaryFileHelper::updateRowsInBinary";
-        qDebug() << funcName << "- 开始更新文件:" << binFilePath << ", 修改行数:" << modifiedRows.size() << ", 使用随机写入";
+        const char *funcName = "BinaryFileHelper::updateRowsInBinary"; // Use char* for BFH_LOG_STDERR
+        BFH_LOG_STDERR(funcName, "ENTERED. File: %s, Modified rows: %d, SchemaVersion: %d",
+                       binFilePath.toStdString().c_str(), modifiedRows.size(), schemaVersion);
+        // Original qDebug:
+        // qDebug() << funcName << "- 开始更新文件:" << binFilePath << ", 修改行数:" << modifiedRows.size() << ", 使用随机写入";
 
         if (modifiedRows.isEmpty())
         {
-            qDebug() << funcName << "- 没有需要修改的行，直接返回 true";
+            BFH_LOG_STDERR(funcName, "No rows to modify. Exiting true.");
+            // Original qDebug:
+            // qDebug() << funcName << "- 没有需要修改的行，直接返回 true";
             return true;
         }
 
         QFile file(binFilePath);
         if (!file.exists())
         {
-            qCritical() << funcName << "- CRITICAL_ERROR: 二进制文件不存在，无法更新: " << binFilePath << " (Reason: File does not exist)";
+            BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: File does not exist, cannot update: %s. Exiting false.", binFilePath.toStdString().c_str());
+            // Original qCritical:
+            // qCritical() << funcName << "- CRITICAL_ERROR: 二进制文件不存在，无法更新: " << binFilePath << " (Reason: File does not exist)";
             return false;
         }
+        BFH_LOG_STDERR(funcName, "File exists: %s", binFilePath.toStdString().c_str());
 
         if (!file.open(QIODevice::ReadWrite))
         {
-            qCritical() << funcName << "- CRITICAL_ERROR: 无法以读写模式打开文件: " << binFilePath << ", OS错误:" << file.errorString() << " (Reason: Failed to open file in ReadWrite mode)";
+            BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to open file in ReadWrite mode: %s, OS error: %s. Exiting false.",
+                           binFilePath.toStdString().c_str(), file.errorString().toStdString().c_str());
+            // Original qCritical:
+            // qCritical() << funcName << "- CRITICAL_ERROR: 无法以读写模式打开文件: " << binFilePath << ", OS错误:" << file.errorString() << " (Reason: Failed to open file in ReadWrite mode)";
             return false;
         }
-        qDebug() << funcName << "- 文件已成功以读写模式打开:" << binFilePath;
+        BFH_LOG_STDERR(funcName, "File opened successfully in ReadWrite mode: %s", binFilePath.toStdString().c_str());
+        // Original qDebug:
+        // qDebug() << funcName << "- 文件已成功以读写模式打开:" << binFilePath;
 
         BinaryFileHeader header;
-        if (!readBinaryHeader(&file, header))
+        // Note: readBinaryHeader itself will be instrumented later to use BFH_LOG_STDERR
+        if (!readBinaryHeader(&file, header)) // Assuming readBinaryHeader does its own BFH_LOG_STDERR on failure path
         {
-            qCritical() << funcName << "- CRITICAL_ERROR: 读取或验证二进制文件头失败 (Reason: readBinaryHeader failed), 文件:" << binFilePath;
+            BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: readBinaryHeader failed for file: %s. Exiting false (logged by readBinaryHeader).", binFilePath.toStdString().c_str());
+            // Original qCritical:
+            // qCritical() << funcName << "- CRITICAL_ERROR: 读取或验证二进制文件头失败 (Reason: readBinaryHeader failed), 文件:" << binFilePath;
             file.close();
             return false;
         }
-        qDebug() << funcName << "- 文件头读取成功. 文件版本:" << header.file_format_version << "Schema版本:" << header.data_schema_version << "行数:" << header.row_count_in_file;
+        BFH_LOG_STDERR(funcName, "Header read successfully. FileVer: %u, SchemaVer: %d, RowCount: %llu",
+                       header.file_format_version, header.data_schema_version, header.row_count_in_file);
+        // Original qDebug:
+        // qDebug() << funcName << "- 文件头读取成功. 文件版本:" << header.file_format_version << "Schema版本:" << header.data_schema_version << "行数:" << header.row_count_in_file;
 
         if (header.data_schema_version != schemaVersion)
         {
-            qCritical() << funcName << "- CRITICAL_ERROR: 文件数据schema版本(" << header.data_schema_version
-                       << ")与期望的DB schema版本(" << schemaVersion << ")不匹配, 文件:" << binFilePath << " (Reason: Schema version mismatch)";
+            BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Schema version mismatch. File has %d, expected %d. File: %s. Exiting false.",
+                           header.data_schema_version, schemaVersion, binFilePath.toStdString().c_str());
+            // Original qCritical:
+            // qCritical() << funcName << "- CRITICAL_ERROR: 文件数据schema版本(" << header.data_schema_version
+            //            << ")与期望的DB schema版本(" << schemaVersion << ")不匹配, 文件:" << binFilePath << " (Reason: Schema version mismatch)";
             file.close();
             return false;
         }
 
         if (header.column_count_in_file != static_cast<uint32_t>(columns.size()))
         {
-            qCritical() << funcName << "- CRITICAL_ERROR: 文件头列数(" << header.column_count_in_file
-                       << ")与期望的列数(" << columns.size() << ")不匹配, 文件:" << binFilePath << " (Reason: Column count mismatch)";
+            BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Column count mismatch. File has %u, expected %zu. File: %s. Exiting false.",
+                           header.column_count_in_file, static_cast<size_t>(columns.size()), binFilePath.toStdString().c_str());
+            // Original qCritical:
+            // qCritical() << funcName << "- CRITICAL_ERROR: 文件头列数(" << header.column_count_in_file
+            //            << ")与期望的列数(" << columns.size() << ")不匹配, 文件:" << binFilePath << " (Reason: Column count mismatch)";
             file.close();
             return false;
         }
-        qDebug() << funcName << "- Schema版本和列数检查通过.";
+        BFH_LOG_STDERR(funcName, "Schema version and column count checks passed.");
+        // Original qDebug:
+        // qDebug() << funcName << "- Schema版本和列数检查通过.";
 
         struct RowInfo
         {
@@ -932,7 +971,8 @@ namespace Persistence
         };
 
         QVector<RowInfo> rowPositions;
-        if (header.row_count_in_file > 0) {
+        if (header.row_count_in_file > 0)
+        {
             rowPositions.reserve(header.row_count_in_file);
         }
 
@@ -940,11 +980,11 @@ namespace Persistence
         in.setByteOrder(QDataStream::LittleEndian);
 
         // 修正点1: 使用 sizeof(BinaryFileHeader)
-        qint64 initialDataPos = sizeof(BinaryFileHeader); 
+        qint64 initialDataPos = sizeof(BinaryFileHeader);
         if (!file.seek(initialDataPos))
         {
             qCritical() << funcName << "- CRITICAL_ERROR: Seek到初始数据位置(" << initialDataPos << ")失败. 文件:" << binFilePath
-                       << ", OS错误:" << file.errorString() << " (Reason: Initial file seek failed)";
+                        << ", OS错误:" << file.errorString() << " (Reason: Initial file seek failed)";
             file.close();
             return false;
         }
@@ -960,19 +1000,21 @@ namespace Persistence
             quint32 rowDataSize;
 
             // --- BEGIN ENHANCED CHECKS ---
-            if (file.atEnd()) {
+            if (file.atEnd())
+            {
                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Attempting to read size for row" << i
-                           << "but already at EOF. File pos:" << file.pos() << "Header row count:" << header.row_count_in_file
-                           << "File size:" << file.size() << ". File:" << binFilePath
-                           << " (Reason: EOF before reading row size, file likely truncated or header.row_count_in_file inconsistent)";
+                            << "but already at EOF. File pos:" << file.pos() << "Header row count:" << header.row_count_in_file
+                            << "File size:" << file.size() << ". File:" << binFilePath
+                            << " (Reason: EOF before reading row size, file likely truncated or header.row_count_in_file inconsistent)";
                 file.close();
                 return false;
             }
-            if (file.bytesAvailable() < static_cast<qint64>(sizeof(quint32))) {
+            if (file.bytesAvailable() < static_cast<qint64>(sizeof(quint32)))
+            {
                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Not enough bytes (" << file.bytesAvailable()
-                           << ") to read size (quint32) for row" << i << ". File pos:" << file.pos()
-                           << "File size:" << file.size() << ". File:" << binFilePath
-                           << " (Reason: Insufficient bytes for row size, file likely truncated or header.row_count_in_file inconsistent)";
+                            << ") to read size (quint32) for row" << i << ". File pos:" << file.pos()
+                            << "File size:" << file.size() << ". File:" << binFilePath
+                            << " (Reason: Insufficient bytes for row size, file likely truncated or header.row_count_in_file inconsistent)";
                 file.close();
                 return false;
             }
@@ -982,21 +1024,22 @@ namespace Persistence
             if (in.status() != QDataStream::Ok)
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: 读取行" << i << "的数据大小时发生流错误. Stream status:" << in.status()
-                           << "(1 means ReadPastEnd). File pos before read attempt:" << currentRowOffset
-                           << ". Bytes available before read attempt:" << (file.size() - currentRowOffset)
-                           << ". File size:" << file.size()
-                           << ". File:" << binFilePath
-                           << " (Reason: QDataStream error reading row data size)";
+                            << "(1 means ReadPastEnd). File pos before read attempt:" << currentRowOffset
+                            << ". Bytes available before read attempt:" << (file.size() - currentRowOffset)
+                            << ". File size:" << file.size()
+                            << ". File:" << binFilePath
+                            << " (Reason: QDataStream error reading row data size)";
                 file.close();
                 return false;
             }
 
             // --- BEGIN POST-READ CHECK ---
-            if (file.bytesAvailable() < static_cast<qint64>(rowDataSize)) {
-                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Row" << i << "claims data size" << rowDataSize
-                           << "but only" << file.bytesAvailable() << "bytes remain in file after reading its size. File pos:" << file.pos()
-                           << "File size:" << file.size() << ". File:" << binFilePath
-                           << " (Reason: Insufficient bytes for claimed row data, file likely truncated or row size value corrupt)";
+            if (file.bytesAvailable() < static_cast<qint64>(rowDataSize))
+            {
+                qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Row" << i << "claims data size" << rowDataSize
+                            << "but only" << file.bytesAvailable() << "bytes remain in file after reading its size. File pos:" << file.pos()
+                            << "File size:" << file.size() << ". File:" << binFilePath
+                            << " (Reason: Insufficient bytes for claimed row data, file likely truncated or row size value corrupt)";
                 file.close();
                 return false;
             }
@@ -1011,15 +1054,17 @@ namespace Persistence
 
             // Seek past this row's data (quint32 for size + data itself) to get to the next row's size marker
             qint64 nextRowPos = currentRowOffset + sizeof(quint32) + rowDataSize;
-            if (nextRowPos > file.size() && i < header.row_count_in_file - 1) { // Check if seek would go past EOF unless it's the very last row
+            if (nextRowPos > file.size() && i < header.row_count_in_file - 1)
+            { // Check if seek would go past EOF unless it's the very last row
                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Calculated seek offset" << nextRowPos
-                           << "for row" << i << "exceeds file size" << file.size() << ". File:" << binFilePath
-                           << " (Reason: Corrupt row size or truncated file before seeking past row data)";
+                            << "for row" << i << "exceeds file size" << file.size() << ". File:" << binFilePath
+                            << " (Reason: Corrupt row size or truncated file before seeking past row data)";
                 file.close();
                 return false;
             }
-            if (!file.seek(nextRowPos)) {
-                 qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Failed to seek past row" << i << "data. Current pos:" << file.pos()
+            if (!file.seek(nextRowPos))
+            {
+                qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: Failed to seek past row" << i << "data. Current pos:" << file.pos()
                             << "Target offset:" << nextRowPos << ". File size:" << file.size()
                             << ". File error:" << file.errorString() << ". File:" << binFilePath;
                 file.close();
@@ -1060,11 +1105,12 @@ namespace Persistence
                 qDebug() << funcName << "- 跳过更新无效/越界行索引:" << rowIndex;
                 continue;
             }
-            
-            if (rowIndex < 0 || rowIndex >= rowPositions.size()) {
+
+            if (rowIndex < 0 || rowIndex >= rowPositions.size())
+            {
                 qCritical() << funcName << "- CRITICAL_ERROR: (Defensive Check) 行索引" << rowIndex << "在rowPositions中越界 (Size: " << rowPositions.size() << "). 文件:" << binFilePath
-                           << " (Reason: Row index out of bounds for rowPositions during update loop)";
-                file.close(); 
+                            << " (Reason: Row index out of bounds for rowPositions during update loop)";
+                file.close();
                 return false;
             }
             const RowInfo &originalRowInfo = rowPositions[rowIndex];
@@ -1073,64 +1119,68 @@ namespace Persistence
             if (!serializeRow(newRowData, columns, serializedNewRow))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 序列化新行数据失败，行索引:" << rowIndex << ", 文件:" << binFilePath
-                           << " (Reason: serializeRow returned false)";
+                            << " (Reason: serializeRow returned false)";
                 file.close();
-                return false; 
+                return false;
             }
 
             if (static_cast<quint32>(serializedNewRow.size()) != originalRowInfo.data_size)
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 行" << rowIndex << "的新数据长度(" << serializedNewRow.size()
-                           << ")与原始数据长度(" << originalRowInfo.data_size << ")不匹配. 文件:" << binFilePath
-                           << " (Reason: Data length mismatch)";
-                return false; 
+                            << ")与原始数据长度(" << originalRowInfo.data_size << ")不匹配. 文件:" << binFilePath
+                            << " (Reason: Data length mismatch)";
+                return false;
             }
 
-            qint64 seekPos = originalRowInfo.offset + sizeof(quint32); 
+            qint64 seekPos = originalRowInfo.offset + sizeof(quint32);
             if (!file.seek(seekPos))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: Seek到行" << rowIndex << "的数据位置(" << seekPos << ")失败. 文件:" << binFilePath
-                           << ", OS错误:" << file.errorString() << " (Reason: File seek failed for row update)";
+                            << ", OS错误:" << file.errorString() << " (Reason: File seek failed for row update)";
                 file.close();
-                return false; 
+                return false;
             }
 
             qint64 bytesWritten = file.write(serializedNewRow);
             if (bytesWritten != serializedNewRow.size())
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 写入新行数据失败，行索引:" << rowIndex << ". 预期写入:" << serializedNewRow.size()
-                           << ", 实际写入:" << bytesWritten << ". 文件:" << binFilePath
-                           << ", OS错误:" << file.errorString() << " (Reason: File write failed for row update)";
+                            << ", 实际写入:" << bytesWritten << ". 文件:" << binFilePath
+                            << ", OS错误:" << file.errorString() << " (Reason: File write failed for row update)";
                 file.close();
-                return false; 
+                return false;
             }
             qDebug() << funcName << "- 成功更新行:" << rowIndex << "于Offset:" << originalRowInfo.offset << "新数据长度:" << serializedNewRow.size();
             rowsUpdatedSuccessfully++;
         }
 
-        if (rowsUpdatedSuccessfully > 0) {
+        if (rowsUpdatedSuccessfully > 0)
+        {
             header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
             if (!file.seek(0))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: Seek到文件开头失败 (更新文件头前). 文件:" << binFilePath
-                           << ", OS错误:" << file.errorString() << " (Reason: File seek to beginning failed for header timestamp update)";
-                file.close(); 
+                            << ", OS错误:" << file.errorString() << " (Reason: File seek to beginning failed for header timestamp update)";
+                file.close();
                 return false;
             }
             if (!writeBinaryHeader(&file, header))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 更新文件头的时间戳失败 (Reason: writeBinaryHeader for timestamp update failed), 文件:" << binFilePath;
-                file.close(); 
+                file.close();
                 return false;
             }
             qDebug() << funcName << "- 文件头时间戳已成功更新.";
-        } else if (modifiedRows.size() > invalidRowIndicesForUpdate.size()) {
+        }
+        else if (modifiedRows.size() > invalidRowIndicesForUpdate.size())
+        {
             qWarning() << funcName << "- 警告: 有 " << (modifiedRows.size() - invalidRowIndicesForUpdate.size())
                        << " 个有效修改行，但成功更新数量为0. 可能所有有效行都因某种原因（如长度不匹配）未能更新.";
-            if ( (modifiedRows.size() - invalidRowIndicesForUpdate.size()) > 0 && rowsUpdatedSuccessfully == 0) {
-                 qCritical() << funcName << "- CRITICAL_ERROR: 有效修改行存在，但无任何行被成功更新。上层应已处理此情况。";
-                 file.close();
-                 return false; 
+            if ((modifiedRows.size() - invalidRowIndicesForUpdate.size()) > 0 && rowsUpdatedSuccessfully == 0)
+            {
+                qCritical() << funcName << "- CRITICAL_ERROR: 有效修改行存在，但无任何行被成功更新。上层应已处理此情况。";
+                file.close();
+                return false;
             }
         }
 

@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_dialogManager = new DialogManager(this);
 
     // 设置窗口标题和大小
-    setWindowTitle("VecEdit - 矢量测试编辑器");
+    setWindowTitle("向量编辑器");
 
     // 初始窗口大小（如果没有保存的状态）
     resize(1024, 768);
@@ -128,7 +128,7 @@ void MainWindow::setupUI()
     QVBoxLayout *welcomeLayout = new QVBoxLayout(m_welcomeWidget);
 
     // 添加欢迎标签
-    QLabel *welcomeLabel = new QLabel(tr("欢迎使用VecEdit矢量测试编辑器"), m_welcomeWidget);
+    QLabel *welcomeLabel = new QLabel(tr("欢迎使用向量编辑器"), m_welcomeWidget);
     welcomeLabel->setAlignment(Qt::AlignCenter);
     welcomeLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;");
 
@@ -379,7 +379,7 @@ void MainWindow::openExistingProject()
         refreshSidebarNavigator();
 
         // 设置窗口标题
-        setWindowTitle(tr("VecEdit - 矢量测试编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
+        setWindowTitle(tr("向量编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
 
         QMessageBox::information(this, tr("成功"),
                                  tr("项目数据库已打开！当前版本：%1\n您可以通过\"查看\"菜单打开数据库查看器").arg(version));
@@ -421,7 +421,7 @@ void MainWindow::closeCurrentProject()
         }
 
         // 重置窗口标题
-        setWindowTitle("VecEdit - 矢量测试编辑器");
+        setWindowTitle("向量编辑器");
         statusBar()->showMessage("项目已关闭");
     }
 }
@@ -1751,7 +1751,8 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
     qDebug() << funcName << " - 开始显示管脚选择对话框 for tableId:" << tableId << "Name:" << tableName;
 
     // 确保数据库已连接且表ID有效
-    if (!DatabaseManager::instance()->isDatabaseConnected() || tableId <= 0) { // Corrected: ->isDatabaseConnected()
+    if (!DatabaseManager::instance()->isDatabaseConnected() || tableId <= 0)
+    { // Corrected: ->isDatabaseConnected()
         qWarning() << funcName << " - 数据库未连接或表ID无效 (" << tableId << ")";
         return;
     }
@@ -1759,7 +1760,8 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
     // Corrected: use m_dialogManager instance
     bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
 
-    if (success) {
+    if (success)
+    {
         qInfo() << funcName << " - 管脚配置成功完成 for table ID:" << tableId;
 
         // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
@@ -1767,7 +1769,9 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 
         // 重新加载并刷新向量表视图以反映更改
         reloadAndRefreshVectorTable(tableId); // Implementation will be added
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << " - 管脚配置被取消或失败 for table ID:" << tableId;
         // 如果这是新表创建流程的一部分，并且管脚配置失败/取消，
         // 可能需要考虑是否回滚表的创建或进行其他清理。
@@ -4918,7 +4922,8 @@ bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Ve
 }
 
 // Add the new private helper method
-void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
+void MainWindow::updateBinaryHeaderColumnCount(int tableId)
+{
     const QString funcName = "MainWindow::updateBinaryHeaderColumnCount";
     qDebug() << funcName << "- Attempting to update binary header column count for table ID:" << tableId;
 
@@ -4927,8 +4932,9 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     int dbSchemaVersion = -1;
     QString binaryFileNameBase; // Base name like "table_1_data.vbindata"
 
-    DatabaseManager* dbManager = DatabaseManager::instance(); // Corrected: Pointer type
-    if (!dbManager->isDatabaseConnected()) { // Corrected: ->isDatabaseConnected()
+    DatabaseManager *dbManager = DatabaseManager::instance(); // Corrected: Pointer type
+    if (!dbManager->isDatabaseConnected())
+    { // Corrected: ->isDatabaseConnected()
         qWarning() << funcName << "- Database not open.";
         return;
     }
@@ -4940,21 +4946,25 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     masterQuery.prepare("SELECT data_schema_version, binary_data_filename FROM VectorTableMasterRecord WHERE id = :tableId");
     masterQuery.bindValue(":tableId", tableId);
 
-
-    if (!masterQuery.exec()) {
+    if (!masterQuery.exec())
+    {
         qWarning() << funcName << "- Failed to execute query for VectorTableMasterRecord:" << masterQuery.lastError().text();
         return;
     }
 
-    if (masterQuery.next()) {
-        dbSchemaVersion = masterQuery.value("data_schema_version").toInt(); // Corrected column name
+    if (masterQuery.next())
+    {
+        dbSchemaVersion = masterQuery.value("data_schema_version").toInt();        // Corrected column name
         binaryFileNameBase = masterQuery.value("binary_data_filename").toString(); // Corrected column name
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << "- No VectorTableMasterRecord found for table ID:" << tableId;
         return;
     }
 
-    if (binaryFileNameBase.isEmpty()) {
+    if (binaryFileNameBase.isEmpty())
+    {
         qWarning() << funcName << "- Binary file name is empty in master record for table ID:" << tableId;
         return;
     }
@@ -4967,7 +4977,8 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     QString columnSql = QString(
         "SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?"); // 使用位置占位符
 
-    if (!columnQuery.prepare(columnSql)) {
+    if (!columnQuery.prepare(columnSql))
+    {
         qWarning() << funcName << "- CRITICAL_WARNING: Failed to PREPARE query for actual column count. SQL:" << columnSql
                    << ". Error:" << columnQuery.lastError().text();
         return;
@@ -4975,12 +4986,16 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     columnQuery.addBindValue(tableId); // 使用 addBindValue
 
     int actualColumnCount = 0;
-    if (columnQuery.exec()) {
-        if (columnQuery.next()) {
+    if (columnQuery.exec())
+    {
+        if (columnQuery.next())
+        {
             actualColumnCount = columnQuery.value(0).toInt();
         }
         // No 'else' here, if query returns no rows, actualColumnCount remains 0, which is handled below.
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << "- CRITICAL_WARNING: Failed to EXECUTE query for actual column count. TableId:" << tableId
                    << ". SQL:" << columnSql << ". Error:" << columnQuery.lastError().text()
                    << "(Reason: DB query for actual column count failed after successful prepare)";
@@ -4989,10 +5004,10 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
 
     qDebug() << funcName << "- Actual column count from DB for tableId" << tableId << "is" << actualColumnCount;
 
-    if (actualColumnCount == 0 && tableId > 0) {
+    if (actualColumnCount == 0 && tableId > 0)
+    {
         qWarning() << funcName << "- No columns found in DB configuration for table ID:" << tableId << ". Header update may not be meaningful (or it's a new table). Continuing.";
     }
-
 
     // 3. Construct full binary file path
     // QString projectDbPath = dbManager->getCurrentDatabasePath(); // Incorrect method
@@ -5001,12 +5016,14 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     QString binFilePath = projBinDataDir + QDir::separator() + binaryFileNameBase;
 
     QFile file(binFilePath);
-    if (!file.exists()) {
+    if (!file.exists())
+    {
         qWarning() << funcName << "- Binary file does not exist, cannot update header:" << binFilePath;
         return;
     }
 
-    if (!file.open(QIODevice::ReadWrite)) {
+    if (!file.open(QIODevice::ReadWrite))
+    {
         qWarning() << funcName << "- Failed to open binary file for ReadWrite:" << binFilePath << file.errorString();
         return;
     }
@@ -5014,10 +5031,12 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
     BinaryFileHeader header;
     bool existingHeaderRead = Persistence::BinaryFileHelper::readBinaryHeader(&file, header);
 
-    if (existingHeaderRead) {
+    if (existingHeaderRead)
+    {
         // Corrected member access to use column_count_in_file
-        if (header.column_count_in_file == actualColumnCount && header.data_schema_version == dbSchemaVersion) {
-            qDebug() << funcName << "- Header column count (" << header.column_count_in_file 
+        if (header.column_count_in_file == actualColumnCount && header.data_schema_version == dbSchemaVersion)
+        {
+            qDebug() << funcName << "- Header column count (" << header.column_count_in_file
                      << ") and schema version (" << header.data_schema_version
                      << ") already match DB. No update needed for table" << tableId;
             file.close();
@@ -5025,28 +5044,33 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId) {
         }
         // Preserve creation time and row count from existing header
         header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
-        header.data_schema_version = dbSchemaVersion; // Update schema version from DB
+        header.data_schema_version = dbSchemaVersion;    // Update schema version from DB
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << "- Failed to read existing header from" << binFilePath << ". This is unexpected if addNewVectorTable created it. Re-initializing header for update.";
         header.magic_number = Persistence::VEC_BINDATA_MAGIC;
         header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
         header.data_schema_version = dbSchemaVersion;
-        header.row_count_in_file = 0; 
+        header.row_count_in_file = 0;
         header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
         header.timestamp_created = QDateTime::currentSecsSinceEpoch();
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-        header.compression_type = 0; 
+        header.compression_type = 0;
         // Removed memset calls for header.reserved and header.future_use as they are not members
     }
 
     file.seek(0);
-    if (Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+    if (Persistence::BinaryFileHelper::writeBinaryHeader(&file, header))
+    {
         qInfo() << funcName << "- Successfully updated binary file header for table" << tableId
                 << ". Path:" << binFilePath
                 << ". New ColumnCount:" << actualColumnCount
                 << ", SchemaVersion:" << dbSchemaVersion;
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << "- Failed to write updated binary file header for table" << tableId
                    << ". Path:" << binFilePath;
     }
@@ -5067,14 +5091,20 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
 
     // 1. Ensure the table is selected in the ComboBox and TabWidget
     int comboBoxIndex = m_vectorTableSelector->findData(tableId);
-    if (comboBoxIndex != -1) {
-        if (m_vectorTableSelector->currentIndex() != comboBoxIndex) {
+    if (comboBoxIndex != -1)
+    {
+        if (m_vectorTableSelector->currentIndex() != comboBoxIndex)
+        {
             m_vectorTableSelector->setCurrentIndex(comboBoxIndex); // This should trigger onVectorTableSelectionChanged
-        } else {
+        }
+        else
+        {
             // If it's already selected, force a refresh of its data
             onVectorTableSelectionChanged(comboBoxIndex);
         }
-    } else {
+    }
+    else
+    {
         qWarning() << funcName << "- Table ID" << tableId << "not found in selector. Cannot refresh.";
         // Fallback: reload all tables if the specific one isn't found (might be a new table not yet in UI)
         loadVectorTable();

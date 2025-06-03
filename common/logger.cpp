@@ -142,13 +142,15 @@ void Logger::setModuleLogLevel(const QString &modulePattern, LogLevel level)
 Logger::LogLevel Logger::moduleLogLevel(const QString &moduleName) const
 {
     // 检查是否有匹配的模块规则
-    for (auto it = m_moduleLogLevels.constBegin(); it != m_moduleLogLevels.constEnd(); ++it) {
+    for (auto it = m_moduleLogLevels.constBegin(); it != m_moduleLogLevels.constEnd(); ++it)
+    {
         QRegularExpression re(it.key());
-        if (re.match(moduleName).hasMatch()) {
+        if (re.match(moduleName).hasMatch())
+        {
             return it.value();
         }
     }
-    
+
     // 如果没有特定规则，返回全局日志级别
     return m_logLevel;
 }
@@ -157,25 +159,28 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext &context, c
 {
     // 获取Logger实例
     Logger &logger = Logger::instance();
-    
+
     // 提取模块名称（通常是函数名的第一部分）
     QString moduleName;
-    if (context.function) {
+    if (context.function)
+    {
         // 尝试从函数名中提取模块名
         QString function(context.function);
         int colonPos = function.indexOf("::");
-        if (colonPos > 0) {
+        if (colonPos > 0)
+        {
             moduleName = function.left(colonPos);
         }
     }
-    
+
     // 检查该模块的日志级别
     QtMsgType effectiveType = type;
     LogLevel moduleLevel = moduleName.isEmpty() ? logger.logLevel() : logger.moduleLogLevel(moduleName);
-    
+
     // 根据模块级别检查是否应该记录这条日志
     bool shouldLog = true;
-    switch (moduleLevel) {
+    switch (moduleLevel)
+    {
     case LogLevel::Debug:
         shouldLog = true;
         break;
@@ -192,9 +197,10 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext &context, c
         shouldLog = (type == QtFatalMsg);
         break;
     }
-    
+
     // 如果不应该记录，直接返回
-    if (!shouldLog) {
+    if (!shouldLog)
+    {
         return;
     }
 

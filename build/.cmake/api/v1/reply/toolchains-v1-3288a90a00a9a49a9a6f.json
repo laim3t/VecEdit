@@ -48,7 +48,7 @@
 						"kernel32"
 					]
 				},
-				"path" : "C:/Qt/Tools/mingw1310_64/bin/g++.exe",
+				"path" : "c:/Qt/Tools/mingw1310_64/bin/g++.exe",
 				"version" : "13.1.0"
 			},
 			"language" : "CXX",

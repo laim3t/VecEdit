@@ -3857,20 +3857,27 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
     qDebug() << funcName << " - 准备写入数据到二进制文件，报告的 modifiedCount:" << modifiedCount;
 
     QMap<int, Vector::RowData> modifiedRowsMap;
-    if (m_modifiedRows.contains(tableId)) {
-        const QSet<int>& rowsActuallyMarked = m_modifiedRows.value(tableId);
+    if (m_modifiedRows.contains(tableId))
+    {
+        const QSet<int> &rowsActuallyMarked = m_modifiedRows.value(tableId);
         qDebug() << funcName << " - m_modifiedRows for table" << tableId << "contains" << rowsActuallyMarked.size() << "indices:" << rowsActuallyMarked;
-        for (int rowIndex : rowsActuallyMarked) {
-            if (rowIndex >= 0 && rowIndex < allRows.size()) {
+        for (int rowIndex : rowsActuallyMarked)
+        {
+            if (rowIndex >= 0 && rowIndex < allRows.size())
+            {
                 modifiedRowsMap[rowIndex] = allRows[rowIndex];
-            } else {
+            }
+            else
+            {
                 qWarning() << funcName << " - Invalid rowIndex" << rowIndex << "found in m_modifiedRows. Skipping.";
             }
         }
-    } else {
+    }
+    else
+    {
         qDebug() << funcName << " - m_modifiedRows does not contain tableId" << tableId;
     }
-    
+
     // 备用逻辑检查：如果UI报告有修改，但内部标记的修改行集合为空或未填充到map
     if (modifiedRowsMap.isEmpty() && modifiedCount > 0)
     {
@@ -3881,9 +3888,11 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         for (int rowInPage = 0; rowInPage < rowsInCurrentPage; ++rowInPage)
         {
             int rowInFullData = startRowIndex + rowInPage;
-            if (rowInFullData >= 0 && rowInFullData < allRows.size()) {
-                 // 只添加当前页内且在 allRows 范围内的行
-                if(isRowModified(tableId, rowInFullData)) { // 再次检查是否真的被标记为修改
+            if (rowInFullData >= 0 && rowInFullData < allRows.size())
+            {
+                // 只添加当前页内且在 allRows 范围内的行
+                if (isRowModified(tableId, rowInFullData))
+                { // 再次检查是否真的被标记为修改
                     modifiedRowsMap[rowInFullData] = allRows[rowInFullData];
                 }
             }
@@ -3891,11 +3900,12 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         qDebug() << funcName << " - After fallback population from current page, modifiedRowsMap.size() is now:" << modifiedRowsMap.size();
     }
 
-    qDebug() << funcName << " - Final check before deciding write strategy: modifiedCount =" << modifiedCount 
+    qDebug() << funcName << " - Final check before deciding write strategy: modifiedCount =" << modifiedCount
              << ", modifiedRowsMap.size() =" << modifiedRowsMap.size();
 
     bool writeSuccess = false;
-    if (modifiedCount > 0) { // 主要条件：确实有修改发生
+    if (modifiedCount > 0)
+    { // 主要条件：确实有修改发生
         if (!modifiedRowsMap.isEmpty())
         {
             qInfo() << funcName << " - Attempting INCREMENTAL update with" << modifiedRowsMap.size() << "rows in modifiedRowsMap.";
@@ -3906,12 +3916,17 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                 qWarning() << funcName << " - INCREMENTAL update FAILED. Attempting FULL rewrite.";
                 // 在这里，我们期望 Persistence::BinaryFileHelper::updateRowsInBinary 内部已经打印了 qCritical 日志指明具体失败原因
                 writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
-                if(writeSuccess) {
+                if (writeSuccess)
+                {
                     qInfo() << funcName << " - FULL rewrite successful after incremental update failed.";
-                } else {
+                }
+                else
+                {
                     qCritical() << funcName << " - CRITICAL: FULL rewrite ALSO FAILED after incremental update failed. Data NOT saved for file:" << absoluteBinFilePath;
                 }
-            } else {
+            }
+            else
+            {
                 qInfo() << funcName << " - INCREMENTAL update successful.";
             }
         }
@@ -3921,18 +3936,22 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                        << ". This is unexpected if changes were properly tracked."
                        << "Proceeding with FULL rewrite to ensure data integrity.";
             writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
-            if(writeSuccess) {
+            if (writeSuccess)
+            {
                 qInfo() << funcName << " - FULL rewrite successful (due to empty modifiedRowsMap but positive modifiedCount).";
-            } else {
+            }
+            else
+            {
                 qCritical() << funcName << " - CRITICAL: FULL rewrite FAILED (due to empty modifiedRowsMap but positive modifiedCount). Data NOT saved for file:" << absoluteBinFilePath;
             }
         }
-    } else { // modifiedCount == 0 (and m_modifiedRows was also empty from earlier check)
+    }
+    else
+    { // modifiedCount == 0 (and m_modifiedRows was also empty from earlier check)
         qInfo() << funcName << " - No modifications detected (modifiedCount is 0), no save operation performed.";
         //  errorMessage = "没有检测到数据变更，跳过保存"; // Set earlier
         return true; // No changes, so considered a "successful" save of no changes.
     }
-
 
     if (!writeSuccess)
     {

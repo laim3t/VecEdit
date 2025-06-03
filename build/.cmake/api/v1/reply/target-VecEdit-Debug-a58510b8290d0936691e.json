@@ -29,21 +29,21 @@
 		],
 		"files" : 
 		[
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Core/Qt6CoreMacros.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreMacros.cmake",
 			"CMakeLists.txt",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsTargets.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6/Qt6Config.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Gui/Qt6GuiTargets.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake",
-			"C:/Program Files/CMake/share/cmake-4.0/Modules/CMakeFindDependencyMacro.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsDependencies.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Core/Qt6CoreTargets.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfig.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6EntryPointPrivate/Qt6EntryPointPrivateTargets.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6EntryPointPrivate/Qt6EntryPointPrivateConfig.cmake",
-			"C:/Qt/6.8.3/mingw_64/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake"
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsTargets.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/Qt6Config.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Gui/Qt6GuiTargets.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Gui/Qt6GuiConfig.cmake",
+			"C:/Qt/Tools/CMake_64/share/cmake-3.29/Modules/CMakeFindDependencyMacro.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Widgets/Qt6WidgetsDependencies.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreTargets.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreConfig.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6EntryPointPrivate/Qt6EntryPointPrivateTargets.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6EntryPointPrivate/Qt6EntryPointPrivateConfig.cmake",
+			"C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake"
 		],
 		"nodes" : 
 		[
@@ -99,7 +99,7 @@
 			{
 				"command" : 8,
 				"file" : 4,
-				"line" : 196,
+				"line" : 190,
 				"parent" : 8
 			},
 			{
@@ -147,7 +147,7 @@
 			{
 				"command" : 8,
 				"file" : 7,
-				"line" : 78,
+				"line" : 76,
 				"parent" : 17
 			},
 			{
@@ -185,7 +185,7 @@
 			{
 				"command" : 8,
 				"file" : 7,
-				"line" : 78,
+				"line" : 76,
 				"parent" : 24
 			},
 			{
@@ -233,7 +233,7 @@
 			{
 				"command" : 8,
 				"file" : 7,
-				"line" : 78,
+				"line" : 76,
 				"parent" : 33
 			},
 			{
@@ -282,7 +282,7 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -g -std=gnu++17"
+					"fragment" : "-g -std=gnu++17"
 				}
 			],
 			"defines" : 
@@ -344,65 +344,65 @@
 			[
 				{
 					"backtrace" : 0,
-					"path" : "E:/QT project/1/VecEdit/build/VecEdit_autogen/include"
+					"path" : "C:/VecEdit/build/VecEdit_autogen/include"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit"
+					"path" : "C:/VecEdit"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/app"
+					"path" : "C:/VecEdit/app"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/timeset"
+					"path" : "C:/VecEdit/timeset"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/pin"
+					"path" : "C:/VecEdit/pin"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/vector"
+					"path" : "C:/VecEdit/vector"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/database"
+					"path" : "C:/VecEdit/database"
 				},
 				{
 					"backtrace" : 41,
-					"path" : "E:/QT project/1/VecEdit/common"
+					"path" : "C:/VecEdit/common"
 				},
 				{
 					"backtrace" : 23,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/include/QtCore"
+					"path" : "C:/Qt/6.8.2/mingw_64/include/QtCore"
 				},
 				{
 					"backtrace" : 23,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/include"
+					"path" : "C:/Qt/6.8.2/mingw_64/include"
 				},
 				{
 					"backtrace" : 23,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/mkspecs/win32-g++"
+					"path" : "C:/Qt/6.8.2/mingw_64/mkspecs/win32-g++"
 				},
 				{
 					"backtrace" : 6,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/include/QtWidgets"
+					"path" : "C:/Qt/6.8.2/mingw_64/include/QtWidgets"
 				},
 				{
 					"backtrace" : 6,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/include/QtGui"
+					"path" : "C:/Qt/6.8.2/mingw_64/include/QtGui"
 				},
 				{
 					"backtrace" : 6,
 					"isSystem" : true,
-					"path" : "C:/Qt/6.8.3/mingw_64/include/QtSql"
+					"path" : "C:/Qt/6.8.2/mingw_64/include/QtSql"
 				}
 			],
 			"language" : "CXX",
@@ -479,7 +479,7 @@
 		"commandFragments" : 
 		[
 			{
-				"fragment" : "-DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -g",
+				"fragment" : "-g",
 				"role" : "flags"
 			},
 			{
@@ -488,17 +488,17 @@
 			},
 			{
 				"backtrace" : 6,
-				"fragment" : "C:\\Qt\\6.8.3\\mingw_64\\lib\\libQt6Widgets.a",
+				"fragment" : "C:\\Qt\\6.8.2\\mingw_64\\lib\\libQt6Widgets.a",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 6,
-				"fragment" : "C:\\Qt\\6.8.3\\mingw_64\\lib\\libQt6Sql.a",
+				"fragment" : "C:\\Qt\\6.8.2\\mingw_64\\lib\\libQt6Sql.a",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 13,
-				"fragment" : "C:\\Qt\\6.8.3\\mingw_64\\lib\\libQt6Gui.a",
+				"fragment" : "C:\\Qt\\6.8.2\\mingw_64\\lib\\libQt6Gui.a",
 				"role" : "libraries"
 			},
 			{
@@ -523,7 +523,7 @@
 			},
 			{
 				"backtrace" : 23,
-				"fragment" : "C:\\Qt\\6.8.3\\mingw_64\\lib\\libQt6Core.a",
+				"fragment" : "C:\\Qt\\6.8.2\\mingw_64\\lib\\libQt6Core.a",
 				"role" : "libraries"
 			},
 			{
@@ -543,7 +543,7 @@
 			},
 			{
 				"backtrace" : 38,
-				"fragment" : "C:\\Qt\\6.8.3\\mingw_64\\lib\\libQt6EntryPoint.a",
+				"fragment" : "C:\\Qt\\6.8.2\\mingw_64\\lib\\libQt6EntryPoint.a",
 				"role" : "libraries"
 			},
 			{
