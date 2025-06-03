@@ -391,6 +391,30 @@ common/tablestyleperformancetester.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.s
 .PHONY : common/tablestyleperformancetester.cpp.s
 
+common/waveformview.obj: common/waveformview.cpp.obj
+.PHONY : common/waveformview.obj
+
+# target to build an object file
+common/waveformview.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj
+.PHONY : common/waveformview.cpp.obj
+
+common/waveformview.i: common/waveformview.cpp.i
+.PHONY : common/waveformview.i
+
+# target to preprocess a source file
+common/waveformview.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/waveformview.cpp.i
+.PHONY : common/waveformview.cpp.i
+
+common/waveformview.s: common/waveformview.cpp.s
+.PHONY : common/waveformview.s
+
+# target to generate assembly for a file
+common/waveformview.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/waveformview.cpp.s
+.PHONY : common/waveformview.cpp.s
+
 database/binaryfilehelper.obj: database/binaryfilehelper.cpp.obj
 .PHONY : database/binaryfilehelper.obj
 
@@ -934,6 +958,9 @@ help:
 	@echo ... common/tablestyleperformancetester.obj
 	@echo ... common/tablestyleperformancetester.i
 	@echo ... common/tablestyleperformancetester.s
+	@echo ... common/waveformview.obj
+	@echo ... common/waveformview.i
+	@echo ... common/waveformview.s
 	@echo ... database/binaryfilehelper.obj
 	@echo ... database/binaryfilehelper.i
 	@echo ... database/binaryfilehelper.s

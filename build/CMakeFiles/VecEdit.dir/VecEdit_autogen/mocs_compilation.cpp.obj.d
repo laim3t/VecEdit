@@ -557,6 +557,23 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/VecEdit/common/waveformview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPainter \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qpainter.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPaintEvent \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QVector \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qvector.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollArea \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollarea.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayoutitem.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qgridlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHBoxLayout \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtmochelpers.h \
  C:\VecEdit\build\VecEdit_autogen\P66WHCG54J/moc_logger.cpp \
  C:/VecEdit/common/logger.h \
@@ -809,6 +826,8 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/VecEdit/common/tablestyleperformancetester.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QElapsedTimer \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:\VecEdit\build\VecEdit_autogen\P66WHCG54J/moc_waveformview.cpp \
+ C:/VecEdit/common/waveformview.h \
  C:\VecEdit\build\VecEdit_autogen\BL3K65LMA5/moc_databasemanager.cpp \
  C:/VecEdit/database/databasemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlQuery \
@@ -825,13 +844,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtSql/QSqlTableModel \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqltablemodel.h \
  C:/Qt/6.8.2/mingw_64/include/QtSql/qsqlquerymodel.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayoutitem.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qgridlayout.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHBoxLayout \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QLineEdit \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlineedit.h \
  C:/VecEdit/common/tablestylemanager.h \
@@ -852,8 +864,6 @@ CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj: \
  C:/VecEdit/pin/pinsettingsdialog.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QPair \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qpair.h \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
- C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
  C:\VecEdit\build\VecEdit_autogen\X6SAMCXN67/moc_pinvalueedit.cpp \
  C:/VecEdit/pin/pinvalueedit.h \
  C:\VecEdit\build\VecEdit_autogen\X6SAMCXN67/moc_vectorpinsettingsdialog.cpp \

@@ -151,6 +151,15 @@ void MainWindow::setupUI()
     m_vectorTableContainer->setVisible(false);
 
     setCentralWidget(m_centralWidget);
+
+    // 设置Tab页签组件
+    setupTabBar();
+
+    // 设置侧边导航栏
+    setupSidebarNavigator();
+
+    // 设置波形视图停靠窗口
+    setupWaveformDock();
 }
 
 void MainWindow::setupMenu()
@@ -186,6 +195,20 @@ void MainWindow::setupMenu()
     // 查看数据库
     QAction *viewDatabaseAction = viewMenu->addAction(tr("查看数据库(&D)"));
     connect(viewDatabaseAction, &QAction::triggered, this, &MainWindow::showDatabaseViewDialog);
+
+    // 分隔符
+    viewMenu->addSeparator();
+
+    // 添加侧边栏和波形视图切换菜单项
+    QAction *toggleSidebarAction = viewMenu->addAction(tr("显示/隐藏侧边栏(&S)"));
+    toggleSidebarAction->setCheckable(true);
+    toggleSidebarAction->setChecked(m_sidebarDock->isVisible());
+    connect(toggleSidebarAction, &QAction::triggered, m_sidebarDock, &QDockWidget::setVisible);
+
+    QAction *toggleWaveformAction = viewMenu->addAction(tr("显示/隐藏波形视图(&W)"));
+    toggleWaveformAction->setCheckable(true);
+    toggleWaveformAction->setChecked(m_waveformDock->isVisible());
+    connect(toggleWaveformAction, &QAction::triggered, m_waveformDock, &QDockWidget::setVisible);
 
     // 分隔符
     viewMenu->addSeparator();
@@ -642,14 +665,25 @@ void MainWindow::setupVectorTableUI()
     connect(m_deleteRangeButton, &QToolButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
     toolBar->addWidget(m_deleteRangeButton);
 
-    // 跳转到行按钮 - 只显示图标模式
+    // 添加"跳转到行"按钮
     m_gotoLineButton = new QToolButton(this);
-    m_gotoLineButton->setText(tr("跳转到行"));
-    m_gotoLineButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowForward));
-    m_gotoLineButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    m_gotoLineButton->setToolTip(tr("跳转到行"));                 // 添加工具提示
+    m_gotoLineButton->setText(tr("跳转行"));
+    m_gotoLineButton->setIcon(QIcon(":/resources/icons/arrow-right-circle.svg"));
+    m_gotoLineButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     connect(m_gotoLineButton, &QToolButton::clicked, this, &MainWindow::gotoLine);
     toolBar->addWidget(m_gotoLineButton);
+
+    toolBar->addSeparator();
+
+    // 添加"波形视图"按钮
+    QToolButton *waveformViewButton = new QToolButton(this);
+    waveformViewButton->setText(tr("波形视图"));
+    waveformViewButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon));
+    waveformViewButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    waveformViewButton->setCheckable(true);
+    waveformViewButton->setChecked(m_waveformDock->isVisible());
+    connect(waveformViewButton, &QToolButton::toggled, m_waveformDock, &QDockWidget::setVisible);
+    toolBar->addWidget(waveformViewButton);
 
     toolBar->addSeparator();
 
@@ -860,6 +894,12 @@ void MainWindow::loadCurrentPage()
 
     // 更新分页信息显示
     updatePaginationInfo();
+
+    // 如果波形视图可见，则更新波形
+    if (m_waveformDock && m_waveformDock->isVisible())
+    {
+        updateWaveformView();
+    }
 }
 
 // 加载下一页
@@ -1203,6 +1243,12 @@ void MainWindow::onTabChanged(int index)
     m_isUpdatingUI = true;
     syncComboBoxWithTab(index);
     m_isUpdatingUI = false;
+
+    // 如果波形视图可见，则更新波形
+    if (m_waveformDock && m_waveformDock->isVisible())
+    {
+        updateWaveformView();
+    }
 }
 
 void MainWindow::syncComboBoxWithTab(int tabIndex)
@@ -4303,6 +4349,12 @@ void MainWindow::onTableCellChanged(int row, int column)
 {
     qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
     onTableRowModified(row);
+
+    // 如果波形视图可见，则更新波形
+    if (m_waveformDock && m_waveformDock->isVisible())
+    {
+        updateWaveformView();
+    }
 }
 
 // 处理表格行修改
@@ -5112,4 +5164,147 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
 
     // 2. Refresh the sidebar (in case table names or other project components changed)
     refreshSidebarNavigator();
+}
+
+// 设置波形视图停靠窗口
+void MainWindow::setupWaveformDock()
+{
+    // 创建底部波形视图停靠窗口
+    m_waveformDock = new QDockWidget(tr("波形视图"), this);
+    m_waveformDock->setObjectName("waveformDock");
+    m_waveformDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    m_waveformDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
+
+    // 创建波形视图容器
+    m_waveformContainer = new WaveformViewContainer(m_waveformDock);
+    m_waveformDock->setWidget(m_waveformContainer);
+
+    // 将波形视图添加到主窗口底部
+    addDockWidget(Qt::BottomDockWidgetArea, m_waveformDock);
+
+    // 默认情况下隐藏波形视图
+    m_waveformDock->setVisible(false);
+
+    // 连接信号槽
+    connect(m_waveformDock, &QDockWidget::visibilityChanged, this, &MainWindow::toggleWaveformDock);
+}
+
+// 切换波形视图停靠窗口的可见性
+void MainWindow::toggleWaveformDock(bool show)
+{
+    if (show)
+    {
+        // 如果显示波形视图，则更新波形数据
+        updateWaveformView();
+    }
+}
+
+// 更新波形视图数据
+void MainWindow::updateWaveformView()
+{
+    // 获取当前选中的向量表
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 获取当前表的管脚列表
+    QStringList pins;
+    QList<Vector::ColumnInfo> columns;
+    QString binFileName;
+    int schemaVersion = 0;
+    int rowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
+    {
+        qDebug() << "无法加载向量表元数据，表ID:" << tableId;
+        return;
+    }
+
+    // 提取管脚列信息
+    for (const auto &col : columns)
+    {
+        if (col.columnType == Vector::ColumnType::PIN)
+        {
+            pins.append(col.name);
+        }
+    }
+
+    // 清除波形视图
+    m_waveformContainer->waveformView()->clearWaveforms();
+
+    // 设置默认管脚
+    m_waveformContainer->waveformView()->setDefaultPins(pins);
+
+    // 获取当前页的数据
+    QTableWidget *currentTable = qobject_cast<QTableWidget *>(m_vectorTabWidget->currentWidget());
+    if (!currentTable || currentTable->rowCount() == 0)
+    {
+        return;
+    }
+
+    // 为每个管脚创建波形数据
+    for (const QString &pin : pins)
+    {
+        // 找到管脚对应的列
+        int colIndex = -1;
+        for (int col = 0; col < currentTable->columnCount(); ++col)
+        {
+            if (currentTable->horizontalHeaderItem(col) &&
+                currentTable->horizontalHeaderItem(col)->text() == pin)
+            {
+                colIndex = col;
+                break;
+            }
+        }
+
+        if (colIndex == -1)
+            continue;
+
+        // 收集该管脚的值
+        QVector<WaveformView::PinValue> values;
+
+        for (int row = 0; row < currentTable->rowCount(); ++row)
+        {
+            QTableWidgetItem *item = currentTable->item(row, colIndex);
+            if (item)
+            {
+                QString text = item->text().trimmed().toUpper();
+
+                if (text == "0")
+                {
+                    values.append(WaveformView::PinValue::Low);
+                }
+                else if (text == "1")
+                {
+                    values.append(WaveformView::PinValue::High);
+                }
+                else if (text == "X")
+                {
+                    values.append(WaveformView::PinValue::Unknown);
+                }
+                else if (text == "Z")
+                {
+                    values.append(WaveformView::PinValue::HighZ);
+                }
+                else if (text == "H" || text == "L")
+                {
+                    values.append(WaveformView::PinValue::HighImp);
+                }
+                else
+                {
+                    values.append(WaveformView::PinValue::Unknown);
+                }
+            }
+        }
+
+        // 设置波形数据
+        if (!values.isEmpty())
+        {
+            m_waveformContainer->waveformView()->setPinWaveformData(pin, values);
+        }
+    }
 }

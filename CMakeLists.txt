@@ -59,6 +59,8 @@ set(PROJECT_SOURCES
         common/tablestyleperformancetester.cpp
         common/logger.h
         common/logger.cpp
+        common/waveformview.h
+        common/waveformview.cpp
         timeset/timesetdataaccess.h
         timeset/timesetdataaccess.cpp
         timeset/timesetui.h

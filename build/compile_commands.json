@@ -139,6 +139,12 @@
 },
 {
   "directory": "C:/VecEdit/build",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\waveformview.cpp.obj -c C:\\VecEdit\\common\\waveformview.cpp",
+  "file": "C:/VecEdit/common/waveformview.cpp",
+  "output": "CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj"
+},
+{
+  "directory": "C:/VecEdit/build",
   "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetdataaccess.cpp.obj -c C:\\VecEdit\\timeset\\timesetdataaccess.cpp",
   "file": "C:/VecEdit/timeset/timesetdataaccess.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj"

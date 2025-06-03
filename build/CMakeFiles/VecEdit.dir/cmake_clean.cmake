@@ -18,6 +18,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj"
   "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj.d"
+  "CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj"
+  "CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj"
   "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj"

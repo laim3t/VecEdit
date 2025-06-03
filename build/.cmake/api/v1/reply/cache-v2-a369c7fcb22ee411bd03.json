@@ -155,10 +155,10 @@
 				},
 				{
 					"name" : "HELPSTRING",
-					"value" : "CXX compiler"
+					"value" : "No help, variable specified on the command line."
 				}
 			],
-			"type" : "STRING",
+			"type" : "FILEPATH",
 			"value" : "c:/Qt/Tools/mingw1310_64/bin/g++.exe"
 		},
 		{
@@ -1483,11 +1483,11 @@
 			[
 				{
 					"name" : "HELPSTRING",
-					"value" : "The CMake toolchain file"
+					"value" : "No help, variable specified on the command line."
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "C:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake"
+			"value" : "c:/Qt/6.8.2/mingw_64/lib/cmake/Qt6/qt.toolchain.cmake"
 		},
 		{
 			"name" : "CMAKE_VERBOSE_MAKEFILE",

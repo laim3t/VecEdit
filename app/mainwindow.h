@@ -30,6 +30,7 @@
 #include "../vector/vectordatahandler.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
+#include "../common/waveformview.h"
 
 // 前置声明
 class VectorTableItemDelegate;
@@ -157,11 +158,15 @@ private slots:
 
     // 侧边导航栏相关槽
     void refreshSidebarNavigator();
-    void onSidebarItemClicked(QTreeWidgetItem* item, int column);
-    void onPinItemClicked(QTreeWidgetItem* item, int column);
-    void onTimeSetItemClicked(QTreeWidgetItem* item, int column);
-    void onVectorTableItemClicked(QTreeWidgetItem* item, int column);
-    void onLabelItemClicked(QTreeWidgetItem* item, int column);
+    void onSidebarItemClicked(QTreeWidgetItem *item, int column);
+    void onPinItemClicked(QTreeWidgetItem *item, int column);
+    void onTimeSetItemClicked(QTreeWidgetItem *item, int column);
+    void onVectorTableItemClicked(QTreeWidgetItem *item, int column);
+    void onLabelItemClicked(QTreeWidgetItem *item, int column);
+
+    // 波形视图相关槽
+    void toggleWaveformDock(bool show);
+    void updateWaveformView();
 
 private:
     void setupUI();
@@ -169,6 +174,7 @@ private:
     void setupVectorTableUI();
     void setupTabBar();
     void setupSidebarNavigator();
+    void setupWaveformDock();
     void addVectorTableTab(int tableId, const QString &tableName);
     void loadAllVectorTables();
     void syncTabWithComboBox(int comboBoxIndex);
@@ -259,6 +265,10 @@ private:
     // 侧边导航栏组件
     QDockWidget *m_sidebarDock;
     QTreeWidget *m_sidebarTree;
+
+    // 波形视图组件
+    QDockWidget *m_waveformDock;
+    WaveformViewContainer *m_waveformContainer;
 };
 
 #endif // MAINWINDOW_H

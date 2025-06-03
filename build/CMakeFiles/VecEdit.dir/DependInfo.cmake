@@ -17,6 +17,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/VecEdit/common/logger.cpp" "CMakeFiles/VecEdit.dir/common/logger.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/logger.cpp.obj.d"
   "C:/VecEdit/common/tablestylemanager.cpp" "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj.d"
   "C:/VecEdit/common/tablestyleperformancetester.cpp" "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj.d"
+  "C:/VecEdit/common/waveformview.cpp" "CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/common/waveformview.cpp.obj.d"
   "C:/VecEdit/database/binaryfilehelper.cpp" "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj.d"
   "C:/VecEdit/database/databasemanager.cpp" "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj.d"
   "C:/VecEdit/database/databasemanager_migrator.cpp" "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj.d"

@@ -554,7 +554,25 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:\VecEdit\app\main.cpp \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHeaderView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qheaderview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h C:/VecEdit/common/logger.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/VecEdit/common/waveformview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPainter \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qpainter.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPaintEvent \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QVector \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qvector.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollArea \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollarea.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QVBoxLayout \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qlayoutitem.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qboxlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qgridlayout.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QHBoxLayout \
+ C:/VecEdit/common/logger.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QTextStream \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtextstream.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \

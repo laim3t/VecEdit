@@ -83,12 +83,12 @@ CMakeFiles/VecEdit.dir/all: CMakeFiles/VecEdit_autogen.dir/all
 CMakeFiles/VecEdit.dir/all: CMakeFiles/VecEdit_autogen_timestamp_deps.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 "Built target VecEdit"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33 "Built target VecEdit"
 .PHONY : CMakeFiles/VecEdit.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/VecEdit.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\build\CMakeFiles 33
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\build\CMakeFiles 34
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/VecEdit.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\build\CMakeFiles 0
 .PHONY : CMakeFiles/VecEdit.dir/rule
@@ -135,7 +135,7 @@ CMakeFiles/VecEdit_autogen_timestamp_deps.dir/clean:
 CMakeFiles/VecEdit_autogen.dir/all: CMakeFiles/VecEdit_autogen_timestamp_deps.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit_autogen.dir\build.make CMakeFiles/VecEdit_autogen.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit_autogen.dir\build.make CMakeFiles/VecEdit_autogen.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=33 "Built target VecEdit_autogen"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=34 "Built target VecEdit_autogen"
 .PHONY : CMakeFiles/VecEdit_autogen.dir/all
 
 # Build rule for subdir invocation for target.

@@ -590,6 +590,16 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QHash \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h \
+ C:/VecEdit/common/waveformview.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPainter \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/qpainter.h \
+ C:/Qt/6.8.2/mingw_64/include/QtGui/QPaintEvent \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QVector \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qvector.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollArea \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollarea.h \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/QScrollBar \
+ C:/Qt/6.8.2/mingw_64/include/QtWidgets/qscrollbar.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QApplication \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qapplication.h \
  C:/Qt/6.8.2/mingw_64/include/QtGui/QColor \

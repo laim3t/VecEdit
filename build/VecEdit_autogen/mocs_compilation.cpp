@@ -2,6 +2,7 @@
 #include "VJIZ3MDCXP/moc_mainwindow.cpp"
 #include "P66WHCG54J/moc_logger.cpp"
 #include "P66WHCG54J/moc_tablestyleperformancetester.cpp"
+#include "P66WHCG54J/moc_waveformview.cpp"
 #include "BL3K65LMA5/moc_databasemanager.cpp"
 #include "BL3K65LMA5/moc_databaseviewdialog.cpp"
 #include "X6SAMCXN67/moc_pingroupdialog.cpp"
