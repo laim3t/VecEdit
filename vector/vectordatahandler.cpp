@@ -1833,7 +1833,7 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         qDebug() << funcName << "- 非追加模式，文件存在，尝试加载现有数据:" << absoluteBinFilePath;
 
         // 确定是否需要读取整个文件
-        if (startIndex > 0 && startIndex <= existingRowCountFromMeta)
+        if (startIndex >= 0 && startIndex <= existingRowCountFromMeta)
         {
             if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, existingRows))
             {
@@ -1874,6 +1874,13 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         actualInsertionIndex = 0;
     if (actualInsertionIndex > existingRowCountFromMeta)
         actualInsertionIndex = existingRowCountFromMeta;
+
+    // 在非追加模式下，记录插入位置，确保正确处理
+    if (!appendToEnd) {
+        qDebug() << funcName << "- 非追加模式，插入位置:" << actualInsertionIndex 
+                 << "，现有行数:" << existingRowCountFromMeta
+                 << "，新增行数:" << rowCount;
+    }
 
     // 创建按列名检索的映射，提前准备好提高效率
     QMap<QString, int> columnNameMap;
@@ -1986,6 +1993,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         out.setDevice(&tempFile);
         out.setByteOrder(QDataStream::LittleEndian);
 
+        // 确保actualInsertionIndex不超出现有行的范围
+        if (actualInsertionIndex > existingRows.size()) {
+            actualInsertionIndex = existingRows.size();
+        }
+
+        // 写入插入点之前的现有行
         for (int i = 0; i < actualInsertionIndex && i < existingRows.size(); i++)
         {
             QByteArray serializedRowData;
@@ -2250,8 +2263,7 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     {
         // 计算当前批次要处理的行数
         int currentBatchSize = qMin(BATCH_SIZE, rowCount - totalRowsProcessed);
-        qDebug() << funcName << "- 处理批次 " << (currentBatch + 1) << "/" << totalBatches
-                 << "，当前批次大小:" << currentBatchSize;
+        qDebug() << funcName << "- 处理批次 " << (currentBatch + 1) << "/" << totalBatches << "，当前批次大小:" << currentBatchSize;
 
         // 使用缓存的预生成数据或实时生成
         bool useCache = sourceDataRowCount > 0 && sourceDataRowCount <= 1000;
@@ -2346,6 +2358,9 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     // 在非追加模式下，还需要写入插入点之后的现有数据
     if (!appendToEnd && actualInsertionIndex < existingRows.size())
     {
+        qDebug() << funcName << "- 写入插入点之后的现有数据，从索引" << actualInsertionIndex << "开始，共" 
+                 << (existingRows.size() - actualInsertionIndex) << "行";
+                 
         for (int i = actualInsertionIndex; i < existingRows.size(); i++)
         {
             QByteArray serializedRowData;
@@ -2422,7 +2437,13 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     }
 
     // 计算最终的行数
-    int finalRowCount = appendToEnd ? (existingRowCountFromMeta + rowCount) : (!existingRows.isEmpty() ? (existingRows.size() + rowCount - (existingRows.size() - actualInsertionIndex)) : rowCount);
+    int finalRowCount;
+    if (appendToEnd) {
+        finalRowCount = existingRowCountFromMeta + rowCount;
+    } else {
+        // 非追加模式，最终行数 = 原有行数 + 新增行数
+        finalRowCount = existingRows.size() + rowCount;
+    }
 
     QSqlQuery updateQuery(db);
     updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
@@ -3381,8 +3402,6 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
     qDebug() << funcName << " - 分页数据加载完成，共" << pageRows.size() << "行";
     return true;
 }
-
-// 此处删除重复定义的getVectorTableRowCount函数
 
 // 实现标记行已修改的方法
 void VectorDataHandler::markRowAsModified(int tableId, int rowIndex)

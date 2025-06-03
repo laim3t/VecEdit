@@ -764,6 +764,8 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     QObject::connect(appendToEndCheckbox, &QCheckBox::checkStateChanged, [insertAtEdit](int state)
                      {
                          insertAtEdit->setEnabled(state != Qt::Checked); // 当不勾选时启用向前插入输入框
+                         qDebug() << "向量行数据录入 - 追加模式状态改变:" << (state == Qt::Checked ? "启用" : "禁用") 
+                                  << "，向前插入输入框:" << (state != Qt::Checked ? "启用" : "禁用");
                      });
 
     // 连接行数输入框变化信号，更新剩余可用行数
@@ -918,18 +920,6 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
             if (actualStartIndex < 0) {
                 actualStartIndex = 0;
             }
-            
-            // 检查向量表中总行数
-            QSqlQuery countQuery(db);
-            countQuery.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
-            countQuery.addBindValue(tableId);
-            
-            if (countQuery.exec() && countQuery.next()) {
-                int existingRowCount = countQuery.value(0).toInt();
-                if (actualStartIndex > existingRowCount) {
-                    actualStartIndex = existingRowCount; // 如果超出范围，则放在最后
-                }
-            }
         }
         
         // 创建进度对话框
@@ -958,9 +948,10 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         QString errorMessage;
         
         qDebug() << "DialogManager::showVectorDataDialog - 开始保存向量行数据，表ID:" << tableId 
-                 << "，起始索引:" << actualStartIndex << "，总行数:" << totalRowCount;
+                 << "，起始索引:" << actualStartIndex << "，总行数:" << totalRowCount
+                 << "，追加模式:" << appendToEndCheckbox->isChecked();
         
-        // 执行插入操作（阻塞方式）
+        // 传递实际的向量表和正确的追加标志
         bool success = dataHandler.insertVectorRows(
             tableId, actualStartIndex, totalRowCount, timesetCombo->currentData().toInt(),
             vectorTable, appendToEndCheckbox->isChecked(), selectedPins, errorMessage
