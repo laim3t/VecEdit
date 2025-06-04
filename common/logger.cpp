@@ -67,7 +67,7 @@ void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel lev
 
     // 在Windows上分配控制台
 #ifdef Q_OS_WIN
-    // 尝试附加到父进程的控制台
+    /* // 尝试附加到父进程的控制台
     if (!AttachConsole(ATTACH_PARENT_PROCESS))
     {
         // 如果没有父控制台，则创建新的控制台
@@ -93,6 +93,7 @@ void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel lev
     bufferSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
     bufferSize.Y = 9999; // 增大缓冲区高度，以便保存更多日志
     SetConsoleScreenBufferSize(hConsole, bufferSize);
+    */
 #endif
 
     // 安装消息处理器
