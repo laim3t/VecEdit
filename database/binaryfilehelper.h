@@ -173,6 +173,20 @@ namespace Persistence
          */
         static void clearAllRowOffsetCaches();
 
+        /**
+         * @brief 智能更新行偏移缓存，适用于增量更新场景
+         *
+         * 不同于clearRowOffsetCache完全删除缓存和索引文件，
+         * 此方法仅更新被修改行的缓存信息，并保留索引文件
+         *
+         * @param binFilePath 二进制文件路径
+         * @param modifiedRows 被修改的行索引
+         * @param preserveIndex 是否保留索引文件（默认为true）
+         */
+        static void updateRowOffsetCache(const QString &binFilePath,
+                                         const QSet<int> &modifiedRows,
+                                         bool preserveIndex = true);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度
@@ -234,6 +248,32 @@ namespace Persistence
          * @param rowPositions 行偏移信息
          */
         static void setRowOffsetCache(const QString &binFilePath, const RowOffsetCache &rowPositions);
+
+        /**
+         * @brief 将行偏移缓存保存为持久化索引文件
+         *
+         * @param binFilePath 二进制数据文件路径
+         * @param rowPositions 行偏移信息
+         * @return 是否成功保存索引文件
+         */
+        static bool saveRowOffsetIndex(const QString &binFilePath, const RowOffsetCache &rowPositions);
+
+        /**
+         * @brief 从持久化索引文件加载行偏移缓存
+         *
+         * @param binFilePath 二进制数据文件路径
+         * @param fileLastModified 数据文件最后修改时间，用于验证索引有效性
+         * @return 行偏移缓存，无效时返回空 QVector
+         */
+        static RowOffsetCache loadRowOffsetIndex(const QString &binFilePath, const QDateTime &fileLastModified);
+
+        /**
+         * @brief 获取索引文件路径
+         *
+         * @param binFilePath 二进制数据文件路径
+         * @return 对应的索引文件路径
+         */
+        static QString getIndexFilePath(const QString &binFilePath);
     };
 
 } // namespace Persistence
