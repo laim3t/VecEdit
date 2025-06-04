@@ -469,8 +469,8 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         tableWidget->verticalHeader()->setUpdatesEnabled(true);
         tableWidget->horizontalHeader()->setUpdatesEnabled(true);
         tableWidget->setUpdatesEnabled(true);
-        return false;
-    }
+            return false;
+        }
     qDebug() << funcName << " - 从二进制文件加载了 " << allRowsOriginal.size() << " 行, 原始列数:" << allColumns.size() << ", 可见列数:" << columns.size();
 
     // 校验从文件读取的行数与数据库记录的行数 (可选，但推荐)
@@ -557,7 +557,7 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         columnIdToIndexMap[allColumns[i].id] = i;
         qDebug() << funcName << " - 列ID映射: ID=" << allColumns[i].id << " -> 索引=" << i
                  << ", 名称=" << allColumns[i].name << ", 可见=" << allColumns[i].is_visible;
-    }
+}
 
     for (int row = 0; row < allRowsOriginal.size(); ++row)
     {
@@ -3777,7 +3777,7 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                     // 检查数据是否有变更
                     if (oldValue.toString() != pinStateText)
                     {
-                        rowData[originalColIdx] = pinStateText;
+                    rowData[originalColIdx] = pinStateText;
                         rowModified = true;
                     }
 
