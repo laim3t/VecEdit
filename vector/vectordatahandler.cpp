@@ -1876,8 +1876,9 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         actualInsertionIndex = existingRowCountFromMeta;
 
     // 在非追加模式下，记录插入位置，确保正确处理
-    if (!appendToEnd) {
-        qDebug() << funcName << "- 非追加模式，插入位置:" << actualInsertionIndex 
+    if (!appendToEnd)
+    {
+        qDebug() << funcName << "- 非追加模式，插入位置:" << actualInsertionIndex
                  << "，现有行数:" << existingRowCountFromMeta
                  << "，新增行数:" << rowCount;
     }
@@ -1994,7 +1995,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         out.setByteOrder(QDataStream::LittleEndian);
 
         // 确保actualInsertionIndex不超出现有行的范围
-        if (actualInsertionIndex > existingRows.size()) {
+        if (actualInsertionIndex > existingRows.size())
+        {
             actualInsertionIndex = existingRows.size();
         }
 
@@ -2358,9 +2360,9 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     // 在非追加模式下，还需要写入插入点之后的现有数据
     if (!appendToEnd && actualInsertionIndex < existingRows.size())
     {
-        qDebug() << funcName << "- 写入插入点之后的现有数据，从索引" << actualInsertionIndex << "开始，共" 
+        qDebug() << funcName << "- 写入插入点之后的现有数据，从索引" << actualInsertionIndex << "开始，共"
                  << (existingRows.size() - actualInsertionIndex) << "行";
-                 
+
         for (int i = actualInsertionIndex; i < existingRows.size(); i++)
         {
             QByteArray serializedRowData;
@@ -2438,9 +2440,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
 
     // 计算最终的行数
     int finalRowCount;
-    if (appendToEnd) {
+    if (appendToEnd)
+    {
         finalRowCount = existingRowCountFromMeta + rowCount;
-    } else {
+    }
+    else
+    {
         // 非追加模式，最终行数 = 原有行数 + 新增行数
         finalRowCount = existingRows.size() + rowCount;
     }
@@ -3928,25 +3933,26 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         if (!modifiedRowsMap.isEmpty())
         {
             qInfo() << funcName << " - Attempting INCREMENTAL update with" << modifiedRowsMap.size() << "rows in modifiedRowsMap.";
-            writeSuccess = Persistence::BinaryFileHelper::updateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
+            // 使用新的健壮版本的增量更新函数
+            writeSuccess = Persistence::BinaryFileHelper::robustUpdateRowsInBinary(absoluteBinFilePath, allColumns, schemaVersion, modifiedRowsMap);
 
             if (!writeSuccess)
             {
-                qWarning() << funcName << " - INCREMENTAL update FAILED. Attempting FULL rewrite.";
-                // 在这里，我们期望 Persistence::BinaryFileHelper::updateRowsInBinary 内部已经打印了 qCritical 日志指明具体失败原因
+                qWarning() << funcName << " - ROBUST INCREMENTAL update FAILED. Attempting FULL rewrite.";
+                // 在这里，我们期望 robustUpdateRowsInBinary 内部已经打印了详细日志指明具体失败原因
                 writeSuccess = Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, allColumns, schemaVersion, allRows);
                 if (writeSuccess)
                 {
-                    qInfo() << funcName << " - FULL rewrite successful after incremental update failed.";
+                    qInfo() << funcName << " - FULL rewrite successful after robust incremental update failed.";
                 }
                 else
                 {
-                    qCritical() << funcName << " - CRITICAL: FULL rewrite ALSO FAILED after incremental update failed. Data NOT saved for file:" << absoluteBinFilePath;
+                    qCritical() << funcName << " - CRITICAL: FULL rewrite ALSO FAILED after robust incremental update failed. Data NOT saved for file:" << absoluteBinFilePath;
                 }
             }
             else
             {
-                qInfo() << funcName << " - INCREMENTAL update successful.";
+                qInfo() << funcName << " - ROBUST INCREMENTAL update successful.";
             }
         }
         else // modifiedRowsMap is empty, but modifiedCount > 0

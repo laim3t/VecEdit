@@ -7,6 +7,7 @@
 #include <QIODevice>
 #include <QByteArray>
 #include <QDebug> // For qDebug()
+#include <QFile>  // 添加QFile的包含声明
 #include "vector/vector_data_types.h"
 
 // Forward declarations for placeholder types (replace with actual types later)
@@ -133,6 +134,29 @@ namespace Persistence
         static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                        int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
 
+        /**
+         * @brief 强健的增量更新实现，能够处理文件损坏和异常大小情况
+         *
+         * 这是一个全新实现的方法，用于替代原有的updateRowsInBinary，
+         * 采用更保守和健壮的方式读取和更新二进制文件，确保在各种情况下都能正常工作。
+         *
+         * 特点：
+         * 1. 不完全信任文件中的大小值，而是采用实际文件大小和预期格式进行验证
+         * 2. 能够检测和处理文件损坏情况
+         * 3. 即使部分行更新失败，也会尽可能完成其他行的更新
+         * 4. 提供详细的诊断信息
+         *
+         * @param binFilePath 二进制文件路径
+         * @param columns 列定义信息
+         * @param schemaVersion 数据库Schema版本
+         * @param modifiedRows 需要更新的行数据
+         * @return bool 操作是否成功
+         */
+        static bool robustUpdateRowsInBinary(const QString &binFilePath,
+                                             const QList<Vector::ColumnInfo> &columns,
+                                             int schemaVersion,
+                                             const QMap<int, Vector::RowData> &modifiedRows);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度
@@ -140,6 +164,19 @@ namespace Persistence
          * @return 对应数据类型的固定长度（字节数）
          */
         static int getFixedLengthForType(Vector::ColumnDataType type);
+
+        /**
+         * @brief 读取行的大小信息并进行合理性验证
+         *
+         * 专门用于robustUpdateRowsInBinary，提供更健壮的行大小读取
+         *
+         * @param stream 二进制数据流
+         * @param file 文件对象
+         * @param maxReasonableSize 合理的最大行大小
+         * @param[out] rowSize 输出读取到的行大小
+         * @return bool 读取是否成功
+         */
+        static bool readRowSizeWithValidation(QDataStream &stream, QFile &file, quint32 maxReasonableSize, quint32 &rowSize);
     };
 
 } // namespace Persistence

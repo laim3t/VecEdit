@@ -251,6 +251,21 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext &context, c
                          .arg(msg);
     }
 
+    // 检查日志消息长度，如果过长可能会导致显示问题
+    const int MAX_CONSOLE_LINE_LENGTH = 8192; // 定义控制台行的最大长度
+    QString displayMessage = logMessage;
+    bool messageTruncated = false;
+
+    if (logMessage.length() > MAX_CONSOLE_LINE_LENGTH)
+    {
+        // 截断过长的消息，保留前半部分和后半部分
+        int halfLength = MAX_CONSOLE_LINE_LENGTH / 2 - 30; // 为中间的省略号预留空间
+        displayMessage = logMessage.left(halfLength) +
+                         " ... [消息过长，中间部分省略，完整消息见日志文件] ... " +
+                         logMessage.right(halfLength);
+        messageTruncated = true;
+    }
+
     QMutexLocker locker(&m_mutex);
 
     // 输出到控制台
@@ -280,19 +295,20 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext &context, c
 
     SetConsoleTextAttribute(hConsole, attributes);
 
-    // 直接使用UTF-8输出
-    std::cout << logMessage.toStdString() << std::endl;
+    // 直接使用UTF-8输出截断后的消息
+    std::cout << displayMessage.toStdString() << std::endl;
 
     // 恢复默认颜色
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
     // 其他平台使用标准输出
-    std::cout << logMessage.toStdString() << std::endl;
+    std::cout << displayMessage.toStdString() << std::endl;
 #endif
 
-    // 如果启用了文件日志，也写入文件
+    // 如果启用了文件日志，写入完整的消息到文件
     if (logger.m_logToFile && logger.m_logFile.isOpen())
     {
+        // 总是写入完整消息到文件，不进行截断
         logger.m_logStream << logMessage << Qt::endl;
         logger.m_logStream.flush();
     }

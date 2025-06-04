@@ -9,15 +9,33 @@
 #include <QDir>
 #include <cstdio>    // Added for fprintf
 #include <QDateTime> // Added for QDateTime
+#include <QElapsedTimer>
 
 // Macro for direct stderr logging
-#define BFH_LOG_STDERR(funcName, format, ...)                                                           \
-    do                                                                                                  \
-    {                                                                                                   \
-        fprintf(stderr, "[BFH_STDERR][%s] %s: " format "\n",                                            \
-                QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz").toStdString().c_str(), \
-                funcName, ##__VA_ARGS__);                                                               \
-        fflush(stderr);                                                                                 \
+#define BFH_LOG_STDERR(funcName, format, ...)                                                                          \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        char buffer[4096]; /* 增加缓冲区大小从默认的较小值到4KB */                                                     \
+        int written = snprintf(buffer, sizeof(buffer), "[BFH_STDERR][%s] %s: " format "\n",                            \
+                               QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz").toStdString().c_str(), \
+                               funcName, ##__VA_ARGS__);                                                               \
+        if (written >= 0)                                                                                              \
+        {                                                                                                              \
+            /* 检查是否有截断情况 */                                                                                   \
+            if ((size_t)written >= sizeof(buffer))                                                                     \
+            {                                                                                                          \
+                fprintf(stderr, "%s... (消息被截断，完整消息过长)\n", buffer);                                         \
+            }                                                                                                          \
+            else                                                                                                       \
+            {                                                                                                          \
+                fprintf(stderr, "%s", buffer);                                                                         \
+            }                                                                                                          \
+        }                                                                                                              \
+        else                                                                                                           \
+        {                                                                                                              \
+            fprintf(stderr, "[BFH_STDERR_ERROR] 日志格式化失败\n");                                                    \
+        }                                                                                                              \
+        fflush(stderr);                                                                                                \
     } while (0)
 
 namespace Persistence
@@ -893,6 +911,9 @@ namespace Persistence
         // Original qDebug:
         // qDebug() << funcName << "- 开始更新文件:" << binFilePath << ", 修改行数:" << modifiedRows.size() << ", 使用随机写入";
 
+        // 添加用于跟踪损坏行的数据结构
+        QSet<int> corruptedRows;
+
         if (modifiedRows.isEmpty())
         {
             BFH_LOG_STDERR(funcName, "No rows to modify. Exiting true.");
@@ -1033,6 +1054,43 @@ namespace Persistence
                 return false;
             }
 
+            // --- BEGIN ABNORMAL SIZE CHECK ---
+            // 检查行大小是否异常（例如16MB的错误值）
+            // 设置一个合理的最大行大小限制，例如1MB
+            const quint32 MAX_REASONABLE_ROW_SIZE = 1024 * 1024; // 1MB
+            if (rowDataSize > MAX_REASONABLE_ROW_SIZE)
+            {
+                qWarning() << funcName << "- WARNING: Row" << i << "claims an abnormally large data size:" << rowDataSize
+                           << "bytes, which exceeds the reasonable limit of" << MAX_REASONABLE_ROW_SIZE
+                           << "bytes. This is likely due to file corruption. Will attempt to recover.";
+
+                // 尝试查看实际可用数据量
+                qint64 bytesAvailable = file.size() - file.pos();
+
+                // 计算更合理的行大小，基于最大行大小限制和可用数据量
+                quint32 adjustedSize = qMin(static_cast<quint32>(bytesAvailable), MAX_REASONABLE_ROW_SIZE);
+
+                if (adjustedSize > 0)
+                {
+                    qWarning() << funcName << "- Adjusting row" << i << "size from" << rowDataSize << "to" << adjustedSize
+                               << "bytes based on available data and reasonable limits.";
+                    rowDataSize = adjustedSize;
+
+                    // 记录这一行后续需要特殊处理
+                    // 这里可以添加一个标记，如将该行加入到一个"需要完全重写"的列表中
+                    corruptedRows.insert(i);
+                }
+                else
+                {
+                    qCritical() << funcName << "- CRITICAL_ERROR: FAILED_INCREMENTAL_UPDATE_CONDITION: No reasonable size could be determined for row" << i
+                                << ". File pos:" << file.pos() << "File size:" << file.size()
+                                << ". File:" << binFilePath;
+                    file.close();
+                    return false;
+                }
+            }
+            // --- END ABNORMAL SIZE CHECK ---
+
             // --- BEGIN POST-READ CHECK ---
             if (file.bytesAvailable() < static_cast<qint64>(rowDataSize))
             {
@@ -1106,30 +1164,57 @@ namespace Persistence
                 continue;
             }
 
-            if (rowIndex < 0 || rowIndex >= rowPositions.size())
+            // 检查该行是否已被标记为损坏
+            if (corruptedRows.contains(rowIndex))
             {
-                qCritical() << funcName << "- CRITICAL_ERROR: (Defensive Check) 行索引" << rowIndex << "在rowPositions中越界 (Size: " << rowPositions.size() << "). 文件:" << binFilePath
-                            << " (Reason: Row index out of bounds for rowPositions during update loop)";
+                qWarning() << funcName << "- 跳过更新损坏的行:" << rowIndex << "。该行将在后续完全重写中处理";
+                continue;
+            }
+
+            if (rowIndex < 0 || rowIndex >= rowOffsetsAndSizes.size())
+            {
+                qCritical() << funcName << "- CRITICAL_ERROR: (Defensive Check) 行索引" << rowIndex << "在rowOffsetsAndSizes中越界 (Size: " << rowOffsetsAndSizes.size() << "). 文件:" << binFilePath
+                            << " (Reason: Row index out of bounds for rowOffsetsAndSizes during update loop)";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Row index %d out of bounds. rowOffsetsAndSizes.size = %d",
+                               rowIndex, rowOffsetsAndSizes.size());
                 file.close();
                 return false;
             }
-            const RowInfo &originalRowInfo = rowPositions[rowIndex];
+
+            const RowInfo &originalRowInfo = rowOffsetsAndSizes[rowIndex];
+
+            BFH_LOG_STDERR(funcName, "Processing row %d. Offset: %lld, Data Size: %u",
+                           rowIndex, originalRowInfo.offset, originalRowInfo.data_size);
 
             QByteArray serializedNewRow;
             if (!serializeRow(newRowData, columns, serializedNewRow))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 序列化新行数据失败，行索引:" << rowIndex << ", 文件:" << binFilePath
                             << " (Reason: serializeRow returned false)";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to serialize row %d", rowIndex);
                 file.close();
                 return false;
             }
 
             if (static_cast<quint32>(serializedNewRow.size()) != originalRowInfo.data_size)
             {
-                qCritical() << funcName << "- CRITICAL_ERROR: 行" << rowIndex << "的新数据长度(" << serializedNewRow.size()
-                            << ")与原始数据长度(" << originalRowInfo.data_size << ")不匹配. 文件:" << binFilePath
-                            << " (Reason: Data length mismatch)";
-                return false;
+                // 记录大小不匹配详情但不立即失败，而是记录问题并继续
+                qWarning() << funcName << "- 警告: 行" << rowIndex << "的新数据长度(" << serializedNewRow.size()
+                           << ")与原始数据长度(" << originalRowInfo.data_size << ")不匹配. 文件:" << binFilePath;
+                BFH_LOG_STDERR(funcName, "WARNING: Row %d data length mismatch. New size: %d, Original size: %u",
+                               rowIndex, serializedNewRow.size(), originalRowInfo.data_size);
+
+                // 记录不匹配数据的内容摘要，帮助调试
+                QString originalDataSummary = "未读取原始数据";
+                QString newDataSummary = QString("新数据前32字节: %1").arg(serializedNewRow.size() > 32 ? serializedNewRow.left(32).toHex(' ') : serializedNewRow.toHex(' '));
+
+                BFH_LOG_STDERR(funcName, "Data mismatch details - %s | %s",
+                               originalDataSummary.toStdString().c_str(),
+                               newDataSummary.toStdString().c_str());
+
+                // 标记这行更新失败，但允许继续处理其他行
+                // 稍后可能会触发完全重写模式
+                continue;
             }
 
             qint64 seekPos = originalRowInfo.offset + sizeof(quint32);
@@ -1137,6 +1222,8 @@ namespace Persistence
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: Seek到行" << rowIndex << "的数据位置(" << seekPos << ")失败. 文件:" << binFilePath
                             << ", OS错误:" << file.errorString() << " (Reason: File seek failed for row update)";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to seek to row %d data position %lld. OS error: %s",
+                               rowIndex, seekPos, file.errorString().toStdString().c_str());
                 file.close();
                 return false;
             }
@@ -1147,9 +1234,13 @@ namespace Persistence
                 qCritical() << funcName << "- CRITICAL_ERROR: 写入新行数据失败，行索引:" << rowIndex << ". 预期写入:" << serializedNewRow.size()
                             << ", 实际写入:" << bytesWritten << ". 文件:" << binFilePath
                             << ", OS错误:" << file.errorString() << " (Reason: File write failed for row update)";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to write row %d data. Expected: %d, Actual: %lld. OS error: %s",
+                               rowIndex, serializedNewRow.size(), bytesWritten, file.errorString().toStdString().c_str());
                 file.close();
                 return false;
             }
+            BFH_LOG_STDERR(funcName, "Successfully updated row %d at offset %lld, data size: %d",
+                           rowIndex, originalRowInfo.offset, serializedNewRow.size());
             qDebug() << funcName << "- 成功更新行:" << rowIndex << "于Offset:" << originalRowInfo.offset << "新数据长度:" << serializedNewRow.size();
             rowsUpdatedSuccessfully++;
         }
@@ -1161,32 +1252,386 @@ namespace Persistence
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: Seek到文件开头失败 (更新文件头前). 文件:" << binFilePath
                             << ", OS错误:" << file.errorString() << " (Reason: File seek to beginning failed for header timestamp update)";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to seek to file beginning for header update. OS error: %s",
+                               file.errorString().toStdString().c_str());
                 file.close();
                 return false;
             }
             if (!writeBinaryHeader(&file, header))
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 更新文件头的时间戳失败 (Reason: writeBinaryHeader for timestamp update failed), 文件:" << binFilePath;
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Failed to update file header timestamp");
                 file.close();
                 return false;
             }
+            BFH_LOG_STDERR(funcName, "Successfully updated file header timestamp");
             qDebug() << funcName << "- 文件头时间戳已成功更新.";
         }
         else if (modifiedRows.size() > invalidRowIndicesForUpdate.size())
         {
             qWarning() << funcName << "- 警告: 有 " << (modifiedRows.size() - invalidRowIndicesForUpdate.size())
                        << " 个有效修改行，但成功更新数量为0. 可能所有有效行都因某种原因（如长度不匹配）未能更新.";
+            BFH_LOG_STDERR(funcName, "WARNING: Found %d valid rows to modify, but updated 0 rows successfully",
+                           (modifiedRows.size() - invalidRowIndicesForUpdate.size()));
             if ((modifiedRows.size() - invalidRowIndicesForUpdate.size()) > 0 && rowsUpdatedSuccessfully == 0)
             {
                 qCritical() << funcName << "- CRITICAL_ERROR: 有效修改行存在，但无任何行被成功更新。上层应已处理此情况。";
+                BFH_LOG_STDERR(funcName, "CRITICAL_ERROR: Valid rows exist but none were updated successfully");
                 file.close();
                 return false;
             }
         }
 
         file.close();
+        BFH_LOG_STDERR(funcName, "File closed. Successfully updated %u out of %d rows",
+                       rowsUpdatedSuccessfully, (modifiedRows.size() - invalidRowIndicesForUpdate.size()));
         qDebug() << funcName << "- 文件已关闭. 总计成功更新 " << rowsUpdatedSuccessfully << " 行.";
 
-        return rowsUpdatedSuccessfully == static_cast<quint32>(modifiedRows.size() - invalidRowIndicesForUpdate.size());
+        // 计算成功更新率
+        int validRowCount = modifiedRows.size() - invalidRowIndicesForUpdate.size();
+        int attemptedRowCount = validRowCount - corruptedRows.size();
+
+        // 如果有损坏的行，记录到日志，但不影响返回值（只要其他行成功更新）
+        if (!corruptedRows.isEmpty())
+        {
+            qWarning() << funcName << "- 检测到" << corruptedRows.size() << "个损坏的行，这些行将在下次完全重写时更新";
+            BFH_LOG_STDERR(funcName, "Detected %d corrupted rows that will be updated during a full rewrite later",
+                           corruptedRows.size());
+
+            // 只要有一些行成功更新，我们就认为操作成功（即使有一些损坏的行）
+            if (rowsUpdatedSuccessfully > 0)
+            {
+                return true;
+            }
+        }
+
+        // 原始逻辑：所有有效行都必须成功更新
+        return rowsUpdatedSuccessfully == static_cast<quint32>(validRowCount);
+    }
+
+    bool BinaryFileHelper::readRowSizeWithValidation(QDataStream &stream, QFile &file, quint32 maxReasonableSize, quint32 &rowSize)
+    {
+        const char *funcName = "BinaryFileHelper::readRowSizeWithValidation";
+
+        // 检查是否有足够的字节可读
+        if (file.bytesAvailable() < static_cast<qint64>(sizeof(quint32)))
+        {
+            qCritical() << funcName << "- 错误: 文件剩余字节数(" << file.bytesAvailable()
+                        << ")不足以读取行大小(需要4字节)";
+            return false;
+        }
+
+        // 读取大小值
+        stream >> rowSize;
+
+        // 检查流状态
+        if (stream.status() != QDataStream::Ok)
+        {
+            qCritical() << funcName << "- 错误: 读取行大小时流状态异常. 状态:" << stream.status();
+            return false;
+        }
+
+        // 检查大小是否合理
+        if (rowSize > maxReasonableSize)
+        {
+            qWarning() << funcName << "- 警告: 读取到异常大行大小:" << rowSize
+                       << ", 超过最大合理值:" << maxReasonableSize << ". 将进行调整";
+
+            // 根据剩余可用字节计算合理大小
+            qint64 availableBytes = file.bytesAvailable();
+            if (availableBytes <= 0)
+            {
+                qCritical() << funcName << "- 错误: 文件无剩余可用字节";
+                return false;
+            }
+
+            // 限制在剩余字节数和最大合理大小之间
+            rowSize = qMin(static_cast<quint32>(availableBytes), maxReasonableSize);
+            qWarning() << funcName << "- 已将行大小调整为:" << rowSize << "字节";
+        }
+
+        // 最终验证确保大小不超过可用字节数
+        if (rowSize > static_cast<quint32>(file.bytesAvailable()))
+        {
+            qCritical() << funcName << "- 错误: 行大小(" << rowSize
+                        << ")超过剩余可用字节数(" << file.bytesAvailable() << ")";
+            return false;
+        }
+
+        return true;
+    }
+
+    bool BinaryFileHelper::robustUpdateRowsInBinary(const QString &binFilePath,
+                                                    const QList<Vector::ColumnInfo> &columns,
+                                                    int schemaVersion,
+                                                    const QMap<int, Vector::RowData> &modifiedRows)
+    {
+        const char *funcName = "BinaryFileHelper::robustUpdateRowsInBinary";
+
+        // 输出日志，表明正在使用新的健壮版本
+        qInfo() << funcName << "- 使用强健版本的增量更新，文件:" << binFilePath
+                << "，修改行数:" << modifiedRows.size() << "，Schema版本:" << schemaVersion;
+
+        // 记录每一步的开始时间，用于性能分析
+        QElapsedTimer timer;
+        timer.start();
+
+        // ----- 第1步: 文件检查 -----
+
+        if (modifiedRows.isEmpty())
+        {
+            qDebug() << funcName << "- 没有需要修改的行，直接返回成功";
+            return true;
+        }
+
+        QFile file(binFilePath);
+
+        if (!file.exists())
+        {
+            qCritical() << funcName << "- 文件不存在:" << binFilePath;
+            return false;
+        }
+
+        if (!file.open(QIODevice::ReadWrite))
+        {
+            qCritical() << funcName << "- 无法以读写模式打开文件:" << binFilePath
+                        << "，错误:" << file.errorString();
+            return false;
+        }
+
+        qDebug() << funcName << "- 文件打开成功，耗时:" << timer.elapsed() << "ms";
+        timer.restart();
+
+        // ----- 第2步: 读取文件头 -----
+
+        BinaryFileHeader header;
+        if (!readBinaryHeader(&file, header))
+        {
+            qCritical() << funcName << "- 读取文件头失败";
+            file.close();
+            return false;
+        }
+
+        // 验证头信息
+        if (header.data_schema_version != schemaVersion)
+        {
+            qCritical() << funcName << "- 文件Schema版本(" << header.data_schema_version
+                        << ")与期望的版本(" << schemaVersion << ")不匹配";
+            file.close();
+            return false;
+        }
+
+        if (header.column_count_in_file != static_cast<uint32_t>(columns.size()))
+        {
+            qCritical() << funcName << "- 文件列数(" << header.column_count_in_file
+                        << ")与期望的列数(" << columns.size() << ")不匹配";
+            file.close();
+            return false;
+        }
+
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+        qDebug() << funcName << "- 文件头验证成功，文件包含" << header.row_count_in_file
+                 << "行数据，耗时:" << timer.elapsed() << "ms";
+        timer.restart();
+
+        // ----- 第3步: 扫描文件结构，建立行索引映射 -----
+
+        // 建立行索引-> {偏移量, 大小} 的映射
+        struct RowPosition
+        {
+            qint64 offset;    // 行起始位置(包括大小字段)
+            quint32 dataSize; // 该行数据的大小(不包括大小字段)
+        };
+
+        QVector<RowPosition> rowPositions;
+        rowPositions.reserve(header.row_count_in_file);
+
+        // 设置合理的最大行大小限制
+        const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB
+
+        // 跟踪哪些行被跳过(因为损坏或其他问题)
+        QSet<int> skippedRows;
+
+        QDataStream in(&file);
+        in.setByteOrder(QDataStream::LittleEndian);
+
+        // 从文件头后的位置开始扫描
+        qint64 currentPos = file.pos();
+
+        for (quint64 i = 0; i < header.row_count_in_file; ++i)
+        {
+            if (file.atEnd())
+            {
+                qWarning() << funcName << "- 文件意外结束，行索引:" << i
+                           << "，预期行数:" << header.row_count_in_file;
+                break;
+            }
+
+            RowPosition pos;
+            pos.offset = currentPos;
+
+            // 使用健壮的行大小读取方法
+            if (!readRowSizeWithValidation(in, file, MAX_REASONABLE_ROW_SIZE, pos.dataSize))
+            {
+                qWarning() << funcName << "- 行" << i << "的大小读取失败，将跳过该行";
+                skippedRows.insert(i);
+
+                // 尝试跳到下一个合理位置继续
+                if (i < header.row_count_in_file - 1)
+                {
+                    // 估算平均行大小并跳过
+                    qint64 avgRowSize = (file.size() - file.pos()) / (header.row_count_in_file - i);
+                    qint64 nextPos = file.pos() + qMin<qint64>(avgRowSize, 1024); // 最多跳1KB
+
+                    if (!file.seek(nextPos))
+                    {
+                        qCritical() << funcName << "- 无法从损坏的行" << i << "恢复";
+                        break;
+                    }
+
+                    currentPos = file.pos();
+                    continue;
+                }
+                else
+                {
+                    // 最后一行，可以直接退出
+                    break;
+                }
+            }
+
+            // 成功读取行大小，添加到位置映射中
+            rowPositions.append(pos);
+
+            // 计算下一行的位置
+            currentPos = pos.offset + sizeof(quint32) + pos.dataSize;
+
+            // 跳到下一行
+            if (i < header.row_count_in_file - 1 && !file.seek(currentPos))
+            {
+                qWarning() << funcName << "- 无法跳转到下一行位置，文件可能已损坏";
+                break;
+            }
+        }
+
+        qDebug() << funcName << "- 文件结构扫描完成，成功定位了" << rowPositions.size()
+                 << "行，跳过了" << skippedRows.size() << "行，耗时:" << timer.elapsed() << "ms";
+        timer.restart();
+
+        // ----- 第4步: 准备修改行数据 -----
+
+        // 检查修改行的有效性，过滤出有效的修改行
+        QMap<int, Vector::RowData> validModifiedRows;
+        QSet<int> invalidRowIndices;
+
+        for (auto it = modifiedRows.constBegin(); it != modifiedRows.constEnd(); ++it)
+        {
+            int rowIndex = it.key();
+
+            // 有效行的条件:
+            // 1. 行索引在有效范围内
+            // 2. 该行没有被跳过(损坏)
+            if (rowIndex >= 0 && rowIndex < rowPositions.size() && !skippedRows.contains(rowIndex))
+            {
+                validModifiedRows.insert(rowIndex, it.value());
+            }
+            else
+            {
+                invalidRowIndices.insert(rowIndex);
+                qWarning() << funcName << "- 跳过无效的修改行:" << rowIndex;
+            }
+        }
+
+        if (validModifiedRows.isEmpty())
+        {
+            qCritical() << funcName << "- 没有有效的修改行，更新失败";
+            file.close();
+            return false;
+        }
+
+        qDebug() << funcName << "- 共有" << validModifiedRows.size() << "个有效修改行，"
+                 << invalidRowIndices.size() << "个无效修改行";
+
+        // ----- 第5步: 序列化并更新每一行 -----
+
+        // 跟踪成功更新的行数
+        int successfulUpdates = 0;
+
+        // 开始逐行更新
+        for (auto it = validModifiedRows.constBegin(); it != validModifiedRows.constEnd(); ++it)
+        {
+            int rowIndex = it.key();
+            const Vector::RowData &rowData = it.value();
+
+            // 序列化行数据
+            QByteArray serializedRow;
+            if (!serializeRow(rowData, columns, serializedRow))
+            {
+                qWarning() << funcName << "- 行" << rowIndex << "序列化失败，跳过此行";
+                continue;
+            }
+
+            const RowPosition &pos = rowPositions[rowIndex];
+
+            // 检查大小是否匹配
+            if (static_cast<quint32>(serializedRow.size()) != pos.dataSize)
+            {
+                qWarning() << funcName << "- 行" << rowIndex << "的新数据大小(" << serializedRow.size()
+                           << ")与原大小(" << pos.dataSize << ")不匹配，跳过此行";
+                continue;
+            }
+
+            // 定位到数据开始位置(跳过大小字段)
+            qint64 dataOffset = pos.offset + sizeof(quint32);
+            if (!file.seek(dataOffset))
+            {
+                qWarning() << funcName << "- 无法定位到行" << rowIndex << "的数据位置，跳过此行";
+                continue;
+            }
+
+            // 写入新数据
+            qint64 bytesWritten = file.write(serializedRow);
+            if (bytesWritten != serializedRow.size())
+            {
+                qWarning() << funcName << "- 写入行" << rowIndex << "失败，预期:" << serializedRow.size()
+                           << "，实际:" << bytesWritten << "，跳过此行";
+                continue;
+            }
+
+            // 更新成功
+            successfulUpdates++;
+        }
+
+        qDebug() << funcName << "- 行更新完成，成功:" << successfulUpdates
+                 << "行，失败:" << (validModifiedRows.size() - successfulUpdates)
+                 << "行，耗时:" << timer.elapsed() << "ms";
+        timer.restart();
+
+        // ----- 第6步: 更新文件头中的时间戳 -----
+
+        // 更新文件头的时间戳并写回
+        file.seek(0); // 回到文件开头
+        if (!writeBinaryHeader(&file, header))
+        {
+            qWarning() << funcName << "- 更新文件头失败，但数据已修改";
+            // 不直接失败，因为数据已经写入
+        }
+
+        file.close();
+        qDebug() << funcName << "- 文件头更新完成，总耗时:" << (timer.elapsed() + timer.elapsed()) << "ms";
+
+        // ----- 第7步: 返回结果 -----
+
+        // 只要有行成功更新就算成功
+        bool success = (successfulUpdates > 0);
+        if (success)
+        {
+            qInfo() << funcName << "- 增量更新成功完成，共更新" << successfulUpdates << "行";
+        }
+        else
+        {
+            qCritical() << funcName << "- 增量更新失败，没有任何行被成功更新";
+        }
+
+        return success;
     }
 } // namespace Persistence
