@@ -371,6 +371,13 @@ CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj: \
  C:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/codecvt \
  C:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/bits/fs_dir.h \
  C:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/bits/fs_ops.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMap \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmap.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/VecEdit/vector/vector_data_types.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qlist.h \
@@ -397,13 +404,6 @@ CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtextstream.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QDateTime \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qdatetime.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QMap \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qmap.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/windows.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/sdkddkver.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/excpt.h \

@@ -486,6 +486,11 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearray.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/VecEdit/common/utils/pathutils.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QFileInfo \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qfileinfo.h \
@@ -497,8 +502,6 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QCoreApplication \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreevent.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qeventloop.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qnativeinterface.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qcoreapplication_platform.h \

@@ -12,6 +12,7 @@ C:/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/VecEdit/app/m
   C:/Qt/6.8.2/mingw_64/include/QtCore/QJsonObject \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QMap \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QObject \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QRect \
   C:/Qt/6.8.2/mingw_64/include/QtCore/QSet \
@@ -100,6 +101,7 @@ C:/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/VecEdit/app/m
   C:/Qt/6.8.2/mingw_64/include/QtCore/qmetaobject.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qmetatype.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qminmax.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qnamespace.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qnativeinterface.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qnumeric.h \
@@ -152,6 +154,7 @@ C:/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/VecEdit/app/m
   C:/Qt/6.8.2/mingw_64/include/QtCore/qtnoop.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qtpreprocessorsupport.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qtresource.h \
+  C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qttranslation.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qttypetraits.h \
   C:/Qt/6.8.2/mingw_64/include/QtCore/qtversion.h \

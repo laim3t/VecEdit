@@ -8,6 +8,8 @@
 #include <QByteArray>
 #include <QDebug> // For qDebug()
 #include <QFile>  // 添加QFile的包含声明
+#include <QMap>   // 添加QMap用于缓存结构
+#include <QMutex> // 添加QMutex用于线程安全
 #include "vector/vector_data_types.h"
 
 // Forward declarations for placeholder types (replace with actual types later)
@@ -157,6 +159,20 @@ namespace Persistence
                                              int schemaVersion,
                                              const QMap<int, Vector::RowData> &modifiedRows);
 
+        /**
+         * @brief 清除指定文件的行偏移缓存
+         * 当文件被修改（如全量重写）后调用，确保缓存数据的一致性
+         *
+         * @param binFilePath 二进制文件路径
+         */
+        static void clearRowOffsetCache(const QString &binFilePath);
+
+        /**
+         * @brief 清除所有文件的行偏移缓存
+         * 当应用需要释放内存或重置状态时调用
+         */
+        static void clearAllRowOffsetCaches();
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度
@@ -177,6 +193,47 @@ namespace Persistence
          * @return bool 读取是否成功
          */
         static bool readRowSizeWithValidation(QDataStream &stream, QFile &file, quint32 maxReasonableSize, quint32 &rowSize);
+
+        /**
+         * @brief 二进制文件行偏移缓存
+         *
+         * 存储格式：
+         * key: 文件路径
+         * value: 文件中每行的偏移位置和数据大小
+         */
+        struct RowPositionInfo
+        {
+            qint64 offset;     // 行起始位置(包括大小字段)
+            quint32 dataSize;  // 该行数据的大小(不包括大小字段)
+            quint64 timestamp; // 缓存创建时间(秒), 用于判断缓存新鲜度
+        };
+
+        using RowOffsetCache = QVector<RowPositionInfo>;
+
+        // 文件路径 -> 行偏移缓存
+        static QMap<QString, RowOffsetCache> s_fileRowOffsetCache;
+
+        // 保护缓存的互斥锁，用于多线程环境
+        static QMutex s_cacheMutex;
+
+        /**
+         * @brief 获取指定文件的行偏移缓存
+         *
+         * 如果缓存不存在或已过期，会返回空 QVector
+         *
+         * @param binFilePath 二进制文件路径
+         * @param fileLastModified 文件最后修改时间，用于验证缓存有效性
+         * @return RowOffsetCache 行偏移缓存，无效时返回空 QVector
+         */
+        static RowOffsetCache getRowOffsetCache(const QString &binFilePath, const QDateTime &fileLastModified);
+
+        /**
+         * @brief 设置指定文件的行偏移缓存
+         *
+         * @param binFilePath 二进制文件路径
+         * @param rowPositions 行偏移信息
+         */
+        static void setRowOffsetCache(const QString &binFilePath, const RowOffsetCache &rowPositions);
     };
 
 } // namespace Persistence

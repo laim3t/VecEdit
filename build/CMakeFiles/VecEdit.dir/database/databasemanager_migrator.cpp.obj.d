@@ -399,6 +399,13 @@ CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearray.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMap \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmap.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qdeadlinetimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qelapsedtimer.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/VecEdit/vector/vector_data_types.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QList \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qlist.h \

@@ -585,6 +585,9 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearray.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \

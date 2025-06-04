@@ -548,6 +548,9 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:\VecEdit\app\main.cpp \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qiodevice.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QByteArray \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qbytearray.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
+ C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/VecEdit/common/tablestylemanager.h \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/QTableView \
  C:/Qt/6.8.2/mingw_64/include/QtWidgets/qtableview.h \
@@ -557,9 +560,6 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:\VecEdit\app\main.cpp \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qhash.h C:/VecEdit/common/logger.h \
  C:/Qt/6.8.2/mingw_64/include/QtCore/QTextStream \
  C:/Qt/6.8.2/mingw_64/include/QtCore/qtextstream.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/QMutex \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qmutex.h \
- C:/Qt/6.8.2/mingw_64/include/QtCore/qtsan_impl.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/windows.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/sdkddkver.h \
  C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/excpt.h \

@@ -11,6 +11,10 @@
 #include <QDateTime> // Added for QDateTime
 #include <QElapsedTimer>
 
+// 初始化静态成员
+QMap<QString, Persistence::BinaryFileHelper::RowOffsetCache> Persistence::BinaryFileHelper::s_fileRowOffsetCache;
+QMutex Persistence::BinaryFileHelper::s_cacheMutex;
+
 // Macro for direct stderr logging
 #define BFH_LOG_STDERR(funcName, format, ...)                                                                          \
     do                                                                                                                 \
@@ -888,16 +892,26 @@ namespace Persistence
             }
         }
 
+        // 说明: 成功写入所有行（或部分行）
+        header.row_count_in_file = static_cast<unsigned int>(rows.size());
+        bool writeHeaderSuccess = writeBinaryHeader(&file, header);
+        if (!writeHeaderSuccess)
+        {
+            qWarning() << funcName << "- 警告: 写入文件头失败! 文件:" << binFilePath;
+            // 继续执行, 因为数据已经写入了
+        }
+
         file.close();
 
-        // 添加完整的性能统计信息
-        QDateTime endTime = QDateTime::currentDateTime();
-        qint64 totalElapsedMs = startTime.msecsTo(endTime);
-        double avgRowsPerSecond = (totalElapsedMs > 0) ? (rowsWritten * 1000.0 / totalElapsedMs) : 0;
+        // 全量重写会改变文件结构，需要清除行偏移缓存
+        clearRowOffsetCache(binFilePath);
 
-        qDebug() << funcName << "- 文件已关闭. 总计写入:" << rowsWritten << "行, 预期:"
-                 << rows.size() << "行. 耗时:" << (totalElapsedMs / 1000.0) << "秒, 平均速度:"
-                 << avgRowsPerSecond << "行/秒";
+        qDebug() << funcName << "- 文件已关闭. 总计成功写入 " << rowsWritten << " 行.";
+        if (rowsWritten != rows.size())
+        {
+            qWarning() << funcName << "- 部分行写入失败! 预期写入:" << rows.size()
+                       << ", 实际写入:" << rowsWritten;
+        }
 
         return rowsWritten == static_cast<quint64>(rows.size());
     }
@@ -1287,6 +1301,12 @@ namespace Persistence
                        rowsUpdatedSuccessfully, (modifiedRows.size() - invalidRowIndicesForUpdate.size()));
         qDebug() << funcName << "- 文件已关闭. 总计成功更新 " << rowsUpdatedSuccessfully << " 行.";
 
+        // 更新数据后清除缓存，确保下次读取时获取最新结构
+        if (rowsUpdatedSuccessfully > 0)
+        {
+            clearRowOffsetCache(binFilePath);
+        }
+
         // 计算成功更新率
         int validRowCount = modifiedRows.size() - invalidRowIndicesForUpdate.size();
         int attemptedRowCount = validRowCount - corruptedRows.size();
@@ -1452,69 +1472,115 @@ namespace Persistence
         // 跟踪哪些行被跳过(因为损坏或其他问题)
         QSet<int> skippedRows;
 
-        QDataStream in(&file);
-        in.setByteOrder(QDataStream::LittleEndian);
+        // 尝试从缓存中获取行偏移数据
+        QFileInfo fileInfo(binFilePath);
+        RowOffsetCache cachedPositions = getRowOffsetCache(binFilePath, fileInfo.lastModified());
 
-        // 从文件头后的位置开始扫描
-        qint64 currentPos = file.pos();
+        bool usedCache = false;
 
-        for (quint64 i = 0; i < header.row_count_in_file; ++i)
+        // 如果缓存有效且行数与文件头一致，则直接使用缓存
+        if (!cachedPositions.isEmpty() && cachedPositions.size() == static_cast<int>(header.row_count_in_file))
         {
-            if (file.atEnd())
+            qDebug() << funcName << "- 使用缓存的行偏移数据，跳过文件扫描，节省性能";
+            usedCache = true;
+
+            // 将缓存数据转换为本地数据结构
+            for (int i = 0; i < cachedPositions.size(); i++)
             {
-                qWarning() << funcName << "- 文件意外结束，行索引:" << i
-                           << "，预期行数:" << header.row_count_in_file;
-                break;
+                RowPosition pos;
+                pos.offset = cachedPositions[i].offset;
+                pos.dataSize = cachedPositions[i].dataSize;
+                rowPositions.append(pos);
             }
+        }
+        else
+        {
+            // 缓存无效，需要扫描文件结构
+            qDebug() << funcName << "- 未找到有效缓存或缓存行数与文件不符，执行完整扫描";
 
-            RowPosition pos;
-            pos.offset = currentPos;
+            QDataStream in(&file);
+            in.setByteOrder(QDataStream::LittleEndian);
 
-            // 使用健壮的行大小读取方法
-            if (!readRowSizeWithValidation(in, file, MAX_REASONABLE_ROW_SIZE, pos.dataSize))
+            // 从文件头后的位置开始扫描
+            qint64 currentPos = file.pos();
+
+            // 创建新的缓存
+            RowOffsetCache newCache;
+            newCache.reserve(header.row_count_in_file);
+
+            for (quint64 i = 0; i < header.row_count_in_file; ++i)
             {
-                qWarning() << funcName << "- 行" << i << "的大小读取失败，将跳过该行";
-                skippedRows.insert(i);
-
-                // 尝试跳到下一个合理位置继续
-                if (i < header.row_count_in_file - 1)
+                if (file.atEnd())
                 {
-                    // 估算平均行大小并跳过
-                    qint64 avgRowSize = (file.size() - file.pos()) / (header.row_count_in_file - i);
-                    qint64 nextPos = file.pos() + qMin<qint64>(avgRowSize, 1024); // 最多跳1KB
+                    qWarning() << funcName << "- 文件意外结束，行索引:" << i
+                               << "，预期行数:" << header.row_count_in_file;
+                    break;
+                }
 
-                    if (!file.seek(nextPos))
+                RowPosition pos;
+                pos.offset = currentPos;
+
+                // 使用健壮的行大小读取方法
+                if (!readRowSizeWithValidation(in, file, MAX_REASONABLE_ROW_SIZE, pos.dataSize))
+                {
+                    qWarning() << funcName << "- 行" << i << "的大小读取失败，将跳过该行";
+                    skippedRows.insert(i);
+
+                    // 尝试跳到下一个合理位置继续
+                    if (i < header.row_count_in_file - 1)
                     {
-                        qCritical() << funcName << "- 无法从损坏的行" << i << "恢复";
+                        // 估算平均行大小并跳过
+                        qint64 avgRowSize = (file.size() - file.pos()) / (header.row_count_in_file - i);
+                        qint64 nextPos = file.pos() + qMin<qint64>(avgRowSize, 1024); // 最多跳1KB
+
+                        if (!file.seek(nextPos))
+                        {
+                            qCritical() << funcName << "- 无法从损坏的行" << i << "恢复";
+                            break;
+                        }
+
+                        currentPos = file.pos();
+                        continue;
+                    }
+                    else
+                    {
+                        // 最后一行，可以直接退出
                         break;
                     }
-
-                    currentPos = file.pos();
-                    continue;
                 }
-                else
+
+                // 成功读取行大小，添加到位置映射中
+                rowPositions.append(pos);
+
+                // 同时添加到新的缓存中
+                RowPositionInfo cachePos;
+                cachePos.offset = pos.offset;
+                cachePos.dataSize = pos.dataSize;
+                cachePos.timestamp = QDateTime::currentSecsSinceEpoch();
+                newCache.append(cachePos);
+
+                // 计算下一行的位置
+                currentPos = pos.offset + sizeof(quint32) + pos.dataSize;
+
+                // 跳到下一行
+                if (i < header.row_count_in_file - 1 && !file.seek(currentPos))
                 {
-                    // 最后一行，可以直接退出
+                    qWarning() << funcName << "- 无法跳转到下一行位置，文件可能已损坏";
                     break;
                 }
             }
 
-            // 成功读取行大小，添加到位置映射中
-            rowPositions.append(pos);
-
-            // 计算下一行的位置
-            currentPos = pos.offset + sizeof(quint32) + pos.dataSize;
-
-            // 跳到下一行
-            if (i < header.row_count_in_file - 1 && !file.seek(currentPos))
+            // 如果成功扫描了所有行，且没有跳过的行，那么缓存数据
+            if (rowPositions.size() == header.row_count_in_file && skippedRows.isEmpty())
             {
-                qWarning() << funcName << "- 无法跳转到下一行位置，文件可能已损坏";
-                break;
+                setRowOffsetCache(binFilePath, newCache);
+                qDebug() << funcName << "- 将行偏移数据存入缓存，共" << newCache.size() << "行";
             }
         }
 
-        qDebug() << funcName << "- 文件结构扫描完成，成功定位了" << rowPositions.size()
-                 << "行，跳过了" << skippedRows.size() << "行，耗时:" << timer.elapsed() << "ms";
+        qint64 scanTime = timer.elapsed();
+        qDebug() << funcName << "- 文件结构" << (usedCache ? "从缓存获取" : "扫描完成") << "，成功定位了" << rowPositions.size()
+                 << "行，跳过了" << skippedRows.size() << "行，耗时:" << scanTime << "ms";
         timer.restart();
 
         // ----- 第4步: 准备修改行数据 -----
@@ -1619,7 +1685,16 @@ namespace Persistence
         file.close();
         qDebug() << funcName << "- 文件头更新完成，总耗时:" << (timer.elapsed() + timer.elapsed()) << "ms";
 
-        // ----- 第7步: 返回结果 -----
+        // ----- 第7步: 更新缓存状态 -----
+
+        // 如果有数据更新，清除此文件的缓存，确保下次读取时获取最新数据
+        if (successfulUpdates > 0)
+        {
+            qDebug() << funcName << "- 数据已修改，清除" << binFilePath << "的行偏移缓存";
+            clearRowOffsetCache(binFilePath);
+        }
+
+        // ----- 第8步: 返回结果 -----
 
         // 只要有行成功更新就算成功
         bool success = (successfulUpdates > 0);
@@ -1633,5 +1708,100 @@ namespace Persistence
         }
 
         return success;
+    }
+
+    // 行偏移缓存相关方法实现
+    void BinaryFileHelper::clearRowOffsetCache(const QString &binFilePath)
+    {
+        const QString funcName = "BinaryFileHelper::clearRowOffsetCache";
+        QMutexLocker locker(&s_cacheMutex);
+
+        if (s_fileRowOffsetCache.contains(binFilePath))
+        {
+            qDebug() << funcName << "- 清除文件行偏移缓存:" << binFilePath;
+            s_fileRowOffsetCache.remove(binFilePath);
+        }
+    }
+
+    void BinaryFileHelper::clearAllRowOffsetCaches()
+    {
+        const QString funcName = "BinaryFileHelper::clearAllRowOffsetCaches";
+        QMutexLocker locker(&s_cacheMutex);
+
+        qDebug() << funcName << "- 清除所有文件的行偏移缓存，共" << s_fileRowOffsetCache.size() << "个文件";
+        s_fileRowOffsetCache.clear();
+    }
+
+    BinaryFileHelper::RowOffsetCache BinaryFileHelper::getRowOffsetCache(const QString &binFilePath, const QDateTime &fileLastModified)
+    {
+        const QString funcName = "BinaryFileHelper::getRowOffsetCache";
+        QMutexLocker locker(&s_cacheMutex);
+
+        // 检查缓存是否存在
+        if (!s_fileRowOffsetCache.contains(binFilePath))
+        {
+            return RowOffsetCache();
+        }
+
+        // 获取缓存
+        const RowOffsetCache &cache = s_fileRowOffsetCache.value(binFilePath);
+
+        // 检查缓存是否为空
+        if (cache.isEmpty())
+        {
+            return RowOffsetCache();
+        }
+
+        // 检查文件修改时间是否与缓存创建时间一致
+        // 我们使用第一个元素的时间戳作为整个缓存的创建时间
+        quint64 cacheTimestamp = cache.first().timestamp;
+        quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
+
+        // 如果文件比缓存新，缓存无效
+        if (fileTimestamp > cacheTimestamp)
+        {
+            qDebug() << funcName << "- 文件已更新，缓存已过期:" << binFilePath
+                     << "文件时间:" << fileTimestamp << "缓存时间:" << cacheTimestamp;
+            return RowOffsetCache();
+        }
+
+        qDebug() << funcName << "- 使用缓存的行偏移数据，共" << cache.size() << "行:" << binFilePath;
+        return cache;
+    }
+
+    void BinaryFileHelper::setRowOffsetCache(const QString &binFilePath, const RowOffsetCache &rowPositions)
+    {
+        const QString funcName = "BinaryFileHelper::setRowOffsetCache";
+        QMutexLocker locker(&s_cacheMutex);
+
+        // 简单的缓存大小限制，防止内存无限增长
+        const int MAX_CACHED_FILES = 50;
+
+        // 如果缓存达到上限，移除最旧的一个
+        if (s_fileRowOffsetCache.size() >= MAX_CACHED_FILES && !s_fileRowOffsetCache.contains(binFilePath))
+        {
+            // 找到最旧的缓存项并移除
+            QString oldestFile;
+            quint64 oldestTimestamp = UINT64_MAX;
+
+            for (auto it = s_fileRowOffsetCache.begin(); it != s_fileRowOffsetCache.end(); ++it)
+            {
+                if (!it.value().isEmpty() && it.value().first().timestamp < oldestTimestamp)
+                {
+                    oldestTimestamp = it.value().first().timestamp;
+                    oldestFile = it.key();
+                }
+            }
+
+            if (!oldestFile.isEmpty())
+            {
+                qDebug() << funcName << "- 缓存已满，移除最旧的缓存项:" << oldestFile;
+                s_fileRowOffsetCache.remove(oldestFile);
+            }
+        }
+
+        // 存储新的缓存
+        qDebug() << funcName << "- 添加行偏移缓存，文件:" << binFilePath << "，行数:" << rowPositions.size();
+        s_fileRowOffsetCache[binFilePath] = rowPositions;
     }
 } // namespace Persistence
