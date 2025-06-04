@@ -587,6 +587,7 @@ VecEdit.exe: CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/build.make
 VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6Widgets.a
 VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6Sql.a
+VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6Concurrent.a
 VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6Gui.a
 VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6Core.a
 VecEdit.exe: C:/Qt/6.8.2/mingw_64/lib/libQt6EntryPoint.a

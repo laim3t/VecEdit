@@ -1,175 +1,175 @@
 [
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\VecEdit_autogen\\mocs_compilation.cpp.obj -c C:\\VecEdit\\build\\VecEdit_autogen\\mocs_compilation.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\VecEdit_autogen\\mocs_compilation.cpp.obj -c C:\\VecEdit\\build\\VecEdit_autogen\\mocs_compilation.cpp",
   "file": "C:/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp",
   "output": "CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\app\\main.cpp.obj -c C:\\VecEdit\\app\\main.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\app\\main.cpp.obj -c C:\\VecEdit\\app\\main.cpp",
   "file": "C:/VecEdit/app/main.cpp",
   "output": "CMakeFiles/VecEdit.dir/app/main.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\app\\mainwindow.cpp.obj -c C:\\VecEdit\\app\\mainwindow.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\app\\mainwindow.cpp.obj -c C:\\VecEdit\\app\\mainwindow.cpp",
   "file": "C:/VecEdit/app/mainwindow.cpp",
   "output": "CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databasemanager.cpp.obj -c C:\\VecEdit\\database\\databasemanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databasemanager.cpp.obj -c C:\\VecEdit\\database\\databasemanager.cpp",
   "file": "C:/VecEdit/database/databasemanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databasemanager_migrator.cpp.obj -c C:\\VecEdit\\database\\databasemanager_migrator.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databasemanager_migrator.cpp.obj -c C:\\VecEdit\\database\\databasemanager_migrator.cpp",
   "file": "C:/VecEdit/database/databasemanager_migrator.cpp",
   "output": "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databaseviewdialog.cpp.obj -c C:\\VecEdit\\database\\databaseviewdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\databaseviewdialog.cpp.obj -c C:\\VecEdit\\database\\databaseviewdialog.cpp",
   "file": "C:/VecEdit/database/databaseviewdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\binaryfilehelper.cpp.obj -c C:\\VecEdit\\database\\binaryfilehelper.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\database\\binaryfilehelper.cpp.obj -c C:\\VecEdit\\database\\binaryfilehelper.cpp",
   "file": "C:/VecEdit/database/binaryfilehelper.cpp",
   "output": "CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinlistdialog.cpp.obj -c C:\\VecEdit\\pin\\pinlistdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinlistdialog.cpp.obj -c C:\\VecEdit\\pin\\pinlistdialog.cpp",
   "file": "C:/VecEdit/pin/pinlistdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pingroupdialog.cpp.obj -c C:\\VecEdit\\pin\\pingroupdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pingroupdialog.cpp.obj -c C:\\VecEdit\\pin\\pingroupdialog.cpp",
   "file": "C:/VecEdit/pin/pingroupdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\timesetdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\timesetdialog.cpp",
   "file": "C:/VecEdit/timeset/timesetdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetedgedialog.cpp.obj -c C:\\VecEdit\\timeset\\timesetedgedialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetedgedialog.cpp.obj -c C:\\VecEdit\\timeset\\timesetedgedialog.cpp",
   "file": "C:/VecEdit/timeset/timesetedgedialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\filltimesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\filltimesetdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\filltimesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\filltimesetdialog.cpp",
   "file": "C:/VecEdit/timeset/filltimesetdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\replacetimesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\replacetimesetdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\replacetimesetdialog.cpp.obj -c C:\\VecEdit\\timeset\\replacetimesetdialog.cpp",
   "file": "C:/VecEdit/timeset/replacetimesetdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinvalueedit.cpp.obj -c C:\\VecEdit\\pin\\pinvalueedit.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinvalueedit.cpp.obj -c C:\\VecEdit\\pin\\pinvalueedit.cpp",
   "file": "C:/VecEdit/pin/pinvalueedit.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\vectorpinsettingsdialog.cpp.obj -c C:\\VecEdit\\pin\\vectorpinsettingsdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\vectorpinsettingsdialog.cpp.obj -c C:\\VecEdit\\pin\\vectorpinsettingsdialog.cpp",
   "file": "C:/VecEdit/pin/vectorpinsettingsdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinsettingsdialog.cpp.obj -c C:\\VecEdit\\pin\\pinsettingsdialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinsettingsdialog.cpp.obj -c C:\\VecEdit\\pin\\pinsettingsdialog.cpp",
   "file": "C:/VecEdit/pin/pinsettingsdialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectortabledelegate.cpp.obj -c C:\\VecEdit\\vector\\vectortabledelegate.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectortabledelegate.cpp.obj -c C:\\VecEdit\\vector\\vectortabledelegate.cpp",
   "file": "C:/VecEdit/vector/vectortabledelegate.cpp",
   "output": "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectordatahandler.cpp.obj -c C:\\VecEdit\\vector\\vectordatahandler.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectordatahandler.cpp.obj -c C:\\VecEdit\\vector\\vectordatahandler.cpp",
   "file": "C:/VecEdit/vector/vectordatahandler.cpp",
   "output": "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\deleterangevectordialog.cpp.obj -c C:\\VecEdit\\vector\\deleterangevectordialog.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\deleterangevectordialog.cpp.obj -c C:\\VecEdit\\vector\\deleterangevectordialog.cpp",
   "file": "C:/VecEdit/vector/deleterangevectordialog.cpp",
   "output": "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\dialogmanager.cpp.obj -c C:\\VecEdit\\common\\dialogmanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\dialogmanager.cpp.obj -c C:\\VecEdit\\common\\dialogmanager.cpp",
   "file": "C:/VecEdit/common/dialogmanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\tablestylemanager.cpp.obj -c C:\\VecEdit\\common\\tablestylemanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\tablestylemanager.cpp.obj -c C:\\VecEdit\\common\\tablestylemanager.cpp",
   "file": "C:/VecEdit/common/tablestylemanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\tablestyleperformancetester.cpp.obj -c C:\\VecEdit\\common\\tablestyleperformancetester.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\tablestyleperformancetester.cpp.obj -c C:\\VecEdit\\common\\tablestyleperformancetester.cpp",
   "file": "C:/VecEdit/common/tablestyleperformancetester.cpp",
   "output": "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\logger.cpp.obj -c C:\\VecEdit\\common\\logger.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\common\\logger.cpp.obj -c C:\\VecEdit\\common\\logger.cpp",
   "file": "C:/VecEdit/common/logger.cpp",
   "output": "CMakeFiles/VecEdit.dir/common/logger.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetdataaccess.cpp.obj -c C:\\VecEdit\\timeset\\timesetdataaccess.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetdataaccess.cpp.obj -c C:\\VecEdit\\timeset\\timesetdataaccess.cpp",
   "file": "C:/VecEdit/timeset/timesetdataaccess.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetui.cpp.obj -c C:\\VecEdit\\timeset\\timesetui.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetui.cpp.obj -c C:\\VecEdit\\timeset\\timesetui.cpp",
   "file": "C:/VecEdit/timeset/timesetui.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetedgemanager.cpp.obj -c C:\\VecEdit\\timeset\\timesetedgemanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\timeset\\timesetedgemanager.cpp.obj -c C:\\VecEdit\\timeset\\timesetedgemanager.cpp",
   "file": "C:/VecEdit/timeset/timesetedgemanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinselectionmanager.cpp.obj -c C:\\VecEdit\\pin\\pinselectionmanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\pin\\pinselectionmanager.cpp.obj -c C:\\VecEdit\\pin\\pinselectionmanager.cpp",
   "file": "C:/VecEdit/pin/pinselectionmanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectordatamanager.cpp.obj -c C:\\VecEdit\\vector\\vectordatamanager.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\vector\\vectordatamanager.cpp.obj -c C:\\VecEdit\\vector\\vectordatamanager.cpp",
   "file": "C:/VecEdit/vector/vectordatamanager.cpp",
   "output": "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj"
 },
 {
   "directory": "C:/VecEdit/build",
-  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\VecEdit_autogen\\BUURKL3RHA\\qrc_icons.cpp.obj -c C:\\VecEdit\\build\\VecEdit_autogen\\BUURKL3RHA\\qrc_icons.cpp",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NEEDS_QMAIN -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 @CMakeFiles/VecEdit.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\VecEdit.dir\\VecEdit_autogen\\BUURKL3RHA\\qrc_icons.cpp.obj -c C:\\VecEdit\\build\\VecEdit_autogen\\BUURKL3RHA\\qrc_icons.cpp",
   "file": "C:/VecEdit/build/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp",
   "output": "CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
 }

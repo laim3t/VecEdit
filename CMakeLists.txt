@@ -9,12 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Concurrent)
 
 # 设置日志输出相关
 add_compile_definitions(QT_MESSAGELOGCONTEXT)  # 启用日志上下文信息
 # 查找 Qt6 的 Core, Gui, Widgets 组件
-find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Concurrent REQUIRED)
 
 set(PROJECT_SOURCES
         app/main.cpp
@@ -98,6 +98,7 @@ endif()
 target_link_libraries(VecEdit PRIVATE 
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Concurrent
 )
 
 # 添加包含目录
