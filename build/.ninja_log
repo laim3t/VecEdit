@@ -1,37 +1,55 @@
 # ninja log v6
-18	4457	7707552645003300	VecEdit_autogen/timestamp	38a42bf732f4951b
-18	4457	7707552645003300	VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
-18	4457	7707552645003300	E:/QT project/1/VecEdit/build/VecEdit_autogen/timestamp	38a42bf732f4951b
-18	4457	7707552645003300	E:/QT project/1/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
-4466	4538	7707552646173294	VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp	e7bc2a3a1cc14cb9
-4466	4538	7707552646173294	E:/QT project/1/VecEdit/build/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp	e7bc2a3a1cc14cb9
-4642	10554	7707552647293255	CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj	abcf1a5c29439d48
-4569	10758	7707552646563263	CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj	1a4fa6f8edb043be
-4555	11247	7707552646423262	CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj	a4c385daf7ec3600
-4615	11260	7707552647023259	CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj	470709ca84696423
-4592	11685	7707552646793255	CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj	e8d42bf036e3542
-4650	12023	7707552647373254	CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj	e8a899cfb2f1ff35
-4626	12044	7707552647133257	CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj	616ffc75897a445f
-4635	12154	7707552647223262	CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj	6218ac47dada3d82
-4600	12228	7707552646873263	CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj	57f100ee14863f78
-4575	12281	7707552646623265	CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj	64bacfd982509f73
-4661	12515	7707552647484105	CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj	bcc1ee4167204fcb
-12516	12805	7707552726027975	CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj	b76ebe97e3f32f37
-4675	12839	7707552647619156	CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj	5cf700d3693db919
-4608	13451	7707552646953255	CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj	5beeb6fc30be5507
-4683	15787	7707552647699152	CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj	e3d6d5715aca0066
-4548	16881	7707552646353266	CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj	d2f2fbe3d0b26d17
-10554	17308	7707552706414875	CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj	c95bf9808708480
-11261	17635	7707552713483224	CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj	bca398d5fac571ca
-11247	18014	7707552713343199	CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj	3bdd1b8e5985f7f
-12044	18388	7707552721321053	CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj	92b24c0e2cea08ad
-12154	18389	7707552722415456	CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj	632c032494005f1f
-12281	18661	7707552723675556	CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj	57466fc6f58b6d4b
-12228	18683	7707552723155561	CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj	b4bda24c41d9698a
-12023	18697	7707552721101242	CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj	355e364f60e35e03
-4538	18831	7707552646253304	CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj	408d6dbed3113900
-4543	19280	7707552646303267	CMakeFiles/VecEdit.dir/app/main.cpp.obj	385ba42c92704b88
-10759	19480	7707552708458027	CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj	9058c6639c4bea34
-4581	20604	7707552646683262	CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj	a42889abb55da566
-11685	20935	7707552717723496	CMakeFiles/VecEdit.dir/common/logger.cpp.obj	8e7c1bf6a52adb3d
-20936	23263	7707552810226366	VecEdit.exe	8f713dcd5d34d819
+19	4635	7707558381509386	VecEdit_autogen/timestamp	38a42bf732f4951b
+19	4635	7707558381509386	VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+19	4635	7707558381509386	E:/QT project/1/VecEdit/build/VecEdit_autogen/timestamp	38a42bf732f4951b
+19	4635	7707558381509386	E:/QT project/1/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+4643	4717	7707558382679382	VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp	e7bc2a3a1cc14cb9
+4643	4717	7707558382679382	E:/QT project/1/VecEdit/build/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp	e7bc2a3a1cc14cb9
+4832	11141	7707558383899389	CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj	abcf1a5c29439d48
+4746	11170	7707558383049393	CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj	1a4fa6f8edb043be
+4740	11941	7707558382979491	CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj	a4c385daf7ec3600
+4824	12200	7707558383829387	CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj	6218ac47dada3d82
+4818	12282	7707558383759403	CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj	616ffc75897a445f
+4806	12292	7707558383639388	CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj	470709ca84696423
+4753	12512	7707558383119400	CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj	64bacfd982509f73
+4777	12602	7707558383359388	CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj	e8d42bf036e3542
+4785	12776	7707558383429395	CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj	57f100ee14863f78
+4854	12858	7707558384119394	CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj	bcc1ee4167204fcb
+4840	12879	7707558383989389	CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj	e8a899cfb2f1ff35
+4861	12982	7707558384189392	CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj	5cf700d3693db919
+12880	13098	7707558464378655	CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj	b76ebe97e3f32f37
+4792	14049	7707558383499393	CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj	5beeb6fc30be5507
+4868	15044	7707558384269388	CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj	e3d6d5715aca0066
+12513	17650	7707558460713685	CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj	92b24c0e2cea08ad
+11141	17656	7707558446990770	CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj	c95bf9808708480
+4732	18034	7707558382909340	CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj	d2f2fbe3d0b26d17
+12200	18430	7707558457583474	CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj	bca398d5fac571ca
+11941	18577	7707558454987462	CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj	3bdd1b8e5985f7f
+12777	18597	7707558463348655	CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj	b4bda24c41d9698a
+12602	18740	7707558461601993	CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj	632c032494005f1f
+12859	18767	7707558464168709	CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj	57466fc6f58b6d4b
+12292	19082	7707558458510530	CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj	355e364f60e35e03
+4725	19482	7707558382829325	CMakeFiles/VecEdit.dir/app/main.cpp.obj	385ba42c92704b88
+11171	19809	7707558447290768	CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj	9058c6639c4bea34
+4718	20377	7707558382759326	CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj	408d6dbed3113900
+4760	21118	7707558383189391	CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj	a42889abb55da566
+12282	21449	7707558458410540	CMakeFiles/VecEdit.dir/common/logger.cpp.obj	8e7c1bf6a52adb3d
+21450	23658	7707558550077637	VecEdit.exe	8f713dcd5d34d819
+28	703	7707559738002897	VecEdit_autogen/timestamp	38a42bf732f4951b
+28	703	7707559738002897	VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+28	703	7707559738002897	E:/QT project/1/VecEdit/build/VecEdit_autogen/timestamp	38a42bf732f4951b
+28	703	7707559738002897	E:/QT project/1/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+704	5687	7707559744761822	CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj	d2f2fbe3d0b26d17
+5687	7834	7707559794593012	VecEdit.exe	8f713dcd5d34d819
+31	817	7707561732795702	VecEdit_autogen/timestamp	38a42bf732f4951b
+31	817	7707561732795702	VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+31	817	7707561732795702	E:/QT project/1/VecEdit/build/VecEdit_autogen/timestamp	38a42bf732f4951b
+31	817	7707561732795702	E:/QT project/1/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+818	6018	7707561740674098	CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj	d2f2fbe3d0b26d17
+6018	8161	7707561792678590	VecEdit.exe	8f713dcd5d34d819
+29	696	7707563172517983	VecEdit_autogen/timestamp	38a42bf732f4951b
+29	696	7707563172517983	VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+29	696	7707563172517983	E:/QT project/1/VecEdit/build/VecEdit_autogen/timestamp	38a42bf732f4951b
+29	696	7707563172517983	E:/QT project/1/VecEdit/build/VecEdit_autogen/mocs_compilation.cpp	38a42bf732f4951b
+697	5618	7707563179191689	CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj	d2f2fbe3d0b26d17
+5618	7860	7707563228399060	VecEdit.exe	8f713dcd5d34d819

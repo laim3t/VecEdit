@@ -130,12 +130,12 @@ void MainWindow::setupUI()
     // 添加欢迎标签
     QLabel *welcomeLabel = new QLabel(tr("欢迎使用向量编辑器"), m_welcomeWidget);
     welcomeLabel->setAlignment(Qt::AlignCenter);
-    welcomeLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px;");
+    welcomeLabel->setStyleSheet("font-size: 20pt; font-weight: bold; margin: 20px;");
 
     // 添加说明标签
     QLabel *instructionLabel = new QLabel(tr("请使用\"文件\"菜单创建或打开项目，然后通过\"查看\"菜单查看数据表"), m_welcomeWidget);
     instructionLabel->setAlignment(Qt::AlignCenter);
-    instructionLabel->setStyleSheet("font-size: 16px; margin: 10px;");
+    instructionLabel->setStyleSheet("font-size: 14pt; margin: 10px;");
 
     // 将标签添加到欢迎页面布局
     welcomeLayout->addStretch();
@@ -381,8 +381,8 @@ void MainWindow::openExistingProject()
         // 设置窗口标题
         setWindowTitle(tr("向量编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
 
-        QMessageBox::information(this, tr("成功"),
-                                 tr("项目数据库已打开！当前版本：%1\n您可以通过\"查看\"菜单打开数据库查看器").arg(version));
+        // QMessageBox::information(this, tr("成功"),
+        //                          tr("项目数据库已打开！当前版本：%1\n您可以通过\"查看\"菜单打开数据库查看器").arg(version));
     }
     else
     {
@@ -494,42 +494,32 @@ void MainWindow::setupVectorTableUI()
     QVBoxLayout *containerLayout = new QVBoxLayout(m_vectorTableContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 创建顶部工具栏（替换原来的QHBoxLayout控制栏）
+    // 创建顶部工具栏
     QToolBar *toolBar = new QToolBar(this);
-    toolBar->setIconSize(QSize(18, 18)); // 进一步减小图标大小
-    // 默认使用图标+文本模式，但根据窗口大小可能动态调整
-    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolBar->setStyleSheet("QToolBar { spacing: 1px; } QToolButton { padding: 2px; font-size: 9pt; }"); // 进一步紧凑化
-    toolBar->setMovable(false);                                                                         // 禁止移动工具栏
+    toolBar->setObjectName("vectorTableToolBar"); // 给工具栏一个对象名，方便查找
+    toolBar->setIconSize(QSize(18, 18));
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); // 默认样式
+    toolBar->setStyleSheet("QToolBar { spacing: 1px; } QToolButton { padding: 2px; font-size: 9pt; }");
+    toolBar->setMovable(false);
 
-    // 添加刷新和保存按钮到工具栏前面（确保这些重要操作按钮可见）
     // 刷新按钮
-    m_refreshButton = new QToolButton(this);
-    m_refreshButton->setText(tr("刷新"));
-    m_refreshButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_BrowserReload));
-    m_refreshButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_refreshButton, &QToolButton::clicked, this, &MainWindow::refreshVectorTableData);
-    toolBar->addWidget(m_refreshButton);
+    m_refreshAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_BrowserReload), tr("刷新"), this);
+    connect(m_refreshAction, &QAction::triggered, this, &MainWindow::refreshVectorTableData);
+    toolBar->addAction(m_refreshAction);
 
     // 保存按钮
-    QToolButton *saveButton = new QToolButton(this);
-    saveButton->setText(tr("保存"));
-    saveButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton));
-    saveButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(saveButton, &QToolButton::clicked, this, &MainWindow::saveVectorTableData);
-    toolBar->addWidget(saveButton);
+    QAction *saveAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), tr("保存"), this);
+    connect(saveAction, &QAction::triggered, this, &MainWindow::saveVectorTableData);
+    toolBar->addAction(saveAction);
 
-    // 新建向量表按钮 - 移到前面显眼位置
-    QToolButton *addTableButton = new QToolButton(this);
-    addTableButton->setText(tr("新建向量表"));
-    addTableButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileIcon));
-    addTableButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(addTableButton, &QToolButton::clicked, this, &MainWindow::addNewVectorTable);
-    toolBar->addWidget(addTableButton);
+    // 新建向量表按钮
+    QAction *addTableAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileIcon), tr("新建向量表"), this);
+    connect(addTableAction, &QAction::triggered, this, &MainWindow::addNewVectorTable);
+    toolBar->addAction(addTableAction);
 
     toolBar->addSeparator();
 
-    // 向量表选择下拉框
+    // 向量表选择下拉框 (保持 QWidget 嵌入 QToolBar)
     QLabel *selectLabel = new QLabel(tr("选择向量表:"), this);
     m_vectorTableSelector = new QComboBox(this);
     m_vectorTableSelector->setObjectName(QStringLiteral("m_vectorTableSelector"));
@@ -541,129 +531,105 @@ void MainWindow::setupVectorTableUI()
     selectorLayout->setSpacing(5);
     selectorLayout->addWidget(selectLabel);
     selectorLayout->addWidget(m_vectorTableSelector);
-    toolBar->addWidget(selectorWidget);
+    toolBar->addWidget(selectorWidget); // QComboBox 作为 widget 添加
 
     toolBar->addSeparator();
 
-    // 创建按钮分组1 - 管脚相关
-    // 添加设置向量表管脚按钮
-    m_setupPinsButton = new QToolButton(this);
-    m_setupPinsButton->setText(tr("设置向量表"));
-    m_setupPinsButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileDialogDetailedView));
-    m_setupPinsButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_setupPinsButton, &QToolButton::clicked, this, &MainWindow::setupVectorTablePins);
-    toolBar->addWidget(m_setupPinsButton);
+    // 设置向量表管脚按钮
+    m_setupPinsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogDetailedView), tr("设置向量表"), this);
+    connect(m_setupPinsAction, &QAction::triggered, this, &MainWindow::setupVectorTablePins);
+    toolBar->addAction(m_setupPinsAction);
 
-    // 添加管脚设置按钮
-    m_pinSettingsButton = new QToolButton(this);
-    m_pinSettingsButton->setText(tr("管脚设置"));
-    m_pinSettingsButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileDialogContentsView));
-    m_pinSettingsButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_pinSettingsButton, &QToolButton::clicked, this, &MainWindow::openPinSettingsDialog);
-    toolBar->addWidget(m_pinSettingsButton);
+    // 管脚设置按钮
+    m_pinSettingsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogContentsView), tr("管脚设置"), this);
+    connect(m_pinSettingsAction, &QAction::triggered, this, &MainWindow::openPinSettingsDialog);
+    toolBar->addAction(m_pinSettingsAction);
 
     // 添加"添加管脚"按钮
-    m_addPinButton = new QToolButton(this);
-    m_addPinButton->setText(tr("添加管脚"));
-    m_addPinButton->setIcon(QIcon(":/resources/icons/plus-circle.svg"));
-    m_addPinButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_addPinButton, &QToolButton::clicked, this, &MainWindow::addSinglePin);
-    toolBar->addWidget(m_addPinButton);
+    m_addPinAction = new QAction(QIcon(":/resources/icons/plus-circle.svg"), tr("添加管脚"), this);
+    connect(m_addPinAction, &QAction::triggered, this, &MainWindow::addSinglePin);
+    toolBar->addAction(m_addPinAction);
 
     // 添加"删除管脚"按钮
-    m_deletePinButton = new QToolButton(this);
-    m_deletePinButton->setText(tr("删除管脚"));
-    m_deletePinButton->setIcon(QIcon(":/resources/icons/x-circle.svg"));
-    m_deletePinButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_deletePinButton, &QToolButton::clicked, this, &MainWindow::deletePins);
-    toolBar->addWidget(m_deletePinButton);
+    m_deletePinAction = new QAction(QIcon(":/resources/icons/x-circle.svg"), tr("删除管脚"), this);
+    connect(m_deletePinAction, &QAction::triggered, this, &MainWindow::deletePins);
+    toolBar->addAction(m_deletePinAction);
 
     // 添加"添加分组"按钮
-    m_addGroupButton = new QToolButton(this);
-    m_addGroupButton->setText(tr("添加分组"));
-    m_addGroupButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogYesToAllButton));
-    m_addGroupButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_addGroupButton, &QToolButton::clicked, this, &MainWindow::showPinGroupDialog);
-    toolBar->addWidget(m_addGroupButton);
+    m_addGroupAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogYesToAllButton), tr("添加分组"), this);
+    connect(m_addGroupAction, &QAction::triggered, this, &MainWindow::showPinGroupDialog);
+    toolBar->addAction(m_addGroupAction);
 
     toolBar->addSeparator();
 
-    // 创建按钮分组2 - TimeSet相关
-    // 添加TimeSet设置按钮
-    m_timeSetSettingsButton = new QToolButton(this);
-    m_timeSetSettingsButton->setText(tr("TimeSet设置"));
-    m_timeSetSettingsButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon));
-    m_timeSetSettingsButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_timeSetSettingsButton, &QToolButton::clicked, this, &MainWindow::openTimeSetSettingsDialog);
-    toolBar->addWidget(m_timeSetSettingsButton);
+    // TimeSet设置按钮
+    m_timeSetSettingsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon), tr("TimeSet设置"), this);
+    connect(m_timeSetSettingsAction, &QAction::triggered, this, &MainWindow::openTimeSetSettingsDialog);
+    toolBar->addAction(m_timeSetSettingsAction);
 
-    // 添加填充TimeSet按钮
-    m_fillTimeSetButton = new QToolButton(this);
-    m_fillTimeSetButton->setText(tr("填充TimeSet"));
-    m_fillTimeSetButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowRight));
-    m_fillTimeSetButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_fillTimeSetButton, &QToolButton::clicked, this, &MainWindow::showFillTimeSetDialog);
-    toolBar->addWidget(m_fillTimeSetButton);
+    // 填充TimeSet按钮
+    m_fillTimeSetAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ArrowRight), tr("填充TimeSet"), this);
+    connect(m_fillTimeSetAction, &QAction::triggered, this, &MainWindow::showFillTimeSetDialog);
+    toolBar->addAction(m_fillTimeSetAction);
 
-    // 添加替换TimeSet按钮
-    m_replaceTimeSetButton = new QToolButton(this);
-    m_replaceTimeSetButton->setText(tr("替换TimeSet"));
-    m_replaceTimeSetButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_BrowserReload));
-    m_replaceTimeSetButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(m_replaceTimeSetButton, &QToolButton::clicked, this, &MainWindow::showReplaceTimeSetDialog);
-    toolBar->addWidget(m_replaceTimeSetButton);
+    // 替换TimeSet按钮
+    m_replaceTimeSetAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_BrowserReload), tr("替换TimeSet"), this); // 图标可能需要调整，原SP_BrowserReload与刷新重复
+    connect(m_replaceTimeSetAction, &QAction::triggered, this, &MainWindow::showReplaceTimeSetDialog);
+    toolBar->addAction(m_replaceTimeSetAction);
 
     toolBar->addSeparator();
 
-    // 创建按钮分组3 - 向量表行操作
     // 添加向量行按钮
-    QToolButton *addRowButton = new QToolButton(this);
-    addRowButton->setText(tr("添加向量行"));
-    addRowButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileDialogNewFolder));
-    addRowButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    connect(addRowButton, &QToolButton::clicked, this, &MainWindow::addRowToCurrentVectorTable);
-    toolBar->addWidget(addRowButton);
+    QAction *addRowAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogNewFolder), tr("添加向量行"), this);
+    connect(addRowAction, &QAction::triggered, this, &MainWindow::addRowToCurrentVectorTable);
+    toolBar->addAction(addRowAction);
 
     // 删除向量行按钮 - 只显示图标模式
-    QToolButton *deleteRowButton = new QToolButton(this);
-    deleteRowButton->setText(tr("删除向量行"));
-    deleteRowButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton));
-    deleteRowButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    deleteRowButton->setToolTip(tr("删除向量行"));               // 添加工具提示
-    connect(deleteRowButton, &QToolButton::clicked, this, &MainWindow::deleteSelectedVectorRows);
-    toolBar->addWidget(deleteRowButton);
+    QAction *deleteRowAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton), tr("删除向量行"), this);
+    deleteRowAction->setToolTip(tr("删除向量行"));
+    connect(deleteRowAction, &QAction::triggered, this, &MainWindow::deleteSelectedVectorRows);
+    toolBar->addAction(deleteRowAction);
+    // 设置永久IconOnly
+    if (!deleteRowAction->associatedWidgets().isEmpty()) {
+        QToolButton *button = qobject_cast<QToolButton*>(deleteRowAction->associatedWidgets().first());
+        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
+
 
     // 删除指定范围内的向量行按钮 - 只显示图标模式
-    m_deleteRangeButton = new QToolButton(this);
-    m_deleteRangeButton->setText(tr("删除范围"));
-    m_deleteRangeButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_TrashIcon));
-    m_deleteRangeButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    m_deleteRangeButton->setToolTip(tr("删除范围"));                 // 添加工具提示
-    connect(m_deleteRangeButton, &QToolButton::clicked, this, &MainWindow::deleteVectorRowsInRange);
-    toolBar->addWidget(m_deleteRangeButton);
+    m_deleteRangeAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_TrashIcon), tr("删除范围"), this);
+    m_deleteRangeAction->setToolTip(tr("删除范围"));
+    connect(m_deleteRangeAction, &QAction::triggered, this, &MainWindow::deleteVectorRowsInRange);
+    toolBar->addAction(m_deleteRangeAction);
+    if (!m_deleteRangeAction->associatedWidgets().isEmpty()) {
+        QToolButton *button = qobject_cast<QToolButton*>(m_deleteRangeAction->associatedWidgets().first());
+        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
 
     // 跳转到行按钮 - 只显示图标模式
-    m_gotoLineButton = new QToolButton(this);
-    m_gotoLineButton->setText(tr("跳转到行"));
-    m_gotoLineButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowForward));
-    m_gotoLineButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    m_gotoLineButton->setToolTip(tr("跳转到行"));                 // 添加工具提示
-    connect(m_gotoLineButton, &QToolButton::clicked, this, &MainWindow::gotoLine);
-    toolBar->addWidget(m_gotoLineButton);
+    m_gotoLineAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ArrowForward), tr("跳转到行"), this);
+    m_gotoLineAction->setToolTip(tr("跳转到行"));
+    connect(m_gotoLineAction, &QAction::triggered, this, &MainWindow::gotoLine);
+    toolBar->addAction(m_gotoLineAction);
+    if (!m_gotoLineAction->associatedWidgets().isEmpty()) {
+        QToolButton *button = qobject_cast<QToolButton*>(m_gotoLineAction->associatedWidgets().first());
+        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
 
     toolBar->addSeparator();
 
-    // 创建按钮分组4 - 向量表操作和杂项
-    // 新建向量表按钮已移动到前面，不需要重复添加
-
     // 删除向量表按钮 - 只显示图标模式
-    QToolButton *deleteTableButton = new QToolButton(this);
-    deleteTableButton->setText(tr("删除向量表"));
-    deleteTableButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton));
-    deleteTableButton->setToolButtonStyle(Qt::ToolButtonIconOnly); // 只显示图标
-    deleteTableButton->setToolTip(tr("删除向量表"));               // 添加工具提示
-    connect(deleteTableButton, &QToolButton::clicked, this, &MainWindow::deleteCurrentVectorTable);
-    toolBar->addWidget(deleteTableButton);
+    QAction *deleteTableAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton), tr("删除向量表"), this);
+    deleteTableAction->setToolTip(tr("删除向量表"));
+    connect(deleteTableAction, &QAction::triggered, this, &MainWindow::deleteCurrentVectorTable);
+    toolBar->addAction(deleteTableAction);
+    if (!deleteTableAction->associatedWidgets().isEmpty()) {
+        QToolButton *button = qobject_cast<QToolButton*>(deleteTableAction->associatedWidgets().first());
+        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
+
+    // 将工具栏添加到容器布局的顶部
+    containerLayout->addWidget(toolBar);
 
     // 创建表格视图
     m_vectorTableWidget = new QTableWidget(this);
@@ -766,7 +732,6 @@ void MainWindow::setupVectorTableUI()
     setupTabBar();
 
     // 将布局添加到容器
-    containerLayout->addWidget(toolBar);
     containerLayout->addWidget(m_vectorTableWidget);
     containerLayout->addWidget(m_paginationWidget); // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
@@ -4124,12 +4089,13 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         // 根据窗口宽度动态调整工具栏按钮显示模式
         if (m_vectorTableContainer && m_vectorTableContainer->isVisible())
         {
-            // 获取工具栏
-            QToolBar *toolBar = m_vectorTableContainer->findChild<QToolBar *>();
+            // 获取工具栏 (可以通过对象名查找)
+            QToolBar *toolBar = m_vectorTableContainer->findChild<QToolBar *>("vectorTableToolBar");
             if (toolBar)
             {
-                // 如果窗口宽度小于阈值，则将所有按钮设置为仅图标模式
-                if (event->size().width() < 800)
+                // 如果窗口宽度小于阈值 (例如1000，可以根据实际按钮数量和宽度调整)
+                // 增加这个阈值，以便更早地切换到IconOnly模式
+                if (event->size().width() < 1200) // 调整后的阈值
                 {
                     toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
                 }
@@ -4137,18 +4103,14 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                 {
                     // 恢复为图标+文本模式
                     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-                    // 但保持某些按钮仍为仅图标模式
-                    for (QToolButton *btn : toolBar->findChildren<QToolButton *>())
-                    {
-                        if (btn->toolTip() == tr("删除向量行") ||
-                            btn->toolTip() == tr("删除范围") ||
-                            btn->toolTip() == tr("跳转到行") ||
-                            btn->toolTip() == tr("删除向量表"))
-                        {
-                            btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
-                        }
-                    }
+                    // 对于已明确设置为 ToolButtonIconOnly 的按钮，此设置不会覆盖它们
+                    // 因为它们的样式是直接在 QToolButton 对象上设置的。
+                    // QToolBar::setToolButtonStyle 只是一个默认值。
+                    // 如果想让所有按钮都恢复，需要遍历并重设。
+                    // 但当前逻辑是：全局切换，特定按钮保持IconOnly。
+                    // 因此，这里的代码可以保持原样，或者移除下面的特定按钮检查。
+                    // 为了确保永久IconOnly的按钮不受影响，并且其他按钮能正确切换，
+                    // 我们依赖于在 setupVectorTableUI 中对特定按钮的 QToolButton 实例设置的样式。
                 }
             }
         }
@@ -4346,7 +4308,7 @@ void MainWindow::setupSidebarNavigator()
         QTreeWidget {
             background-color: #F0F0F0;
             border: 1px solid #A0A0A0;
-            font-size: 12px;
+            font-size: 11pt;
         }
         QTreeWidget::item {
             padding: 3px 0px;

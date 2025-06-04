@@ -213,17 +213,17 @@ private:
     QWidget *m_centralWidget;
     QWidget *m_welcomeWidget;
     QWidget *m_vectorTableContainer;
-    QToolButton *m_fillTimeSetButton;
-    QToolButton *m_replaceTimeSetButton;
-    QToolButton *m_refreshButton;
-    QToolButton *m_timeSetSettingsButton;
-    QToolButton *m_setupPinsButton;   // 设置向量表管脚按钮
-    QToolButton *m_pinSettingsButton; // 管脚设置按钮
-    QToolButton *m_addPinButton;      // 添加管脚按钮
-    QToolButton *m_deletePinButton;   // 删除管脚按钮
-    QToolButton *m_deleteRangeButton; // 删除指定范围内的向量行按钮
-    QToolButton *m_gotoLineButton;    // 跳转到某行按钮
-    QToolButton *m_addGroupButton;    // 添加管脚分组按钮
+    QAction *m_fillTimeSetAction;
+    QAction *m_replaceTimeSetAction;
+    QAction *m_refreshAction;
+    QAction *m_timeSetSettingsAction;
+    QAction *m_setupPinsAction;   // 设置向量表管脚按钮
+    QAction *m_pinSettingsAction; // 管脚设置按钮
+    QAction *m_addPinAction;      // 添加管脚按钮
+    QAction *m_deletePinAction;   // 删除管脚按钮
+    QAction *m_deleteRangeAction; // 删除指定范围内的向量行按钮
+    QAction *m_gotoLineAction;    // 跳转到某行按钮
+    QAction *m_addGroupAction;    // 添加管脚分组按钮
 
     // 分页相关UI组件
     QWidget *m_paginationWidget;   // 分页控件容器
