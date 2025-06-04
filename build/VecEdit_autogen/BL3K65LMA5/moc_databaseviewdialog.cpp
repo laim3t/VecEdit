@@ -1,64 +1,62 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'databaseviewdialog.h'
 **
-** Created by: The Qt Meta Object Compiler version 68 (Qt 6.8.2)
+** Created by: The Qt Meta Object Compiler version 67 (Qt 5.15.2)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "../../../database/databaseviewdialog.h"
-#include <QtGui/qtextcursor.h>
-#include <QtCore/qmetatype.h>
-
-#include <QtCore/qtmochelpers.h>
-
 #include <memory>
-
-
-#include <QtCore/qxptype_traits.h>
+#include "../../../database/databaseviewdialog.h"
+#include <QtCore/qbytearray.h>
+#include <QtCore/qmetatype.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'databaseviewdialog.h' doesn't include <QObject>."
-#elif Q_MOC_OUTPUT_REVISION != 68
-#error "This file was generated using the moc from 6.8.2. It"
+#elif Q_MOC_OUTPUT_REVISION != 67
+#error "This file was generated using the moc from 5.15.2. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
 
-#ifndef Q_CONSTINIT
-#define Q_CONSTINIT
-#endif
-
+QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-QT_WARNING_DISABLE_GCC("-Wuseless-cast")
-namespace {
-struct qt_meta_tag_ZN18DatabaseViewDialogE_t {};
-} // unnamed namespace
+struct qt_meta_stringdata_DatabaseViewDialog_t {
+    QByteArrayData data[12];
+    char stringdata0[152];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_DatabaseViewDialog_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_DatabaseViewDialog_t qt_meta_stringdata_DatabaseViewDialog = {
+    {
+QT_MOC_LITERAL(0, 0, 18), // "DatabaseViewDialog"
+QT_MOC_LITERAL(1, 19, 22), // "onTableTreeItemClicked"
+QT_MOC_LITERAL(2, 42, 0), // ""
+QT_MOC_LITERAL(3, 43, 16), // "QTreeWidgetItem*"
+QT_MOC_LITERAL(4, 60, 4), // "item"
+QT_MOC_LITERAL(5, 65, 6), // "column"
+QT_MOC_LITERAL(6, 72, 22), // "onRefreshButtonClicked"
+QT_MOC_LITERAL(7, 95, 15), // "onFilterChanged"
+QT_MOC_LITERAL(8, 111, 5), // "index"
+QT_MOC_LITERAL(9, 117, 12), // "executeQuery"
+QT_MOC_LITERAL(10, 130, 10), // "exportData"
+QT_MOC_LITERAL(11, 141, 10) // "printTable"
 
+    },
+    "DatabaseViewDialog\0onTableTreeItemClicked\0"
+    "\0QTreeWidgetItem*\0item\0column\0"
+    "onRefreshButtonClicked\0onFilterChanged\0"
+    "index\0executeQuery\0exportData\0printTable"
+};
+#undef QT_MOC_LITERAL
 
-#ifdef QT_MOC_HAS_STRINGDATA
-static constexpr auto qt_meta_stringdata_ZN18DatabaseViewDialogE = QtMocHelpers::stringData(
-    "DatabaseViewDialog",
-    "onTableTreeItemClicked",
-    "",
-    "QTreeWidgetItem*",
-    "item",
-    "column",
-    "onRefreshButtonClicked",
-    "onFilterChanged",
-    "index",
-    "executeQuery",
-    "exportData",
-    "printTable"
-);
-#else  // !QT_MOC_HAS_STRINGDATA
-#error "qtmochelpers.h not found or too old."
-#endif // !QT_MOC_HAS_STRINGDATA
-
-Q_CONSTINIT static const uint qt_meta_data_ZN18DatabaseViewDialogE[] = {
+static const uint qt_meta_data_DatabaseViewDialog[] = {
 
  // content:
-      12,       // revision
+       8,       // revision
        0,       // classname
        0,    0, // classinfo
        6,   14, // methods
@@ -68,13 +66,13 @@ Q_CONSTINIT static const uint qt_meta_data_ZN18DatabaseViewDialogE[] = {
        0,       // flags
        0,       // signalCount
 
- // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    2,   50,    2, 0x08,    1 /* Private */,
-       6,    0,   55,    2, 0x08,    4 /* Private */,
-       7,    1,   56,    2, 0x08,    5 /* Private */,
-       9,    0,   59,    2, 0x08,    7 /* Private */,
-      10,    0,   60,    2, 0x08,    8 /* Private */,
-      11,    0,   61,    2, 0x08,    9 /* Private */,
+ // slots: name, argc, parameters, tag, flags
+       1,    2,   44,    2, 0x08 /* Private */,
+       6,    0,   49,    2, 0x08 /* Private */,
+       7,    1,   50,    2, 0x08 /* Private */,
+       9,    0,   53,    2, 0x08 /* Private */,
+      10,    0,   54,    2, 0x08 /* Private */,
+      11,    0,   55,    2, 0x08 /* Private */,
 
  // slots: parameters
     QMetaType::Void, 0x80000000 | 3, QMetaType::Int,    4,    5,
@@ -87,42 +85,15 @@ Q_CONSTINIT static const uint qt_meta_data_ZN18DatabaseViewDialogE[] = {
        0        // eod
 };
 
-Q_CONSTINIT const QMetaObject DatabaseViewDialog::staticMetaObject = { {
-    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
-    qt_meta_stringdata_ZN18DatabaseViewDialogE.offsetsAndSizes,
-    qt_meta_data_ZN18DatabaseViewDialogE,
-    qt_static_metacall,
-    nullptr,
-    qt_incomplete_metaTypeArray<qt_meta_tag_ZN18DatabaseViewDialogE_t,
-        // Q_OBJECT / Q_GADGET
-        QtPrivate::TypeAndForceComplete<DatabaseViewDialog, std::true_type>,
-        // method 'onTableTreeItemClicked'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<QTreeWidgetItem *, std::false_type>,
-        QtPrivate::TypeAndForceComplete<int, std::false_type>,
-        // method 'onRefreshButtonClicked'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'onFilterChanged'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<int, std::false_type>,
-        // method 'executeQuery'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'exportData'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'printTable'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>
-    >,
-    nullptr
-} };
-
 void DatabaseViewDialog::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    auto *_t = static_cast<DatabaseViewDialog *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<DatabaseViewDialog *>(_o);
+        Q_UNUSED(_t)
         switch (_id) {
-        case 0: _t->onTableTreeItemClicked((*reinterpret_cast< std::add_pointer_t<QTreeWidgetItem*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
+        case 0: _t->onTableTreeItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 1: _t->onRefreshButtonClicked(); break;
-        case 2: _t->onFilterChanged((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 2: _t->onFilterChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         case 3: _t->executeQuery(); break;
         case 4: _t->exportData(); break;
         case 5: _t->printTable(); break;
@@ -130,6 +101,16 @@ void DatabaseViewDialog::qt_static_metacall(QObject *_o, QMetaObject::Call _c, i
         }
     }
 }
+
+QT_INIT_METAOBJECT const QMetaObject DatabaseViewDialog::staticMetaObject = { {
+    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
+    qt_meta_stringdata_DatabaseViewDialog.data,
+    qt_meta_data_DatabaseViewDialog,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
 
 const QMetaObject *DatabaseViewDialog::metaObject() const
 {
@@ -139,7 +120,7 @@ const QMetaObject *DatabaseViewDialog::metaObject() const
 void *DatabaseViewDialog::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_ZN18DatabaseViewDialogE.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_DatabaseViewDialog.stringdata0))
         return static_cast<void*>(this);
     return QDialog::qt_metacast(_clname);
 }
@@ -153,12 +134,12 @@ int DatabaseViewDialog::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         if (_id < 6)
             qt_static_metacall(this, _c, _id, _a);
         _id -= 6;
-    }
-    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 6)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            *reinterpret_cast<int*>(_a[0]) = -1;
         _id -= 6;
     }
     return _id;
 }
 QT_WARNING_POP
+QT_END_MOC_NAMESPACE

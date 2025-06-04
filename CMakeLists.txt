@@ -13,8 +13,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Concurrent)
 
 # 设置日志输出相关
 add_compile_definitions(QT_MESSAGELOGCONTEXT)  # 启用日志上下文信息
-# 查找 Qt6 的 Core, Gui, Widgets 组件
-find_package(Qt6 COMPONENTS Core Gui Widgets Concurrent REQUIRED)
 
 set(PROJECT_SOURCES
         app/main.cpp
@@ -82,6 +80,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
+    set(CMAKE_AUTORCC_OPTIONS "") # 为 Qt5 清除 AUTORCC 选项
+    set_source_files_properties("resources/qt/icons.qrc" PROPERTIES AUTORCC_OPTIONS "--no-compress") # 为 Qt5 rcc 设置 --no-compress 选项
     if(ANDROID)
         add_library(VecEdit SHARED
             ${PROJECT_SOURCES}
@@ -140,10 +140,27 @@ install(TARGETS VecEdit
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(VecEdit)
 endif()
-if (WIN32 AND QT_VERSION_MAJOR EQUAL 6)
-    add_custom_command(TARGET VecEdit POST_BUILD
-      COMMAND ${Qt6_DIR}/../../../bin/windeployqt
-              --no-translations --no-quick-import
-              "$<TARGET_FILE:VecEdit>"
-    )
+
+# Deployment using windeployqt
+if (WIN32)
+    if (QT_VERSION_MAJOR EQUAL 6)
+        add_custom_command(TARGET VecEdit POST_BUILD
+            COMMAND ${Qt6_DIR}/../../../bin/windeployqt
+                    --no-translations
+                    --no-quick-import # Qt6 windeployqt option
+                    # Add other necessary options for Qt6 if needed
+                    "$<TARGET_FILE:VecEdit>"
+            COMMENT "Running windeployqt for Qt6 to deploy $<TARGET_FILE_NAME:VecEdit>"
+        )
+    elseif (QT_VERSION_MAJOR EQUAL 5)
+        add_custom_command(TARGET VecEdit POST_BUILD
+            COMMAND ${Qt5_DIR}/../../../bin/windeployqt.exe # Assumes Qt5_DIR is set by find_package(Qt5...)
+                    --no-translations
+                    # For MinGW, windeployqt usually handles compiler runtime DLLs.
+                    # Add specific modules if needed, e.g., --svg, --multimedia, etc.
+                    # By default, it inspects the executable for dependencies.
+                    "$<TARGET_FILE:VecEdit>"
+            COMMENT "Running windeployqt for Qt5 to deploy $<TARGET_FILE_NAME:VecEdit>"
+        )
+    endif()
 endif()

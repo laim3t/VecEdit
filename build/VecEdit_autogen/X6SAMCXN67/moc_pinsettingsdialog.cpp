@@ -1,60 +1,57 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'pinsettingsdialog.h'
 **
-** Created by: The Qt Meta Object Compiler version 68 (Qt 6.8.2)
+** Created by: The Qt Meta Object Compiler version 67 (Qt 5.15.2)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "../../../pin/pinsettingsdialog.h"
-#include <QtGui/qtextcursor.h>
-#include <QtCore/qmetatype.h>
-
-#include <QtCore/qtmochelpers.h>
-
 #include <memory>
-
-
-#include <QtCore/qxptype_traits.h>
+#include "../../../pin/pinsettingsdialog.h"
+#include <QtCore/qbytearray.h>
+#include <QtCore/qmetatype.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'pinsettingsdialog.h' doesn't include <QObject>."
-#elif Q_MOC_OUTPUT_REVISION != 68
-#error "This file was generated using the moc from 6.8.2. It"
+#elif Q_MOC_OUTPUT_REVISION != 67
+#error "This file was generated using the moc from 5.15.2. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
 
-#ifndef Q_CONSTINIT
-#define Q_CONSTINIT
-#endif
-
+QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-QT_WARNING_DISABLE_GCC("-Wuseless-cast")
-namespace {
-struct qt_meta_tag_ZN17PinSettingsDialogE_t {};
-} // unnamed namespace
+struct qt_meta_stringdata_PinSettingsDialog_t {
+    QByteArrayData data[8];
+    char stringdata0[90];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_PinSettingsDialog_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_PinSettingsDialog_t qt_meta_stringdata_PinSettingsDialog = {
+    {
+QT_MOC_LITERAL(0, 0, 17), // "PinSettingsDialog"
+QT_MOC_LITERAL(1, 18, 21), // "onStationCountChanged"
+QT_MOC_LITERAL(2, 40, 0), // ""
+QT_MOC_LITERAL(3, 41, 5), // "value"
+QT_MOC_LITERAL(4, 47, 10), // "onAccepted"
+QT_MOC_LITERAL(5, 58, 10), // "onRejected"
+QT_MOC_LITERAL(6, 69, 8), // "onAddPin"
+QT_MOC_LITERAL(7, 78, 11) // "onDeletePin"
 
-
-#ifdef QT_MOC_HAS_STRINGDATA
-static constexpr auto qt_meta_stringdata_ZN17PinSettingsDialogE = QtMocHelpers::stringData(
-    "PinSettingsDialog",
-    "onStationCountChanged",
-    "",
-    "value",
-    "onAccepted",
-    "onRejected",
-    "onAddPin",
+    },
+    "PinSettingsDialog\0onStationCountChanged\0"
+    "\0value\0onAccepted\0onRejected\0onAddPin\0"
     "onDeletePin"
-);
-#else  // !QT_MOC_HAS_STRINGDATA
-#error "qtmochelpers.h not found or too old."
-#endif // !QT_MOC_HAS_STRINGDATA
+};
+#undef QT_MOC_LITERAL
 
-Q_CONSTINIT static const uint qt_meta_data_ZN17PinSettingsDialogE[] = {
+static const uint qt_meta_data_PinSettingsDialog[] = {
 
  // content:
-      12,       // revision
+       8,       // revision
        0,       // classname
        0,    0, // classinfo
        5,   14, // methods
@@ -64,12 +61,12 @@ Q_CONSTINIT static const uint qt_meta_data_ZN17PinSettingsDialogE[] = {
        0,       // flags
        0,       // signalCount
 
- // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    1,   44,    2, 0x08,    1 /* Private */,
-       4,    0,   47,    2, 0x08,    3 /* Private */,
-       5,    0,   48,    2, 0x08,    4 /* Private */,
-       6,    0,   49,    2, 0x08,    5 /* Private */,
-       7,    0,   50,    2, 0x08,    6 /* Private */,
+ // slots: name, argc, parameters, tag, flags
+       1,    1,   39,    2, 0x08 /* Private */,
+       4,    0,   42,    2, 0x08 /* Private */,
+       5,    0,   43,    2, 0x08 /* Private */,
+       6,    0,   44,    2, 0x08 /* Private */,
+       7,    0,   45,    2, 0x08 /* Private */,
 
  // slots: parameters
     QMetaType::Void, QMetaType::Int,    3,
@@ -81,36 +78,13 @@ Q_CONSTINIT static const uint qt_meta_data_ZN17PinSettingsDialogE[] = {
        0        // eod
 };
 
-Q_CONSTINIT const QMetaObject PinSettingsDialog::staticMetaObject = { {
-    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
-    qt_meta_stringdata_ZN17PinSettingsDialogE.offsetsAndSizes,
-    qt_meta_data_ZN17PinSettingsDialogE,
-    qt_static_metacall,
-    nullptr,
-    qt_incomplete_metaTypeArray<qt_meta_tag_ZN17PinSettingsDialogE_t,
-        // Q_OBJECT / Q_GADGET
-        QtPrivate::TypeAndForceComplete<PinSettingsDialog, std::true_type>,
-        // method 'onStationCountChanged'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<int, std::false_type>,
-        // method 'onAccepted'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'onRejected'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'onAddPin'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'onDeletePin'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>
-    >,
-    nullptr
-} };
-
 void PinSettingsDialog::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    auto *_t = static_cast<PinSettingsDialog *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<PinSettingsDialog *>(_o);
+        Q_UNUSED(_t)
         switch (_id) {
-        case 0: _t->onStationCountChanged((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 0: _t->onStationCountChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         case 1: _t->onAccepted(); break;
         case 2: _t->onRejected(); break;
         case 3: _t->onAddPin(); break;
@@ -120,6 +94,16 @@ void PinSettingsDialog::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
     }
 }
 
+QT_INIT_METAOBJECT const QMetaObject PinSettingsDialog::staticMetaObject = { {
+    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
+    qt_meta_stringdata_PinSettingsDialog.data,
+    qt_meta_data_PinSettingsDialog,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
+
 const QMetaObject *PinSettingsDialog::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
@@ -128,7 +112,7 @@ const QMetaObject *PinSettingsDialog::metaObject() const
 void *PinSettingsDialog::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_ZN17PinSettingsDialogE.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_PinSettingsDialog.stringdata0))
         return static_cast<void*>(this);
     return QDialog::qt_metacast(_clname);
 }
@@ -142,12 +126,12 @@ int PinSettingsDialog::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         if (_id < 5)
             qt_static_metacall(this, _c, _id, _a);
         _id -= 5;
-    }
-    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 5)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            *reinterpret_cast<int*>(_a[0]) = -1;
         _id -= 5;
     }
     return _id;
 }
 QT_WARNING_POP
+QT_END_MOC_NAMESPACE

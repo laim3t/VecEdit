@@ -5,7 +5,7 @@
 #include "vector/vector_data_types.h"
 #include <QFileInfo>
 #include <QDebug>
-#include <string.h>
+#include <cstring> // 使用 <cstring> 替代 <string.h>
 #include <QDir>
 #include <cstdio>    // Added for fprintf
 #include <QDateTime> // Added for QDateTime
@@ -1226,7 +1226,7 @@ namespace Persistence
 
                 // 记录不匹配数据的内容摘要，帮助调试
                 QString originalDataSummary = "未读取原始数据";
-                QString newDataSummary = QString("新数据前32字节: %1").arg(serializedNewRow.size() > 32 ? serializedNewRow.left(32).toHex(' ') : serializedNewRow.toHex(' '));
+                QString newDataSummary = QString("新数据前32字节: %1").arg(QString(serializedNewRow.size() > 32 ? serializedNewRow.left(32).toHex(' ') : serializedNewRow.toHex(' ')));
 
                 BFH_LOG_STDERR(funcName, "Data mismatch details - %s | %s",
                                originalDataSummary.toStdString().c_str(),

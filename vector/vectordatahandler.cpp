@@ -1125,7 +1125,12 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
     {
         // 为每一行创建包含所有数据库列的数据（包括隐藏列）
         Vector::RowData rowData;
-        rowData.resize(allColumns.size());
+        // rowData.resize(allColumns.size()); // QT6写法
+        int targetSize1 = allColumns.size(); // QT5写法开始 (修正变量名)
+        while (rowData.size() < targetSize1) {
+            rowData.append(QVariant());
+        }
+        // QT5写法结束
 
         // 设置所有列的默认值
         for (int colIdx = 0; colIdx < allColumns.size(); ++colIdx)
@@ -1913,7 +1918,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
 
     // 预先创建一个模板行，存储标准列的默认值，减少重复计算
     Vector::RowData templateRow;
-    templateRow.resize(columns.size());
+    // templateRow.resize(columns.size()); // QT6写法
+    int targetSize2 = columns.size(); // QT5写法开始
+    while (templateRow.size() < targetSize2) {
+        templateRow.append(QVariant());
+    }
+    // QT5写法结束
 
     // 初始化模板行的标准列
     if (columnNameMap.contains("Label"))
@@ -2226,7 +2236,12 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     if (sourceDataRowCount > 0 && sourceDataRowCount <= 1000) // 只对较小的模式进行缓存
     {
         qDebug() << funcName << "- 预生成行数据缓存";
-        serializedRowCache.resize(sourceDataRowCount);
+        // serializedRowCache.resize(sourceDataRowCount); // QT6写法
+        int targetSize3 = sourceDataRowCount; // QT5写法开始
+        while (serializedRowCache.size() < targetSize3) {
+            serializedRowCache.append(QByteArray());
+        }
+        // QT5写法结束
 
         for (int i = 0; i < sourceDataRowCount; ++i)
         {
@@ -3621,7 +3636,12 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
             for (int row = 0; row < totalRows; ++row)
             {
                 Vector::RowData rowData;
-                rowData.resize(allColumns.size());
+                // rowData.resize(allColumns.size()); // QT6写法
+                int targetSize4 = allColumns.size(); // QT5写法开始
+                while (rowData.size() < targetSize4) {
+                    rowData.append(QVariant());
+                }
+                // QT5写法结束
 
                 // 设置所有列的默认值
                 for (int colIdx = 0; colIdx < allColumns.size(); ++colIdx)
@@ -3653,7 +3673,12 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
         for (int i = 0; i < additionalRows; ++i)
         {
             Vector::RowData rowData;
-            rowData.resize(allColumns.size());
+            // rowData.resize(allColumns.size()); // QT6写法
+            int targetSize5 = allColumns.size(); // QT5写法开始
+            while (rowData.size() < targetSize5) {
+                rowData.append(QVariant());
+            }
+            // QT5写法结束
 
             // 设置默认值
             for (int colIdx = 0; colIdx < allColumns.size(); ++colIdx)

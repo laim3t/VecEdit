@@ -1,56 +1,52 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'filltimesetdialog.h'
 **
-** Created by: The Qt Meta Object Compiler version 68 (Qt 6.8.2)
+** Created by: The Qt Meta Object Compiler version 67 (Qt 5.15.2)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "../../../timeset/filltimesetdialog.h"
-#include <QtGui/qtextcursor.h>
-#include <QtCore/qmetatype.h>
-
-#include <QtCore/qtmochelpers.h>
-
 #include <memory>
-
-
-#include <QtCore/qxptype_traits.h>
+#include "../../../timeset/filltimesetdialog.h"
+#include <QtCore/qbytearray.h>
+#include <QtCore/qmetatype.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'filltimesetdialog.h' doesn't include <QObject>."
-#elif Q_MOC_OUTPUT_REVISION != 68
-#error "This file was generated using the moc from 6.8.2. It"
+#elif Q_MOC_OUTPUT_REVISION != 67
+#error "This file was generated using the moc from 5.15.2. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
 
-#ifndef Q_CONSTINIT
-#define Q_CONSTINIT
-#endif
-
+QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-QT_WARNING_DISABLE_GCC("-Wuseless-cast")
-namespace {
-struct qt_meta_tag_ZN17FillTimeSetDialogE_t {};
-} // unnamed namespace
+struct qt_meta_stringdata_FillTimeSetDialog_t {
+    QByteArrayData data[4];
+    char stringdata0[50];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_FillTimeSetDialog_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_FillTimeSetDialog_t qt_meta_stringdata_FillTimeSetDialog = {
+    {
+QT_MOC_LITERAL(0, 0, 17), // "FillTimeSetDialog"
+QT_MOC_LITERAL(1, 18, 15), // "loadTimeSetData"
+QT_MOC_LITERAL(2, 34, 0), // ""
+QT_MOC_LITERAL(3, 35, 14) // "validateInputs"
 
-
-#ifdef QT_MOC_HAS_STRINGDATA
-static constexpr auto qt_meta_stringdata_ZN17FillTimeSetDialogE = QtMocHelpers::stringData(
-    "FillTimeSetDialog",
-    "loadTimeSetData",
-    "",
+    },
+    "FillTimeSetDialog\0loadTimeSetData\0\0"
     "validateInputs"
-);
-#else  // !QT_MOC_HAS_STRINGDATA
-#error "qtmochelpers.h not found or too old."
-#endif // !QT_MOC_HAS_STRINGDATA
+};
+#undef QT_MOC_LITERAL
 
-Q_CONSTINIT static const uint qt_meta_data_ZN17FillTimeSetDialogE[] = {
+static const uint qt_meta_data_FillTimeSetDialog[] = {
 
  // content:
-      12,       // revision
+       8,       // revision
        0,       // classname
        0,    0, // classinfo
        2,   14, // methods
@@ -60,9 +56,9 @@ Q_CONSTINIT static const uint qt_meta_data_ZN17FillTimeSetDialogE[] = {
        0,       // flags
        0,       // signalCount
 
- // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    0,   26,    2, 0x08,    1 /* Private */,
-       3,    0,   27,    2, 0x08,    2 /* Private */,
+ // slots: name, argc, parameters, tag, flags
+       1,    0,   24,    2, 0x08 /* Private */,
+       3,    0,   25,    2, 0x08 /* Private */,
 
  // slots: parameters
     QMetaType::Void,
@@ -71,35 +67,29 @@ Q_CONSTINIT static const uint qt_meta_data_ZN17FillTimeSetDialogE[] = {
        0        // eod
 };
 
-Q_CONSTINIT const QMetaObject FillTimeSetDialog::staticMetaObject = { {
-    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
-    qt_meta_stringdata_ZN17FillTimeSetDialogE.offsetsAndSizes,
-    qt_meta_data_ZN17FillTimeSetDialogE,
-    qt_static_metacall,
-    nullptr,
-    qt_incomplete_metaTypeArray<qt_meta_tag_ZN17FillTimeSetDialogE_t,
-        // Q_OBJECT / Q_GADGET
-        QtPrivate::TypeAndForceComplete<FillTimeSetDialog, std::true_type>,
-        // method 'loadTimeSetData'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        // method 'validateInputs'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>
-    >,
-    nullptr
-} };
-
 void FillTimeSetDialog::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    auto *_t = static_cast<FillTimeSetDialog *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<FillTimeSetDialog *>(_o);
+        Q_UNUSED(_t)
         switch (_id) {
         case 0: _t->loadTimeSetData(); break;
         case 1: _t->validateInputs(); break;
         default: ;
         }
     }
-    (void)_a;
+    Q_UNUSED(_a);
 }
+
+QT_INIT_METAOBJECT const QMetaObject FillTimeSetDialog::staticMetaObject = { {
+    QMetaObject::SuperData::link<QDialog::staticMetaObject>(),
+    qt_meta_stringdata_FillTimeSetDialog.data,
+    qt_meta_data_FillTimeSetDialog,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
 
 const QMetaObject *FillTimeSetDialog::metaObject() const
 {
@@ -109,7 +99,7 @@ const QMetaObject *FillTimeSetDialog::metaObject() const
 void *FillTimeSetDialog::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_ZN17FillTimeSetDialogE.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_FillTimeSetDialog.stringdata0))
         return static_cast<void*>(this);
     return QDialog::qt_metacast(_clname);
 }
@@ -123,12 +113,12 @@ int FillTimeSetDialog::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         if (_id < 2)
             qt_static_metacall(this, _c, _id, _a);
         _id -= 2;
-    }
-    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 2)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            *reinterpret_cast<int*>(_a[0]) = -1;
         _id -= 2;
     }
     return _id;
 }
 QT_WARNING_POP
+QT_END_MOC_NAMESPACE

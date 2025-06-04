@@ -761,7 +761,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     mainLayout->addLayout(sectionsLayout);
 
     // 连接勾选框状态改变信号
-    QObject::connect(appendToEndCheckbox, &QCheckBox::checkStateChanged, [insertAtEdit](int state)
+    QObject::connect(appendToEndCheckbox, &QCheckBox::stateChanged, [insertAtEdit](int state)
                      {
                          insertAtEdit->setEnabled(state != Qt::Checked); // 当不勾选时启用向前插入输入框
                          qDebug() << "向量行数据录入 - 追加模式状态改变:" << (state == Qt::Checked ? "启用" : "禁用") 

@@ -1,56 +1,52 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'pinvalueedit.h'
 **
-** Created by: The Qt Meta Object Compiler version 68 (Qt 6.8.2)
+** Created by: The Qt Meta Object Compiler version 67 (Qt 5.15.2)
 **
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "../../../pin/pinvalueedit.h"
-#include <QtGui/qtextcursor.h>
-#include <QtCore/qmetatype.h>
-
-#include <QtCore/qtmochelpers.h>
-
 #include <memory>
-
-
-#include <QtCore/qxptype_traits.h>
+#include "../../../pin/pinvalueedit.h"
+#include <QtCore/qbytearray.h>
+#include <QtCore/qmetatype.h>
 #if !defined(Q_MOC_OUTPUT_REVISION)
 #error "The header file 'pinvalueedit.h' doesn't include <QObject>."
-#elif Q_MOC_OUTPUT_REVISION != 68
-#error "This file was generated using the moc from 6.8.2. It"
+#elif Q_MOC_OUTPUT_REVISION != 67
+#error "This file was generated using the moc from 5.15.2. It"
 #error "cannot be used with the include files from this version of Qt."
 #error "(The moc has changed too much.)"
 #endif
 
-#ifndef Q_CONSTINIT
-#define Q_CONSTINIT
-#endif
-
+QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-QT_WARNING_DISABLE_GCC("-Wuseless-cast")
-namespace {
-struct qt_meta_tag_ZN16PinValueLineEditE_t {};
-} // unnamed namespace
+struct qt_meta_stringdata_PinValueLineEdit_t {
+    QByteArrayData data[4];
+    char stringdata0[42];
+};
+#define QT_MOC_LITERAL(idx, ofs, len) \
+    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
+    qptrdiff(offsetof(qt_meta_stringdata_PinValueLineEdit_t, stringdata0) + ofs \
+        - idx * sizeof(QByteArrayData)) \
+    )
+static const qt_meta_stringdata_PinValueLineEdit_t qt_meta_stringdata_PinValueLineEdit = {
+    {
+QT_MOC_LITERAL(0, 0, 16), // "PinValueLineEdit"
+QT_MOC_LITERAL(1, 17, 18), // "validateAndConvert"
+QT_MOC_LITERAL(2, 36, 0), // ""
+QT_MOC_LITERAL(3, 37, 4) // "text"
 
+    },
+    "PinValueLineEdit\0validateAndConvert\0"
+    "\0text"
+};
+#undef QT_MOC_LITERAL
 
-#ifdef QT_MOC_HAS_STRINGDATA
-static constexpr auto qt_meta_stringdata_ZN16PinValueLineEditE = QtMocHelpers::stringData(
-    "PinValueLineEdit",
-    "validateAndConvert",
-    "",
-    "text"
-);
-#else  // !QT_MOC_HAS_STRINGDATA
-#error "qtmochelpers.h not found or too old."
-#endif // !QT_MOC_HAS_STRINGDATA
-
-Q_CONSTINIT static const uint qt_meta_data_ZN16PinValueLineEditE[] = {
+static const uint qt_meta_data_PinValueLineEdit[] = {
 
  // content:
-      12,       // revision
+       8,       // revision
        0,       // classname
        0,    0, // classinfo
        1,   14, // methods
@@ -60,8 +56,8 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16PinValueLineEditE[] = {
        0,       // flags
        0,       // signalCount
 
- // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    1,   20,    2, 0x09,    1 /* Protected */,
+ // slots: name, argc, parameters, tag, flags
+       1,    1,   19,    2, 0x09 /* Protected */,
 
  // slots: parameters
     QMetaType::Void, QMetaType::QString,    3,
@@ -69,32 +65,27 @@ Q_CONSTINIT static const uint qt_meta_data_ZN16PinValueLineEditE[] = {
        0        // eod
 };
 
-Q_CONSTINIT const QMetaObject PinValueLineEdit::staticMetaObject = { {
-    QMetaObject::SuperData::link<QLineEdit::staticMetaObject>(),
-    qt_meta_stringdata_ZN16PinValueLineEditE.offsetsAndSizes,
-    qt_meta_data_ZN16PinValueLineEditE,
-    qt_static_metacall,
-    nullptr,
-    qt_incomplete_metaTypeArray<qt_meta_tag_ZN16PinValueLineEditE_t,
-        // Q_OBJECT / Q_GADGET
-        QtPrivate::TypeAndForceComplete<PinValueLineEdit, std::true_type>,
-        // method 'validateAndConvert'
-        QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<const QString &, std::false_type>
-    >,
-    nullptr
-} };
-
 void PinValueLineEdit::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    auto *_t = static_cast<PinValueLineEdit *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
+        auto *_t = static_cast<PinValueLineEdit *>(_o);
+        Q_UNUSED(_t)
         switch (_id) {
-        case 0: _t->validateAndConvert((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 0: _t->validateAndConvert((*reinterpret_cast< const QString(*)>(_a[1]))); break;
         default: ;
         }
     }
 }
+
+QT_INIT_METAOBJECT const QMetaObject PinValueLineEdit::staticMetaObject = { {
+    QMetaObject::SuperData::link<QLineEdit::staticMetaObject>(),
+    qt_meta_stringdata_PinValueLineEdit.data,
+    qt_meta_data_PinValueLineEdit,
+    qt_static_metacall,
+    nullptr,
+    nullptr
+} };
+
 
 const QMetaObject *PinValueLineEdit::metaObject() const
 {
@@ -104,7 +95,7 @@ const QMetaObject *PinValueLineEdit::metaObject() const
 void *PinValueLineEdit::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_ZN16PinValueLineEditE.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_PinValueLineEdit.stringdata0))
         return static_cast<void*>(this);
     return QLineEdit::qt_metacast(_clname);
 }
@@ -118,12 +109,12 @@ int PinValueLineEdit::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         if (_id < 1)
             qt_static_metacall(this, _c, _id, _a);
         _id -= 1;
-    }
-    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+    } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         if (_id < 1)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+            *reinterpret_cast<int*>(_a[0]) = -1;
         _id -= 1;
     }
     return _id;
 }
 QT_WARNING_POP
+QT_END_MOC_NAMESPACE

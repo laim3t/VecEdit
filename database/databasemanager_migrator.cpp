@@ -3,6 +3,7 @@
 #include "common/binary_file_format.h"
 #include "vector/vector_data_types.h"
 
+#include <QDataStream>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
