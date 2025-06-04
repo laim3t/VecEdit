@@ -259,6 +259,12 @@ private:
     // 侧边导航栏组件
     QDockWidget *m_sidebarDock;
     QTreeWidget *m_sidebarTree;
+
+    QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
+    bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo>& config1, const QList<Vector::ColumnInfo>& config2);
+    QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData>& oldRowData,
+                                                    const QList<Vector::ColumnInfo>& oldColumns,
+                                                    const QList<Vector::ColumnInfo>& newColumns);
 };
 
 #endif // MAINWINDOW_H
