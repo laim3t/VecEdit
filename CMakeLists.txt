@@ -102,6 +102,9 @@ else()
     add_executable(VecEdit
         ${PROJECT_SOURCES}
     )
+    if(MINGW)
+        set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mconsole")
+    endif()
 endif()
 
 target_link_libraries(VecEdit PRIVATE

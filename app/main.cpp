@@ -9,7 +9,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     // 初始化日志系统
-    Logger::instance().initialize(true, "logs/application.log");
+    Logger::instance().initialize(true, "logs/application.log", Logger::LogLevel::Debug, true);
+    // Logger::instance().initialize(true, "logs/application.log");
     qDebug() << "main - 应用程序启动";
     qInfo() << "main - 欢迎使用VecEdit";
 

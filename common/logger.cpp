@@ -37,7 +37,8 @@ Logger &Logger::instance()
     return *m_instance;
 }
 
-void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel level)
+void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel level, bool enableConsole)
+// void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel level)
 {
     m_logToFile = logToFile;
     m_logLevel = level;
@@ -67,33 +68,35 @@ void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel lev
 
     // 在Windows上分配控制台
 #ifdef Q_OS_WIN
-    /* // 尝试附加到父进程的控制台
-    if (!AttachConsole(ATTACH_PARENT_PROCESS))
+    if (enableConsole)
     {
-        // 如果没有父控制台，则创建新的控制台
-        AllocConsole();
+        // 尝试附加到父进程的控制台
+        if (!AttachConsole(ATTACH_PARENT_PROCESS))
+        {
+            // 如果没有父控制台，则创建新的控制台
+            AllocConsole();
+        }
+
+        // 设置控制台代码页为UTF-8
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+
+        // 重定向标准输出到控制台
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+
+        // 设置控制台标题
+        SetConsoleTitleW(L"VecEdit 日志控制台");
+
+        // 设置控制台缓冲区大小
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(hConsole, &csbi);
+        COORD bufferSize;
+        bufferSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        bufferSize.Y = 9999; // 增大缓冲区高度，以便保存更多日志
+        SetConsoleScreenBufferSize(hConsole, bufferSize);
     }
-
-    // 设置控制台代码页为UTF-8
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-
-    // 重定向标准输出到控制台
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-
-    // 设置控制台标题
-    SetConsoleTitleW(L"VecEdit 日志控制台");
-
-    // 设置控制台缓冲区大小
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(hConsole, &csbi);
-    COORD bufferSize;
-    bufferSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    bufferSize.Y = 9999; // 增大缓冲区高度，以便保存更多日志
-    SetConsoleScreenBufferSize(hConsole, bufferSize);
-    */
 #endif
 
     // 安装消息处理器
