@@ -88,9 +88,6 @@ MainWindow::MainWindow(QWidget *parent)
     // 显示就绪状态
     statusBar()->showMessage("就绪");
 
-    // 加载所有向量表
-    loadVectorTable();
-
     // 启用自由缩放窗口
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setMinimumSize(800, 600); // 设置窗口最小尺寸
@@ -590,20 +587,23 @@ void MainWindow::setupVectorTableUI()
     connect(deleteRowAction, &QAction::triggered, this, &MainWindow::deleteSelectedVectorRows);
     toolBar->addAction(deleteRowAction);
     // 设置永久IconOnly
-    if (!deleteRowAction->associatedWidgets().isEmpty()) {
-        QToolButton *button = qobject_cast<QToolButton*>(deleteRowAction->associatedWidgets().first());
-        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    if (!deleteRowAction->associatedWidgets().isEmpty())
+    {
+        QToolButton *button = qobject_cast<QToolButton *>(deleteRowAction->associatedWidgets().first());
+        if (button)
+            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
-
 
     // 删除指定范围内的向量行按钮 - 只显示图标模式
     m_deleteRangeAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_TrashIcon), tr("删除范围"), this);
     m_deleteRangeAction->setToolTip(tr("删除范围"));
     connect(m_deleteRangeAction, &QAction::triggered, this, &MainWindow::deleteVectorRowsInRange);
     toolBar->addAction(m_deleteRangeAction);
-    if (!m_deleteRangeAction->associatedWidgets().isEmpty()) {
-        QToolButton *button = qobject_cast<QToolButton*>(m_deleteRangeAction->associatedWidgets().first());
-        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    if (!m_deleteRangeAction->associatedWidgets().isEmpty())
+    {
+        QToolButton *button = qobject_cast<QToolButton *>(m_deleteRangeAction->associatedWidgets().first());
+        if (button)
+            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
 
     // 跳转到行按钮 - 只显示图标模式
@@ -611,9 +611,11 @@ void MainWindow::setupVectorTableUI()
     m_gotoLineAction->setToolTip(tr("跳转到行"));
     connect(m_gotoLineAction, &QAction::triggered, this, &MainWindow::gotoLine);
     toolBar->addAction(m_gotoLineAction);
-    if (!m_gotoLineAction->associatedWidgets().isEmpty()) {
-        QToolButton *button = qobject_cast<QToolButton*>(m_gotoLineAction->associatedWidgets().first());
-        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    if (!m_gotoLineAction->associatedWidgets().isEmpty())
+    {
+        QToolButton *button = qobject_cast<QToolButton *>(m_gotoLineAction->associatedWidgets().first());
+        if (button)
+            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
 
     toolBar->addSeparator();
@@ -623,9 +625,11 @@ void MainWindow::setupVectorTableUI()
     deleteTableAction->setToolTip(tr("删除向量表"));
     connect(deleteTableAction, &QAction::triggered, this, &MainWindow::deleteCurrentVectorTable);
     toolBar->addAction(deleteTableAction);
-    if (!deleteTableAction->associatedWidgets().isEmpty()) {
-        QToolButton *button = qobject_cast<QToolButton*>(deleteTableAction->associatedWidgets().first());
-        if (button) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    if (!deleteTableAction->associatedWidgets().isEmpty())
+    {
+        QToolButton *button = qobject_cast<QToolButton *>(deleteTableAction->associatedWidgets().first());
+        if (button)
+            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
 
     // 将工具栏添加到容器布局的顶部
@@ -3507,15 +3511,16 @@ void MainWindow::setupVectorTablePins()
             qDebug() << "MainWindow::setupVectorTablePins - 检测到列配置更改，执行数据迁移。";
             QSqlDatabase db = DatabaseManager::instance()->database();
 
-            // --- 开始数据迁移 --- 
+            // --- 开始数据迁移 ---
             QString oldBinFileName, newBinFileName;
             int oldSchemaVersion = 0, oldRowCount = 0;
-            
+
             // 获取旧表的元数据（主要是二进制文件名）
             QSqlQuery metaQuery(db);
             metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
             metaQuery.addBindValue(tableId);
-            if (!metaQuery.exec() || !metaQuery.next()) {
+            if (!metaQuery.exec() || !metaQuery.next())
+            {
                 QMessageBox::critical(this, "迁移失败", "无法获取旧表元数据: " + metaQuery.lastError().text());
                 return;
             }
@@ -3528,13 +3533,17 @@ void MainWindow::setupVectorTablePins()
 
             // 4. 读取旧表的二进制数据 (使用旧列配置)
             QList<Vector::RowData> oldRowDataList;
-            if (QFile::exists(oldAbsoluteBinFilePath)) {
-                if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(oldAbsoluteBinFilePath, oldColumns, oldSchemaVersion, oldRowDataList)) {
+            if (QFile::exists(oldAbsoluteBinFilePath))
+            {
+                if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(oldAbsoluteBinFilePath, oldColumns, oldSchemaVersion, oldRowDataList))
+                {
                     QMessageBox::critical(this, "迁移失败", "读取旧表二进制数据失败: " + oldAbsoluteBinFilePath);
                     return;
                 }
                 qDebug() << "MainWindow::setupVectorTablePins - 从旧二进制文件读取了" << oldRowDataList.size() << "行数据";
-            } else {
+            }
+            else
+            {
                 qDebug() << "MainWindow::setupVectorTablePins - 旧二进制文件不存在或为空:" << oldAbsoluteBinFilePath << "将视为空表进行迁移。";
             }
 
@@ -3550,20 +3559,23 @@ void MainWindow::setupVectorTablePins()
             //    注意：这里的 schemaVersion 应该是新的，但由于 VectorPinSettingsDialog 内部不直接修改 schemaVersion，
             //    我们暂时沿用旧的，或者假设 updateBinaryHeaderColumnCount 内部可能会更新它（如果逻辑需要）。
             //    在这个简化版，我们主要关注列数变化。
-            if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(oldAbsoluteBinFilePath, newColumns, oldSchemaVersion, newRowDataList)) {
-                 QMessageBox::critical(this, "迁移失败", "将适配数据写回二进制文件失败: " + oldAbsoluteBinFilePath);
-                 // 此处可以考虑回滚数据库中的列配置更改，但因用户要求"不在乎风险"，暂时省略
-                 return;
+            if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(oldAbsoluteBinFilePath, newColumns, oldSchemaVersion, newRowDataList))
+            {
+                QMessageBox::critical(this, "迁移失败", "将适配数据写回二进制文件失败: " + oldAbsoluteBinFilePath);
+                // 此处可以考虑回滚数据库中的列配置更改，但因用户要求"不在乎风险"，暂时省略
+                return;
             }
             qDebug() << "MainWindow::setupVectorTablePins - 已将适配数据写回原二进制文件:" << oldAbsoluteBinFilePath;
 
             // 7. 更新 VectorTableMasterRecord 中的行计数 (如果行数有变，虽然此方案中行数通常不变)
-            if (oldRowDataList.size() != newRowDataList.size() || oldRowCount != newRowDataList.size()) {
+            if (oldRowDataList.size() != newRowDataList.size() || oldRowCount != newRowDataList.size())
+            {
                 QSqlQuery updateMasterQuery(db);
                 updateMasterQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
                 updateMasterQuery.addBindValue(newRowDataList.size());
                 updateMasterQuery.addBindValue(tableId);
-                if (!updateMasterQuery.exec()) {
+                if (!updateMasterQuery.exec())
+                {
                     qWarning() << "MainWindow::setupVectorTablePins - 更新主记录行数失败:" << updateMasterQuery.lastError().text();
                     // 非致命错误，继续
                 }
@@ -3583,7 +3595,6 @@ void MainWindow::setupVectorTablePins()
 
         // 刷新当前向量表视图以反映任何更改 (包括数据或仅仅是列的显示)
         reloadAndRefreshVectorTable(tableId);
-
     }
     else
     {
@@ -5169,7 +5180,8 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
     const QString funcName = "MainWindow::getCurrentColumnConfiguration";
     QList<Vector::ColumnInfo> columns;
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         qWarning() << funcName << "- 数据库未打开";
         return columns;
     }
@@ -5180,27 +5192,33 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
                      "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     colQuery.addBindValue(tableId);
 
-    if (!colQuery.exec()) {
+    if (!colQuery.exec())
+    {
         qWarning() << funcName << "- 查询列结构失败, 表ID:" << tableId << ", 错误:" << colQuery.lastError().text();
         return columns;
     }
 
-    while (colQuery.next()) {
+    while (colQuery.next())
+    {
         Vector::ColumnInfo col;
         col.id = colQuery.value(0).toInt(); // This is the id from VectorTableColumnConfiguration table
-        col.vector_table_id = tableId; // The master_record_id it belongs to
+        col.vector_table_id = tableId;      // The master_record_id it belongs to
         col.name = colQuery.value(1).toString();
         col.order = colQuery.value(2).toInt();
-        col.original_type_str = colQuery.value(3).toString(); // Store the original string
+        col.original_type_str = colQuery.value(3).toString();               // Store the original string
         col.type = Vector::columnDataTypeFromString(col.original_type_str); // Convert to enum
-        
+
         QString propStr = colQuery.value(4).toString();
-        if (!propStr.isEmpty()) {
+        if (!propStr.isEmpty())
+        {
             QJsonParseError err;
             QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            if (err.error == QJsonParseError::NoError && doc.isObject()) {
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+            {
                 col.data_properties = doc.object();
-            } else {
+            }
+            else
+            {
                 qWarning() << funcName << " - 解析列属性JSON失败 for column " << col.name << ", error: " << err.errorString();
             }
         }
@@ -5212,28 +5230,32 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 }
 
 // Add this new function implementation
-bool MainWindow::areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo>& config1, const QList<Vector::ColumnInfo>& config2)
+bool MainWindow::areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2)
 {
-    if (config1.size() != config2.size()) {
+    if (config1.size() != config2.size())
+    {
         qDebug() << "areColumnConfigurationsDifferentSimplified: Sizes differ - config1:" << config1.size() << "config2:" << config2.size();
         return true;
     }
 
     QSet<QString> names1, names2;
-    for(const auto& col : config1) {
+    for (const auto &col : config1)
+    {
         names1.insert(col.name);
     }
-    for(const auto& col : config2) {
+    for (const auto &col : config2)
+    {
         names2.insert(col.name);
     }
 
-    if (names1 != names2) {
+    if (names1 != names2)
+    {
         qDebug() << "areColumnConfigurationsDifferentSimplified: Names differ.";
         qDebug() << "Config1 names:" << names1;
         qDebug() << "Config2 names:" << names2;
         return true;
     }
-    
+
     // Optional: Check for type changes for same-named columns if necessary for your definition of "different"
     // For now, just size and name set equality is enough for "simplified"
 
@@ -5241,9 +5263,9 @@ bool MainWindow::areColumnConfigurationsDifferentSimplified(const QList<Vector::
 }
 
 // Add this new function implementation
-QList<Vector::RowData> MainWindow::adaptRowDataToNewColumns(const QList<Vector::RowData>& oldRowDataList,
-                                                            const QList<Vector::ColumnInfo>& oldColumns,
-                                                            const QList<Vector::ColumnInfo>& newColumns)
+QList<Vector::RowData> MainWindow::adaptRowDataToNewColumns(const QList<Vector::RowData> &oldRowDataList,
+                                                            const QList<Vector::ColumnInfo> &oldColumns,
+                                                            const QList<Vector::ColumnInfo> &newColumns)
 {
     const QString funcName = "MainWindow::adaptRowDataToNewColumns";
     QList<Vector::RowData> newRowDataList;
@@ -5251,55 +5273,79 @@ QList<Vector::RowData> MainWindow::adaptRowDataToNewColumns(const QList<Vector::
 
     // Create a map of old column names to their index for efficient lookup
     QMap<QString, int> oldColumnNameToIndex;
-    for (int i = 0; i < oldColumns.size(); ++i) {
+    for (int i = 0; i < oldColumns.size(); ++i)
+    {
         oldColumnNameToIndex[oldColumns[i].name] = i;
     }
-    
+
     // Create a map of old column names to their type for type-aware default values (optional enhancement)
     QMap<QString, Vector::ColumnDataType> oldColumnNameToType;
-    for (const auto& col : oldColumns) {
+    for (const auto &col : oldColumns)
+    {
         oldColumnNameToType[col.name] = col.type;
     }
 
-    for (const Vector::RowData& oldRow : oldRowDataList) {
+    for (const Vector::RowData &oldRow : oldRowDataList)
+    {
         // Vector::RowData newRow(newColumns.size()); // Initialize newRow with newColumns.size() default QVariants - Incorrect
         Vector::RowData newRow;
         newRow.reserve(newColumns.size()); // Good practice to reserve if size is known
 
-        for (int colIdx = 0; colIdx < newColumns.size(); ++colIdx) { // Changed loop variable name for clarity
-            const Vector::ColumnInfo& newCol = newColumns[colIdx];
+        for (int colIdx = 0; colIdx < newColumns.size(); ++colIdx)
+        { // Changed loop variable name for clarity
+            const Vector::ColumnInfo &newCol = newColumns[colIdx];
             QVariant cellData; // Temporary variable to hold the data for the current cell
-            
-            if (oldColumnNameToIndex.contains(newCol.name)) {
+
+            if (oldColumnNameToIndex.contains(newCol.name))
+            {
                 // Column exists in old data, copy it
                 int oldIndex = oldColumnNameToIndex[newCol.name];
-                if (oldIndex >= 0 && oldIndex < oldRow.size()) { // Bounds check
+                if (oldIndex >= 0 && oldIndex < oldRow.size())
+                { // Bounds check
                     cellData = oldRow[oldIndex];
-                } else {
+                }
+                else
+                {
                     qWarning() << funcName << "- Old column index out of bounds for column:" << newCol.name << "oldIndex:" << oldIndex << "oldRow.size:" << oldRow.size();
-                    if (newCol.type == Vector::ColumnDataType::PIN_STATE_ID) {
+                    if (newCol.type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
                         cellData = "X";
-                    } else {
-                        cellData = QVariant(); 
+                    }
+                    else
+                    {
+                        cellData = QVariant();
                     }
                 }
-            } else {
+            }
+            else
+            {
                 // Column is new, fill with default value
-                if (newCol.type == Vector::ColumnDataType::PIN_STATE_ID) {
+                if (newCol.type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
                     cellData = "X";
-                } else if (newCol.type == Vector::ColumnDataType::TEXT) { 
-                    cellData = QString(); 
-                } else if (newCol.type == Vector::ColumnDataType::INTEGER || 
-                           newCol.type == Vector::ColumnDataType::INSTRUCTION_ID || 
-                           newCol.type == Vector::ColumnDataType::TIMESET_ID) {
-                    cellData = 0; 
-                } else if (newCol.type == Vector::ColumnDataType::REAL) {
+                }
+                else if (newCol.type == Vector::ColumnDataType::TEXT)
+                {
+                    cellData = QString();
+                }
+                else if (newCol.type == Vector::ColumnDataType::INTEGER ||
+                         newCol.type == Vector::ColumnDataType::INSTRUCTION_ID ||
+                         newCol.type == Vector::ColumnDataType::TIMESET_ID)
+                {
+                    cellData = 0;
+                }
+                else if (newCol.type == Vector::ColumnDataType::REAL)
+                {
                     cellData = 0.0;
-                } else if (newCol.type == Vector::ColumnDataType::BOOLEAN) {
+                }
+                else if (newCol.type == Vector::ColumnDataType::BOOLEAN)
+                {
                     cellData = false;
-                } else {
+                }
+                else
+                {
                     qWarning() << funcName << "- Unhandled new column type for default value:" << newCol.name << "type:" << newCol.original_type_str;
-                    cellData = QVariant(); 
+                    cellData = QVariant();
                 }
             }
             newRow.append(cellData); // Append the determined cell data
