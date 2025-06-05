@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(VecEdit VERSION 0.1 LANGUAGES CXX)
+project(VecEdit VERSION 0.0.0.2 LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -8,8 +8,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Concurrent)
+# 显式设置 Qt5_DIR 以确保 CMake 找到正确的 Qt 安装
+set(Qt5_DIR C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5)
+
+find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
 
 # 设置日志输出相关
 add_compile_definitions(QT_MESSAGELOGCONTEXT)  # 启用日志上下文信息
@@ -70,39 +72,47 @@ set(PROJECT_SOURCES
         resources/qt/icons.qrc
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(VecEdit
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
+# Configure a version header file to pass version info to C++ code
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/version.h"
+    @ONLY
+)
+
+if(WIN32)
+    # Configure a version resource file for Windows
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
+        @ONLY
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET VecEdit APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    set(CMAKE_AUTORCC_OPTIONS "") # 为 Qt5 清除 AUTORCC 选项
-    set_source_files_properties("resources/qt/icons.qrc" PROPERTIES AUTORCC_OPTIONS "--no-compress") # 为 Qt5 rcc 设置 --no-compress 选项
-    if(ANDROID)
-        add_library(VecEdit SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(VecEdit
-            ${PROJECT_SOURCES}
-        )
-    endif()
+    # Add the generated .rc file to the sources for Windows
+    list(APPEND PROJECT_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
 endif()
 
-target_link_libraries(VecEdit PRIVATE 
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Sql
-    Qt${QT_VERSION_MAJOR}::Concurrent
+set(CMAKE_AUTORCC_OPTIONS "") # 为 Qt5 清除 AUTORCC 选项
+set_source_files_properties("resources/qt/icons.qrc" PROPERTIES AUTORCC_OPTIONS "--no-compress") # 为 Qt5 rcc 设置 --no-compress 选项
+if(ANDROID)
+    add_library(VecEdit SHARED
+        ${PROJECT_SOURCES}
+    )
+# Define properties for Android with Qt 5 after find_package() calls as:
+#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+else()
+    add_executable(VecEdit
+        ${PROJECT_SOURCES}
+    )
+endif()
+
+target_link_libraries(VecEdit PRIVATE
+    Qt5::Widgets
+    Qt5::Sql
+    Qt5::Concurrent
 )
 
 # 添加包含目录
 target_include_directories(VecEdit PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR} # For generated version.h
     ${CMAKE_CURRENT_SOURCE_DIR} # 保持根目录
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/timeset
@@ -119,13 +129,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/db/schema.sql
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.VecEdit)
-endif()
+set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.VecEdit)
 set_target_properties(VecEdit PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
@@ -137,30 +145,15 @@ install(TARGETS VecEdit
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(VecEdit)
-endif()
-
 # Deployment using windeployqt
 if (WIN32)
-    if (QT_VERSION_MAJOR EQUAL 6)
-        add_custom_command(TARGET VecEdit POST_BUILD
-            COMMAND ${Qt6_DIR}/../../../bin/windeployqt
-                    --no-translations
-                    --no-quick-import # Qt6 windeployqt option
-                    # Add other necessary options for Qt6 if needed
-                    "$<TARGET_FILE:VecEdit>"
-            COMMENT "Running windeployqt for Qt6 to deploy $<TARGET_FILE_NAME:VecEdit>"
-        )
-    elseif (QT_VERSION_MAJOR EQUAL 5)
-        add_custom_command(TARGET VecEdit POST_BUILD
-            COMMAND ${Qt5_DIR}/../../../bin/windeployqt.exe # Assumes Qt5_DIR is set by find_package(Qt5...)
-                    --no-translations
-                    # For MinGW, windeployqt usually handles compiler runtime DLLs.
-                    # Add specific modules if needed, e.g., --svg, --multimedia, etc.
-                    # By default, it inspects the executable for dependencies.
-                    "$<TARGET_FILE:VecEdit>"
-            COMMENT "Running windeployqt for Qt5 to deploy $<TARGET_FILE_NAME:VecEdit>"
-        )
-    endif()
+    add_custom_command(TARGET VecEdit POST_BUILD
+        COMMAND C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe # Hardcoded path to windeployqt
+                --no-translations
+                # For MinGW, windeployqt usually handles compiler runtime DLLs.
+                # Add specific modules if needed, e.g., --svg, --multimedia, etc.
+                # By default, it inspects the executable for dependencies.
+                "$<TARGET_FILE:VecEdit>"
+        COMMENT "Running windeployqt for Qt5 to deploy $<TARGET_FILE_NAME:VecEdit>"
+    )
 endif()

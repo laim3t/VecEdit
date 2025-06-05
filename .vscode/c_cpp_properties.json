@@ -4,14 +4,16 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:/Qt/6.8.2/mingw_64/include/**",
-                "C:/Qt/6.8.2/mingw_64/include",
-                "C:/Qt/6.8.2/mingw_64/include/QtCore",
-                "C:/Qt/6.8.2/mingw_64/include/QtGui",
-                "C:/Qt/6.8.2/mingw_64/include/QtWidgets",
-                "C:/Qt/6.8.2/mingw_64/include/QtNetwork",
-                "C:/Qt/6.8.2/mingw_64/include/QtSvg",
-                "C:/Qt/6.8.2/mingw_64/include/QtPrintSupport"
+                "C:/Qt/5.15.2/mingw81_32/include/**",
+                "C:/Qt/5.15.2/mingw81_32/include",
+                "C:/Qt/5.15.2/mingw81_32/include/QtCore",
+                "C:/Qt/5.15.2/mingw81_32/include/QtGui",
+                "C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
+                "C:/Qt/5.15.2/mingw81_32/include/QtNetwork",
+                "C:/Qt/5.15.2/mingw81_32/include/QtSvg",
+                "C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport",
+                "C:/Qt/5.15.2/mingw81_32/include/QtConcurrent",
+                "C:/Qt/5.15.2/mingw81_32/include/QtSql"
             ],
             "defines": [
                 "_DEBUG",
@@ -19,20 +21,21 @@
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.19041.0",
-            "compilerPath": "C:/Qt/6.8.2/mingw_64/bin/g++.exe",
+            "compilerPath": "C:/Qt/5.15.2/mingw81_32/bin/g++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "windows-gcc-x64",
+            "intelliSenseMode": "windows-gcc-x86",
             "browse": {
                 "path": [
                     "${workspaceFolder}",
-                    "C:/Qt/6.8.2/mingw_64/include",
-                    "C:/Qt/6.8.2/mingw_64/lib"
+                    "C:/Qt/5.15.2/mingw81_32/include",
+                    "C:/Qt/5.15.2/mingw81_32/lib"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4
-} 
+}

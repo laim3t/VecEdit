@@ -12,12 +12,12 @@
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "C:/Qt/6.8.2/mingw_64/bin;${env:PATH}"
+                    "value": "C:/Qt/5.15.2/mingw81_32/bin;${env:PATH}"
                 }
             ],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "C:/Qt/6.8.2/mingw_64/bin/gdb.exe",
+            "miDebuggerPath": "C:/Qt/5.15.2/mingw81_32/bin/gdb.exe",
             "setupCommands": [
                 {
                     "description": "为 gdb 启用整齐打印",

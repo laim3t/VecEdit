@@ -1,0 +1,39 @@
+#include <winver.h>
+
+// Language and charset: U.S. English, Unicode
+// You can find other language/charset IDs if needed.
+#define APP_LANG_CHARSET_STRING "040904b0"
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,@PROJECT_VERSION_TWEAK@
+    PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,@PROJECT_VERSION_TWEAK@
+    FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#if defined(_DEBUG) || defined(DEBUG)
+    FILEFLAGS VS_FF_DEBUG
+#else
+    FILEFLAGS 0x0L
+#endif
+    FILEOS VOS_NT_WINDOWS32
+    FILETYPE VFT_APP
+    FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK APP_LANG_CHARSET_STRING
+        BEGIN
+            VALUE "CompanyName", "HongBangDianZi\0" // TODO: 请替换为您的公司名称
+            VALUE "FileDescription", "VecEdit Application\0"
+            VALUE "FileVersion", "@PROJECT_VERSION@\0"
+            VALUE "InternalName", "VecEdit\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 YourCompanyName\0" // TODO: 请替换年份和您的公司名称
+            VALUE "OriginalFilename", "VecEdit.exe\0"
+            VALUE "ProductName", "VecEdit\0"
+            VALUE "ProductVersion", "@PROJECT_VERSION@\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        // The LANGID and CharsetID for Translation (e.g., 0x0409 is U.S. English, 1200 is Unicode)
+        VALUE "Translation", 0x0409, 1200
+    END
+END 
