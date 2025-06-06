@@ -113,8 +113,7 @@ void TimeSetUIManager::setupTreeWidget()
     timeSetTree->headerItem()->setTextAlignment(4, Qt::AlignCenter);
 
     // 启用编辑功能
-    timeSetTree->setEditTriggers(QAbstractItemView::DoubleClicked |
-                                 QAbstractItemView::EditKeyPressed);
+    timeSetTree->setEditTriggers(QAbstractItemView::EditKeyPressed);
 
     // 设置所有列可编辑
     timeSetTree->setItemsExpandable(true);
