@@ -5149,6 +5149,9 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     const QString funcName = "MainWindow::reloadAndRefreshVectorTable";
     qDebug() << funcName << "- Reloading and refreshing UI for table ID:" << tableId;
 
+    // 首先清除表格数据缓存，确保获取最新数据
+    VectorDataHandler::instance().clearTableDataCache(tableId);
+
     // 1. Ensure the table is selected in the ComboBox and TabWidget
     int comboBoxIndex = m_vectorTableSelector->findData(tableId);
     if (comboBoxIndex != -1)

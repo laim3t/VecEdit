@@ -469,8 +469,8 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         tableWidget->verticalHeader()->setUpdatesEnabled(true);
         tableWidget->horizontalHeader()->setUpdatesEnabled(true);
         tableWidget->setUpdatesEnabled(true);
-            return false;
-        }
+        return false;
+    }
     qDebug() << funcName << " - 从二进制文件加载了 " << allRowsOriginal.size() << " 行, 原始列数:" << allColumns.size() << ", 可见列数:" << columns.size();
 
     // 校验从文件读取的行数与数据库记录的行数 (可选，但推荐)
@@ -557,7 +557,7 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
         columnIdToIndexMap[allColumns[i].id] = i;
         qDebug() << funcName << " - 列ID映射: ID=" << allColumns[i].id << " -> 索引=" << i
                  << ", 名称=" << allColumns[i].name << ", 可见=" << allColumns[i].is_visible;
-}
+    }
 
     for (int row = 0; row < allRowsOriginal.size(); ++row)
     {
@@ -1127,7 +1127,8 @@ bool VectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidg
         Vector::RowData rowData;
         // rowData.resize(allColumns.size()); // QT6写法
         int targetSize1 = allColumns.size(); // QT5写法开始 (修正变量名)
-        while (rowData.size() < targetSize1) {
+        while (rowData.size() < targetSize1)
+        {
             rowData.append(QVariant());
         }
         // QT5写法结束
@@ -1920,7 +1921,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
     Vector::RowData templateRow;
     // templateRow.resize(columns.size()); // QT6写法
     int targetSize2 = columns.size(); // QT5写法开始
-    while (templateRow.size() < targetSize2) {
+    while (templateRow.size() < targetSize2)
+    {
         templateRow.append(QVariant());
     }
     // QT5写法结束
@@ -2238,7 +2240,8 @@ bool VectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCou
         qDebug() << funcName << "- 预生成行数据缓存";
         // serializedRowCache.resize(sourceDataRowCount); // QT6写法
         int targetSize3 = sourceDataRowCount; // QT5写法开始
-        while (serializedRowCache.size() < targetSize3) {
+        while (serializedRowCache.size() < targetSize3)
+        {
             serializedRowCache.append(QByteArray());
         }
         // QT5写法结束
@@ -2988,6 +2991,52 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             }
         }
     }
+    else
+    {
+        // 即使列数没有变化，也需要刷新表头内容以反映管脚类型的更改
+        QStringList headers;
+        for (const auto &col : columns)
+        {
+            // 根据列类型设置表头
+            if (col.type == Vector::ColumnDataType::PIN_STATE_ID && !col.data_properties.isEmpty())
+            {
+                // 获取管脚属性
+                int channelCount = col.data_properties["channel_count"].toInt(1);
+                int typeId = col.data_properties["type_id"].toInt(1);
+
+                // 获取类型名称
+                QString typeName = "In"; // 默认为输入类型
+                QSqlQuery typeQuery(DatabaseManager::instance()->database());
+                typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
+                typeQuery.addBindValue(typeId);
+                if (typeQuery.exec() && typeQuery.next())
+                {
+                    typeName = typeQuery.value(0).toString();
+                }
+
+                // 创建带有管脚信息的表头
+                QString headerText = col.name + "\nx" + QString::number(channelCount) + "\n" + typeName;
+                headers << headerText;
+            }
+            else
+            {
+                // 标准列，直接使用列名
+                headers << col.name;
+            }
+        }
+
+        tableWidget->setHorizontalHeaderLabels(headers);
+
+        // 设置表头居中对齐
+        for (int i = 0; i < tableWidget->columnCount(); ++i)
+        {
+            QTableWidgetItem *headerItem = tableWidget->horizontalHeaderItem(i);
+            if (headerItem)
+            {
+                headerItem->setTextAlignment(Qt::AlignCenter);
+            }
+        }
+    }
 
     // 4. 读取指定范围的行数据
     QList<Vector::RowData> pageRows;
@@ -3638,7 +3687,8 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                 Vector::RowData rowData;
                 // rowData.resize(allColumns.size()); // QT6写法
                 int targetSize4 = allColumns.size(); // QT5写法开始
-                while (rowData.size() < targetSize4) {
+                while (rowData.size() < targetSize4)
+                {
                     rowData.append(QVariant());
                 }
                 // QT5写法结束
@@ -3675,7 +3725,8 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
             Vector::RowData rowData;
             // rowData.resize(allColumns.size()); // QT6写法
             int targetSize5 = allColumns.size(); // QT5写法开始
-            while (rowData.size() < targetSize5) {
+            while (rowData.size() < targetSize5)
+            {
                 rowData.append(QVariant());
             }
             // QT5写法结束
@@ -3802,7 +3853,7 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
                     // 检查数据是否有变更
                     if (oldValue.toString() != pinStateText)
                     {
-                    rowData[originalColIdx] = pinStateText;
+                        rowData[originalColIdx] = pinStateText;
                         rowModified = true;
                     }
 

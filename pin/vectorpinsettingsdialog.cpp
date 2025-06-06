@@ -573,6 +573,10 @@ void VectorPinSettingsDialog::onAccepted()
         // 提交事务
         db.commit();
         qDebug() << "VectorPinSettingsDialog::onAccepted - 成功保存管脚设置和列配置";
+
+        // 清除表格数据缓存，确保下次加载时获取最新数据
+        VectorDataHandler::instance().clearTableDataCache(m_tableId);
+
         logColumnConfigInfo(m_tableId);
         accept();
     }
