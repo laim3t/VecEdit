@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 显式设置 Qt5_DIR 以确保 CMake 找到正确的 Qt 安装
-set(Qt5_DIR C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5)
+set(Qt5_DIR C:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5)
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
 
@@ -69,6 +69,8 @@ set(PROJECT_SOURCES
         pin/pinselectionmanager.cpp
         vector/vectordatamanager.h
         vector/vectordatamanager.cpp
+        migration/datamigrator.h
+        migration/datamigrator.cpp
         resources/qt/icons.qrc
 )
 
@@ -123,6 +125,7 @@ target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
     ${CMAKE_CURRENT_SOURCE_DIR}/database
     ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/migration
 )
 
 # 复制schema.sql到构建目录
@@ -151,7 +154,7 @@ install(TARGETS VecEdit
 # Deployment using windeployqt
 if (WIN32)
     add_custom_command(TARGET VecEdit POST_BUILD
-        COMMAND C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe # Hardcoded path to windeployqt
+        COMMAND C:/Qt/5.15.2/mingw81_64/bin/windeployqt.exe # Hardcoded path to windeployqt
                 --no-translations
                 # For MinGW, windeployqt usually handles compiler runtime DLLs.
                 # Add specific modules if needed, e.g., --svg, --multimedia, etc.

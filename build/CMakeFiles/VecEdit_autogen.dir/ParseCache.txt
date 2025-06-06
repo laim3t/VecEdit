@@ -1607,6 +1607,7 @@ C:/VecEdit/common/tablestyleperformancetester.h
  mdp:C:/VecEdit/common/tablestyleperformancetester.h
 C:/VecEdit/timeset/timesetui.h
 C:/VecEdit/database/binaryfilehelper.h
+C:/VecEdit/migration/datamigrator.h
 C:/VecEdit/timeset/timesetedgedialog.h
  mmc:Q_OBJECT
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap
@@ -5295,6 +5296,7 @@ C:/VecEdit/database/binaryfilehelper.cpp
 C:/VecEdit/database/databasemanager.cpp
 C:/VecEdit/database/databasemanager_migrator.cpp
 C:/VecEdit/database/databaseviewdialog.cpp
+C:/VecEdit/migration/datamigrator.cpp
 C:/VecEdit/timeset/timesetedgedialog.cpp
 C:/VecEdit/pin/pinselectionmanager.cpp
 C:/VecEdit/pin/pingroupdialog.cpp

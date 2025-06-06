@@ -487,6 +487,30 @@ database/databaseviewdialog.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.s
 .PHONY : database/databaseviewdialog.cpp.s
 
+migration/datamigrator.obj: migration/datamigrator.cpp.obj
+.PHONY : migration/datamigrator.obj
+
+# target to build an object file
+migration/datamigrator.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj
+.PHONY : migration/datamigrator.cpp.obj
+
+migration/datamigrator.i: migration/datamigrator.cpp.i
+.PHONY : migration/datamigrator.i
+
+# target to preprocess a source file
+migration/datamigrator.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.i
+.PHONY : migration/datamigrator.cpp.i
+
+migration/datamigrator.s: migration/datamigrator.cpp.s
+.PHONY : migration/datamigrator.s
+
+# target to generate assembly for a file
+migration/datamigrator.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.s
+.PHONY : migration/datamigrator.cpp.s
+
 pin/pingroupdialog.obj: pin/pingroupdialog.cpp.obj
 .PHONY : pin/pingroupdialog.obj
 
@@ -954,6 +978,9 @@ help:
 	@echo ... database/databaseviewdialog.obj
 	@echo ... database/databaseviewdialog.i
 	@echo ... database/databaseviewdialog.s
+	@echo ... migration/datamigrator.obj
+	@echo ... migration/datamigrator.i
+	@echo ... migration/datamigrator.s
 	@echo ... pin/pingroupdialog.obj
 	@echo ... pin/pingroupdialog.i
 	@echo ... pin/pingroupdialog.s

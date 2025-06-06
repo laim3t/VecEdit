@@ -26,6 +26,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj"
   "CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj.d"
+  "CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj"
+  "CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj"
   "CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj"

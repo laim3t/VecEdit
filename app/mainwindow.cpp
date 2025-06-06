@@ -63,6 +63,93 @@
 #include <QJsonParseError>
 #include <QToolBar>
 #include <QToolButton>
+#include <QVariant>
+#include <QProgressDialog>
+#include <QTreeView>
+#include <QStandardItemModel>
+
+#include "migration/datamigrator.h"
+
+// 辅助函数：比较两个列配置列表，判断是否发生了可能影响二进制布局的实质性变化
+// 只比较列的数量、名称和顺序。
+static bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &oldCols, const QList<Vector::ColumnInfo> &newCols)
+{
+    if (oldCols.size() != newCols.size())
+    {
+        return true; // 列数量不同，需要迁移
+    }
+
+    // 假设列是按 column_order 排序的
+    for (int i = 0; i < oldCols.size(); ++i)
+    {
+        if (oldCols[i].name != newCols[i].name || oldCols[i].order != newCols[i].order)
+        {
+            return true; // 列名或顺序不同，需要迁移
+        }
+    }
+
+    return false;
+}
+
+// 辅助函数：将旧的行数据适配到新的列结构
+static QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData> &oldData, const QList<Vector::ColumnInfo> &oldCols, const QList<Vector::ColumnInfo> &newCols)
+{
+    if (oldData.isEmpty())
+    {
+        return {}; // 如果没有旧数据，无需迁移
+    }
+
+    QList<Vector::RowData> newDataList;
+    newDataList.reserve(oldData.size());
+
+    for (const auto &oldRow : oldData)
+    {
+        // 为旧行数据创建一个 名称 -> 数据值 的映射，方便查找
+        QMap<QString, QVariant> oldRowMap;
+        for (int i = 0; i < oldCols.size(); ++i)
+        {
+            if (i < oldRow.size())
+            {
+                oldRowMap[oldCols[i].name] = oldRow[i];
+            }
+        }
+
+        Vector::RowData newRow;
+        for (int i = 0; i < newCols.size(); ++i)
+        {
+            newRow.append(QVariant());
+        }
+
+        for (int i = 0; i < newCols.size(); ++i)
+        {
+            const auto &newColInfo = newCols[i];
+
+            if (oldRowMap.contains(newColInfo.name))
+            {
+                // 如果新列在旧数据中存在，则直接拷贝
+                newRow[i] = oldRowMap[newColInfo.name];
+            }
+            else
+            {
+                // 如果是新增的列，则赋予默认值
+                if (newColInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    newRow[i] = "X"; // 新增管脚列的默认值为 "X"
+                }
+                else
+                {
+                    // For other types, the default QVariant is already what we want
+                    // so we don't need to do anything here.
+                    // The list was already filled with default QVariants.
+                    // newRow[i] = QVariant();
+                }
+            }
+        }
+        newDataList.append(newRow);
+    }
+
+    return newDataList;
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)
@@ -407,14 +494,7 @@ void MainWindow::closeCurrentProject()
         // 清理侧边导航栏
         if (m_sidebarTree)
         {
-            for (int i = 0; i < m_sidebarTree->topLevelItemCount(); i++)
-            {
-                QTreeWidgetItem *root = m_sidebarTree->topLevelItem(i);
-                while (root->childCount() > 0)
-                {
-                    delete root->takeChild(0);
-                }
-            }
+            m_sidebarTree->clear();
         }
 
         // 重置窗口标题
@@ -3481,126 +3561,32 @@ void MainWindow::setupVectorTablePins()
     if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
     {
         QMessageBox::warning(this, "错误", "请先选择一个向量表");
-        qDebug() << "MainWindow::setupVectorTablePins - 没有选择向量表";
         return;
     }
-
-    // 获取表ID和名称
     int tableId = m_vectorTableSelector->currentData().toInt();
     QString tableName = m_vectorTableSelector->currentText();
 
     qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
 
-    // 1. 获取更改前的列配置
-    QList<Vector::ColumnInfo> oldColumns = getCurrentColumnConfiguration(tableId);
+    // 1. 获取更改前的完整列配置
+    QList<Vector::ColumnInfo> oldColumns = VectorDataHandler::instance().getAllColumnInfo(tableId);
 
-    // 创建并显示管脚设置对话框
+    // 2. 创建并显示管脚设置对话框
     VectorPinSettingsDialog dialog(tableId, tableName, this);
 
     if (dialog.exec() == QDialog::Accepted)
     {
-        qDebug() << "MainWindow::setupVectorTablePins - 管脚设置已更新，开始处理数据迁移（如果需要）";
-
-        // 2. 获取用户在对话框中确认后的新列配置 (这部分dialog内部会更新数据库)
-        //    所以我们直接从数据库重新获取最新的配置作为newColumns
-        QList<Vector::ColumnInfo> newColumns = getCurrentColumnConfiguration(tableId);
-
-        // 3. 比较新旧列配置
-        if (areColumnConfigurationsDifferentSimplified(oldColumns, newColumns))
-        {
-            qDebug() << "MainWindow::setupVectorTablePins - 检测到列配置更改，执行数据迁移。";
-            QSqlDatabase db = DatabaseManager::instance()->database();
-
-            // --- 开始数据迁移 ---
-            QString oldBinFileName, newBinFileName;
-            int oldSchemaVersion = 0, oldRowCount = 0;
-
-            // 获取旧表的元数据（主要是二进制文件名）
-            QSqlQuery metaQuery(db);
-            metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
-            metaQuery.addBindValue(tableId);
-            if (!metaQuery.exec() || !metaQuery.next())
-            {
-                QMessageBox::critical(this, "迁移失败", "无法获取旧表元数据: " + metaQuery.lastError().text());
-                return;
-            }
-            oldBinFileName = metaQuery.value(0).toString();
-            oldSchemaVersion = metaQuery.value(1).toInt(); // 虽然在这个简化版中schema version可能不直接用，但获取一下没坏处
-            // oldRowCount = metaQuery.value(2).toInt(); // 旧的行数
-
-            QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
-            QString oldAbsoluteBinFilePath = QDir(projectBinaryDataDir).absoluteFilePath(oldBinFileName);
-
-            // 4. 读取旧表的二进制数据 (使用旧列配置)
-            QList<Vector::RowData> oldRowDataList;
-            if (QFile::exists(oldAbsoluteBinFilePath))
-            {
-                if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(oldAbsoluteBinFilePath, oldColumns, oldSchemaVersion, oldRowDataList))
-                {
-                    QMessageBox::critical(this, "迁移失败", "读取旧表二进制数据失败: " + oldAbsoluteBinFilePath);
-                    return;
-                }
-                qDebug() << "MainWindow::setupVectorTablePins - 从旧二进制文件读取了" << oldRowDataList.size() << "行数据";
-            }
-            else
-            {
-                qDebug() << "MainWindow::setupVectorTablePins - 旧二进制文件不存在或为空:" << oldAbsoluteBinFilePath << "将视为空表进行迁移。";
-            }
-
-            // 5. 适配数据到新列结构
-            QList<Vector::RowData> newRowDataList = adaptRowDataToNewColumns(oldRowDataList, oldColumns, newColumns);
-            qDebug() << "MainWindow::setupVectorTablePins - 数据适配完成，新数据有" << newRowDataList.size() << "行";
-
-            // 6. 将适配后的数据写回 *原* 二进制文件 (使用新列配置)
-            //    首先更新文件头中的列计数
-            updateBinaryHeaderColumnCount(tableId); // 这个函数会用 newColumns 的数量去更新文件头
-
-            //    然后写入数据体
-            //    注意：这里的 schemaVersion 应该是新的，但由于 VectorPinSettingsDialog 内部不直接修改 schemaVersion，
-            //    我们暂时沿用旧的，或者假设 updateBinaryHeaderColumnCount 内部可能会更新它（如果逻辑需要）。
-            //    在这个简化版，我们主要关注列数变化。
-            if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(oldAbsoluteBinFilePath, newColumns, oldSchemaVersion, newRowDataList))
-            {
-                QMessageBox::critical(this, "迁移失败", "将适配数据写回二进制文件失败: " + oldAbsoluteBinFilePath);
-                // 此处可以考虑回滚数据库中的列配置更改，但因用户要求"不在乎风险"，暂时省略
-                return;
-            }
-            qDebug() << "MainWindow::setupVectorTablePins - 已将适配数据写回原二进制文件:" << oldAbsoluteBinFilePath;
-
-            // 7. 更新 VectorTableMasterRecord 中的行计数 (如果行数有变，虽然此方案中行数通常不变)
-            if (oldRowDataList.size() != newRowDataList.size() || oldRowCount != newRowDataList.size())
-            {
-                QSqlQuery updateMasterQuery(db);
-                updateMasterQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
-                updateMasterQuery.addBindValue(newRowDataList.size());
-                updateMasterQuery.addBindValue(tableId);
-                if (!updateMasterQuery.exec())
-                {
-                    qWarning() << "MainWindow::setupVectorTablePins - 更新主记录行数失败:" << updateMasterQuery.lastError().text();
-                    // 非致命错误，继续
-                }
-            }
-
-            QMessageBox::information(this, "成功", "向量表管脚设置已更新，数据已成功迁移。");
-            qDebug() << "MainWindow::setupVectorTablePins - 数据迁移成功完成。";
-        }
-        else
-        {
-            qDebug() << "MainWindow::setupVectorTablePins - 列配置未发生变化，无需数据迁移。";
-            // 即使列配置本身没有改变，VectorPinSettingsDialog 可能修改了列的 *可见性* 等，
-            // 所以仍然需要更新文件头（如果列数依赖于可见列）和刷新表
-            updateBinaryHeaderColumnCount(tableId); // 确保文件头是最新的
-            QMessageBox::information(this, "成功", "向量表管脚设置已更新。");
-        }
-
-        // 刷新当前向量表视图以反映任何更改 (包括数据或仅仅是列的显示)
-        reloadAndRefreshVectorTable(tableId);
+        qDebug() << "MainWindow::setupVectorTablePins - 用户确认了管脚设置，调用数据迁移器。";
+        // 3. 调用迁移器处理后续所有逻辑（比较、迁移、提示）
+        DataMigrator::migrateDataIfNeeded(tableId, oldColumns, this);
     }
     else
     {
-        qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置";
-        // 如果用户取消，旧的列配置依然有效，不需要做任何事情
+        qDebug() << "MainWindow::setupVectorTablePins - 用户取消了管脚设置。";
     }
+
+    // 4. 无论成功、失败还是取消，都刷新UI以保证与数据库状态一致
+    reloadAndRefreshVectorTable(tableId);
 }
 
 // 打开管脚设置对话框

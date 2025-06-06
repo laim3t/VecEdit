@@ -48,6 +48,12 @@ public:
     // 获取向量表总行数
     int getVectorTableRowCount(int tableId);
 
+    // 获取指定表的所有列信息（包括可见和隐藏）
+    QList<Vector::ColumnInfo> getAllColumnInfo(int tableId);
+
+    // 获取指定表的schema版本
+    int getSchemaVersion(int tableId);
+
     // 插入向量行数据
     bool insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId,
                           QTableWidget *dataTable, bool appendToEnd,
@@ -86,6 +92,15 @@ public:
 
     // 检查行是否被修改过
     bool isRowModified(int tableId, int rowIndex);
+
+    /**
+     * @brief 解析给定表ID的二进制文件的绝对路径
+     *
+     * @param tableId 向量表的ID
+     * @param errorMsg 如果发生错误，将填充错误消息
+     * @return QString 如果成功，则为二进制文件的绝对路径；否则为空字符串
+     */
+    QString resolveBinaryFilePath(int tableId, QString &errorMsg);
 
 signals:
     // 进度更新信号
@@ -130,15 +145,6 @@ private:
 
     // 更新表数据缓存
     void updateTableDataCache(int tableId, const QList<Vector::RowData> &rows, const QString &binFilePath);
-
-    /**
-     * @brief 解析给定表ID的二进制文件的绝对路径
-     *
-     * @param tableId 向量表的ID
-     * @param errorMsg 如果发生错误，将填充错误消息
-     * @return QString 如果成功，则为二进制文件的绝对路径；否则为空字符串
-     */
-    QString resolveBinaryFilePath(int tableId, QString &errorMsg);
 };
 
 #endif // VECTORDATAHANDLER_H

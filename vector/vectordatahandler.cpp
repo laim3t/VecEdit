@@ -2755,6 +2755,11 @@ bool VectorDataHandler::hideVectorTableColumn(int tableId, const QString &column
     }
 
     qDebug() << funcName << " - 成功将列 '" << columnName << "' 标记为不可见 (IsVisible=0)";
+
+    // 清除该表的缓存，确保下次加载时获取最新数据
+    clearTableDataCache(tableId);
+    qDebug() << funcName << " - 已清除表 " << tableId << " 的缓存数据";
+
     return true;
 }
 
@@ -4222,4 +4227,69 @@ void VectorDataHandler::updateTableDataCache(int tableId, const QList<Vector::Ro
     }
 
     qDebug() << funcName << " - 已更新表" << tableId << "的缓存，" << rows.size() << "行数据";
+}
+
+QList<Vector::ColumnInfo> VectorDataHandler::getAllColumnInfo(int tableId)
+{
+    const QString funcName = "VectorDataHandler::getAllColumnInfo";
+    QList<Vector::ColumnInfo> columns;
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << funcName << "- 数据库未打开";
+        return columns;
+    }
+    QSqlQuery colQuery(db);
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    colQuery.addBindValue(tableId);
+    if (!colQuery.exec())
+    {
+        qWarning() << funcName << "- 查询完整列结构失败, 错误:" << colQuery.lastError().text();
+        return columns;
+    }
+
+    while (colQuery.next())
+    {
+        Vector::ColumnInfo col;
+        col.id = colQuery.value(0).toInt();
+        col.vector_table_id = tableId;
+        col.name = colQuery.value(1).toString();
+        col.order = colQuery.value(2).toInt();
+        col.original_type_str = colQuery.value(3).toString();
+        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.is_visible = colQuery.value(5).toBool();
+
+        QString propStr = colQuery.value(4).toString();
+        if (!propStr.isEmpty())
+        {
+            QJsonParseError err;
+            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+            {
+                col.data_properties = doc.object();
+            }
+        }
+        columns.append(col);
+    }
+    return columns;
+}
+
+int VectorDataHandler::getSchemaVersion(int tableId)
+{
+    const QString funcName = "VectorDataHandler::getSchemaVersion";
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << funcName << "- 数据库未打开";
+        return 1; // Default
+    }
+    QSqlQuery metaQuery(db);
+    metaQuery.prepare("SELECT data_schema_version FROM VectorTableMasterRecord WHERE id = ?");
+    metaQuery.addBindValue(tableId);
+    if (!metaQuery.exec() || !metaQuery.next())
+    {
+        qWarning() << funcName << "- 查询主记录失败, 表ID:" << tableId << ", 错误:" << metaQuery.lastError().text();
+        return 1; // Default
+    }
+    return metaQuery.value(0).toInt();
 }
