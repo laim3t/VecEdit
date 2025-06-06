@@ -27,8 +27,6 @@ private slots:
     void onStationCountChanged(int value);
     void onAccepted();
     void onRejected();
-    void onAddPin();    // 添加管脚功能
-    void onDeletePin(); // 删除管脚功能
 
 private:
     void setupUI();
@@ -42,8 +40,6 @@ private:
     QTableWidget *m_pinSettingsTable;
     QPushButton *m_okButton;
     QPushButton *m_cancelButton;
-    QPushButton *m_addPinButton;    // 添加管脚按钮
-    QPushButton *m_deletePinButton; // 删除管脚按钮
 
     int m_currentStationCount; // 当前工位数
 
