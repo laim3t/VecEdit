@@ -3625,7 +3625,7 @@ void MainWindow::openPinSettingsDialog()
         {
             onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
         }
-        QMessageBox::information(this, "成功", "管脚设置已更新");
+        // 不再显示第二个提示对话框，避免重复提示
     }
     else
     {

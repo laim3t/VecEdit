@@ -914,6 +914,9 @@ void PinSettingsDialog::showDeletePinDialog()
         QMessageBox::information(this, "删除成功",
                                  QString("成功删除 %1 个管脚").arg(selectedPinIds.size()));
 
+        // 更新表格显示，确保删除的管脚立即从界面上消失
+        updateTable();
+
         // 发出信号通知其他组件刷新
         emit accepted();
     }
