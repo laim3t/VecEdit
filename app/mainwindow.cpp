@@ -719,7 +719,7 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget = new QTableWidget(this);
     m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_vectorTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
@@ -4761,7 +4761,7 @@ void MainWindow::onPinItemClicked(QTreeWidgetItem *item, int column)
             if (headerItem && headerItem->text().startsWith(pinName))
             {
                 // 找到了匹配的列，高亮显示该列
-                m_vectorTableWidget->setSelectionMode(QAbstractItemView::MultiSelection);
+                m_vectorTableWidget->clearSelection();
                 m_vectorTableWidget->selectColumn(col);
 
                 // 滚动到该列
@@ -4838,8 +4838,8 @@ void MainWindow::onTimeSetItemClicked(QTreeWidgetItem *item, int column)
             QMessageBox::information(this, "提示", "当前表中没有找到TimeSet列");
         }
 
-        // 恢复为SingleSelection选择模式
-        m_vectorTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+        // 恢复为ExtendedSelection选择模式
+        m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     }
     else
     {

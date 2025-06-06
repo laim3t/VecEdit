@@ -154,7 +154,7 @@ install(TARGETS VecEdit
 # Deployment using windeployqt
 if (WIN32)
     add_custom_command(TARGET VecEdit POST_BUILD
-        COMMAND C:/Qt/5.15.2/mingw81_64/bin/windeployqt.exe # Hardcoded path to windeployqt
+        COMMAND C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe # Hardcoded path to windeployqt
                 --no-translations
                 # For MinGW, windeployqt usually handles compiler runtime DLLs.
                 # Add specific modules if needed, e.g., --svg, --multimedia, etc.
