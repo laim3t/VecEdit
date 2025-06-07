@@ -2201,16 +2201,41 @@ void MainWindow::showFillTimeSetDialog()
     if (dialog.exec() == QDialog::Accepted)
     {
         int timeSetId = dialog.getSelectedTimeSetId();
-
-        // 获取选中的行
-        QList<int> selectedRows;
-        foreach (const QModelIndex &index, selectedIndexes)
+        if (timeSetId <= 0)
         {
-            selectedRows.append(index.row());
+            return; // No valid timeset selected
         }
 
-        // 填充TimeSet
-        fillTimeSetForVectorTable(timeSetId, selectedRows);
+        QList<int> rowsToUpdate;
+        if (!selectedIndexes.isEmpty())
+        {
+            // If rows are selected, use them
+            foreach (const QModelIndex &index, selectedIndexes)
+            {
+                rowsToUpdate.append(index.row());
+            }
+        }
+        else
+        {
+            // If no rows are selected, use the range from the dialog
+            int fromRow = dialog.getStartRow(); // 0-based
+            int toRow = dialog.getEndRow();     // 0-based
+
+            // Ensure the range is valid.
+            if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
+            {
+                QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
+                return;
+            }
+
+            for (int i = fromRow; i <= toRow; ++i)
+            {
+                rowsToUpdate.append(i);
+            }
+        }
+
+        // Call the function to perform the update
+        fillTimeSetForVectorTable(timeSetId, rowsToUpdate);
     }
 }
 
@@ -2729,15 +2754,36 @@ void MainWindow::showReplaceTimeSetDialog()
         int fromTimeSetId = dialog.getFromTimeSetId();
         int toTimeSetId = dialog.getToTimeSetId();
 
-        // 获取选中的行
-        QList<int> selectedRows;
-        foreach (const QModelIndex &index, selectedIndexes)
+        QList<int> rowsToUpdate;
+        if (!selectedIndexes.isEmpty())
         {
-            selectedRows.append(index.row());
+            // If rows are selected, use them
+            foreach (const QModelIndex &index, selectedIndexes)
+            {
+                rowsToUpdate.append(index.row());
+            }
+        }
+        else
+        {
+            // If no rows are selected, use the range from the dialog
+            int fromRow = dialog.getStartRow(); // 0-based
+            int toRow = dialog.getEndRow();     // 0-based
+
+            // Ensure the range is valid
+            if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
+            {
+                QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
+                return;
+            }
+
+            for (int i = fromRow; i <= toRow; ++i)
+            {
+                rowsToUpdate.append(i);
+            }
         }
 
-        // 替换TimeSet
-        replaceTimeSetForVectorTable(fromTimeSetId, toTimeSetId, selectedRows);
+        // Replace TimeSet
+        replaceTimeSetForVectorTable(fromTimeSetId, toTimeSetId, rowsToUpdate);
     }
 }
 

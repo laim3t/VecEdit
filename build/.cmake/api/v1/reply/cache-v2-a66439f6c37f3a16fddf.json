@@ -159,7 +159,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "c:/Qt/Tools/mingw810_32/bin/g++.exe"
+			"value" : "C:/Qt/Tools/mingw810_32/bin/g++.exe"
 		},
 		{
 			"name" : "CMAKE_CXX_COMPILER_AR",
@@ -299,7 +299,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "c:/Qt/Tools/mingw810_32/bin/gcc.exe"
+			"value" : "C:/Qt/Tools/mingw810_32/bin/gcc.exe"
 		},
 		{
 			"name" : "CMAKE_DLLTOOL",
