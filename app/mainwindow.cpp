@@ -349,15 +349,26 @@ void MainWindow::createNewProject()
     // 先关闭当前项目
     closeCurrentProject();
 
+    // 使用QSettings获取上次使用的路径
+    QSettings settings(QDir::homePath() + "/.vecedit/settings.ini", QSettings::IniFormat);
+    QString lastPath = settings.value("lastUsedPath", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+    QDir dir(lastPath);
+    if (!dir.exists())
+    {
+        lastPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+
     // 选择保存位置和文件名
-    QString documentsDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString dbPath = QFileDialog::getSaveFileName(this, tr("保存项目数据库"),
-                                                  documentsDir + "/VecEditProject.db",
+                                                  lastPath + "/VecEditProject.db",
                                                   tr("SQLite数据库 (*.db)"));
     if (dbPath.isEmpty())
     {
         return;
     }
+
+    // 保存本次使用的路径
+    settings.setValue("lastUsedPath", QFileInfo(dbPath).absolutePath());
 
     // 获取schema.sql文件路径（与可执行文件同目录）
     QString schemaPath = QApplication::applicationDirPath() + "/schema.sql";
@@ -433,15 +444,26 @@ void MainWindow::openExistingProject()
     // 先关闭当前项目
     closeCurrentProject();
 
+    // 使用QSettings获取上次使用的路径
+    QSettings settings(QDir::homePath() + "/.vecedit/settings.ini", QSettings::IniFormat);
+    QString lastPath = settings.value("lastUsedPath", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+    QDir dir(lastPath);
+    if (!dir.exists())
+    {
+        lastPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+
     // 选择要打开的数据库文件
-    QString documentsDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString dbPath = QFileDialog::getOpenFileName(this, tr("打开项目数据库"),
-                                                  documentsDir,
+                                                  lastPath,
                                                   tr("SQLite数据库 (*.db)"));
     if (dbPath.isEmpty())
     {
         return;
     }
+
+    // 保存本次使用的路径
+    settings.setValue("lastUsedPath", QFileInfo(dbPath).absolutePath());
 
     // 使用DatabaseManager打开数据库
     if (DatabaseManager::instance()->openExistingDatabase(dbPath))
