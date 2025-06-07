@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[68];
-    char stringdata0[1126];
+    QByteArrayData data[69];
+    char stringdata0[1142];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -100,7 +100,8 @@ QT_MOC_LITERAL(63, 1039, 4), // "item"
 QT_MOC_LITERAL(64, 1044, 16), // "onPinItemClicked"
 QT_MOC_LITERAL(65, 1061, 20), // "onTimeSetItemClicked"
 QT_MOC_LITERAL(66, 1082, 24), // "onVectorTableItemClicked"
-QT_MOC_LITERAL(67, 1107, 18) // "onLabelItemClicked"
+QT_MOC_LITERAL(67, 1107, 18), // "onLabelItemClicked"
+QT_MOC_LITERAL(68, 1126, 15) // "updateMenuState"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -132,7 +133,8 @@ QT_MOC_LITERAL(67, 1107, 18) // "onLabelItemClicked"
     "onTableRowModified\0refreshSidebarNavigator\0"
     "onSidebarItemClicked\0QTreeWidgetItem*\0"
     "item\0onPinItemClicked\0onTimeSetItemClicked\0"
-    "onVectorTableItemClicked\0onLabelItemClicked"
+    "onVectorTableItemClicked\0onLabelItemClicked\0"
+    "updateMenuState"
 };
 #undef QT_MOC_LITERAL
 
@@ -142,7 +144,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      49,   14, // methods
+      50,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -150,57 +152,58 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  259,    2, 0x06 /* Public */,
+       1,    0,  264,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  260,    2, 0x08 /* Private */,
-       4,    0,  261,    2, 0x08 /* Private */,
-       5,    0,  262,    2, 0x08 /* Private */,
-       6,    0,  263,    2, 0x08 /* Private */,
-       7,    0,  264,    2, 0x08 /* Private */,
-       8,    0,  265,    2, 0x08 /* Private */,
-       9,    0,  266,    2, 0x08 /* Private */,
-      10,    1,  267,    2, 0x08 /* Private */,
-      13,    1,  270,    2, 0x08 /* Private */,
-      13,    0,  273,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  274,    2, 0x08 /* Private */,
-      16,    0,  275,    2, 0x08 /* Private */,
-      17,    1,  276,    2, 0x08 /* Private */,
-      19,    1,  279,    2, 0x08 /* Private */,
-      20,    0,  282,    2, 0x08 /* Private */,
-      21,    0,  283,    2, 0x08 /* Private */,
-      22,    2,  284,    2, 0x08 /* Private */,
-      25,    3,  289,    2, 0x08 /* Private */,
-      25,    2,  296,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  301,    2, 0x08 /* Private */,
-      28,    0,  302,    2, 0x08 /* Private */,
-      29,    0,  303,    2, 0x08 /* Private */,
-      30,    0,  304,    2, 0x08 /* Private */,
-      31,    0,  305,    2, 0x08 /* Private */,
-      32,    2,  306,    2, 0x08 /* Private */,
-      36,    0,  311,    2, 0x08 /* Private */,
-      37,    3,  312,    2, 0x08 /* Private */,
-      40,    0,  319,    2, 0x08 /* Private */,
-      41,    0,  320,    2, 0x08 /* Private */,
-      42,    0,  321,    2, 0x08 /* Private */,
-      43,    0,  322,    2, 0x08 /* Private */,
-      44,    0,  323,    2, 0x08 /* Private */,
-      45,    1,  324,    2, 0x08 /* Private */,
-      47,    0,  327,    2, 0x08 /* Private */,
-      48,    1,  328,    2, 0x08 /* Private */,
-      49,    0,  331,    2, 0x08 /* Private */,
-      50,    0,  332,    2, 0x08 /* Private */,
-      51,    0,  333,    2, 0x08 /* Private */,
-      52,    1,  334,    2, 0x08 /* Private */,
-      54,    1,  337,    2, 0x08 /* Private */,
-      56,    2,  340,    2, 0x08 /* Private */,
-      59,    1,  345,    2, 0x08 /* Private */,
-      60,    0,  348,    2, 0x08 /* Private */,
-      61,    2,  349,    2, 0x08 /* Private */,
-      64,    2,  354,    2, 0x08 /* Private */,
-      65,    2,  359,    2, 0x08 /* Private */,
-      66,    2,  364,    2, 0x08 /* Private */,
-      67,    2,  369,    2, 0x08 /* Private */,
+       3,    0,  265,    2, 0x08 /* Private */,
+       4,    0,  266,    2, 0x08 /* Private */,
+       5,    0,  267,    2, 0x08 /* Private */,
+       6,    0,  268,    2, 0x08 /* Private */,
+       7,    0,  269,    2, 0x08 /* Private */,
+       8,    0,  270,    2, 0x08 /* Private */,
+       9,    0,  271,    2, 0x08 /* Private */,
+      10,    1,  272,    2, 0x08 /* Private */,
+      13,    1,  275,    2, 0x08 /* Private */,
+      13,    0,  278,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  279,    2, 0x08 /* Private */,
+      16,    0,  280,    2, 0x08 /* Private */,
+      17,    1,  281,    2, 0x08 /* Private */,
+      19,    1,  284,    2, 0x08 /* Private */,
+      20,    0,  287,    2, 0x08 /* Private */,
+      21,    0,  288,    2, 0x08 /* Private */,
+      22,    2,  289,    2, 0x08 /* Private */,
+      25,    3,  294,    2, 0x08 /* Private */,
+      25,    2,  301,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  306,    2, 0x08 /* Private */,
+      28,    0,  307,    2, 0x08 /* Private */,
+      29,    0,  308,    2, 0x08 /* Private */,
+      30,    0,  309,    2, 0x08 /* Private */,
+      31,    0,  310,    2, 0x08 /* Private */,
+      32,    2,  311,    2, 0x08 /* Private */,
+      36,    0,  316,    2, 0x08 /* Private */,
+      37,    3,  317,    2, 0x08 /* Private */,
+      40,    0,  324,    2, 0x08 /* Private */,
+      41,    0,  325,    2, 0x08 /* Private */,
+      42,    0,  326,    2, 0x08 /* Private */,
+      43,    0,  327,    2, 0x08 /* Private */,
+      44,    0,  328,    2, 0x08 /* Private */,
+      45,    1,  329,    2, 0x08 /* Private */,
+      47,    0,  332,    2, 0x08 /* Private */,
+      48,    1,  333,    2, 0x08 /* Private */,
+      49,    0,  336,    2, 0x08 /* Private */,
+      50,    0,  337,    2, 0x08 /* Private */,
+      51,    0,  338,    2, 0x08 /* Private */,
+      52,    1,  339,    2, 0x08 /* Private */,
+      54,    1,  342,    2, 0x08 /* Private */,
+      56,    2,  345,    2, 0x08 /* Private */,
+      59,    1,  350,    2, 0x08 /* Private */,
+      60,    0,  353,    2, 0x08 /* Private */,
+      61,    2,  354,    2, 0x08 /* Private */,
+      64,    2,  359,    2, 0x08 /* Private */,
+      65,    2,  364,    2, 0x08 /* Private */,
+      66,    2,  369,    2, 0x08 /* Private */,
+      67,    2,  374,    2, 0x08 /* Private */,
+      68,    0,  379,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -254,6 +257,7 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
     QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
     QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -317,6 +321,7 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 46: _t->onTimeSetItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 47: _t->onVectorTableItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 48: _t->onLabelItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 49: _t->updateMenuState(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -385,13 +390,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 49)
+        if (_id < 50)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 49;
+        _id -= 50;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 49)
+        if (_id < 50)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 49;
+        _id -= 50;
     }
     return _id;
 }

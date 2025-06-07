@@ -523,10 +523,7 @@ void MainWindow::closeCurrentProject()
         }
 
         // 清理侧边导航栏
-        if (m_sidebarTree)
-        {
-            m_sidebarTree->clear();
-        }
+        resetSidebarNavigator();
 
         // 重置窗口标题
         setWindowTitle("向量编辑器");
@@ -5431,4 +5428,17 @@ void MainWindow::updateMenuState()
     m_newProjectAction->setEnabled(!projectOpen);
     m_openProjectAction->setEnabled(!projectOpen);
     m_closeProjectAction->setEnabled(projectOpen);
+}
+
+void MainWindow::resetSidebarNavigator()
+{
+    if (!m_sidebarTree)
+        return;
+
+    for (int i = 0; i < m_sidebarTree->topLevelItemCount(); ++i)
+    {
+        QTreeWidgetItem *topItem = m_sidebarTree->topLevelItem(i);
+        qDeleteAll(topItem->takeChildren());
+        topItem->setExpanded(false);
+    }
 }

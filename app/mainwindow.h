@@ -163,12 +163,16 @@ private slots:
     void onVectorTableItemClicked(QTreeWidgetItem *item, int column);
     void onLabelItemClicked(QTreeWidgetItem *item, int column);
 
+    // 更新菜单项状态
+    void updateMenuState();
+
 private:
     void setupUI();
     void setupMenu();
     void setupVectorTableUI();
     void setupTabBar();
     void setupSidebarNavigator();
+    void resetSidebarNavigator();
     void addVectorTableTab(int tableId, const QString &tableName);
     void loadAllVectorTables();
     void syncTabWithComboBox(int comboBoxIndex);
@@ -182,9 +186,6 @@ private:
 
     // 恢复窗口状态
     void restoreWindowState();
-
-    // 更新菜单项状态
-    void updateMenuState();
 
     // 为新创建的向量表添加默认列配置
     bool addDefaultColumnConfigurations(int tableId);
