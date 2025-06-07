@@ -3366,7 +3366,7 @@ void MainWindow::deletePins()
 
     // 查询现有管脚
     QSqlQuery query(db);
-    query.exec("SELECT id, pin_name FROM pins ORDER BY pin_name");
+    query.exec("SELECT id, pin_name FROM pin_list ORDER BY pin_name");
 
     // 构建管脚列表
     QMap<int, QString> pinMap;
@@ -3383,119 +3383,168 @@ void MainWindow::deletePins()
         return;
     }
 
-    // 弹出选择对话框
+    // 创建选择对话框
     QDialog dialog(this);
     dialog.setWindowTitle(tr("选择要删除的管脚"));
-    dialog.setMinimumWidth(300);
+    dialog.setMinimumWidth(350);
 
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
 
     QLabel *label = new QLabel(tr("请选择要删除的管脚:"), &dialog);
     layout->addWidget(label);
 
-    QListWidget *listWidget = new QListWidget(&dialog);
-    listWidget->setSelectionMode(QAbstractItemView::MultiSelection);
+    // 使用带复选框的滚动区域
+    QScrollArea *scrollArea = new QScrollArea(&dialog);
+    scrollArea->setWidgetResizable(true);
+    QWidget *scrollContent = new QWidget(scrollArea);
+    QVBoxLayout *checkBoxLayout = new QVBoxLayout(scrollContent);
 
-    // 添加管脚到列表
+    QMap<int, QCheckBox *> checkBoxes;
     for (auto it = pinMap.begin(); it != pinMap.end(); ++it)
     {
-        QListWidgetItem *item = new QListWidgetItem(it.value(), listWidget);
-        item->setData(Qt::UserRole, it.key());
-        listWidget->addItem(item);
+        QCheckBox *checkBox = new QCheckBox(it.value(), scrollContent);
+        checkBoxes[it.key()] = checkBox;
+        checkBoxLayout->addWidget(checkBox);
     }
-
-    layout->addWidget(listWidget);
+    scrollContent->setLayout(checkBoxLayout);
+    scrollArea->setWidget(scrollContent);
+    layout->addWidget(scrollArea);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
     connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
     layout->addWidget(buttonBox);
 
-    // 显示对话框
-    if (dialog.exec() == QDialog::Accepted)
+    // 显示对话框并等待用户操作
+    if (dialog.exec() != QDialog::Accepted)
     {
-        QList<QListWidgetItem *> selectedItems = listWidget->selectedItems();
-        if (selectedItems.isEmpty())
+        return;
+    }
+
+    // 收集选中的管脚
+    QList<int> pinIdsToDelete;
+    QStringList pinNamesToDelete;
+    for (auto it = pinMap.begin(); it != pinMap.end(); ++it)
+    {
+        if (checkBoxes.value(it.key())->isChecked())
         {
-            QMessageBox::information(this, tr("提示"), tr("未选择任何管脚"));
-            return;
+            pinIdsToDelete.append(it.key());
+            pinNamesToDelete.append(it.value());
         }
+    }
 
-        // 确认删除
-        if (QMessageBox::question(this, tr("确认删除"),
-                                  tr("确定要删除选中的 %1 个管脚吗？").arg(selectedItems.count()),
-                                  QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+    if (pinIdsToDelete.isEmpty())
+    {
+        QMessageBox::information(this, tr("提示"), tr("未选择任何管脚"));
+        return;
+    }
+
+    // 检查管脚使用情况
+    QMap<QString, QStringList> pinUsageMap; // pinName -> [table1, table2]
+    QSqlQuery findUsageQuery(db);
+
+    for (int pinId : pinIdsToDelete)
+    {
+        // 根据新的 schema, 检查 VectorTableColumnConfiguration, 仅当管脚可见时才视为"正在使用"
+        findUsageQuery.prepare(
+            "SELECT m.table_name "
+            "FROM VectorTableColumnConfiguration c "
+            "JOIN VectorTableMasterRecord m ON c.master_record_id = m.id "
+            "WHERE c.column_type = 'PIN_STATE_ID' AND json_extract(c.data_properties, '$.pin_list_id') = ? AND c.IsVisible = 1");
+        findUsageQuery.addBindValue(pinId);
+
+        if (findUsageQuery.exec())
         {
-            return;
-        }
-
-        // 执行删除操作
-        QList<int> pinIdsToDelete;
-        foreach (QListWidgetItem *item, selectedItems)
-        {
-            pinIdsToDelete.append(item->data(Qt::UserRole).toInt());
-        }
-
-        // 删除管脚
-        bool success = true;
-        QString errorMsg;
-
-        foreach (int pinId, pinIdsToDelete)
-        {
-            // 首先查找是否有向量表使用了这个管脚
-            QSqlQuery findTablesQuery(db);
-            findTablesQuery.prepare(
-                "SELECT vt.table_name "
-                "FROM vector_tables vt "
-                "JOIN vector_table_pin_relations vtpr ON vt.id = vtpr.vector_table_id "
-                "WHERE vtpr.pin_id = ?");
-            findTablesQuery.addBindValue(pinId);
-
-            if (findTablesQuery.exec())
+            while (findUsageQuery.next())
             {
-                QStringList tablesUsingPin;
-                while (findTablesQuery.next())
-                {
-                    tablesUsingPin.append(findTablesQuery.value(0).toString());
-                }
-
-                if (!tablesUsingPin.isEmpty())
-                {
-                    QMessageBox::warning(this, tr("警告"),
-                                         tr("无法删除管脚 \"%1\"，因为以下向量表正在使用它：\n%2")
-                                             .arg(pinMap[pinId])
-                                             .arg(tablesUsingPin.join("\n")));
-                    success = false;
-                    continue;
-                }
-            }
-
-            // 删除管脚
-            QSqlQuery deletePinQuery(db);
-            deletePinQuery.prepare("DELETE FROM pins WHERE id = ?");
-            deletePinQuery.addBindValue(pinId);
-
-            if (!deletePinQuery.exec())
-            {
-                errorMsg = tr("删除管脚 \"%1\" 时出错: %2")
-                               .arg(pinMap[pinId])
-                               .arg(deletePinQuery.lastError().text());
-                success = false;
-                break;
+                QString pinName = pinMap.value(pinId);
+                QString tableName = findUsageQuery.value(0).toString();
+                pinUsageMap[pinName].append(tableName);
             }
         }
-
-        if (success)
+        else
         {
-            QMessageBox::information(this, tr("成功"), tr("已成功删除选中的管脚"));
+            qWarning() << "检查管脚使用情况失败:" << findUsageQuery.lastError().text();
+        }
+    }
 
-            // 刷新侧边导航栏
-            refreshSidebarNavigator();
-        }
-        else if (!errorMsg.isEmpty())
+    // 根据使用情况弹出不同确认对话框
+    if (!pinUsageMap.isEmpty())
+    {
+        // 如果有管脚被使用，显示详细警告，并阻止删除
+        QString warningText = tr("警告：以下管脚正在被一个或多个向量表使用，无法删除：\n");
+        for (auto it = pinUsageMap.begin(); it != pinUsageMap.end(); ++it)
         {
-            QMessageBox::critical(this, tr("错误"), errorMsg);
+            warningText.append(tr("\n管脚 \"%1\" 被用于: %2").arg(it.key()).arg(it.value().join(", ")));
         }
+        warningText.append(tr("\n\n请先从相应的向量表设置中移除这些管脚，然后再尝试删除。"));
+        QMessageBox::warning(this, tr("无法删除管脚"), warningText);
+        return;
+    }
+
+    // 如果没有管脚被使用，弹出标准删除确认
+    QString confirmQuestion = tr("您确定要删除以下 %1 个管脚吗？\n\n%2\n\n此操作不可恢复，并将删除所有相关的配置（如Pin Settings, Group Settings等）。")
+                                  .arg(pinNamesToDelete.size())
+                                  .arg(pinNamesToDelete.join("\n"));
+    if (QMessageBox::question(this, tr("确认删除"), confirmQuestion, QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+    {
+        return;
+    }
+
+    // 执行删除操作 (借鉴 PinSettingsDialog 的逻辑)
+    db.transaction();
+    bool success = true;
+    QString errorMsg;
+
+    try
+    {
+        QSqlQuery deleteQuery(db);
+        for (int pinId : pinIdsToDelete)
+        {
+            // 注意: 这里的删除逻辑需要非常完整，确保所有关联数据都被清除
+            // 1. 从 timeset_settings 删除
+            deleteQuery.prepare("DELETE FROM timeset_settings WHERE pin_id = ?");
+            deleteQuery.addBindValue(pinId);
+            if (!deleteQuery.exec())
+                throw QString(deleteQuery.lastError().text());
+
+            // 2. 从 pin_group_members 删除
+            deleteQuery.prepare("DELETE FROM pin_group_members WHERE pin_id = ?");
+            deleteQuery.addBindValue(pinId);
+            if (!deleteQuery.exec())
+                throw QString(deleteQuery.lastError().text());
+
+            // 3. 从 pin_settings 删除
+            deleteQuery.prepare("DELETE FROM pin_settings WHERE pin_id = ?");
+            deleteQuery.addBindValue(pinId);
+            if (!deleteQuery.exec())
+                throw QString(deleteQuery.lastError().text());
+
+            // 4. 从 pin_list 删除 (主表)
+            deleteQuery.prepare("DELETE FROM pin_list WHERE id = ?");
+            deleteQuery.addBindValue(pinId);
+            if (!deleteQuery.exec())
+                throw QString(deleteQuery.lastError().text());
+        }
+    }
+    catch (const QString &e)
+    {
+        success = false;
+        errorMsg = e;
+        db.rollback();
+    }
+
+    if (success)
+    {
+        db.commit();
+        QMessageBox::information(this, tr("成功"), tr("已成功删除选中的管脚。"));
+        // 刷新侧边导航栏和可能打开的视图
+        refreshSidebarNavigator();
+        // 如果有其他需要同步的视图，也在这里调用
+    }
+    else
+    {
+        QMessageBox::critical(this, tr("数据库错误"), tr("删除管脚时发生错误: %1").arg(errorMsg));
     }
 }
 
