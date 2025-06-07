@@ -43,7 +43,8 @@ private:
     QComboBox *m_toTimeSetComboBox;
     QLineEdit *m_startRowEdit;
     QLineEdit *m_endRowEdit;
-    QLineEdit *m_rowCountLabel;
+    QLineEdit *m_maxRowCountLabel;
+    QLineEdit *m_executedRowCountLabel;
     QPushButton *m_okButton;
     QPushButton *m_cancelButton;
     QDialogButtonBox *m_buttonBox;

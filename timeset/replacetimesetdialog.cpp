@@ -41,18 +41,24 @@ void ReplaceTimeSetDialog::setupUI()
     // 从行输入框 (从1开始)
     m_startRowEdit = new QLineEdit(this);
     m_startRowEdit->setValidator(new QIntValidator(1, 9999, this));
-    formLayout->addRow(tr("从行:"), m_startRowEdit);
+    formLayout->addRow(tr("从:"), m_startRowEdit);
 
     // 到行输入框 (从1开始)
     m_endRowEdit = new QLineEdit(this);
     m_endRowEdit->setValidator(new QIntValidator(1, 9999, this));
-    formLayout->addRow(tr("到行:"), m_endRowEdit);
+    formLayout->addRow(tr("到:"), m_endRowEdit);
 
-    // 行数显示（只读）
-    m_rowCountLabel = new QLineEdit(this);
-    m_rowCountLabel->setReadOnly(true);
-    m_rowCountLabel->setStyleSheet("background-color: #f0f0f0;");
-    formLayout->addRow(tr("行数:"), m_rowCountLabel);
+    // 最大行数显示（只读）
+    m_maxRowCountLabel = new QLineEdit(this);
+    m_maxRowCountLabel->setReadOnly(true);
+    m_maxRowCountLabel->setStyleSheet("background-color: #f0f0f0;");
+    formLayout->addRow(tr("最大行数:"), m_maxRowCountLabel);
+
+    // 新增：执行行数显示（只读）
+    m_executedRowCountLabel = new QLineEdit(this);
+    m_executedRowCountLabel->setReadOnly(true);
+    m_executedRowCountLabel->setStyleSheet("background-color: #f0f0f0;");
+    formLayout->addRow(tr("执行行数:"), m_executedRowCountLabel);
 
     // 添加表单布局到主布局
     mainLayout->addLayout(formLayout);
@@ -72,7 +78,7 @@ void ReplaceTimeSetDialog::setupUI()
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     // 设置固定大小
-    setFixedSize(350, 250);
+    setFixedSize(350, 280);
 }
 
 void ReplaceTimeSetDialog::loadTimeSetData()
@@ -108,6 +114,16 @@ void ReplaceTimeSetDialog::validateInputs()
     int end = m_endRowEdit->text().toInt(&endValid);
     int fromTimeSetId = m_fromTimeSetComboBox->currentData().toInt();
     int toTimeSetId = m_toTimeSetComboBox->currentData().toInt();
+
+    // 更新执行行数
+    if (startValid && endValid && end >= start)
+    {
+        m_executedRowCountLabel->setText(QString::number(end - start + 1));
+    }
+    else
+    {
+        m_executedRowCountLabel->setText("0");
+    }
 
     // 验证用户输入的值（1-based）
     bool isValid = startValid && endValid &&
@@ -149,7 +165,7 @@ void ReplaceTimeSetDialog::setVectorRowCount(int count)
     {
         m_startRowEdit->setText("1");                  // 从第1行开始（而不是0）
         m_endRowEdit->setText(QString::number(count)); // 到第count行结束
-        m_rowCountLabel->setText(QString::number(count));
+        m_maxRowCountLabel->setText(QString::number(count));
     }
 
     validateInputs();
@@ -171,7 +187,7 @@ void ReplaceTimeSetDialog::setSelectedRange(int startRow, int endRow)
     m_endRowEdit->setText(QString::number(endRow));
 
     // 行数保持显示向量表总行数，不随选中行数变化
-    m_rowCountLabel->setText(QString::number(m_vectorRowCount));
+    m_maxRowCountLabel->setText(QString::number(m_vectorRowCount));
 
     validateInputs();
 }
