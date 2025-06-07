@@ -1,4 +1,6 @@
 C:/VecEdit/build/CMakeFiles/VecEdit.dir
+C:/VecEdit/build/CMakeFiles/package.dir
+C:/VecEdit/build/CMakeFiles/package_source.dir
 C:/VecEdit/build/CMakeFiles/edit_cache.dir
 C:/VecEdit/build/CMakeFiles/rebuild_cache.dir
 C:/VecEdit/build/CMakeFiles/list_install_components.dir

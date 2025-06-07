@@ -68,8 +68,9 @@ include CMakeFiles/VecEdit_autogen.dir/progress.make
 CMakeFiles/VecEdit_autogen: VecEdit_autogen/timestamp
 
 VecEdit_autogen/timestamp: C:/Qt/5.15.2/mingw81_32/bin/moc.exe
+VecEdit_autogen/timestamp: C:/Qt/5.15.2/mingw81_32/bin/uic.exe
 VecEdit_autogen/timestamp: CMakeFiles/VecEdit_autogen.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC for target VecEdit"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC and UIC for target VecEdit"
 	"C:\Program Files (x86)\CMake\bin\cmake.exe" -E cmake_autogen C:/VecEdit/build/CMakeFiles/VecEdit_autogen.dir/AutogenInfo.json Debug
 	"C:\Program Files (x86)\CMake\bin\cmake.exe" -E touch C:/VecEdit/build/VecEdit_autogen/timestamp
 

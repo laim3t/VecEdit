@@ -11,7 +11,7 @@ CXX_FLAGS = -g -std=gnu++17
 
 RC_DEFINES = -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_SQL_LIB -DQT_WIDGETS_LIB
 
-RC_INCLUDES = -I C:\VecEdit\build\VecEdit_autogen\include -I C:\VecEdit\build -I C:\VecEdit -I C:\VecEdit\app -I C:\VecEdit\timeset -I C:\VecEdit\pin -I C:\VecEdit\vector -I C:\VecEdit\database -I C:\VecEdit\common -I C:\VecEdit\migration -I C:\Qt\5.15.2\mingw81_32\include -I C:\Qt\5.15.2\mingw81_32\include\QtWidgets -I C:\Qt\5.15.2\mingw81_32\include\QtGui -I C:\Qt\5.15.2\mingw81_32\include\QtANGLE -I C:\Qt\5.15.2\mingw81_32\include\QtCore -I C:\Qt\5.15.2\mingw81_32\.\mkspecs\win32-g++ -I C:\Qt\5.15.2\mingw81_32\include\QtSql -I C:\Qt\5.15.2\mingw81_32\include\QtConcurrent
+RC_INCLUDES = -I C:\VecEdit\build\VecEdit_autogen\include -I C:\VecEdit\build -I C:\VecEdit -I C:\VecEdit\app -I C:\VecEdit\common -I C:\VecEdit\database -I C:\VecEdit\migration -I C:\VecEdit\pin -I C:\VecEdit\timeset -I C:\VecEdit\vector -I C:\Qt\5.15.2\mingw81_32\include -I C:\Qt\5.15.2\mingw81_32\include\QtWidgets -I C:\Qt\5.15.2\mingw81_32\include\QtGui -I C:\Qt\5.15.2\mingw81_32\include\QtANGLE -I C:\Qt\5.15.2\mingw81_32\include\QtCore -I C:\Qt\5.15.2\mingw81_32\.\mkspecs\win32-g++ -I C:\Qt\5.15.2\mingw81_32\include\QtSql -I C:\Qt\5.15.2\mingw81_32\include\QtConcurrent
 
 RC_FLAGS = 
 

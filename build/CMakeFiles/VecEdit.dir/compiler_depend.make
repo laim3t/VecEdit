@@ -11,6 +11,8 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake \
+  C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPack.cmake \
+  C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU.cmake \
@@ -29,6 +31,7 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-windres.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows.cmake \
   C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake \
+  C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
@@ -654,7 +657,6 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/VecEdit/pin/pinvalueedit.h \
   C:/VecEdit/pin/vectorpinsettingsdialog.cpp \
   C:/VecEdit/pin/vectorpinsettingsdialog.h \
-  C:/VecEdit/resources/db/schema.sql \
   C:/VecEdit/resources/qt/icons.qrc \
   C:/VecEdit/timeset/filltimesetdialog.cpp \
   C:/VecEdit/timeset/filltimesetdialog.h \
@@ -11673,11 +11675,11 @@ C:/Program\ Files\ (x86)/CMake/bin/cmake.exe:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake:
 
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_classes.tcc:
-
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/poppack.h:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_classes.tcc:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cmake:
 
@@ -11734,6 +11736,18 @@ c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/i686-w64-ming
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/random.tcc:
 
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_vector.h:
+
+C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPack.cmake:
+
+C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stringfwd.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtCore/QTimer:
+
+C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake:
+
+C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleauto.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_wsa_errnos.h:
 
@@ -11795,6 +11809,16 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/qbytearraymatcher.h:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX-ABI.cmake:
 
+c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/random:
+
+c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleidl.h:
+
+C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric:
+
+VecEdit_autogen/X6SAMCXN67/moc_pinsettingsdialog.cpp:
+
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qpolygon.h:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX.cmake:
@@ -11802,10 +11826,6 @@ C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX.
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU.cmake:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/typeinfo:
-
-C:/Qt/5.15.2/mingw81_32/include/QtCore/QRegularExpression:
-
-C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainerfwd.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qcborstream.h:
 
@@ -11943,10 +11963,6 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/qcoreapplication.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QString:
 
-C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stringfwd.h:
-
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/backward/auto_ptr.h:
@@ -12002,6 +12018,10 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/i686-w64-ming
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qstringbuilder.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qcompilerdetection.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtCore/QRegularExpression:
+
+C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainerfwd.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h:
 
@@ -12080,8 +12100,6 @@ c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_func
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/atomicity.h:
 
 VecEdit_autogen/moc_predefs.h:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_facets.tcc:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h:
 
@@ -12769,8 +12787,6 @@ c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_wsa_errnos.h:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake:
 
-C:/VecEdit/resources/db/schema.sql:
-
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/locale.h:
@@ -12985,8 +13001,6 @@ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/objbase.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/objidlbase.h:
 
-C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleauto.h:
-
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/swprintf.inl:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/processenv.h:
@@ -13054,8 +13068,6 @@ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcdcep.h:
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcnsi.h:
 
 c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/specstrings.h:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_facets.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qsequentialanimationgroup.h:
 
@@ -13211,6 +13223,10 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/ios_base
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/list.tcc:
 
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_facets.h:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/locale_facets.tcc:
+
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/memoryfwd.h:
 
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cstdlib:
@@ -13328,14 +13344,6 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/list:
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/new:
 
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/functexcept.h:
-
-c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/random:
-
-c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleidl.h:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric:
-
-VecEdit_autogen/X6SAMCXN67/moc_pinsettingsdialog.cpp:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/optional:
 
@@ -13876,8 +13884,6 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonParseError:
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QSettings:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QStandardPaths:
-
-C:/Qt/5.15.2/mingw81_32/include/QtCore/QTimer:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qbasictimer.h:
 

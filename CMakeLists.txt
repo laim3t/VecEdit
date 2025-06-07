@@ -2,20 +2,26 @@ cmake_minimum_required(VERSION 3.16)
 
 project(VecEdit VERSION 0.0.0.2 LANGUAGES CXX)
 
+# 启用 Qt 的自动化功能
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
+# 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 显式设置 Qt5_DIR 以确保 CMake 找到正确的 Qt 安装
-set(Qt5_DIR C:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5)
-
+# 查找 Qt5 包。您也可以在命令行中指定路径，例如：
+# cmake -DQt5_DIR=C:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5 ..
 find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
 
-# 设置日志输出相关
-add_compile_definitions(QT_MESSAGELOGCONTEXT)  # 启用日志上下文信息
+# 从找到的 Qt5 包中安全地获取其 bin 目录的路径
+get_filename_component(QT_BIN_DIR "${Qt5_DIR}/../../bin" ABSOLUTE)
 
+# 设置日志输出相关的编译定义
+add_compile_definitions(QT_MESSAGELOGCONTEXT)
+
+# 定义项目源文件
 set(PROJECT_SOURCES
         app/main.cpp
         app/mainwindow.cpp
@@ -71,96 +77,106 @@ set(PROJECT_SOURCES
         vector/vectordatamanager.cpp
         migration/datamigrator.h
         migration/datamigrator.cpp
-        resources/qt/icons.qrc
 )
 
-# Configure a version header file to pass version info to C++ code
+# 定义 Qt 资源文件
+set(PROJECT_RESOURCES
+    resources/qt/icons.qrc
+)
+
+# 配置版本头文件
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/version.h"
     @ONLY
 )
 
+# 为 Windows 配置版本资源文件
 if(WIN32)
-    # Configure a version resource file for Windows
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in"
         "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
         @ONLY
     )
-    # Add the generated .rc file to the sources for Windows
     list(APPEND PROJECT_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
 endif()
 
-set(CMAKE_AUTORCC_OPTIONS "") # 为 Qt5 清除 AUTORCC 选项
-set_source_files_properties("resources/qt/icons.qrc" PROPERTIES AUTORCC_OPTIONS "--no-compress") # 为 Qt5 rcc 设置 --no-compress 选项
-if(ANDROID)
-    add_library(VecEdit SHARED
-        ${PROJECT_SOURCES}
-    )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-else()
-    add_executable(VecEdit
-        ${PROJECT_SOURCES}
-    )
-    if(MINGW)
-         #set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mconsole") # 在控制台模式运行
-         set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mwindows") # 不在控制台模式运行
-    endif()
-endif()
+# 为 Qt 资源编译器设置不压缩选项
+set_source_files_properties(${PROJECT_RESOURCES} PROPERTIES AUTORCC_OPTIONS "--no-compress")
 
+# 创建可执行文件
+add_executable(VecEdit WIN32 MACOSX_BUNDLE
+    ${PROJECT_SOURCES}
+    ${PROJECT_RESOURCES}
+)
+
+# 链接所需的 Qt 库
 target_link_libraries(VecEdit PRIVATE
     Qt5::Widgets
     Qt5::Sql
     Qt5::Concurrent
 )
 
-# 添加包含目录
+# 添加必要的包含目录
 target_include_directories(VecEdit PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR} # For generated version.h
-    ${CMAKE_CURRENT_SOURCE_DIR} # 保持根目录
+    ${CMAKE_CURRENT_BINARY_DIR} # 用于 version.h 等生成文件
+    # 添加所有包含头文件的子目录，确保编译器能找到它们
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/app
-    ${CMAKE_CURRENT_SOURCE_DIR}/timeset
-    ${CMAKE_CURRENT_SOURCE_DIR}/pin
-    ${CMAKE_CURRENT_SOURCE_DIR}/vector
-    ${CMAKE_CURRENT_SOURCE_DIR}/database
     ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/database
     ${CMAKE_CURRENT_SOURCE_DIR}/migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/pin
+    ${CMAKE_CURRENT_SOURCE_DIR}/timeset
+    ${CMAKE_CURRENT_SOURCE_DIR}/vector
 )
 
-# 复制schema.sql到构建目录
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/db/schema.sql
-               ${CMAKE_CURRENT_BINARY_DIR}/schema.sql COPYONLY)
-
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.VecEdit)
-set_target_properties(VecEdit PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
+# --- 安装与打包 ---
 include(GNUInstallDirs)
+
+# 1. 定义安装规则：将可执行文件安装到 bin 目录
+#    所有安装部分都属于一个叫 "Runtime" 的组件
 install(TARGETS VecEdit
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
+    BUNDLE DESTINATION . COMPONENT Runtime
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
 )
 
-# Deployment using windeployqt
-if (WIN32)
-    add_custom_command(TARGET VecEdit POST_BUILD
-        COMMAND C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe # Hardcoded path to windeployqt
+if(WIN32)
+    # 2. 安装 schema.sql 文件到可执行文件旁边
+    install(FILES resources/db/schema.sql DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
+
+    # 3. 添加一个安装脚本，在安装目录下运行 windeployqt 来自动部署所有 Qt 依赖
+    install(CODE "
+        message(STATUS \"Running windeployqt to deploy Qt dependencies...\")
+        execute_process(
+            COMMAND \"${QT_BIN_DIR}/windeployqt.exe\"
                 --no-translations
-                # For MinGW, windeployqt usually handles compiler runtime DLLs.
-                # Add specific modules if needed, e.g., --svg, --multimedia, etc.
-                # By default, it inspects the executable for dependencies.
-                "$<TARGET_FILE:VecEdit>"
-        COMMENT "Running windeployqt for Qt5 to deploy $<TARGET_FILE_NAME:VecEdit>"
-    )
+                --dir \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
+                --libdir \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
+                \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/VecEdit.exe\"
+            RESULT_VARIABLE result
+        )
+        if(NOT result EQUAL 0)
+            message(FATAL_ERROR \"windeployqt failed with exit code \${result}\")
+        endif()
+    " COMPONENT Runtime)
 endif()
+
+# 4. 配置 CPack 用于创建最终的发布包
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VecEdit Application")
+# 您可以取消注释并修改以下信息
+# set(CPACK_PACKAGE_VENDOR "Your Company Name")
+# set(CPACK_PACKAGE_CONTACT "your.email@example.com")
+
+# 指定需要打包的组件
+set(CPACK_COMPONENTS_ALL Runtime)
+
+# 指定打包格式 (ZIP, 7Z, 或者用 NSIS 生成安装程序)
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+
+# 必须在最后包含 CPack 模块
+include(CPack)

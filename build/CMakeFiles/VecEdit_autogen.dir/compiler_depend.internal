@@ -12,6 +12,8 @@ C:/VecEdit/build/VecEdit_autogen/timestamp
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake
+ C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CPack.cmake
+ C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU.cmake
@@ -30,6 +32,7 @@ C:/VecEdit/build/VecEdit_autogen/timestamp
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-windres.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows.cmake
  C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake
+ C:/Program Files (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime
@@ -655,7 +658,6 @@ C:/VecEdit/build/VecEdit_autogen/timestamp
  C:/VecEdit/pin/pinvalueedit.h
  C:/VecEdit/pin/vectorpinsettingsdialog.cpp
  C:/VecEdit/pin/vectorpinsettingsdialog.h
- C:/VecEdit/resources/db/schema.sql
  C:/VecEdit/resources/qt/icons.qrc
  C:/VecEdit/timeset/filltimesetdialog.cpp
  C:/VecEdit/timeset/filltimesetdialog.h

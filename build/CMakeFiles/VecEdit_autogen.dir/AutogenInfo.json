@@ -82,8 +82,11 @@
 		"C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Concurrent/Qt5ConcurrentConfig.cmake",
 		"C:/VecEdit/version.h.in",
 		"C:/VecEdit/version.rc.in",
-		"C:/VecEdit/resources/db/schema.sql",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/GNUInstallDirs.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CPack.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in",
 		"C:/VecEdit/resources/qt/icons.qrc"
 	],
 	"CMAKE_SOURCE_DIR" : "C:/VecEdit",
@@ -94,152 +97,152 @@
 	[
 		[
 			"C:/VecEdit/app/mainwindow.h",
-			"Mu",
+			"MU",
 			"VJIZ3MDCXP/moc_mainwindow.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/common/dialogmanager.h",
-			"Mu",
+			"MU",
 			"P66WHCG54J/moc_dialogmanager.cpp",
 			null
 		],
-		[ "C:/VecEdit/common/logger.h", "Mu", "P66WHCG54J/moc_logger.cpp", null ],
+		[ "C:/VecEdit/common/logger.h", "MU", "P66WHCG54J/moc_logger.cpp", null ],
 		[
 			"C:/VecEdit/common/tablestylemanager.h",
-			"Mu",
+			"MU",
 			"P66WHCG54J/moc_tablestylemanager.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/common/tablestyleperformancetester.h",
-			"Mu",
+			"MU",
 			"P66WHCG54J/moc_tablestyleperformancetester.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/database/binaryfilehelper.h",
-			"Mu",
+			"MU",
 			"BL3K65LMA5/moc_binaryfilehelper.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/database/databasemanager.h",
-			"Mu",
+			"MU",
 			"BL3K65LMA5/moc_databasemanager.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/database/databaseviewdialog.h",
-			"Mu",
+			"MU",
 			"BL3K65LMA5/moc_databaseviewdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/migration/datamigrator.h",
-			"Mu",
+			"MU",
 			"XT73TX2XWL/moc_datamigrator.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/pingroupdialog.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_pingroupdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/pinlistdialog.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_pinlistdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/pinselectionmanager.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_pinselectionmanager.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/pinsettingsdialog.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_pinsettingsdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/pinvalueedit.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_pinvalueedit.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/pin/vectorpinsettingsdialog.h",
-			"Mu",
+			"MU",
 			"X6SAMCXN67/moc_vectorpinsettingsdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/filltimesetdialog.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_filltimesetdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/replacetimesetdialog.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_replacetimesetdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/timesetdataaccess.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_timesetdataaccess.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/timesetdialog.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_timesetdialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/timesetedgedialog.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_timesetedgedialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/timesetedgemanager.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_timesetedgemanager.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/timeset/timesetui.h",
-			"Mu",
+			"MU",
 			"OBAQL5E4PX/moc_timesetui.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/vector/deleterangevectordialog.h",
-			"Mu",
+			"MU",
 			"EFITGCF6GF/moc_deleterangevectordialog.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/vector/vectordatahandler.h",
-			"Mu",
+			"MU",
 			"EFITGCF6GF/moc_vectordatahandler.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/vector/vectordatamanager.h",
-			"Mu",
+			"MU",
 			"EFITGCF6GF/moc_vectordatamanager.cpp",
 			null
 		],
 		[
 			"C:/VecEdit/vector/vectortabledelegate.h",
-			"Mu",
+			"MU",
 			"EFITGCF6GF/moc_vectortabledelegate.cpp",
 			null
 		]
@@ -268,12 +271,12 @@
 		"C:/VecEdit/build",
 		"C:/VecEdit",
 		"C:/VecEdit/app",
-		"C:/VecEdit/timeset",
-		"C:/VecEdit/pin",
-		"C:/VecEdit/vector",
-		"C:/VecEdit/database",
 		"C:/VecEdit/common",
+		"C:/VecEdit/database",
 		"C:/VecEdit/migration",
+		"C:/VecEdit/pin",
+		"C:/VecEdit/timeset",
+		"C:/VecEdit/vector",
 		"C:/Qt/5.15.2/mingw81_32/include",
 		"C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
 		"C:/Qt/5.15.2/mingw81_32/include/QtGui",
@@ -308,41 +311,45 @@
 	"PARALLEL" : 4,
 	"PARSE_CACHE_FILE" : "C:/VecEdit/build/CMakeFiles/VecEdit_autogen.dir/ParseCache.txt",
 	"QT_MOC_EXECUTABLE" : "C:/Qt/5.15.2/mingw81_32/bin/moc.exe",
-	"QT_UIC_EXECUTABLE" : "",
+	"QT_UIC_EXECUTABLE" : "C:/Qt/5.15.2/mingw81_32/bin/uic.exe",
 	"QT_VERSION_MAJOR" : 5,
 	"QT_VERSION_MINOR" : 15,
 	"SETTINGS_FILE" : "C:/VecEdit/build/CMakeFiles/VecEdit_autogen.dir/AutogenUsed.txt",
 	"SOURCES" : 
 	[
-		[ "C:/VecEdit/app/main.cpp", "Mu", null ],
-		[ "C:/VecEdit/app/mainwindow.cpp", "Mu", null ],
-		[ "C:/VecEdit/common/dialogmanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/common/logger.cpp", "Mu", null ],
-		[ "C:/VecEdit/common/tablestylemanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/common/tablestyleperformancetester.cpp", "Mu", null ],
-		[ "C:/VecEdit/database/binaryfilehelper.cpp", "Mu", null ],
-		[ "C:/VecEdit/database/databasemanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/database/databasemanager_migrator.cpp", "Mu", null ],
-		[ "C:/VecEdit/database/databaseviewdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/migration/datamigrator.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/pingroupdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/pinlistdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/pinselectionmanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/pinsettingsdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/pinvalueedit.cpp", "Mu", null ],
-		[ "C:/VecEdit/pin/vectorpinsettingsdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/filltimesetdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/replacetimesetdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/timesetdataaccess.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/timesetdialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/timesetedgedialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/timesetedgemanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/timeset/timesetui.cpp", "Mu", null ],
-		[ "C:/VecEdit/vector/deleterangevectordialog.cpp", "Mu", null ],
-		[ "C:/VecEdit/vector/vectordatahandler.cpp", "Mu", null ],
-		[ "C:/VecEdit/vector/vectordatamanager.cpp", "Mu", null ],
-		[ "C:/VecEdit/vector/vectortabledelegate.cpp", "Mu", null ]
+		[ "C:/VecEdit/app/main.cpp", "MU", null ],
+		[ "C:/VecEdit/app/mainwindow.cpp", "MU", null ],
+		[ "C:/VecEdit/common/dialogmanager.cpp", "MU", null ],
+		[ "C:/VecEdit/common/logger.cpp", "MU", null ],
+		[ "C:/VecEdit/common/tablestylemanager.cpp", "MU", null ],
+		[ "C:/VecEdit/common/tablestyleperformancetester.cpp", "MU", null ],
+		[ "C:/VecEdit/database/binaryfilehelper.cpp", "MU", null ],
+		[ "C:/VecEdit/database/databasemanager.cpp", "MU", null ],
+		[ "C:/VecEdit/database/databasemanager_migrator.cpp", "MU", null ],
+		[ "C:/VecEdit/database/databaseviewdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/migration/datamigrator.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/pingroupdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/pinlistdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/pinselectionmanager.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/pinsettingsdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/pinvalueedit.cpp", "MU", null ],
+		[ "C:/VecEdit/pin/vectorpinsettingsdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/filltimesetdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/replacetimesetdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/timesetdataaccess.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/timesetdialog.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/timesetedgedialog.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/timesetedgemanager.cpp", "MU", null ],
+		[ "C:/VecEdit/timeset/timesetui.cpp", "MU", null ],
+		[ "C:/VecEdit/vector/deleterangevectordialog.cpp", "MU", null ],
+		[ "C:/VecEdit/vector/vectordatahandler.cpp", "MU", null ],
+		[ "C:/VecEdit/vector/vectordatamanager.cpp", "MU", null ],
+		[ "C:/VecEdit/vector/vectortabledelegate.cpp", "MU", null ]
 	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
 	"USE_BETTER_GRAPH" : false,
 	"VERBOSITY" : 0
 }
