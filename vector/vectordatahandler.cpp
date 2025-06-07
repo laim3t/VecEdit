@@ -1497,6 +1497,9 @@ bool VectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndex
         return false;
     }
 
+    // [修复] 重新加载完整的列定义，以反映二进制文件的物理结构
+    columns = getAllColumnInfo(tableId);
+
     // 如果元数据显示表中没有行
     if (currentRowCount <= 0)
     {
@@ -2553,6 +2556,9 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
         qWarning() << funcName << " - 错误：" << errorMessage;
         return false;
     }
+
+    // [修复] 重新加载完整的列定义，以反映二进制文件的物理结构
+    columns = getAllColumnInfo(tableId);
 
     // 如果元数据显示表中没有行
     if (currentRowCount <= 0)
