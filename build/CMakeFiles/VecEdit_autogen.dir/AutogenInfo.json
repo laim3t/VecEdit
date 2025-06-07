@@ -365,7 +365,7 @@
 	"MOC_PATH_PREFIX" : false,
 	"MOC_PREDEFS_CMD" : 
 	[
-		"C:/Qt/Tools/mingw810_32/bin/g++.exe",
+		"c:/Qt/Tools/mingw810_32/bin/g++.exe",
 		"-std=gnu++17",
 		"-w",
 		"-dM",

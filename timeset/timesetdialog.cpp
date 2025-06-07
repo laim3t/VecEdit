@@ -322,7 +322,8 @@ void TimeSetDialog::addTimeSet()
             timeSetTree->setCurrentItem(newItem);
             timeSetSelectionChanged();
 
-            QMessageBox::information(this, "添加成功", "TimeSet \"" + name + "\" 创建成功！");
+            // 在操作失败后刷新TimeSet列表，确保UI和数据库一致
+            loadExistingTimeSets();
         }
         else
         {

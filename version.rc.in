@@ -2,6 +2,7 @@
 
 // Language and charset: U.S. English, Unicode
 // You can find other language/charset IDs if needed.
+// Current version: 0.0.0.3
 #define APP_LANG_CHARSET_STRING "040904b0"
 
 VS_VERSION_INFO VERSIONINFO

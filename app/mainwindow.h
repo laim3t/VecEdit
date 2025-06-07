@@ -157,11 +157,11 @@ private slots:
 
     // 侧边导航栏相关槽
     void refreshSidebarNavigator();
-    void onSidebarItemClicked(QTreeWidgetItem* item, int column);
-    void onPinItemClicked(QTreeWidgetItem* item, int column);
-    void onTimeSetItemClicked(QTreeWidgetItem* item, int column);
-    void onVectorTableItemClicked(QTreeWidgetItem* item, int column);
-    void onLabelItemClicked(QTreeWidgetItem* item, int column);
+    void onSidebarItemClicked(QTreeWidgetItem *item, int column);
+    void onPinItemClicked(QTreeWidgetItem *item, int column);
+    void onTimeSetItemClicked(QTreeWidgetItem *item, int column);
+    void onVectorTableItemClicked(QTreeWidgetItem *item, int column);
+    void onLabelItemClicked(QTreeWidgetItem *item, int column);
 
 private:
     void setupUI();
@@ -261,10 +261,10 @@ private:
     QTreeWidget *m_sidebarTree;
 
     QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
-    bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo>& config1, const QList<Vector::ColumnInfo>& config2);
-    QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData>& oldRowData,
-                                                    const QList<Vector::ColumnInfo>& oldColumns,
-                                                    const QList<Vector::ColumnInfo>& newColumns);
+    bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2);
+    QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData> &oldRowData,
+                                                    const QList<Vector::ColumnInfo> &oldColumns,
+                                                    const QList<Vector::ColumnInfo> &newColumns);
 };
 
 #endif // MAINWINDOW_H

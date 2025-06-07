@@ -418,7 +418,7 @@ void MainWindow::createNewProject()
         // 加载向量表数据
         loadVectorTable();
 
-        QMessageBox::information(this, tr("成功"), message);
+        // QMessageBox::information(this, tr("成功"), message);
     }
     else
     {

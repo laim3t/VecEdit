@@ -105,7 +105,8 @@ else()
         ${PROJECT_SOURCES}
     )
     if(MINGW)
-        set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mconsole")
+         #set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mconsole") # 在控制台模式运行
+         set_target_properties(VecEdit PROPERTIES LINK_FLAGS "-mwindows") # 不在控制台模式运行
     endif()
 endif()
 

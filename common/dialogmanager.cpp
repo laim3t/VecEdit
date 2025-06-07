@@ -456,7 +456,7 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         if (success)
         {
             db.commit();
-            QMessageBox::information(m_parent, "保存成功", "管脚信息已成功保存！");
+            // QMessageBox::information(m_parent, "保存成功", "管脚信息已成功保存！");
             showVectorDataDialog(tableId, tableName, 0);
             return true;
         }
@@ -765,8 +765,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                      {
                          insertAtEdit->setEnabled(state != Qt::Checked); // 当不勾选时启用向前插入输入框
                          qDebug() << "向量行数据录入 - 追加模式状态改变:" << (state == Qt::Checked ? "启用" : "禁用") 
-                                  << "，向前插入输入框:" << (state != Qt::Checked ? "启用" : "禁用");
-                     });
+                                  << "，向前插入输入框:" << (state != Qt::Checked ? "启用" : "禁用"); });
 
     // 连接行数输入框变化信号，更新剩余可用行数
     QObject::connect(rowCountEdit, &QLineEdit::textChanged, [remainingRowsEdit, totalRowsInFile, vectorTable](const QString &text)
@@ -971,7 +970,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                          &dataHandler, &VectorDataHandler::cancelOperation);
         
         if (success) {
-            QMessageBox::information(&vectorDataDialog, "保存成功", "向量行数据已成功保存！");
+            // QMessageBox::information(&vectorDataDialog, "保存成功", "向量行数据已成功保存！");
             vectorDataDialog.accept();
         } else {
             QMessageBox::critical(&vectorDataDialog, "数据库错误", errorMessage);
