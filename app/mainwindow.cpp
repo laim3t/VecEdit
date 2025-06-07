@@ -2217,9 +2217,10 @@ void MainWindow::showFillTimeSetDialog()
         // 找出最小和最大行号（1-based）
         int minRow = INT_MAX;
         int maxRow = 0;
+        int pageOffset = m_currentPage * m_pageSize; // 分页偏移
         foreach (const QModelIndex &index, selectedIndexes)
         {
-            int rowIdx = index.row() + 1; // 转为1-based
+            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
             minRow = qMin(minRow, rowIdx);
             maxRow = qMax(maxRow, rowIdx);
         }
@@ -2757,9 +2758,10 @@ void MainWindow::showReplaceTimeSetDialog()
         // 找出最小和最大行号（1-based）
         int minRow = INT_MAX;
         int maxRow = 0;
+        int pageOffset = m_currentPage * m_pageSize; // 分页偏移
         foreach (const QModelIndex &index, selectedIndexes)
         {
-            int rowIdx = index.row() + 1; // 转为1-based
+            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
             minRow = qMin(minRow, rowIdx);
             maxRow = qMax(maxRow, rowIdx);
         }
