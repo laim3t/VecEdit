@@ -1926,6 +1926,13 @@ void MainWindow::deleteCurrentVectorTable()
         return;
     }
 
+    // 检查是否为最后一张表
+    if (m_vectorTableSelector->count() <= 1)
+    {
+        QMessageBox::warning(this, "禁止删除", "此表为最后一张表，禁止删除。");
+        return;
+    }
+
     QString tableName = m_vectorTableSelector->currentText();
     int tableId = m_vectorTableSelector->currentData().toInt();
 
