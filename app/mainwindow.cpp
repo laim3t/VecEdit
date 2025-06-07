@@ -2238,31 +2238,20 @@ void MainWindow::showFillTimeSetDialog()
         }
 
         QList<int> rowsToUpdate;
-        if (!selectedIndexes.isEmpty())
+        // 修复BUG：无论是否选中行，都使用对话框中设置的范围
+        int fromRow = dialog.getStartRow(); // 0-based
+        int toRow = dialog.getEndRow();     // 0-based
+
+        // Ensure the range is valid.
+        if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
         {
-            // If rows are selected, use them
-            foreach (const QModelIndex &index, selectedIndexes)
-            {
-                rowsToUpdate.append(index.row());
-            }
+            QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
+            return;
         }
-        else
+
+        for (int i = fromRow; i <= toRow; ++i)
         {
-            // If no rows are selected, use the range from the dialog
-            int fromRow = dialog.getStartRow(); // 0-based
-            int toRow = dialog.getEndRow();     // 0-based
-
-            // Ensure the range is valid.
-            if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
-            {
-                QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
-                return;
-            }
-
-            for (int i = fromRow; i <= toRow; ++i)
-            {
-                rowsToUpdate.append(i);
-            }
+            rowsToUpdate.append(i);
         }
 
         // Call the function to perform the update
@@ -2786,31 +2775,20 @@ void MainWindow::showReplaceTimeSetDialog()
         int toTimeSetId = dialog.getToTimeSetId();
 
         QList<int> rowsToUpdate;
-        if (!selectedIndexes.isEmpty())
+        // 修复BUG：无论是否选中行，都使用对话框中设置的范围
+        int fromRow = dialog.getStartRow(); // 0-based
+        int toRow = dialog.getEndRow();     // 0-based
+
+        // Ensure the range is valid
+        if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
         {
-            // If rows are selected, use them
-            foreach (const QModelIndex &index, selectedIndexes)
-            {
-                rowsToUpdate.append(index.row());
-            }
+            QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
+            return;
         }
-        else
+
+        for (int i = fromRow; i <= toRow; ++i)
         {
-            // If no rows are selected, use the range from the dialog
-            int fromRow = dialog.getStartRow(); // 0-based
-            int toRow = dialog.getEndRow();     // 0-based
-
-            // Ensure the range is valid
-            if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
-            {
-                QMessageBox::warning(this, "范围无效", "指定的行范围无效。");
-                return;
-            }
-
-            for (int i = fromRow; i <= toRow; ++i)
-            {
-                rowsToUpdate.append(i);
-            }
+            rowsToUpdate.append(i);
         }
 
         // Replace TimeSet
