@@ -182,6 +182,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 恢复上次的窗口状态
     restoreWindowState();
 
+    // 初始化菜单状态
+    updateMenuState();
+
     // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
     connect(this, &MainWindow::windowResized, [this]()
             {
@@ -243,19 +246,19 @@ void MainWindow::setupMenu()
     QMenu *fileMenu = menuBar()->addMenu(tr("文件(&F)"));
 
     // 新建项目
-    QAction *newProjectAction = fileMenu->addAction(tr("新建项目(&N)"));
-    connect(newProjectAction, &QAction::triggered, this, &MainWindow::createNewProject);
+    m_newProjectAction = fileMenu->addAction(tr("新建项目(&N)"));
+    connect(m_newProjectAction, &QAction::triggered, this, &MainWindow::createNewProject);
 
     // 打开项目
-    QAction *openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
-    connect(openProjectAction, &QAction::triggered, this, &MainWindow::openExistingProject);
+    m_openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
+    connect(m_openProjectAction, &QAction::triggered, this, &MainWindow::openExistingProject);
 
     // 分隔符
     fileMenu->addSeparator();
 
     // 关闭项目
-    QAction *closeProjectAction = fileMenu->addAction(tr("关闭项目(&C)"));
-    connect(closeProjectAction, &QAction::triggered, this, &MainWindow::closeCurrentProject);
+    m_closeProjectAction = fileMenu->addAction(tr("关闭项目(&C)"));
+    connect(m_closeProjectAction, &QAction::triggered, this, &MainWindow::closeCurrentProject);
 
     // 分隔符
     fileMenu->addSeparator();
@@ -429,6 +432,9 @@ void MainWindow::createNewProject()
         // 加载向量表数据
         loadVectorTable();
 
+        // 更新菜单状态
+        updateMenuState();
+
         // QMessageBox::information(this, tr("成功"), message);
     }
     else
@@ -487,6 +493,9 @@ void MainWindow::openExistingProject()
         // 设置窗口标题
         setWindowTitle(tr("向量编辑器 [%1]").arg(QFileInfo(dbPath).fileName()));
 
+        // 更新菜单状态
+        updateMenuState();
+
         // QMessageBox::information(this, tr("成功"),
         //                          tr("项目数据库已打开！当前版本：%1\n您可以通过\"查看\"菜单打开数据库查看器").arg(version));
     }
@@ -522,6 +531,9 @@ void MainWindow::closeCurrentProject()
         // 重置窗口标题
         setWindowTitle("向量编辑器");
         statusBar()->showMessage("项目已关闭");
+
+        // 更新菜单状态
+        updateMenuState();
     }
 }
 
@@ -5411,4 +5423,12 @@ QList<Vector::RowData> MainWindow::adaptRowDataToNewColumns(const QList<Vector::
     }
     qDebug() << funcName << "- Data adaptation complete. Processed" << oldRowDataList.size() << "rows, produced" << newRowDataList.size() << "rows for new structure.";
     return newRowDataList;
+}
+
+void MainWindow::updateMenuState()
+{
+    bool projectOpen = !m_currentDbPath.isEmpty();
+    m_newProjectAction->setEnabled(!projectOpen);
+    m_openProjectAction->setEnabled(!projectOpen);
+    m_closeProjectAction->setEnabled(projectOpen);
 }

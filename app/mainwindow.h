@@ -183,6 +183,9 @@ private:
     // 恢复窗口状态
     void restoreWindowState();
 
+    // 更新菜单项状态
+    void updateMenuState();
+
     // 为新创建的向量表添加默认列配置
     bool addDefaultColumnConfigurations(int tableId);
 
@@ -206,6 +209,11 @@ private:
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
+
+    // 菜单项
+    QAction *m_newProjectAction;
+    QAction *m_openProjectAction;
+    QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
     QTableWidget *m_vectorTableWidget;
