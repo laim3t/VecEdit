@@ -706,4 +706,3 @@ static QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowDa
 
     return newDataList;
 }
-

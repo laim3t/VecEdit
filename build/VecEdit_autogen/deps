@@ -1,34 +1,98 @@
 VecEdit_autogen/timestamp: \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeCXXInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeGenericSystem.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeParseArguments.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPack.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/GNUInstallDirs.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Internal/CMakeCXXLinkerInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Internal/CMakeCommonLinkerInformation.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Linker/GNU-CXX.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Linker/GNU.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/GNU.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU-CXX.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX-ABI.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-Initialize.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-windres.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake \
-	C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeCXXCompiler.cmake.in \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeCXXInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeCompilerIdDetection.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineCXXCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineCompilerABI.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineCompilerId.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineCompilerSupport.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineRCCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeDetermineSystem.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeFindBinUtils.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeGenericSystem.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeNinjaFindMake.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeParseArguments.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeParseImplicitIncludeInfo.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeParseImplicitLinkInfo.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeParseLibraryArchitecture.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeRCCompiler.cmake.in \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeSystem.cmake.in \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeTestCXXCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeTestCompilerCommon.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CMakeTestRCCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CPack.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/CPackComponent.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/ADSP-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/ARMCC-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/ARMClang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/AppleClang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Borland-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Clang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Clang-DetermineCompilerInternal.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Compaq-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Cray-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/CrayClang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Embarcadero-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Fujitsu-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/FujitsuClang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/GHS-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/GNU-FindBinUtils.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/GNU.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/HP-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/IAR-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/IBMCPP-CXX-DetermineVersionInternal.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/IBMClang-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Intel-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/IntelLLVM-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/LCC-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/MSVC-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/NVHPC-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/NVIDIA-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/OpenWatcom-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/OrangeC-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/PGI-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/PathScale-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/SCO-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/SunPro-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/TI-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/TIClang-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Tasking-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/VisualAge-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/Watcom-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/XL-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/XLClang-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Compiler/zOS-CXX-DetermineCompiler.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/GNUInstallDirs.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Internal/CMakeCXXLinkerInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Internal/CMakeCommonLinkerInformation.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Internal/CMakeDetermineLinkerId.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Internal/CMakeInspectCXXLinker.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Internal/FeatureTesting.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Linker/GNU-CXX.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Linker/GNU.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Linker/GNU.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU-CXX.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-Determine-CXX.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX-ABI.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-Initialize.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows-windres.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/Windows.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake \
+	C:/Program\ Files/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in \
 	C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
 	C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
 	C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
@@ -615,69 +679,69 @@ VecEdit_autogen/timestamp: \
 	C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
 	C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
 	C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
-	C:/VecEdit/CMakeLists.txt \
-	C:/VecEdit/app/main.cpp \
-	C:/VecEdit/app/mainwindow.cpp \
-	C:/VecEdit/app/mainwindow.h \
-	C:/VecEdit/build/CMakeFiles/4.0.2/CMakeCXXCompiler.cmake \
-	C:/VecEdit/build/CMakeFiles/4.0.2/CMakeRCCompiler.cmake \
-	C:/VecEdit/build/CMakeFiles/4.0.2/CMakeSystem.cmake \
-	C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
-	C:/VecEdit/common/binary_field_lengths.h \
-	C:/VecEdit/common/binary_file_format.h \
-	C:/VecEdit/common/dialogmanager.cpp \
-	C:/VecEdit/common/dialogmanager.h \
-	C:/VecEdit/common/logger.cpp \
-	C:/VecEdit/common/logger.h \
-	C:/VecEdit/common/tablestylemanager.cpp \
-	C:/VecEdit/common/tablestylemanager.h \
-	C:/VecEdit/common/tablestyleperformancetester.cpp \
-	C:/VecEdit/common/tablestyleperformancetester.h \
-	C:/VecEdit/database/binaryfilehelper.cpp \
-	C:/VecEdit/database/binaryfilehelper.h \
-	C:/VecEdit/database/databasemanager.cpp \
-	C:/VecEdit/database/databasemanager.h \
-	C:/VecEdit/database/databasemanager_migrator.cpp \
-	C:/VecEdit/database/databaseviewdialog.cpp \
-	C:/VecEdit/database/databaseviewdialog.h \
-	C:/VecEdit/migration/datamigrator.cpp \
-	C:/VecEdit/migration/datamigrator.h \
-	C:/VecEdit/pin/pingroupdialog.cpp \
-	C:/VecEdit/pin/pingroupdialog.h \
-	C:/VecEdit/pin/pinlistdialog.cpp \
-	C:/VecEdit/pin/pinlistdialog.h \
-	C:/VecEdit/pin/pinselectionmanager.cpp \
-	C:/VecEdit/pin/pinselectionmanager.h \
-	C:/VecEdit/pin/pinsettingsdialog.cpp \
-	C:/VecEdit/pin/pinsettingsdialog.h \
-	C:/VecEdit/pin/pinvalueedit.cpp \
-	C:/VecEdit/pin/pinvalueedit.h \
-	C:/VecEdit/pin/vectorpinsettingsdialog.cpp \
-	C:/VecEdit/pin/vectorpinsettingsdialog.h \
-	C:/VecEdit/resources/qt/icons.qrc \
-	C:/VecEdit/timeset/filltimesetdialog.cpp \
-	C:/VecEdit/timeset/filltimesetdialog.h \
-	C:/VecEdit/timeset/replacetimesetdialog.cpp \
-	C:/VecEdit/timeset/replacetimesetdialog.h \
-	C:/VecEdit/timeset/timesetdataaccess.cpp \
-	C:/VecEdit/timeset/timesetdataaccess.h \
-	C:/VecEdit/timeset/timesetdialog.cpp \
-	C:/VecEdit/timeset/timesetdialog.h \
-	C:/VecEdit/timeset/timesetedgedialog.cpp \
-	C:/VecEdit/timeset/timesetedgedialog.h \
-	C:/VecEdit/timeset/timesetedgemanager.cpp \
-	C:/VecEdit/timeset/timesetedgemanager.h \
-	C:/VecEdit/timeset/timesetui.cpp \
-	C:/VecEdit/timeset/timesetui.h \
-	C:/VecEdit/vector/deleterangevectordialog.cpp \
-	C:/VecEdit/vector/deleterangevectordialog.h \
-	C:/VecEdit/vector/vector_data_types.h \
-	C:/VecEdit/vector/vectordatahandler.cpp \
-	C:/VecEdit/vector/vectordatahandler.h \
-	C:/VecEdit/vector/vectordatamanager.cpp \
-	C:/VecEdit/vector/vectordatamanager.h \
-	C:/VecEdit/vector/vectortabledelegate.cpp \
-	C:/VecEdit/vector/vectortabledelegate.h \
-	C:/VecEdit/version.h.in \
-	C:/VecEdit/version.rc.in \
-	C:/Program\ Files\ (x86)/CMake/bin/cmake.exe
+	E:/QT_project/1/VecEdit/CMakeLists.txt \
+	E:/QT_project/1/VecEdit/app/main.cpp \
+	E:/QT_project/1/VecEdit/app/mainwindow.cpp \
+	E:/QT_project/1/VecEdit/app/mainwindow.h \
+	E:/QT_project/1/VecEdit/build/CMakeFiles/4.0.2/CMakeCXXCompiler.cmake \
+	E:/QT_project/1/VecEdit/build/CMakeFiles/4.0.2/CMakeRCCompiler.cmake \
+	E:/QT_project/1/VecEdit/build/CMakeFiles/4.0.2/CMakeSystem.cmake \
+	E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+	E:/QT_project/1/VecEdit/common/binary_field_lengths.h \
+	E:/QT_project/1/VecEdit/common/binary_file_format.h \
+	E:/QT_project/1/VecEdit/common/dialogmanager.cpp \
+	E:/QT_project/1/VecEdit/common/dialogmanager.h \
+	E:/QT_project/1/VecEdit/common/logger.cpp \
+	E:/QT_project/1/VecEdit/common/logger.h \
+	E:/QT_project/1/VecEdit/common/tablestylemanager.cpp \
+	E:/QT_project/1/VecEdit/common/tablestylemanager.h \
+	E:/QT_project/1/VecEdit/common/tablestyleperformancetester.cpp \
+	E:/QT_project/1/VecEdit/common/tablestyleperformancetester.h \
+	E:/QT_project/1/VecEdit/database/binaryfilehelper.cpp \
+	E:/QT_project/1/VecEdit/database/binaryfilehelper.h \
+	E:/QT_project/1/VecEdit/database/databasemanager.cpp \
+	E:/QT_project/1/VecEdit/database/databasemanager.h \
+	E:/QT_project/1/VecEdit/database/databasemanager_migrator.cpp \
+	E:/QT_project/1/VecEdit/database/databaseviewdialog.cpp \
+	E:/QT_project/1/VecEdit/database/databaseviewdialog.h \
+	E:/QT_project/1/VecEdit/migration/datamigrator.cpp \
+	E:/QT_project/1/VecEdit/migration/datamigrator.h \
+	E:/QT_project/1/VecEdit/pin/pingroupdialog.cpp \
+	E:/QT_project/1/VecEdit/pin/pingroupdialog.h \
+	E:/QT_project/1/VecEdit/pin/pinlistdialog.cpp \
+	E:/QT_project/1/VecEdit/pin/pinlistdialog.h \
+	E:/QT_project/1/VecEdit/pin/pinselectionmanager.cpp \
+	E:/QT_project/1/VecEdit/pin/pinselectionmanager.h \
+	E:/QT_project/1/VecEdit/pin/pinsettingsdialog.cpp \
+	E:/QT_project/1/VecEdit/pin/pinsettingsdialog.h \
+	E:/QT_project/1/VecEdit/pin/pinvalueedit.cpp \
+	E:/QT_project/1/VecEdit/pin/pinvalueedit.h \
+	E:/QT_project/1/VecEdit/pin/vectorpinsettingsdialog.cpp \
+	E:/QT_project/1/VecEdit/pin/vectorpinsettingsdialog.h \
+	E:/QT_project/1/VecEdit/resources/qt/icons.qrc \
+	E:/QT_project/1/VecEdit/timeset/filltimesetdialog.cpp \
+	E:/QT_project/1/VecEdit/timeset/filltimesetdialog.h \
+	E:/QT_project/1/VecEdit/timeset/replacetimesetdialog.cpp \
+	E:/QT_project/1/VecEdit/timeset/replacetimesetdialog.h \
+	E:/QT_project/1/VecEdit/timeset/timesetdataaccess.cpp \
+	E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h \
+	E:/QT_project/1/VecEdit/timeset/timesetdialog.cpp \
+	E:/QT_project/1/VecEdit/timeset/timesetdialog.h \
+	E:/QT_project/1/VecEdit/timeset/timesetedgedialog.cpp \
+	E:/QT_project/1/VecEdit/timeset/timesetedgedialog.h \
+	E:/QT_project/1/VecEdit/timeset/timesetedgemanager.cpp \
+	E:/QT_project/1/VecEdit/timeset/timesetedgemanager.h \
+	E:/QT_project/1/VecEdit/timeset/timesetui.cpp \
+	E:/QT_project/1/VecEdit/timeset/timesetui.h \
+	E:/QT_project/1/VecEdit/vector/deleterangevectordialog.cpp \
+	E:/QT_project/1/VecEdit/vector/deleterangevectordialog.h \
+	E:/QT_project/1/VecEdit/vector/vector_data_types.h \
+	E:/QT_project/1/VecEdit/vector/vectordatahandler.cpp \
+	E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
+	E:/QT_project/1/VecEdit/vector/vectordatamanager.cpp \
+	E:/QT_project/1/VecEdit/vector/vectordatamanager.h \
+	E:/QT_project/1/VecEdit/vector/vectortabledelegate.cpp \
+	E:/QT_project/1/VecEdit/vector/vectortabledelegate.h \
+	E:/QT_project/1/VecEdit/version.h.in \
+	E:/QT_project/1/VecEdit/version.rc.in \
+	C:/Program\ Files/CMake/bin/cmake.exe

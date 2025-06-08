@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"C:/VecEdit/build/cmake_install.cmake"
+		"E:/QT_project/1/VecEdit/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

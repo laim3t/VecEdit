@@ -1,5 +1,5 @@
-C:/VecEdit/build/VecEdit_autogen/OBAQL5E4PX/moc_timesetedgedialog.cpp: C:/VecEdit/timeset/timesetedgedialog.h \
-  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/build/VecEdit_autogen/OBAQL5E4PX/moc_timesetedgedialog.cpp: E:/QT_project/1/VecEdit/timeset/timesetedgedialog.h \
+  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qalgorithms.h \
