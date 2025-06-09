@@ -867,6 +867,30 @@ vector/deleterangevectordialog.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.s
 .PHONY : vector/deleterangevectordialog.cpp.s
 
+vector/fillvectordialog.obj: vector/fillvectordialog.cpp.obj
+.PHONY : vector/fillvectordialog.obj
+
+# target to build an object file
+vector/fillvectordialog.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj
+.PHONY : vector/fillvectordialog.cpp.obj
+
+vector/fillvectordialog.i: vector/fillvectordialog.cpp.i
+.PHONY : vector/fillvectordialog.i
+
+# target to preprocess a source file
+vector/fillvectordialog.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.i
+.PHONY : vector/fillvectordialog.cpp.i
+
+vector/fillvectordialog.s: vector/fillvectordialog.cpp.s
+.PHONY : vector/fillvectordialog.s
+
+# target to generate assembly for a file
+vector/fillvectordialog.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.s
+.PHONY : vector/fillvectordialog.cpp.s
+
 vector/vectordatahandler.obj: vector/vectordatahandler.cpp.obj
 .PHONY : vector/vectordatahandler.obj
 
@@ -1045,6 +1069,9 @@ help:
 	@echo ... vector/deleterangevectordialog.obj
 	@echo ... vector/deleterangevectordialog.i
 	@echo ... vector/deleterangevectordialog.s
+	@echo ... vector/fillvectordialog.obj
+	@echo ... vector/fillvectordialog.i
+	@echo ... vector/fillvectordialog.s
 	@echo ... vector/vectordatahandler.obj
 	@echo ... vector/vectordatahandler.i
 	@echo ... vector/vectordatahandler.s

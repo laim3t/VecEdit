@@ -1,0 +1,89 @@
+# =========================================================================
+# Cursor AI Rule File (Global)
+# 全局 Cursor AI 行为规则文件（适用于整个项目）
+# =========================================================================
+# This file defines structured AI instructions and constraints
+# for different parts of the project directory.
+#
+# 本文件定义了针对项目中不同目录的结构化 AI 编辑规则，
+# 用于约束与指导 AI 在代码自动生成、重构和维护过程中的行为。
+# =========================================================================
+
+directories:
+
+  # ------------------------------------------------------------------------
+  # VecEdit/app — Rules for MainWindow and Auxiliary Structure
+  # VecEdit/app 目录 — MainWindow 类及其辅助结构的规则
+  # ------------------------------------------------------------------------
+  - path: "VecEdit/app"
+    description: |
+      Rules for editing files under VecEdit/app, especially those related to the MainWindow class
+      适用于 VecEdit/app 目录下文件，特别是与 MainWindow 类相关的代码编辑规则
+
+    rules:
+
+      # --- Rule 1: Auxiliary Implementation Files ---
+      - matches: "VecEdit/app/mainwindow_*.cpp"
+        instructions: |
+          This is an auxiliary implementation file for the MainWindow class. It follows the "Implementation-Inclusion Pattern".
+          This file is NOT compiled directly. It is #included by "mainwindow.cpp".
+          Therefore, all necessary headers are managed centrally in "mainwindow.cpp".
+
+          这是一个为 MainWindow 类服务的辅助实现文件，遵循"实现-包含"模式。
+          本文件不会被直接编译，而是由 mainwindow.cpp 通过 #include 引入。
+          因此所有需要的头文件都在 mainwindow.cpp 中集中管理。
+        forbidden:
+          - "Do not add any #include statements to this file. (不要在此文件中添加任何 #include 语句。)"
+          - "Do not modify CMakeLists.txt to add this file to the source list. (不要修改 CMakeLists.txt 来添加此文件。)"
+
+      # --- Rule 2: Main Entry File ---
+      - matches: "VecEdit/app/mainwindow.cpp"
+        instructions: |
+          This is the main compilation hub for the MainWindow class.
+          It includes all required headers and auxiliary implementation files.
+
+          这是 MainWindow 类的主编译入口文件。
+          它的作用是包含所有必要的头文件和辅助实现文件。
+        forbidden:
+          - "Do not add function implementations here. Use appropriate auxiliary files instead. (不要在此文件中添加函数实现，请将其放入相应的辅助文件中。)"
+        allowed:
+          - "You must keep all the #include \"mainwindow_*.cpp\" lines at the end of this file. (必须保留所有 mainwindow_*.cpp 的包含语句，并置于文件末尾。)"
+
+      # --- Rule 3: New Feature Workflow for MainWindow (Optimized Version) ---
+      - triggers: ["add a new feature to MainWindow", "add new function to MainWindow", "add new responsibility to MainWindow", "为MainWindow实现新功能"]
+        steps:
+          - "1. **Declare:** Declare the new function or slot in `VecEdit/app/mainwindow.h`."
+          - "2. **Analyze:** Analyze the purpose of the new function to decide where its implementation should go."
+          - |
+            3. **Locate or Create File:** Choose the proper auxiliary implementation file (`mainwindow_*.cpp`).
+            
+            A. **Match Existing:** First, try to match the function's purpose to an existing file:
+               - UI Setup/Layout/Window Events -> `mainwindow_setup.cpp`
+               - Project/Table Creation/Deletion -> `mainwindow_project_tables.cpp`
+               - Pin and TimeSet Logic -> `mainwindow_pins_timeset.cpp`
+               - Data Row/Column Operations/Pagination -> `mainwindow_data_operations.cpp`
+               - Dialogs and UI Event Slots (on_..._clicked) -> `mainwindow_dialogs_events.cpp`
+               - Data Migration/Fixing/Helpers -> `mainwindow_datafix_helpers.cpp`
+               - Vector Filling Logic -> `mainwindow_vector_fill.cpp`
+
+            B. **Check Size:** If a matching file is found but it would exceed 1500 lines after adding the new code, consider it too large.
+
+            C. **Create New:** If no existing file matches the purpose or the matched file is too large, create a new auxiliary file named `mainwindow_<feature_name>.cpp`.
+          - |
+            4. **Manage Includes:**
+            
+            A. **If a new file was created in step 3.C:** Add an `#include "mainwindow_<feature_name>.cpp"` line at the very end of `VecEdit/app/mainwindow.cpp`.
+            
+            B. **For ALL new functionalities:** Add any necessary header includes (like `<QMessageBox>`, custom dialogs, etc.) to the TOP of `VecEdit/app/mainwindow.cpp`.
+            
+            C. **CRITICAL REMINDER:** Do NOT add any `#include` statements to the auxiliary `mainwindow_*.cpp` files themselves. They are part of a single compilation unit managed by `mainwindow.cpp`.
+          - "5. **Implement:** Write the C++ implementation of the new function at the END of the chosen or newly created auxiliary file. Remember, this implementation file must not contain any `#include` directives."
+          - "6. **Verify:** After implementation, double-check that `mainwindow.cpp` contains all necessary headers and the include for the auxiliary file, and that the auxiliary file itself contains no includes."
+
+# =========================================================================
+# Future expansion:
+# You can add more directory sections below, such as:
+# - path: "VecEdit/core"
+# - path: "plugins"
+# - path: "tools"
+# =========================================================================

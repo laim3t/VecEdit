@@ -738,6 +738,8 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/VecEdit/timeset/timesetui.h \
   C:/VecEdit/vector/deleterangevectordialog.cpp \
   C:/VecEdit/vector/deleterangevectordialog.h \
+  C:/VecEdit/vector/fillvectordialog.cpp \
+  C:/VecEdit/vector/fillvectordialog.h \
   C:/VecEdit/vector/vector_data_types.h \
   C:/VecEdit/vector/vectordatahandler.cpp \
   C:/VecEdit/vector/vectordatahandler.h \
@@ -1066,6 +1068,8 @@ C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/Intel-DetermineC
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Internal/FeatureTesting.cmake:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Compiler/NVHPC-DetermineCompiler.cmake:
+
+C:/VecEdit/vector/fillvectordialog.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qtcore-config.h:
 
@@ -2230,6 +2234,8 @@ C:/VecEdit/timeset/timesetedgemanager.h:
 C:/VecEdit/timeset/timesetui.h:
 
 C:/VecEdit/vector/deleterangevectordialog.cpp:
+
+C:/VecEdit/vector/fillvectordialog.cpp:
 
 C:/VecEdit/vector/vectordatahandler.cpp:
 

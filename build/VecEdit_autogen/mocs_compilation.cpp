@@ -14,5 +14,6 @@
 #include "OBAQL5E4PX/moc_timesetdialog.cpp"
 #include "OBAQL5E4PX/moc_timesetedgedialog.cpp"
 #include "EFITGCF6GF/moc_deleterangevectordialog.cpp"
+#include "EFITGCF6GF/moc_fillvectordialog.cpp"
 #include "EFITGCF6GF/moc_vectordatahandler.cpp"
 #include "EFITGCF6GF/moc_vectortabledelegate.cpp"

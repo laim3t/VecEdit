@@ -274,6 +274,11 @@ void MainWindow::setupVectorTableUI()
     connect(m_timeSetSettingsAction, &QAction::triggered, this, &MainWindow::openTimeSetSettingsDialog);
     toolBar->addAction(m_timeSetSettingsAction);
 
+    // 向量填充按钮
+    m_fillVectorAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogListView), tr("向量填充"), this);
+    connect(m_fillVectorAction, &QAction::triggered, this, &MainWindow::showFillVectorDialog);
+    toolBar->addAction(m_fillVectorAction);
+
     // 填充TimeSet按钮
     m_fillTimeSetAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ArrowRight), tr("填充TimeSet"), this);
     connect(m_fillTimeSetAction, &QAction::triggered, this, &MainWindow::showFillTimeSetDialog);
@@ -348,7 +353,7 @@ void MainWindow::setupVectorTableUI()
     // 创建表格视图
     m_vectorTableWidget = new QTableWidget(this);
     m_vectorTableWidget->setAlternatingRowColors(true);
-    m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
@@ -651,7 +656,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     }
 }
 
-
 // 更新状态栏中的窗口大小信息
 void MainWindow::updateWindowSizeInfo()
 {
@@ -784,4 +788,3 @@ void MainWindow::updateMenuState()
     m_openProjectAction->setEnabled(!projectOpen);
     m_closeProjectAction->setEnabled(projectOpen);
 }
-

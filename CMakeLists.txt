@@ -56,6 +56,8 @@ set(PROJECT_SOURCES
         vector/vectordatahandler.cpp
         vector/deleterangevectordialog.h
         vector/deleterangevectordialog.cpp
+        vector/fillvectordialog.h
+        vector/fillvectordialog.cpp
         common/dialogmanager.h
         common/dialogmanager.cpp
         common/tablestylemanager.h

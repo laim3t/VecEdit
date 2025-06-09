@@ -483,7 +483,6 @@ void MainWindow::closeTab(int index)
     }
 }
 
-
 void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 {
     const QString funcName = "MainWindow::showPinSelectionDialog";
@@ -518,7 +517,6 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
         reloadAndRefreshVectorTable(tableId); // Implementation will be added
     }
 }
-
 
 void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
@@ -575,8 +573,6 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
     }
 }
 
-
-
 // 打开TimeSet设置对话框
 void MainWindow::openTimeSetSettingsDialog()
 {
@@ -610,10 +606,6 @@ void MainWindow::openTimeSetSettingsDialog()
         statusBar()->showMessage("TimeSet设置已更新");
     }
 }
-
-
-
-
 
 // 刷新侧边导航栏数据
 void MainWindow::refreshSidebarNavigator()
@@ -1046,7 +1038,6 @@ void MainWindow::onVectorTableItemClicked(QTreeWidgetItem *item, int column)
         }
     }
 }
-
 
 // 标签项目点击事件
 void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)

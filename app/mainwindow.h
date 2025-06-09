@@ -117,6 +117,10 @@ private slots:
     // 删除指定范围内的向量行
     void deleteVectorRowsInRange();
 
+    // 向量填充
+    void showFillVectorDialog();
+    void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
+
     // 填充TimeSet
     void showFillTimeSetDialog();
     void fillTimeSetForVectorTable(int timeSetId, const QList<int> &selectedUiRows);
@@ -222,6 +226,7 @@ private:
     QWidget *m_centralWidget;
     QWidget *m_welcomeWidget;
     QWidget *m_vectorTableContainer;
+    QAction *m_fillVectorAction;
     QAction *m_fillTimeSetAction;
     QAction *m_replaceTimeSetAction;
     QAction *m_refreshAction;

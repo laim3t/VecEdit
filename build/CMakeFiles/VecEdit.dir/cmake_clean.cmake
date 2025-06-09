@@ -56,6 +56,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj"
   "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj.d"
+  "CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj"
+  "CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj"
   "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj"

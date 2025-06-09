@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[69];
-    char stringdata0[1142];
+    QByteArrayData data[71];
+    char stringdata0[1188];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -64,44 +64,46 @@ QT_MOC_LITERAL(27, 418, 26), // "addRowToCurrentVectorTable"
 QT_MOC_LITERAL(28, 445, 24), // "deleteCurrentVectorTable"
 QT_MOC_LITERAL(29, 470, 24), // "deleteSelectedVectorRows"
 QT_MOC_LITERAL(30, 495, 23), // "deleteVectorRowsInRange"
-QT_MOC_LITERAL(31, 519, 21), // "showFillTimeSetDialog"
-QT_MOC_LITERAL(32, 541, 25), // "fillTimeSetForVectorTable"
-QT_MOC_LITERAL(33, 567, 9), // "timeSetId"
-QT_MOC_LITERAL(34, 577, 10), // "QList<int>"
-QT_MOC_LITERAL(35, 588, 14), // "selectedUiRows"
-QT_MOC_LITERAL(36, 603, 24), // "showReplaceTimeSetDialog"
-QT_MOC_LITERAL(37, 628, 28), // "replaceTimeSetForVectorTable"
-QT_MOC_LITERAL(38, 657, 13), // "fromTimeSetId"
-QT_MOC_LITERAL(39, 671, 11), // "toTimeSetId"
-QT_MOC_LITERAL(40, 683, 22), // "refreshVectorTableData"
-QT_MOC_LITERAL(41, 706, 25), // "openTimeSetSettingsDialog"
-QT_MOC_LITERAL(42, 732, 20), // "setupVectorTablePins"
-QT_MOC_LITERAL(43, 753, 21), // "openPinSettingsDialog"
-QT_MOC_LITERAL(44, 775, 8), // "gotoLine"
-QT_MOC_LITERAL(45, 784, 28), // "onFontZoomSliderValueChanged"
-QT_MOC_LITERAL(46, 813, 5), // "value"
-QT_MOC_LITERAL(47, 819, 15), // "onFontZoomReset"
-QT_MOC_LITERAL(48, 835, 8), // "closeTab"
-QT_MOC_LITERAL(49, 844, 15), // "loadCurrentPage"
-QT_MOC_LITERAL(50, 860, 12), // "loadNextPage"
-QT_MOC_LITERAL(51, 873, 12), // "loadPrevPage"
-QT_MOC_LITERAL(52, 886, 14), // "changePageSize"
-QT_MOC_LITERAL(53, 901, 7), // "newSize"
-QT_MOC_LITERAL(54, 909, 10), // "jumpToPage"
-QT_MOC_LITERAL(55, 920, 7), // "pageNum"
-QT_MOC_LITERAL(56, 928, 18), // "onTableCellChanged"
-QT_MOC_LITERAL(57, 947, 3), // "row"
-QT_MOC_LITERAL(58, 951, 6), // "column"
-QT_MOC_LITERAL(59, 958, 18), // "onTableRowModified"
-QT_MOC_LITERAL(60, 977, 23), // "refreshSidebarNavigator"
-QT_MOC_LITERAL(61, 1001, 20), // "onSidebarItemClicked"
-QT_MOC_LITERAL(62, 1022, 16), // "QTreeWidgetItem*"
-QT_MOC_LITERAL(63, 1039, 4), // "item"
-QT_MOC_LITERAL(64, 1044, 16), // "onPinItemClicked"
-QT_MOC_LITERAL(65, 1061, 20), // "onTimeSetItemClicked"
-QT_MOC_LITERAL(66, 1082, 24), // "onVectorTableItemClicked"
-QT_MOC_LITERAL(67, 1107, 18), // "onLabelItemClicked"
-QT_MOC_LITERAL(68, 1126, 15) // "updateMenuState"
+QT_MOC_LITERAL(31, 519, 20), // "showFillVectorDialog"
+QT_MOC_LITERAL(32, 540, 24), // "fillVectorForVectorTable"
+QT_MOC_LITERAL(33, 565, 5), // "value"
+QT_MOC_LITERAL(34, 571, 10), // "QList<int>"
+QT_MOC_LITERAL(35, 582, 14), // "selectedUiRows"
+QT_MOC_LITERAL(36, 597, 21), // "showFillTimeSetDialog"
+QT_MOC_LITERAL(37, 619, 25), // "fillTimeSetForVectorTable"
+QT_MOC_LITERAL(38, 645, 9), // "timeSetId"
+QT_MOC_LITERAL(39, 655, 24), // "showReplaceTimeSetDialog"
+QT_MOC_LITERAL(40, 680, 28), // "replaceTimeSetForVectorTable"
+QT_MOC_LITERAL(41, 709, 13), // "fromTimeSetId"
+QT_MOC_LITERAL(42, 723, 11), // "toTimeSetId"
+QT_MOC_LITERAL(43, 735, 22), // "refreshVectorTableData"
+QT_MOC_LITERAL(44, 758, 25), // "openTimeSetSettingsDialog"
+QT_MOC_LITERAL(45, 784, 20), // "setupVectorTablePins"
+QT_MOC_LITERAL(46, 805, 21), // "openPinSettingsDialog"
+QT_MOC_LITERAL(47, 827, 8), // "gotoLine"
+QT_MOC_LITERAL(48, 836, 28), // "onFontZoomSliderValueChanged"
+QT_MOC_LITERAL(49, 865, 15), // "onFontZoomReset"
+QT_MOC_LITERAL(50, 881, 8), // "closeTab"
+QT_MOC_LITERAL(51, 890, 15), // "loadCurrentPage"
+QT_MOC_LITERAL(52, 906, 12), // "loadNextPage"
+QT_MOC_LITERAL(53, 919, 12), // "loadPrevPage"
+QT_MOC_LITERAL(54, 932, 14), // "changePageSize"
+QT_MOC_LITERAL(55, 947, 7), // "newSize"
+QT_MOC_LITERAL(56, 955, 10), // "jumpToPage"
+QT_MOC_LITERAL(57, 966, 7), // "pageNum"
+QT_MOC_LITERAL(58, 974, 18), // "onTableCellChanged"
+QT_MOC_LITERAL(59, 993, 3), // "row"
+QT_MOC_LITERAL(60, 997, 6), // "column"
+QT_MOC_LITERAL(61, 1004, 18), // "onTableRowModified"
+QT_MOC_LITERAL(62, 1023, 23), // "refreshSidebarNavigator"
+QT_MOC_LITERAL(63, 1047, 20), // "onSidebarItemClicked"
+QT_MOC_LITERAL(64, 1068, 16), // "QTreeWidgetItem*"
+QT_MOC_LITERAL(65, 1085, 4), // "item"
+QT_MOC_LITERAL(66, 1090, 16), // "onPinItemClicked"
+QT_MOC_LITERAL(67, 1107, 20), // "onTimeSetItemClicked"
+QT_MOC_LITERAL(68, 1128, 24), // "onVectorTableItemClicked"
+QT_MOC_LITERAL(69, 1153, 18), // "onLabelItemClicked"
+QT_MOC_LITERAL(70, 1172, 15) // "updateMenuState"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -117,19 +119,20 @@ QT_MOC_LITERAL(68, 1126, 15) // "updateMenuState"
     "startIndex\0addRowToCurrentVectorTable\0"
     "deleteCurrentVectorTable\0"
     "deleteSelectedVectorRows\0"
-    "deleteVectorRowsInRange\0showFillTimeSetDialog\0"
-    "fillTimeSetForVectorTable\0timeSetId\0"
+    "deleteVectorRowsInRange\0showFillVectorDialog\0"
+    "fillVectorForVectorTable\0value\0"
     "QList<int>\0selectedUiRows\0"
-    "showReplaceTimeSetDialog\0"
+    "showFillTimeSetDialog\0fillTimeSetForVectorTable\0"
+    "timeSetId\0showReplaceTimeSetDialog\0"
     "replaceTimeSetForVectorTable\0fromTimeSetId\0"
     "toTimeSetId\0refreshVectorTableData\0"
     "openTimeSetSettingsDialog\0"
     "setupVectorTablePins\0openPinSettingsDialog\0"
     "gotoLine\0onFontZoomSliderValueChanged\0"
-    "value\0onFontZoomReset\0closeTab\0"
-    "loadCurrentPage\0loadNextPage\0loadPrevPage\0"
-    "changePageSize\0newSize\0jumpToPage\0"
-    "pageNum\0onTableCellChanged\0row\0column\0"
+    "onFontZoomReset\0closeTab\0loadCurrentPage\0"
+    "loadNextPage\0loadPrevPage\0changePageSize\0"
+    "newSize\0jumpToPage\0pageNum\0"
+    "onTableCellChanged\0row\0column\0"
     "onTableRowModified\0refreshSidebarNavigator\0"
     "onSidebarItemClicked\0QTreeWidgetItem*\0"
     "item\0onPinItemClicked\0onTimeSetItemClicked\0"
@@ -144,7 +147,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      50,   14, // methods
+      52,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -152,58 +155,60 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  264,    2, 0x06 /* Public */,
+       1,    0,  274,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  265,    2, 0x08 /* Private */,
-       4,    0,  266,    2, 0x08 /* Private */,
-       5,    0,  267,    2, 0x08 /* Private */,
-       6,    0,  268,    2, 0x08 /* Private */,
-       7,    0,  269,    2, 0x08 /* Private */,
-       8,    0,  270,    2, 0x08 /* Private */,
-       9,    0,  271,    2, 0x08 /* Private */,
-      10,    1,  272,    2, 0x08 /* Private */,
-      13,    1,  275,    2, 0x08 /* Private */,
-      13,    0,  278,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  279,    2, 0x08 /* Private */,
-      16,    0,  280,    2, 0x08 /* Private */,
-      17,    1,  281,    2, 0x08 /* Private */,
-      19,    1,  284,    2, 0x08 /* Private */,
-      20,    0,  287,    2, 0x08 /* Private */,
-      21,    0,  288,    2, 0x08 /* Private */,
-      22,    2,  289,    2, 0x08 /* Private */,
-      25,    3,  294,    2, 0x08 /* Private */,
-      25,    2,  301,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  306,    2, 0x08 /* Private */,
-      28,    0,  307,    2, 0x08 /* Private */,
-      29,    0,  308,    2, 0x08 /* Private */,
-      30,    0,  309,    2, 0x08 /* Private */,
-      31,    0,  310,    2, 0x08 /* Private */,
-      32,    2,  311,    2, 0x08 /* Private */,
-      36,    0,  316,    2, 0x08 /* Private */,
-      37,    3,  317,    2, 0x08 /* Private */,
-      40,    0,  324,    2, 0x08 /* Private */,
-      41,    0,  325,    2, 0x08 /* Private */,
-      42,    0,  326,    2, 0x08 /* Private */,
-      43,    0,  327,    2, 0x08 /* Private */,
-      44,    0,  328,    2, 0x08 /* Private */,
-      45,    1,  329,    2, 0x08 /* Private */,
-      47,    0,  332,    2, 0x08 /* Private */,
-      48,    1,  333,    2, 0x08 /* Private */,
-      49,    0,  336,    2, 0x08 /* Private */,
-      50,    0,  337,    2, 0x08 /* Private */,
-      51,    0,  338,    2, 0x08 /* Private */,
-      52,    1,  339,    2, 0x08 /* Private */,
-      54,    1,  342,    2, 0x08 /* Private */,
-      56,    2,  345,    2, 0x08 /* Private */,
-      59,    1,  350,    2, 0x08 /* Private */,
-      60,    0,  353,    2, 0x08 /* Private */,
-      61,    2,  354,    2, 0x08 /* Private */,
-      64,    2,  359,    2, 0x08 /* Private */,
-      65,    2,  364,    2, 0x08 /* Private */,
-      66,    2,  369,    2, 0x08 /* Private */,
-      67,    2,  374,    2, 0x08 /* Private */,
-      68,    0,  379,    2, 0x08 /* Private */,
+       3,    0,  275,    2, 0x08 /* Private */,
+       4,    0,  276,    2, 0x08 /* Private */,
+       5,    0,  277,    2, 0x08 /* Private */,
+       6,    0,  278,    2, 0x08 /* Private */,
+       7,    0,  279,    2, 0x08 /* Private */,
+       8,    0,  280,    2, 0x08 /* Private */,
+       9,    0,  281,    2, 0x08 /* Private */,
+      10,    1,  282,    2, 0x08 /* Private */,
+      13,    1,  285,    2, 0x08 /* Private */,
+      13,    0,  288,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  289,    2, 0x08 /* Private */,
+      16,    0,  290,    2, 0x08 /* Private */,
+      17,    1,  291,    2, 0x08 /* Private */,
+      19,    1,  294,    2, 0x08 /* Private */,
+      20,    0,  297,    2, 0x08 /* Private */,
+      21,    0,  298,    2, 0x08 /* Private */,
+      22,    2,  299,    2, 0x08 /* Private */,
+      25,    3,  304,    2, 0x08 /* Private */,
+      25,    2,  311,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  316,    2, 0x08 /* Private */,
+      28,    0,  317,    2, 0x08 /* Private */,
+      29,    0,  318,    2, 0x08 /* Private */,
+      30,    0,  319,    2, 0x08 /* Private */,
+      31,    0,  320,    2, 0x08 /* Private */,
+      32,    2,  321,    2, 0x08 /* Private */,
+      36,    0,  326,    2, 0x08 /* Private */,
+      37,    2,  327,    2, 0x08 /* Private */,
+      39,    0,  332,    2, 0x08 /* Private */,
+      40,    3,  333,    2, 0x08 /* Private */,
+      43,    0,  340,    2, 0x08 /* Private */,
+      44,    0,  341,    2, 0x08 /* Private */,
+      45,    0,  342,    2, 0x08 /* Private */,
+      46,    0,  343,    2, 0x08 /* Private */,
+      47,    0,  344,    2, 0x08 /* Private */,
+      48,    1,  345,    2, 0x08 /* Private */,
+      49,    0,  348,    2, 0x08 /* Private */,
+      50,    1,  349,    2, 0x08 /* Private */,
+      51,    0,  352,    2, 0x08 /* Private */,
+      52,    0,  353,    2, 0x08 /* Private */,
+      53,    0,  354,    2, 0x08 /* Private */,
+      54,    1,  355,    2, 0x08 /* Private */,
+      56,    1,  358,    2, 0x08 /* Private */,
+      58,    2,  361,    2, 0x08 /* Private */,
+      61,    1,  366,    2, 0x08 /* Private */,
+      62,    0,  369,    2, 0x08 /* Private */,
+      63,    2,  370,    2, 0x08 /* Private */,
+      66,    2,  375,    2, 0x08 /* Private */,
+      67,    2,  380,    2, 0x08 /* Private */,
+      68,    2,  385,    2, 0x08 /* Private */,
+      69,    2,  390,    2, 0x08 /* Private */,
+      70,    0,  395,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -233,30 +238,32 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int, 0x80000000 | 34,   33,   35,
+    QMetaType::Void, QMetaType::QString, 0x80000000 | 34,   33,   35,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int, QMetaType::Int, 0x80000000 | 34,   38,   39,   35,
+    QMetaType::Void, QMetaType::Int, 0x80000000 | 34,   38,   35,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int, QMetaType::Int, 0x80000000 | 34,   41,   42,   35,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int,   46,
+    QMetaType::Void, QMetaType::Int,   33,
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int,   18,
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int,   53,
     QMetaType::Void, QMetaType::Int,   55,
-    QMetaType::Void, QMetaType::Int, QMetaType::Int,   57,   58,
     QMetaType::Void, QMetaType::Int,   57,
+    QMetaType::Void, QMetaType::Int, QMetaType::Int,   59,   60,
+    QMetaType::Void, QMetaType::Int,   59,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
-    QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
-    QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
-    QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
-    QMetaType::Void, 0x80000000 | 62, QMetaType::Int,   63,   58,
+    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
+    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
+    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
+    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
+    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
     QMetaType::Void,
 
        0        // eod
@@ -296,32 +303,34 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 21: _t->deleteCurrentVectorTable(); break;
         case 22: _t->deleteSelectedVectorRows(); break;
         case 23: _t->deleteVectorRowsInRange(); break;
-        case 24: _t->showFillTimeSetDialog(); break;
-        case 25: _t->fillTimeSetForVectorTable((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QList<int>(*)>(_a[2]))); break;
-        case 26: _t->showReplaceTimeSetDialog(); break;
-        case 27: _t->replaceTimeSetForVectorTable((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< const QList<int>(*)>(_a[3]))); break;
-        case 28: _t->refreshVectorTableData(); break;
-        case 29: _t->openTimeSetSettingsDialog(); break;
-        case 30: _t->setupVectorTablePins(); break;
-        case 31: _t->openPinSettingsDialog(); break;
-        case 32: _t->gotoLine(); break;
-        case 33: _t->onFontZoomSliderValueChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 34: _t->onFontZoomReset(); break;
-        case 35: _t->closeTab((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 36: _t->loadCurrentPage(); break;
-        case 37: _t->loadNextPage(); break;
-        case 38: _t->loadPrevPage(); break;
-        case 39: _t->changePageSize((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 40: _t->jumpToPage((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 41: _t->onTableCellChanged((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 42: _t->onTableRowModified((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 43: _t->refreshSidebarNavigator(); break;
-        case 44: _t->onSidebarItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 45: _t->onPinItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 46: _t->onTimeSetItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 47: _t->onVectorTableItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 48: _t->onLabelItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 49: _t->updateMenuState(); break;
+        case 24: _t->showFillVectorDialog(); break;
+        case 25: _t->fillVectorForVectorTable((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QList<int>(*)>(_a[2]))); break;
+        case 26: _t->showFillTimeSetDialog(); break;
+        case 27: _t->fillTimeSetForVectorTable((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QList<int>(*)>(_a[2]))); break;
+        case 28: _t->showReplaceTimeSetDialog(); break;
+        case 29: _t->replaceTimeSetForVectorTable((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< const QList<int>(*)>(_a[3]))); break;
+        case 30: _t->refreshVectorTableData(); break;
+        case 31: _t->openTimeSetSettingsDialog(); break;
+        case 32: _t->setupVectorTablePins(); break;
+        case 33: _t->openPinSettingsDialog(); break;
+        case 34: _t->gotoLine(); break;
+        case 35: _t->onFontZoomSliderValueChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 36: _t->onFontZoomReset(); break;
+        case 37: _t->closeTab((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 38: _t->loadCurrentPage(); break;
+        case 39: _t->loadNextPage(); break;
+        case 40: _t->loadPrevPage(); break;
+        case 41: _t->changePageSize((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 42: _t->jumpToPage((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 43: _t->onTableCellChanged((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 44: _t->onTableRowModified((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 45: _t->refreshSidebarNavigator(); break;
+        case 46: _t->onSidebarItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 47: _t->onPinItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 48: _t->onTimeSetItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 49: _t->onVectorTableItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 50: _t->onLabelItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 51: _t->updateMenuState(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -342,6 +351,13 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
             }
             break;
         case 27:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<int*>(_a[0]) = -1; break;
+            case 1:
+                *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< QList<int> >(); break;
+            }
+            break;
+        case 29:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<int*>(_a[0]) = -1; break;
             case 2:
@@ -390,13 +406,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 50)
+        if (_id < 52)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 50;
+        _id -= 52;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 50)
+        if (_id < 52)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 50;
+        _id -= 52;
     }
     return _id;
 }

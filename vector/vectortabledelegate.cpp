@@ -1,5 +1,4 @@
 #include "vectortabledelegate.h"
-#include "pin/pinvalueedit.h"
 #include "database/databasemanager.h"
 #include <QComboBox>
 #include <QSqlQuery>
@@ -107,11 +106,14 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating PinValueLineEdit.";
-        // 创建管脚输入框
-        PinValueLineEdit *editor = new PinValueLineEdit(parent);
-        editor = editor;
-        qDebug() << "VectorTableDelegate::createEditor - 创建管脚状态编辑器";
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating standard QLineEdit for pin state.";
+        // 创建标准输入框替代PinValueLineEdit，保留基本功能
+        QLineEdit *lineEdit = new QLineEdit(parent);
+        lineEdit->setMaxLength(1);               // 限制输入一个字符
+        lineEdit->setAlignment(Qt::AlignCenter); // 文本居中显示
+        lineEdit->setToolTip("输入提示：0,1,L,H,X,Z");
+        editor = lineEdit;
+        qDebug() << "VectorTableDelegate::createEditor - 创建简化版管脚状态编辑器";
     }
     else if (colInfo.type == Vector::ColumnDataType::INTEGER)
     {
@@ -205,8 +207,8 @@ void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        // 设置管脚输入框的值
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
+        // 设置管脚输入框的值(使用标准QLineEdit)
+        QLineEdit *lineEdit = static_cast<QLineEdit *>(editor);
         QString value = index.model()->data(index, Qt::EditRole).toString();
         lineEdit->setText(value);
     }
@@ -249,13 +251,15 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
+        QLineEdit *lineEdit = static_cast<QLineEdit *>(editor);
         QString value = lineEdit->text();
         // 如果为空，默认使用X
         if (value.isEmpty())
         {
             value = "X";
         }
+        // 简单转换大写，但不进行严格验证
+        value = value.toUpper();
         model->setData(index, value, Qt::EditRole);
         qDebug() << "VectorTableDelegate::setModelData - 设置管脚列值:" << value;
     }

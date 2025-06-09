@@ -17,7 +17,6 @@ set(CMAKE_TARGET_DEFINITIONS_RC
   "QT_CORE_LIB"
   "QT_GUI_LIB"
   "QT_MESSAGELOGCONTEXT"
-  "QT_NO_DEBUG"
   "QT_SQL_LIB"
   "QT_WIDGETS_LIB"
   )
@@ -74,6 +73,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/VecEdit/timeset/timesetedgemanager.cpp" "CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj.d"
   "C:/VecEdit/timeset/timesetui.cpp" "CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj.d"
   "C:/VecEdit/vector/deleterangevectordialog.cpp" "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj.d"
+  "C:/VecEdit/vector/fillvectordialog.cpp" "CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj.d"
   "C:/VecEdit/vector/vectordatahandler.cpp" "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj.d"
   "C:/VecEdit/vector/vectordatamanager.cpp" "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj.d"
   "C:/VecEdit/vector/vectortabledelegate.cpp" "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj.d"

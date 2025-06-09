@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "database/databasemanager.h"
 #include "database/databaseviewdialog.h"
+#include "database/binaryfilehelper.h"
 #include "pin/pinlistdialog.h"
 #include "timeset/timesetdialog.h"
 #include "timeset/filltimesetdialog.h"
@@ -8,13 +9,14 @@
 #include "pin/pinvalueedit.h"
 #include "vector/vectortabledelegate.h"
 #include "vector/vectordatahandler.h"
+#include "vector/fillvectordialog.h"
+#include "vector/vector_data_types.h"
 #include "common/dialogmanager.h"
 #include "pin/vectorpinsettingsdialog.h"
 #include "pin/pinsettingsdialog.h"
 #include "vector/deleterangevectordialog.h"
 #include "common/tablestylemanager.h"
 #include "common/binary_file_format.h"
-#include "database/binaryfilehelper.h"
 #include "common/utils/pathutils.h" // 修正包含路径
 
 #include <QMenuBar>
@@ -77,3 +79,4 @@
 #include "mainwindow_data_operations.cpp"
 #include "mainwindow_dialogs_events.cpp"
 #include "mainwindow_datafix_helpers.cpp"
+#include "mainwindow_vector_fill.cpp"
