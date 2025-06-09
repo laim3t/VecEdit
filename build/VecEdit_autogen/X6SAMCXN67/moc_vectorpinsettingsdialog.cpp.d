@@ -1,5 +1,5 @@
-E:/QT_project/1/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_vectorpinsettingsdialog.cpp: E:/QT_project/1/VecEdit/pin/vectorpinsettingsdialog.h \
-  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+C:/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_vectorpinsettingsdialog.cpp: C:/VecEdit/pin/vectorpinsettingsdialog.h \
+  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QHash \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
@@ -301,4 +301,4 @@ E:/QT_project/1/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_vectorpinsettingsdi
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
-  E:/QT_project/1/VecEdit/common/tablestylemanager.h
+  C:/VecEdit/common/tablestylemanager.h

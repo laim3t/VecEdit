@@ -1,5 +1,5 @@
-E:/QT_project/1/VecEdit/build/VecEdit_autogen/P66WHCG54J/moc_tablestyleperformancetester.cpp: E:/QT_project/1/VecEdit/common/tablestyleperformancetester.h \
-  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+C:/VecEdit/build/VecEdit_autogen/P66WHCG54J/moc_tablestyleperformancetester.cpp: C:/VecEdit/common/tablestyleperformancetester.h \
+  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QElapsedTimer \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \

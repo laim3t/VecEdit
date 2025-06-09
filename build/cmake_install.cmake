@@ -1,4 +1,4 @@
-# Install script for directory: E:/QT_project/1/VecEdit
+# Install script for directory: C:/VecEdit
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "Debug")
+    set(CMAKE_INSTALL_CONFIG_NAME "")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -38,7 +38,7 @@ if(NOT DEFINED CMAKE_OBJDUMP)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "E:/QT_project/1/VecEdit/build/VecEdit.exe")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "C:/VecEdit/build/VecEdit.exe")
   if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/VecEdit.exe" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/VecEdit.exe")
     if(CMAKE_INSTALL_DO_STRIP)
@@ -48,30 +48,42 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE FILE FILES "E:/QT_project/1/VecEdit/resources/db/schema.sql")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE FILE FILES "C:/VecEdit/resources/db/schema.sql")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
   
-        message(STATUS "Running windeployqt to deploy Qt dependencies...")
+        message(STATUS "--- [偵錯] 開始檢查 CPack 內部環境 ---")
+
+        # 執行 Windows 的 cmd 命令來印出 PATH
         execute_process(
-            COMMAND "C:/Qt/5.15.2/mingw81_32/lib/bin/windeployqt.exe"
-                --no-translations
-                --dir "C:/Program Files (x86)/VecEdit/bin"
-                --libdir "C:/Program Files (x86)/VecEdit/bin"
-                "C:/Program Files (x86)/VecEdit/bin/VecEdit.exe"
-            RESULT_VARIABLE result
+            COMMAND cmd /c "echo %PATH%"
+            OUTPUT_VARIABLE cpack_env_path
+            OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-        if(NOT result EQUAL 0)
-            message(FATAL_ERROR "windeployqt failed with exit code ${result}")
+        message(STATUS "[偵錯] CPack 腳本看到的 PATH 是: ${cpack_env_path}")
+
+        # 讓 CPack 腳本自己去找 windeployqt
+        execute_process(
+            COMMAND where windeployqt
+            RESULT_VARIABLE find_result
+            ERROR_QUIET
+        )
+
+        if(NOT find_result EQUAL 0)
+            message(FATAL_ERROR "[偵錯] 失敗！CPack 腳本在它自己的 PATH 中找不到 'windeployqt'。這證實了環境變數沒有被正確傳遞！")
+        else()
+             message(STATUS "[偵錯] 成功！CPack 腳本可以找到 'windeployqt'。這意味著問題可能更複雜。")
         endif()
+
+        message(STATUS "--- [偵錯] 檢查結束 ---")
     
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "E:/QT_project/1/VecEdit/build/install_local_manifest.txt"
+  file(WRITE "C:/VecEdit/build/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -87,6 +99,6 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "E:/QT_project/1/VecEdit/build/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "C:/VecEdit/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

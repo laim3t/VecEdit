@@ -1,5 +1,5 @@
-E:/QT_project/1/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: E:/QT_project/1/VecEdit/app/mainwindow.h \
-  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+C:/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/VecEdit/app/mainwindow.h \
+  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
@@ -366,9 +366,9 @@ E:/QT_project/1/VecEdit/build/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: E:/
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
-  E:/QT_project/1/VecEdit/common/binary_field_lengths.h \
-  E:/QT_project/1/VecEdit/common/binary_file_format.h \
-  E:/QT_project/1/VecEdit/common/tablestylemanager.h \
-  E:/QT_project/1/VecEdit/database/binaryfilehelper.h \
-  E:/QT_project/1/VecEdit/vector/vector_data_types.h \
-  E:/QT_project/1/VecEdit/vector/vectordatahandler.h
+  C:/VecEdit/common/binary_field_lengths.h \
+  C:/VecEdit/common/binary_file_format.h \
+  C:/VecEdit/common/tablestylemanager.h \
+  C:/VecEdit/database/binaryfilehelper.h \
+  C:/VecEdit/vector/vector_data_types.h \
+  C:/VecEdit/vector/vectordatahandler.h

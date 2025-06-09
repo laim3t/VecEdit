@@ -11,8 +11,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 查找 Qt5 包。您也可以在命令行中指定路径，例如：
-# cmake -DQt5_DIR=C:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5 ..
+# 查找 Qt5 包
 find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
 
 # 从找到的 Qt5 包中安全地获取其 bin 目录的路径
@@ -117,10 +116,17 @@ target_link_libraries(VecEdit PRIVATE
     Qt5::Concurrent
 )
 
+# 在构建后将 schema.sql 复制到可执行文件目录
+add_custom_command(TARGET VecEdit POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/db/schema.sql"
+        "$<TARGET_FILE_DIR:VecEdit>/schema.sql"
+    COMMENT "正在复制 schema.sql 以便进行开发..."
+)
+
 # 添加必要的包含目录
 target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} # 用于 version.h 等生成文件
-    # 添加所有包含头文件的子目录，确保编译器能找到它们
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/common
@@ -134,8 +140,7 @@ target_include_directories(VecEdit PRIVATE
 # --- 安装与打包 ---
 include(GNUInstallDirs)
 
-# 1. 定义安装规则：将可执行文件安装到 bin 目录
-#    所有安装部分都属于一个叫 "Runtime" 的组件
+# 1. 定义安装规则
 install(TARGETS VecEdit
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
     BUNDLE DESTINATION . COMPONENT Runtime
@@ -143,23 +148,35 @@ install(TARGETS VecEdit
 )
 
 if(WIN32)
-    # 2. 安装 schema.sql 文件到可执行文件旁边
+    # 2. 安装 schema.sql 文件
     install(FILES resources/db/schema.sql DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
 
-    # 3. 添加一个安装脚本，在安装目录下运行 windeployqt 来自动部署所有 Qt 依赖
+    # 3. 偵錯腳本：檢查 CPack 內部的環境變數
     install(CODE "
-        message(STATUS \"Running windeployqt to deploy Qt dependencies...\")
+        message(STATUS \"--- [偵錯] 開始檢查 CPack 內部環境 ---\")
+
+        # 執行 Windows 的 cmd 命令來印出 PATH
         execute_process(
-            COMMAND \"${QT_BIN_DIR}/windeployqt.exe\"
-                --no-translations
-                --dir \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
-                --libdir \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
-                \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/VecEdit.exe\"
-            RESULT_VARIABLE result
+            COMMAND cmd /c \"echo %PATH%\"
+            OUTPUT_VARIABLE cpack_env_path
+            OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-        if(NOT result EQUAL 0)
-            message(FATAL_ERROR \"windeployqt failed with exit code \${result}\")
+        message(STATUS \"[偵錯] CPack 腳本看到的 PATH 是: \${cpack_env_path}\")
+
+        # 讓 CPack 腳本自己去找 windeployqt
+        execute_process(
+            COMMAND where windeployqt
+            RESULT_VARIABLE find_result
+            ERROR_QUIET
+        )
+
+        if(NOT find_result EQUAL 0)
+            message(FATAL_ERROR \"[偵錯] 失敗！CPack 腳本在它自己的 PATH 中找不到 'windeployqt'。這證實了環境變數沒有被正確傳遞！\")
+        else()
+             message(STATUS \"[偵錯] 成功！CPack 腳本可以找到 'windeployqt'。這意味著問題可能更複雜。\")
         endif()
+
+        message(STATUS \"--- [偵錯] 檢查結束 ---\")
     " COMPONENT Runtime)
 endif()
 
@@ -167,14 +184,11 @@ endif()
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VecEdit Application")
-# 您可以取消注释并修改以下信息
-# set(CPACK_PACKAGE_VENDOR "Your Company Name")
-# set(CPACK_PACKAGE_CONTACT "your.email@example.com")
 
 # 指定需要打包的组件
 set(CPACK_COMPONENTS_ALL Runtime)
 
-# 指定打包格式 (ZIP, 7Z, 或者用 NSIS 生成安装程序)
+# 指定打包格式
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
