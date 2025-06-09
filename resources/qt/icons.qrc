@@ -8,4 +8,7 @@
         <file alias="icons/branch-closed.png">../icons/branch-closed.svg</file>
         <file alias="icons/branch-open.png">../icons/branch-open.svg</file>
     </qresource>
+    <qresource prefix="/db">
+        <file alias="schema.sql">../db/schema.sql</file>
+    </qresource>
 </RCC>

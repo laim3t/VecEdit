@@ -118,14 +118,6 @@ target_link_libraries(VecEdit PRIVATE
     Qt5::Concurrent
 )
 
-# 在构建后将 schema.sql 复制到可执行文件目录
-add_custom_command(TARGET VecEdit POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/db/schema.sql"
-        "$<TARGET_FILE_DIR:VecEdit>/schema.sql"
-    COMMENT "正在复制 schema.sql 以便进行开发..."
-)
-
 # 添加必要的包含目录
 target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} # 用于 version.h 等生成文件
@@ -150,10 +142,7 @@ install(TARGETS VecEdit
 )
 
 if(WIN32)
-    # 2. 安装 schema.sql 文件
-    install(FILES resources/db/schema.sql DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
-
-    # 3. 偵錯腳本：檢查 CPack 內部的環境變數
+    # 2. 侦錯腳本：檢查 CPack 內部的環境變數
     install(CODE "
         message(STATUS \"--- [偵錯] 開始檢查 CPack 內部環境 ---\")
 

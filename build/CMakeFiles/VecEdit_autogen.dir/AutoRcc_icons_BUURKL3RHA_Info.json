@@ -12,7 +12,8 @@
 		"C:/VecEdit/resources/icons/x-circle.svg",
 		"C:/VecEdit/resources/icons/plus-circle.svg",
 		"C:/VecEdit/resources/icons/branch-closed.svg",
-		"C:/VecEdit/resources/icons/branch-open.svg"
+		"C:/VecEdit/resources/icons/branch-open.svg",
+		"C:/VecEdit/resources/db/schema.sql"
 	],
 	"LOCK_FILE" : "C:/VecEdit/build/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Lock.lock",
 	"MULTI_CONFIG" : false,

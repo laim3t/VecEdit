@@ -555,13 +555,6 @@ bool DatabaseManager::executeSqlScriptFromFile(const QString &scriptFilePath)
 QString DatabaseManager::readSqlScriptFromFile(const QString &filePath)
 {
     QFile file(filePath);
-    if (!file.exists())
-    {
-        m_lastError = QString("SQL脚本文件不存在: %1").arg(filePath);
-        qWarning() << m_lastError;
-        return QString();
-    }
-
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         m_lastError = QString("无法打开SQL脚本文件: %1").arg(file.errorString());

@@ -1,6 +1,3 @@
-
-
-
 void MainWindow::createNewProject()
 {
     // 先关闭当前项目
@@ -28,7 +25,7 @@ void MainWindow::createNewProject()
     settings.setValue("lastUsedPath", QFileInfo(dbPath).absolutePath());
 
     // 获取schema.sql文件路径（与可执行文件同目录）
-    QString schemaPath = QApplication::applicationDirPath() + "/schema.sql";
+    QString schemaPath = ":/db/schema.sql";
 
     // 使用DatabaseManager初始化数据库
     if (DatabaseManager::instance()->initializeNewDatabase(dbPath, schemaPath))
@@ -99,8 +96,6 @@ void MainWindow::createNewProject()
     }
 }
 
-
-
 void MainWindow::openExistingProject()
 {
     // 先关闭当前项目
@@ -162,8 +157,6 @@ void MainWindow::openExistingProject()
                               tr("打开项目数据库失败：\n%1").arg(DatabaseManager::instance()->lastError()));
     }
 }
-
-
 
 void MainWindow::closeCurrentProject()
 {
@@ -652,4 +645,3 @@ void MainWindow::addVectorTableTab(int tableId, const QString &tableName)
     // 存储映射关系
     m_tabToTableId[index] = tableId;
 }
-
