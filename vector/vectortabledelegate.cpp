@@ -1,5 +1,6 @@
 #include "vectortabledelegate.h"
 #include "database/databasemanager.h"
+#include "pin/pinvalueedit.h"
 #include <QComboBox>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -106,14 +107,12 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating standard QLineEdit for pin state.";
-        // 创建标准输入框替代PinValueLineEdit，保留基本功能
-        QLineEdit *lineEdit = new QLineEdit(parent);
-        lineEdit->setMaxLength(1);               // 限制输入一个字符
+        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating PinValueLineEdit for pin state.";
+        // 使用自定义的PinValueLineEdit作为编辑器
+        PinValueLineEdit *lineEdit = new PinValueLineEdit(parent);
         lineEdit->setAlignment(Qt::AlignCenter); // 文本居中显示
-        lineEdit->setToolTip("输入提示：0,1,L,H,X,Z");
         editor = lineEdit;
-        qDebug() << "VectorTableDelegate::createEditor - 创建简化版管脚状态编辑器";
+        qDebug() << "VectorTableDelegate::createEditor - 创建管脚状态编辑器";
     }
     else if (colInfo.type == Vector::ColumnDataType::INTEGER)
     {
@@ -207,8 +206,8 @@ void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        // 设置管脚输入框的值(使用标准QLineEdit)
-        QLineEdit *lineEdit = static_cast<QLineEdit *>(editor);
+        // 设置编辑器数据时，目标是PinValueLineEdit
+        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
         QString value = index.model()->data(index, Qt::EditRole).toString();
         lineEdit->setText(value);
     }
@@ -251,7 +250,8 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        QLineEdit *lineEdit = static_cast<QLineEdit *>(editor);
+        // 从PinValueLineEdit获取数据
+        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
         QString value = lineEdit->text();
         // 如果为空，默认使用X
         if (value.isEmpty())

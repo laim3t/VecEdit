@@ -3336,10 +3336,10 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
                     pinStateText = originalValue.toString();
                 }
 
-                // 创建PinValueLineEdit作为单元格控件
-                PinValueLineEdit *pinEdit = new PinValueLineEdit(tableWidget);
-                pinEdit->setText(pinStateText);
-                tableWidget->setCellWidget(row, visibleColIdx, pinEdit);
+                // [修复] 不再使用 setCellWidget，而是创建 QTableWidgetItem
+                // 这样可以恢复单元格的标准选择行为
+                QTableWidgetItem *newItem = new QTableWidgetItem(pinStateText);
+                tableWidget->setItem(row, visibleColIdx, newItem);
             }
             else if (visibleCol.type == Vector::ColumnDataType::INSTRUCTION_ID)
             {

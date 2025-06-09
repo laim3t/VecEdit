@@ -348,18 +348,19 @@ CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qurl.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/quuid.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonParseError \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QSpinBox \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qspinbox.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDoubleSpinBox \
+ C:/VecEdit/pin/pinvalueedit.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextcursor.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextformat.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpen.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextoption.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonParseError \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QSpinBox \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qspinbox.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDoubleSpinBox \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QIntValidator \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QDoubleValidator \

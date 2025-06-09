@@ -11832,6 +11832,7 @@ CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj: C:/VecEdit/vector/vec
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
   C:/VecEdit/common/binary_field_lengths.h \
   C:/VecEdit/database/databasemanager.h \
+  C:/VecEdit/pin/pinvalueedit.h \
   C:/VecEdit/vector/vector_data_types.h \
   C:/VecEdit/vector/vectortabledelegate.h \
   c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw.h \

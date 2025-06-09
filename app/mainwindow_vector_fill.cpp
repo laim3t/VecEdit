@@ -227,7 +227,7 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
         QSqlQuery colQuery(db);
         colQuery.prepare("SELECT id, column_name, column_order, column_type "
                          "FROM VectorTableColumnConfiguration "
-                         "WHERE table_id = ? ORDER BY column_order");
+                         "WHERE master_record_id = ? ORDER BY column_order");
         colQuery.addBindValue(tableId);
 
         if (!colQuery.exec())
