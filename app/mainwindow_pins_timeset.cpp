@@ -530,8 +530,8 @@ void MainWindow::showFillTimeSetDialog()
     // 设置向量表总行数
     dialog.setVectorRowCount(rowCount);
 
-    // 获取选中的行（如果有）并设置默认范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    // 获取选中的单元格并计算行范围
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）
@@ -1220,8 +1220,8 @@ void MainWindow::showReplaceTimeSetDialog()
     // 设置向量表总行数
     dialog.setVectorRowCount(rowCount);
 
-    // 获取选中的行（如果有）并设置默认范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    // 获取选中的单元格并计算行范围
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）
