@@ -31,6 +31,9 @@ FillVectorDialog::FillVectorDialog(QWidget *parent)
     connect(m_endRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);
     connect(m_startLabelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &FillVectorDialog::onStartLabelSelected);
     connect(m_endLabelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &FillVectorDialog::onEndLabelSelected);
+
+    // 添加模式表格变化的信号连接
+    connect(m_patternTableWidget, &QTableWidget::itemChanged, this, &FillVectorDialog::validateInputs);
 }
 
 FillVectorDialog::~FillVectorDialog()
@@ -89,6 +92,11 @@ void FillVectorDialog::setupUI()
     QLabel *patternLabel = new QLabel(tr("填充模式:"), this);
     mainLayout->addWidget(patternLabel);
 
+    // 添加提示标签
+    QLabel *tipLabel = new QLabel(tr("注意：请确保填充的行数是下方模式表格中行数的整数倍。"), this);
+    tipLabel->setStyleSheet("color: red;"); // 设置为红色以突出显示
+    mainLayout->addWidget(tipLabel);
+
     m_patternTableWidget = new QTableWidget(0, 1, this);
     m_patternTableWidget->setHorizontalHeaderLabels(QStringList() << tr("值"));
     m_patternTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -114,8 +122,13 @@ void FillVectorDialog::setupUI()
         if (isMultipleOfPattern()) {
             accept();
         } else {
-            QMessageBox::warning(this, tr("向量填充编辑器"), 
-                tr("添加的行数应当是填充模式中行数的整数倍。"));
+            int patternRowCount = m_patternTableWidget->rowCount();
+            int fillRowCount = m_endRowEdit->text().toInt() - m_startRowEdit->text().toInt() + 1;
+            
+            QMessageBox::warning(this, tr("填充向量行"), 
+                tr("填充的行数(%1)不是模式行数(%2)的整数倍。\n请调整填充范围或模式行数。")
+                .arg(fillRowCount)
+                .arg(patternRowCount));
         } });
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
@@ -134,11 +147,31 @@ void FillVectorDialog::validateInputs()
     // 更新执行行数
     if (startValid && endValid && end >= start)
     {
-        m_executedRowCountLabel->setText(QString::number(end - start + 1));
+        int fillRowCount = end - start + 1;
+        m_executedRowCountLabel->setText(QString::number(fillRowCount));
+
+        // 检查是否为模式行数的整数倍
+        int patternRowCount = m_patternTableWidget->rowCount();
+        if (patternRowCount > 0)
+        {
+            bool isMultiple = (fillRowCount % patternRowCount) == 0;
+            if (!isMultiple)
+            {
+                m_executedRowCountLabel->setStyleSheet("background-color: #FFEEEE; color: red;");
+                m_executedRowCountLabel->setToolTip(tr("填充行数应为模式行数的整数倍"));
+            }
+            else
+            {
+                m_executedRowCountLabel->setStyleSheet("background-color: #f0f0f0; color: black;");
+                m_executedRowCountLabel->setToolTip("");
+            }
+        }
     }
     else
     {
         m_executedRowCountLabel->setText("0");
+        m_executedRowCountLabel->setStyleSheet("background-color: #f0f0f0;");
+        m_executedRowCountLabel->setToolTip("");
     }
 
     // 验证用户输入的值（1-based）
@@ -192,7 +225,19 @@ bool FillVectorDialog::isMultipleOfPattern() const
     int fillRowCount = end - start + 1;
 
     // 检查是否为模式行数的整数倍
-    return (fillRowCount % patternRowCount) == 0;
+    bool isMultiple = (fillRowCount % patternRowCount) == 0;
+
+    // 更新执行行数的显示样式，如果不是整数倍则显示为红色
+    if (!isMultiple)
+    {
+        m_executedRowCountLabel->setStyleSheet("background-color: #FFEEEE; color: red;");
+    }
+    else
+    {
+        m_executedRowCountLabel->setStyleSheet("background-color: #f0f0f0;");
+    }
+
+    return isMultiple;
 }
 
 void FillVectorDialog::setVectorRowCount(int count)
@@ -287,6 +332,9 @@ void FillVectorDialog::setSelectedCellsData(const QList<QString> &values)
         item->setTextAlignment(Qt::AlignCenter);
         m_patternTableWidget->setItem(i, 0, item);
     }
+
+    // 设置完模式表格后，调用验证以更新UI
+    validateInputs();
 }
 
 void FillVectorDialog::onStartLabelSelected(int index)

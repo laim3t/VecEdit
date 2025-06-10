@@ -10719,6 +10719,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QMessageBox \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
@@ -10745,6 +10746,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
