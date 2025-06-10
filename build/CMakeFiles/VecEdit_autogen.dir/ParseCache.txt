@@ -1065,6 +1065,7 @@ C:/VecEdit/database/databaseviewdialog.h
 C:/VecEdit/vector/fillvectordialog.h
  mmc:Q_OBJECT
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/QList
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qalgorithms.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qarraydata.h
@@ -1086,6 +1087,7 @@ C:/VecEdit/vector/fillvectordialog.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qhashfunctions.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qiterator.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qline.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h
@@ -1108,6 +1110,7 @@ C:/VecEdit/vector/fillvectordialog.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qregexp.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qregularexpression.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qscopedpointer.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qshareddata.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qsharedpointer.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtCore/qsharedpointer_impl.h
@@ -1163,9 +1166,12 @@ C:/VecEdit/vector/fillvectordialog.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLayout
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemview.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qboxlayout.h
@@ -1186,6 +1192,8 @@ C:/VecEdit/vector/fillvectordialog.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h
+ mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabwidget.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h
  mdp:C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h

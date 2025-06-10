@@ -4,6 +4,7 @@
 #include <QIntValidator>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QHeaderView>
 
 FillVectorDialog::FillVectorDialog(QWidget *parent)
     : QDialog(parent), m_vectorRowCount(0)
@@ -42,6 +43,7 @@ void FillVectorDialog::setupUI()
 
     // 填充值下拉框
     m_valueComboBox = new QComboBox(this);
+    m_valueComboBox->setVisible(false); // 隐藏单值填充控件，改为使用模式表格
     formLayout->addRow(tr("填充值:"), m_valueComboBox);
 
     // 从行输入框组合布局 (从1开始)
@@ -79,6 +81,16 @@ void FillVectorDialog::setupUI()
     // 添加表单布局到主布局
     mainLayout->addLayout(formLayout);
 
+    // 添加模式编辑表格
+    QLabel *patternLabel = new QLabel(tr("填充模式:"), this);
+    mainLayout->addWidget(patternLabel);
+
+    m_patternTableWidget = new QTableWidget(0, 1, this);
+    m_patternTableWidget->setHorizontalHeaderLabels(QStringList() << tr("值"));
+    m_patternTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    m_patternTableWidget->setMinimumHeight(150);
+    mainLayout->addWidget(m_patternTableWidget);
+
     // 创建按钮
     m_buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_okButton = m_buttonBox->button(QDialogButtonBox::Ok);
@@ -90,11 +102,18 @@ void FillVectorDialog::setupUI()
     mainLayout->addWidget(m_buttonBox);
 
     // 连接按钮信号
-    connect(m_buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(m_buttonBox, &QDialogButtonBox::accepted, this, [this]()
+            {
+        if (isMultipleOfPattern()) {
+            accept();
+        } else {
+            QMessageBox::warning(this, tr("向量填充编辑器"), 
+                tr("添加的行数应当是填充模式中行数的整数倍。"));
+        } });
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     // 设置固定大小
-    setFixedSize(350, 250);
+    setFixedSize(400, 450);
 }
 
 void FillVectorDialog::validateInputs()
@@ -130,6 +149,43 @@ void FillVectorDialog::validateInputs()
     }
 
     m_okButton->setEnabled(isValid);
+}
+
+bool FillVectorDialog::isValidFillRange() const
+{
+    bool startValid = false;
+    bool endValid = false;
+
+    int start = m_startRowEdit->text().toInt(&startValid);
+    int end = m_endRowEdit->text().toInt(&endValid);
+
+    return startValid && endValid && start >= 1 && end >= start;
+}
+
+bool FillVectorDialog::isMultipleOfPattern() const
+{
+    // 如果没有模式行，任何填充都是有效的
+    int patternRowCount = m_patternTableWidget->rowCount();
+    if (patternRowCount <= 0)
+    {
+        return true;
+    }
+
+    // 获取填充范围行数
+    bool startValid = false;
+    bool endValid = false;
+    int start = m_startRowEdit->text().toInt(&startValid);
+    int end = m_endRowEdit->text().toInt(&endValid);
+
+    if (!startValid || !endValid || start < 1 || end < start)
+    {
+        return false;
+    }
+
+    int fillRowCount = end - start + 1;
+
+    // 检查是否为模式行数的整数倍
+    return (fillRowCount % patternRowCount) == 0;
 }
 
 void FillVectorDialog::setVectorRowCount(int count)
@@ -189,6 +245,20 @@ void FillVectorDialog::setLabelList(const QList<QPair<QString, int>> &labels)
     }
 }
 
+void FillVectorDialog::setSelectedCellsData(const QList<QString> &values)
+{
+    // 清空表格
+    m_patternTableWidget->setRowCount(0);
+
+    // 添加每个值作为模式的一行
+    for (int i = 0; i < values.size(); ++i)
+    {
+        m_patternTableWidget->insertRow(i);
+        QTableWidgetItem *item = new QTableWidgetItem(values[i]);
+        m_patternTableWidget->setItem(i, 0, item);
+    }
+}
+
 void FillVectorDialog::onStartLabelSelected(int index)
 {
     if (index <= 0)
@@ -213,9 +283,22 @@ void FillVectorDialog::onEndLabelSelected(int index)
     validateInputs();
 }
 
-QString FillVectorDialog::getSelectedValue() const
+QList<QString> FillVectorDialog::getPatternValues() const
 {
-    return m_valueComboBox->currentText();
+    QList<QString> values;
+    for (int i = 0; i < m_patternTableWidget->rowCount(); ++i)
+    {
+        QTableWidgetItem *item = m_patternTableWidget->item(i, 0);
+        if (item)
+        {
+            values.append(item->text());
+        }
+        else
+        {
+            values.append(""); // 空白单元格
+        }
+    }
+    return values;
 }
 
 int FillVectorDialog::getStartRow() const

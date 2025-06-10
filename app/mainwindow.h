@@ -120,6 +120,7 @@ private slots:
     // 向量填充
     void showFillVectorDialog();
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
+    void fillVectorWithPattern(const QMap<int, QString> &rowValueMap);
 
     // 填充TimeSet
     void showFillTimeSetDialog();

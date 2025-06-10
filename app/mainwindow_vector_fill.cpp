@@ -51,18 +51,40 @@ void MainWindow::showFillVectorDialog()
     // 设置向量表总行数
     dialog.setVectorRowCount(rowCount);
 
+    // 获取选中单元格的值作为模式初始值
+    QList<QString> selectedValues;
+    int pageOffset = m_currentPage * m_pageSize; // 分页偏移
+
     // 找出最小和最大行号（1-based）
     int minRow = INT_MAX;
     int maxRow = 0;
-    int pageOffset = m_currentPage * m_pageSize; // 分页偏移
 
+    // 将选中的单元格按行号排序
+    QMap<int, QString> sortedValues;
     foreach (const QModelIndex &index, selectedIndexes)
     {
         int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
         minRow = qMin(minRow, rowIdx);
         maxRow = qMax(maxRow, rowIdx);
+
+        // 获取单元格值
+        QTableWidgetItem *item = m_vectorTableWidget->item(index.row(), index.column());
+        QString cellValue = item ? item->text() : "";
+
+        // 保存到排序map
+        sortedValues[rowIdx] = cellValue;
     }
 
+    // 按顺序添加到列表
+    for (auto it = sortedValues.begin(); it != sortedValues.end(); ++it)
+    {
+        selectedValues.append(it.value());
+    }
+
+    // 设置模式表格的初始数据
+    dialog.setSelectedCellsData(selectedValues);
+
+    // 设置范围
     if (minRow <= maxRow)
     {
         dialog.setSelectedRange(minRow, maxRow);
@@ -103,13 +125,14 @@ void MainWindow::showFillVectorDialog()
 
     if (dialog.exec() == QDialog::Accepted)
     {
-        QString value = dialog.getSelectedValue();
-        if (value.isEmpty())
+        // 获取循环填充模式
+        QList<QString> patternValues = dialog.getPatternValues();
+        if (patternValues.isEmpty())
         {
-            return; // 无效的填充值
+            QMessageBox::warning(this, "填充失败", "填充模式为空");
+            return;
         }
 
-        QList<int> rowsToUpdate;
         // 使用对话框中设置的范围
         int fromRow = dialog.getStartRow(); // 0-based
         int toRow = dialog.getEndRow();     // 0-based
@@ -121,36 +144,29 @@ void MainWindow::showFillVectorDialog()
             return;
         }
 
+        // 准备要更新的行和值的映射
+        QMap<int, QString> rowValueMap;
+        int patternSize = patternValues.size();
+
+        // 使用模式进行循环填充
         for (int i = fromRow; i <= toRow; ++i)
         {
-            rowsToUpdate.append(i);
+            int patternIndex = (i - fromRow) % patternSize;
+            rowValueMap[i] = patternValues[patternIndex];
         }
 
-        // 调用执行更新的函数
-        fillVectorForVectorTable(value, rowsToUpdate);
+        // 调用执行循环填充的函数
+        fillVectorWithPattern(rowValueMap);
     }
 }
 
-void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows)
+// 使用模式对向量表进行循环填充
+void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 {
-    qDebug() << "向量填充 - 开始填充过程";
+    qDebug() << "向量填充 - 开始模式循环填充过程";
 
-    // 输出选择的行信息
-    if (selectedUiRows.isEmpty())
-    {
-        qDebug() << "向量填充 - 用户未选择特定行，无法进行操作";
-        QMessageBox::warning(this, tr("警告"), tr("请选择要填充的行"));
-        return;
-    }
-    else
-    {
-        QStringList rowsList;
-        for (int row : selectedUiRows)
-        {
-            rowsList << QString::number(row);
-        }
-        qDebug() << "向量填充 - 用户选择了以下行：" << rowsList.join(", ");
-    }
+    // 输出填充信息
+    qDebug() << "向量填充 - 填充行数: " << rowValueMap.size();
 
     // 获取当前选择的向量表
     int currentIndex = m_vectorTableSelector->currentIndex();
@@ -283,110 +299,138 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
             columns.append(col);
         }
 
-        if (columns.isEmpty())
-        {
-            qDebug() << "向量填充 - 未找到列配置";
-            throw std::runtime_error("未找到列配置，无法进行填充操作");
-        }
-
-        // 5. 确定UI列对应的实际数据库列
-        if (targetColumn >= columns.size())
-        {
-            qDebug() << "向量填充 - 选中的列索引超出范围:" << targetColumn;
-            throw std::runtime_error("选中的列索引超出范围，无法进行填充操作");
-        }
-
-        Vector::ColumnInfo &targetColumnInfo = columns[targetColumn];
-        qDebug() << "向量填充 - 目标列信息:" << targetColumnInfo.name << ", 类型:" << static_cast<int>(targetColumnInfo.type);
-
-        // 6. 对所选行执行填充操作
+        // 5. 打开二进制文件进行操作
         QFile file(absoluteBinFilePath);
         if (!file.open(QIODevice::ReadWrite))
         {
-            qDebug() << "向量填充 - 无法打开二进制文件:" << absoluteBinFilePath;
+            qWarning() << "向量填充 - 无法打开二进制文件:" << absoluteBinFilePath;
             throw std::runtime_error(("无法打开二进制文件: " + absoluteBinFilePath).toStdString());
         }
 
-        BinaryFileHeader header;
-        if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+        // 记录UI表头列名和实际二进制文件列之间的映射关系
+        int targetBinaryColumn = -1;
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
+        QString headerText = headerItem ? headerItem->text() : "";
+        QString targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
+
+        qDebug() << "向量填充 - 目标列名 (处理后):" << targetColumnName;
+
+        for (int i = 0; i < columns.size(); i++)
         {
-            file.close();
-            qDebug() << "向量填充 - 读取二进制文件头失败:" << absoluteBinFilePath;
-            throw std::runtime_error("读取二进制文件头失败");
+            if (columns[i].name == targetColumnName)
+            {
+                targetBinaryColumn = i;
+                break;
+            }
         }
 
-        // 获取所有行数据
+        if (targetBinaryColumn < 0)
+        {
+            qWarning() << "向量填充 - 找不到对应列:" << targetColumnName << "(原始列头: " << headerText << ")";
+            throw std::runtime_error(("找不到对应列: " + targetColumnName).toStdString());
+        }
+
+        // 6. 循环读取和修改每一行
         QList<Vector::RowData> allRows;
-        file.close(); // 先关闭文件
-
-        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, header.data_schema_version, allRows))
+        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, 1, allRows))
         {
-            qDebug() << "向量填充 - 读取二进制文件数据失败:" << absoluteBinFilePath;
-            throw std::runtime_error("读取二进制文件数据失败");
+            qWarning() << "向量填充 - 读取二进制数据失败";
+            throw std::runtime_error("读取二进制数据失败");
         }
 
-        // 修改指定行数据
-        QMap<int, Vector::RowData> modifiedRowsMap;
-
-        foreach (int rowIndex, selectedUiRows)
+        // 对每一个需要更新的行，应用模式值
+        QMap<int, QString>::const_iterator it;
+        for (it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
         {
-            if (rowIndex >= 0 && rowIndex < allRows.size())
+            int rowIdx = it.key();
+            QString value = it.value();
+
+            // 确保行索引有效
+            if (rowIdx >= 0 && rowIdx < allRows.size())
             {
-                Vector::RowData row = allRows[rowIndex];
-                if (targetColumn < row.size())
+                // 修改数据
+                QVariant newValue(value);
+
+                // 确保列索引有效
+                if (targetBinaryColumn < allRows[rowIdx].size())
                 {
-                    row[targetColumn] = value;
-                    modifiedRowsMap[rowIndex] = row;
+                    // 更新数据
+                    allRows[rowIdx][targetBinaryColumn] = newValue;
+                    qDebug() << "向量填充 - 设置行" << rowIdx << "列" << targetBinaryColumn << "的值为" << value;
                 }
+                else
+                {
+                    qWarning() << "向量填充 - 列索引超出范围:" << targetBinaryColumn;
+                }
+            }
+            else
+            {
+                qWarning() << "向量填充 - 行索引超出范围:" << rowIdx;
             }
         }
 
-        // 保存修改的行数据
-        if (!modifiedRowsMap.isEmpty())
+        // 回写到二进制文件
+        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, 1, allRows))
         {
-            bool success = Persistence::BinaryFileHelper::updateRowsInBinary(
-                absoluteBinFilePath, columns, header.data_schema_version, modifiedRowsMap);
-
-            if (!success)
-            {
-                qDebug() << "向量填充 - 更新二进制文件失败，尝试全部重写";
-                // 如果增量更新失败，尝试全量重写
-                for (const auto &entry : modifiedRowsMap.toStdMap())
-                {
-                    int idx = entry.first;
-                    if (idx >= 0 && idx < allRows.size())
-                    {
-                        allRows[idx] = entry.second;
-                    }
-                }
-
-                success = Persistence::BinaryFileHelper::writeAllRowsToBinary(
-                    absoluteBinFilePath, columns, header.data_schema_version, allRows);
-
-                if (!success)
-                {
-                    throw std::runtime_error("向量填充 - 写入二进制文件失败");
-                }
-            }
+            qWarning() << "向量填充 - 写入二进制数据失败";
+            throw std::runtime_error("写入二进制数据失败");
         }
 
         // 提交事务
         db.commit();
 
-        // 刷新UI
-        refreshVectorTableData();
+        // 刷新表格显示
+        int currentPage = m_currentPage;
+        bool refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, currentPage, m_pageSize);
+        if (!refreshSuccess)
+        {
+            qWarning() << "向量填充 - 刷新表格数据失败";
+        }
 
-        // 显示成功消息
-        QMessageBox::information(this, tr("操作成功"), tr("向量填充操作已完成"));
+        // 选中原来的行
+        for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
+        {
+            int rowIdx = it.key();
+            // 检查行是否在当前页面
+            int pageSize = m_pageSize;
+            int pageOffset = currentPage * pageSize;
+
+            if (rowIdx >= pageOffset && rowIdx < pageOffset + pageSize)
+            {
+                // 将数据库索引转换为UI表格索引
+                int uiRowIdx = rowIdx - pageOffset;
+                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
+                {
+                    // 选中行和列
+                    QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
+                    m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
+                }
+            }
+        }
+
+        QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
         qDebug() << "向量填充 - 操作成功完成";
     }
     catch (const std::exception &e)
     {
         // 回滚事务
         db.rollback();
-
-        // 显示错误消息
         QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
-        qDebug() << "向量填充 - 操作失败:" << e.what();
+        qDebug() << "向量填充 - 异常:" << e.what();
     }
+}
+
+void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows)
+{
+    qDebug() << "向量填充 - 开始填充过程 (单值填充方法)";
+
+    // 创建行-值映射
+    QMap<int, QString> rowValueMap;
+    foreach (int row, selectedUiRows)
+    {
+        rowValueMap[row] = value;
+    }
+
+    // 调用新的模式填充方法
+    fillVectorWithPattern(rowValueMap);
 }

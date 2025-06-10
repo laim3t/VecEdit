@@ -325,6 +325,15 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qpair.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemview.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
  C:/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
@@ -347,7 +356,6 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qtextstream.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
@@ -357,4 +365,6 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qmessagebox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QIntValidator \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qheaderview.h

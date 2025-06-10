@@ -10598,6 +10598,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
@@ -10627,6 +10628,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qhashfunctions.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qiterator.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qline.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
@@ -10710,14 +10712,19 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialogButtonBox \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QFormLayout \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QMessageBox \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemview.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qboxlayout.h \
@@ -10727,6 +10734,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qformlayout.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgridlayout.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qheaderview.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlabel.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayout.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayoutitem.h \
@@ -10739,6 +10747,8 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabwidget.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \

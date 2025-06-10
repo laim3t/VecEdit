@@ -11,6 +11,8 @@
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QList>
+#include <QPair>
+#include <QTableWidget>
 
 class FillVectorDialog : public QDialog
 {
@@ -29,8 +31,11 @@ public:
     // 设置标签列表
     void setLabelList(const QList<QPair<QString, int>> &labels);
 
+    // 设置选中的单元格数据（用于初始化模式表格）
+    void setSelectedCellsData(const QList<QString> &values);
+
     // 获取用户选择的数据
-    QString getSelectedValue() const;
+    QList<QString> getPatternValues() const; // 获取模式值列表
     int getStartRow() const;
     int getEndRow() const;
 
@@ -41,8 +46,10 @@ private slots:
 
 private:
     void setupUI();
+    bool isValidFillRange() const;    // 检查填充范围是否合法
+    bool isMultipleOfPattern() const; // 检查是否为模式行数的整数倍
 
-    QComboBox *m_valueComboBox;
+    QComboBox *m_valueComboBox; // 单值填充选择（保留原功能）
     QLineEdit *m_startRowEdit;
     QLineEdit *m_endRowEdit;
     QComboBox *m_startLabelCombo;
@@ -52,6 +59,7 @@ private:
     QPushButton *m_okButton;
     QPushButton *m_cancelButton;
     QDialogButtonBox *m_buttonBox;
+    QTableWidget *m_patternTableWidget; // 模式编辑表格
 
     int m_vectorRowCount;
     QList<QPair<QString, int>> m_labels; // 标签名称和对应行号

@@ -471,13 +471,14 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qguiapplication.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qinputmethod.h \
  C:/VecEdit/vector/vectordatahandler.h \
- C:/VecEdit/vector/fillvectordialog.h C:/VecEdit/common/dialogmanager.h \
+ C:/VecEdit/vector/fillvectordialog.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qpair.h \
+ C:/VecEdit/common/dialogmanager.h \
  C:/VecEdit/pin/vectorpinsettingsdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QCheckBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcheckbox.h \
  C:/VecEdit/pin/pinsettingsdialog.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qpair.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QScrollBar \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qscrollbar.h \
  C:/VecEdit/vector/deleterangevectordialog.h \
