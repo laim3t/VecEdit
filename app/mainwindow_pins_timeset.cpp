@@ -1396,11 +1396,14 @@ void MainWindow::deletePins()
     for (int pinId : pinIdsToDelete)
     {
         // 根据新的 schema, 检查 VectorTableColumnConfiguration, 仅当管脚可见时才视为"正在使用"
+        // 修复：同时检查 'pin_id' 和 'pin_list_id'，以兼容新旧两种数据格式
         findUsageQuery.prepare(
             "SELECT m.table_name "
             "FROM VectorTableColumnConfiguration c "
             "JOIN VectorTableMasterRecord m ON c.master_record_id = m.id "
-            "WHERE c.column_type = 'PIN_STATE_ID' AND json_extract(c.data_properties, '$.pin_list_id') = ? AND c.IsVisible = 1");
+            "WHERE c.column_type = 'PIN_STATE_ID' AND c.IsVisible = 1 AND "
+            "(json_extract(c.data_properties, '$.pin_list_id') = ? OR json_extract(c.data_properties, '$.pin_id') = ?)");
+        findUsageQuery.addBindValue(pinId);
         findUsageQuery.addBindValue(pinId);
 
         if (findUsageQuery.exec())
@@ -1448,9 +1451,20 @@ void MainWindow::deletePins()
 
     try
     {
+        QSqlQuery updateQuery(db);
         QSqlQuery deleteQuery(db);
+
         for (int pinId : pinIdsToDelete)
         {
+            // 在删除管脚之前，更新所有使用该管脚的列，将它们设置为不可见
+            updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET IsVisible = 0 WHERE column_type = 'PIN_STATE_ID' AND json_extract(data_properties, '$.pin_list_id') = ?");
+            updateQuery.addBindValue(pinId);
+            if (!updateQuery.exec())
+            {
+                throw QString("无法将管脚列标记为不可见: " + updateQuery.lastError().text());
+            }
+            qDebug() << "Pin Deletion - Marked columns for pinId" << pinId << "as not visible.";
+
             // 注意: 这里的删除逻辑需要非常完整，确保所有关联数据都被清除
             // 1. 从 timeset_settings 删除
             deleteQuery.prepare("DELETE FROM timeset_settings WHERE pin_id = ?");
