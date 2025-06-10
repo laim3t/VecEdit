@@ -369,4 +369,8 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QIntValidator \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qheaderview.h
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qheaderview.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QSet \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QToolTip \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtooltip.h

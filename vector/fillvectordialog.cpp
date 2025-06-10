@@ -5,6 +5,10 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QHeaderView>
+#include <QPushButton>
+#include <QSet>
+#include <QToolTip>
+#include <algorithm>
 
 FillVectorDialog::FillVectorDialog(QWidget *parent)
     : QDialog(parent), m_vectorRowCount(0)
@@ -34,6 +38,12 @@ FillVectorDialog::FillVectorDialog(QWidget *parent)
 
     // 添加模式表格变化的信号连接
     connect(m_patternTableWidget, &QTableWidget::itemChanged, this, &FillVectorDialog::validateInputs);
+
+    // 设置固定大小
+    setFixedSize(400, 400);
+
+    // 初始化表格
+    initializeTable();
 }
 
 FillVectorDialog::~FillVectorDialog()
@@ -97,6 +107,10 @@ void FillVectorDialog::setupUI()
     tipLabel->setStyleSheet("color: red;"); // 设置为红色以突出显示
     mainLayout->addWidget(tipLabel);
 
+    // 创建表格和按钮的水平布局
+    QHBoxLayout *tableButtonsLayout = new QHBoxLayout();
+
+    // 创建表格
     m_patternTableWidget = new QTableWidget(0, 1, this);
     m_patternTableWidget->setHorizontalHeaderLabels(QStringList() << tr("值"));
     m_patternTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -104,7 +118,31 @@ void FillVectorDialog::setupUI()
     m_patternTableWidget->setToolTip("输入提示：0,1,L,H,X,S,V,M；默认：X (小写字母会自动转换为大写)");
     // 设置交替行的颜色，增强可读性
     m_patternTableWidget->setAlternatingRowColors(true);
-    mainLayout->addWidget(m_patternTableWidget);
+    tableButtonsLayout->addWidget(m_patternTableWidget, 1); // 表格占用更多空间
+
+    // 创建按钮的垂直布局
+    QVBoxLayout *buttonsLayout = new QVBoxLayout();
+
+    // 创建添加行按钮
+    QPushButton *addRowButton = new QPushButton("+", this);
+    addRowButton->setToolTip(tr("添加行"));
+    addRowButton->setStyleSheet("QPushButton { color: green; font-weight: bold; min-width: 25px; min-height: 25px; max-width: 25px; max-height: 25px; border-radius: 12px; }");
+    buttonsLayout->addWidget(addRowButton);
+
+    // 创建删除行按钮
+    QPushButton *deleteRowButton = new QPushButton("×", this);
+    deleteRowButton->setToolTip(tr("删除选中行"));
+    deleteRowButton->setStyleSheet("QPushButton { color: red; font-weight: bold; min-width: 25px; min-height: 25px; max-width: 25px; max-height: 25px; border-radius: 12px; }");
+    buttonsLayout->addWidget(deleteRowButton);
+
+    // 添加弹簧，使按钮靠近顶部
+    buttonsLayout->addStretch();
+
+    // 将按钮布局添加到表格按钮布局
+    tableButtonsLayout->addLayout(buttonsLayout);
+
+    // 将表格按钮布局添加到主布局
+    mainLayout->addLayout(tableButtonsLayout);
 
     // 创建按钮
     m_buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -132,20 +170,23 @@ void FillVectorDialog::setupUI()
         } });
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-    // 设置固定大小
-    setFixedSize(400, 450);
+    // 连接按钮信号
+    connect(addRowButton, &QPushButton::clicked, this, &FillVectorDialog::addPatternRow);
+    connect(deleteRowButton, &QPushButton::clicked, this, &FillVectorDialog::deleteSelectedRows);
 }
 
 void FillVectorDialog::validateInputs()
 {
-    bool startValid = false;
-    bool endValid = false;
+    bool isValid = true;
+    QString errorMsg;
 
-    int start = m_startRowEdit->text().toInt(&startValid);
-    int end = m_endRowEdit->text().toInt(&endValid);
+    // 检查起始行和结束行输入是否为有效数字
+    bool startOk = false, endOk = false;
+    int start = m_startRowEdit->text().toInt(&startOk);
+    int end = m_endRowEdit->text().toInt(&endOk);
 
     // 更新执行行数
-    if (startValid && endValid && end >= start)
+    if (startOk && endOk && end >= start)
     {
         int fillRowCount = end - start + 1;
         m_executedRowCountLabel->setText(QString::number(fillRowCount));
@@ -159,6 +200,8 @@ void FillVectorDialog::validateInputs()
             {
                 m_executedRowCountLabel->setStyleSheet("background-color: #FFEEEE; color: red;");
                 m_executedRowCountLabel->setToolTip(tr("填充行数应为模式行数的整数倍"));
+                isValid = false;
+                errorMsg = tr("填充范围必须是模式行数的整数倍");
             }
             else
             {
@@ -174,13 +217,28 @@ void FillVectorDialog::validateInputs()
         m_executedRowCountLabel->setToolTip("");
     }
 
-    // 验证用户输入的值（1-based）
-    bool isValid = startValid && endValid &&
-                   start >= 1 && end >= start;
-
-    // 如果行数超过向量表的行数，显示警告但不禁用确定按钮
-    if (m_vectorRowCount > 0 && end > m_vectorRowCount)
+    // 验证基本输入有效性
+    if (!startOk || start < 0)
     {
+        isValid = false;
+        errorMsg = tr("起始行必须是一个有效的非负整数");
+        m_startRowEdit->setStyleSheet("background-color: #FFEEEE;");
+    }
+    else
+    {
+        m_startRowEdit->setStyleSheet("");
+    }
+
+    if (!endOk || end < 0)
+    {
+        isValid = false;
+        errorMsg = tr("结束行必须是一个有效的非负整数");
+        m_endRowEdit->setStyleSheet("background-color: #FFEEEE;");
+    }
+    else if (start > end)
+    {
+        isValid = false;
+        errorMsg = tr("起始行不能大于结束行");
         m_endRowEdit->setStyleSheet("background-color: #FFEEEE;");
     }
     else
@@ -188,7 +246,30 @@ void FillVectorDialog::validateInputs()
         m_endRowEdit->setStyleSheet("");
     }
 
-    m_okButton->setEnabled(isValid);
+    // 如果行数超过向量表的行数，显示警告但不禁用确定按钮
+    if (m_vectorRowCount > 0 && end > m_vectorRowCount)
+    {
+        m_endRowEdit->setStyleSheet("background-color: #FFEEEE;");
+    }
+
+    // 检查是否存在填充模式
+    if (isValid && m_patternTableWidget->rowCount() == 0)
+    {
+        isValid = false;
+        errorMsg = tr("请至少添加一行填充模式");
+    }
+
+    // 启用或禁用确认按钮
+    m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(isValid);
+
+    // 更新提示信息
+    if (!isValid && !errorMsg.isEmpty())
+    {
+        QToolTip::showText(
+            m_buttonBox->button(QDialogButtonBox::Ok)->mapToGlobal(QPoint(0, -30)),
+            errorMsg,
+            this);
+    }
 }
 
 bool FillVectorDialog::isValidFillRange() const
@@ -204,40 +285,12 @@ bool FillVectorDialog::isValidFillRange() const
 
 bool FillVectorDialog::isMultipleOfPattern() const
 {
-    // 如果没有模式行，任何填充都是有效的
     int patternRowCount = m_patternTableWidget->rowCount();
-    if (patternRowCount <= 0)
-    {
-        return true;
-    }
+    if (patternRowCount == 0)
+        return false; // 防止除以零错误
 
-    // 获取填充范围行数
-    bool startValid = false;
-    bool endValid = false;
-    int start = m_startRowEdit->text().toInt(&startValid);
-    int end = m_endRowEdit->text().toInt(&endValid);
-
-    if (!startValid || !endValid || start < 1 || end < start)
-    {
-        return false;
-    }
-
-    int fillRowCount = end - start + 1;
-
-    // 检查是否为模式行数的整数倍
-    bool isMultiple = (fillRowCount % patternRowCount) == 0;
-
-    // 更新执行行数的显示样式，如果不是整数倍则显示为红色
-    if (!isMultiple)
-    {
-        m_executedRowCountLabel->setStyleSheet("background-color: #FFEEEE; color: red;");
-    }
-    else
-    {
-        m_executedRowCountLabel->setStyleSheet("background-color: #f0f0f0;");
-    }
-
-    return isMultiple;
+    int fillRowCount = m_endRowEdit->text().toInt() - m_startRowEdit->text().toInt() + 1;
+    return (fillRowCount % patternRowCount) == 0;
 }
 
 void FillVectorDialog::setVectorRowCount(int count)
@@ -389,4 +442,100 @@ int FillVectorDialog::getEndRow() const
 {
     // 将用户输入的行号（1-based）转换为数据库索引（0-based）
     return m_endRowEdit->text().toInt() - 1;
+}
+
+void FillVectorDialog::addPatternRow()
+{
+    int newRow = m_patternTableWidget->rowCount();
+    m_patternTableWidget->insertRow(newRow);
+
+    // 创建新的单元格项
+    QTableWidgetItem *item = new QTableWidgetItem("X");
+    item->setTextAlignment(Qt::AlignCenter);
+    m_patternTableWidget->setItem(newRow, 0, item);
+
+    // 选中新添加的行
+    m_patternTableWidget->selectRow(newRow);
+
+    // 验证输入
+    validateInputs();
+}
+
+void FillVectorDialog::deleteSelectedRows()
+{
+    QList<QTableWidgetItem *> selectedItems = m_patternTableWidget->selectedItems();
+
+    // 如果没有选中项，或者表格为空，则返回
+    if (selectedItems.isEmpty() || m_patternTableWidget->rowCount() == 0)
+    {
+        return;
+    }
+
+    // 获取所有选中的行（去重）
+    QSet<int> selectedRows;
+    for (QTableWidgetItem *item : selectedItems)
+    {
+        selectedRows.insert(item->row());
+    }
+
+    // 如果要删除全部行且只有一行，保留一行但清空内容
+    if (selectedRows.size() == m_patternTableWidget->rowCount() && m_patternTableWidget->rowCount() == 1)
+    {
+        m_patternTableWidget->item(0, 0)->setText("X");
+        return;
+    }
+
+    // 从后往前删除行（避免索引变化问题）
+    QList<int> rowsToDelete = selectedRows.values();
+    std::sort(rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>());
+
+    for (int row : rowsToDelete)
+    {
+        m_patternTableWidget->removeRow(row);
+    }
+
+    // 如果删除后表格为空，则添加一个默认行
+    if (m_patternTableWidget->rowCount() == 0)
+    {
+        addPatternRow();
+    }
+
+    // 验证输入
+    validateInputs();
+}
+
+// 初始化表格和验证逻辑
+void FillVectorDialog::initializeTable()
+{
+    // 添加第一行默认值
+    addPatternRow();
+
+    // 为表格单元格添加修改监听
+    connect(m_patternTableWidget, &QTableWidget::cellChanged, this, [this](int row, int column)
+            {
+        // 获取用户输入
+        QTableWidgetItem *item = m_patternTableWidget->item(row, column);
+        if (!item) return;
+        
+        QString text = item->text().trimmed().toUpper(); // 转换为大写
+        
+        // 验证输入是否为有效的向量值
+        QRegExp validChars("[01LHXSVM]");
+        if (text.isEmpty() || !validChars.exactMatch(text.at(0))) {
+            // 无效输入，设置为默认值"X"
+            text = "X";
+        } else {
+            // 只保留第一个字符，并转为大写
+            text = text.at(0).toUpper();
+        }
+        
+        // 设置处理后的文本，避免触发cellChanged事件的递归
+        if (text != item->text()) {
+            m_patternTableWidget->blockSignals(true);
+            item->setText(text);
+            m_patternTableWidget->blockSignals(false);
+        }
+        
+        // 调用验证方法
+        validateInputs(); });
 }

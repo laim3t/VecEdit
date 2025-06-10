@@ -125,6 +125,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
 
         QList<Vector::ColumnInfo> columns;
         int timeSetColumnIndex = -1; // 用于标记TimeSet列的索引
+        int instructionIdColumnIndex = -1;
 
         while (colQuery.next())
         {
@@ -157,11 +158,14 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             else if (colInfo.original_type_str == "BOOLEAN")
                 colInfo.type = Vector::ColumnDataType::BOOLEAN;
             else if (colInfo.original_type_str == "INSTRUCTION_ID")
+            {
                 colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+                instructionIdColumnIndex = columns.size();
+            }
             else if (colInfo.original_type_str == "TIMESET_ID")
             {
                 colInfo.type = Vector::ColumnDataType::TIMESET_ID;
-                timeSetColumnIndex = columns.size(); // 记录TimeSet列的索引
+                timeSetColumnIndex = columns.size();
             }
             else if (colInfo.original_type_str == "PIN_STATE_ID")
                 colInfo.type = Vector::ColumnDataType::PIN_STATE_ID;
@@ -228,6 +232,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             // 重新解析列定义
             columns.clear();
             timeSetColumnIndex = -1;
+            instructionIdColumnIndex = -1;
 
             while (colQuery.next())
             {
@@ -259,11 +264,14 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
                 else if (colInfo.original_type_str == "BOOLEAN")
                     colInfo.type = Vector::ColumnDataType::BOOLEAN;
                 else if (colInfo.original_type_str == "INSTRUCTION_ID")
+                {
                     colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+                    instructionIdColumnIndex = columns.size();
+                }
                 else if (colInfo.original_type_str == "TIMESET_ID")
                 {
                     colInfo.type = Vector::ColumnDataType::TIMESET_ID;
-                    timeSetColumnIndex = columns.size(); // 记录TimeSet列的索引
+                    timeSetColumnIndex = columns.size();
                 }
                 else if (colInfo.original_type_str == "PIN_STATE_ID")
                     colInfo.type = Vector::ColumnDataType::PIN_STATE_ID;
@@ -375,6 +383,38 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
                 allRowIds.append(idQuery.value(0).toInt());
             }
             qDebug() << "填充TimeSet - 数据库中共有" << allRowIds.size() << "行";
+
+            if (allRows.size() > allRowIds.size())
+            {
+                qWarning() << "数据不一致：二进制文件有" << allRows.size() << "行，但数据库只有" << allRowIds.size() << "行。将补全缺失的数据库记录。";
+                QSqlQuery insertQuery(db);
+                insertQuery.prepare("INSERT INTO vector_table_data (table_id, sort_index, timeset_id, instruction_id, comment, label) "
+                                    "VALUES (?, ?, ?, ?, '', '')");
+
+                int existingRows = allRowIds.size();
+                for (int i = existingRows; i < allRows.size(); ++i)
+                {
+                    // 确保行数据存在且TimeSet/Instruction列索引有效
+                    if (i < allRows.size() && timeSetColumnIndex >= 0 && timeSetColumnIndex < allRows[i].size() && instructionIdColumnIndex >= 0 && instructionIdColumnIndex < allRows[i].size())
+                    {
+                        insertQuery.bindValue(0, tableId);
+                        insertQuery.bindValue(1, i); // sort_index
+                        insertQuery.bindValue(2, allRows[i][timeSetColumnIndex].toInt());
+                        insertQuery.bindValue(3, allRows[i][instructionIdColumnIndex].toInt());
+
+                        if (!insertQuery.exec())
+                        {
+                            throw std::runtime_error(("补全数据库行失败: " + insertQuery.lastError().text()).toStdString());
+                        }
+                        allRowIds.append(insertQuery.lastInsertId().toInt());
+                    }
+                    else
+                    {
+                        qWarning() << "跳过为行" << i << "补全数据库记录，因为数据格式无效或缺少必要的列(TimeSet/Instruction)。";
+                    }
+                }
+                qDebug() << "成功补全" << (allRowIds.size() - existingRows) << "行数据库记录。";
+            }
 
             // 2. 根据选中的UI行索引，找到对应的数据库ID
             foreach (int uiRow, selectedUiRows)
@@ -669,6 +709,7 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
 
         QList<Vector::ColumnInfo> columns;
         int timeSetColumnIndex = -1; // 用于标记TimeSet列的索引
+        int instructionIdColumnIndex = -1;
 
         while (colQuery.next())
         {
@@ -701,7 +742,10 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             else if (colInfo.original_type_str == "BOOLEAN")
                 colInfo.type = Vector::ColumnDataType::BOOLEAN;
             else if (colInfo.original_type_str == "INSTRUCTION_ID")
+            {
                 colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+                instructionIdColumnIndex = columns.size();
+            }
             else if (colInfo.original_type_str == "TIMESET_ID")
             {
                 colInfo.type = Vector::ColumnDataType::TIMESET_ID;
@@ -772,6 +816,7 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             // 重新解析列定义
             columns.clear();
             timeSetColumnIndex = -1;
+            instructionIdColumnIndex = -1;
 
             while (colQuery.next())
             {
@@ -803,7 +848,10 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
                 else if (colInfo.original_type_str == "BOOLEAN")
                     colInfo.type = Vector::ColumnDataType::BOOLEAN;
                 else if (colInfo.original_type_str == "INSTRUCTION_ID")
+                {
                     colInfo.type = Vector::ColumnDataType::INSTRUCTION_ID;
+                    instructionIdColumnIndex = columns.size();
+                }
                 else if (colInfo.original_type_str == "TIMESET_ID")
                 {
                     colInfo.type = Vector::ColumnDataType::TIMESET_ID;
@@ -1034,6 +1082,91 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
 
         qDebug() << "替换TimeSet - 已成功写入二进制文件:" << absoluteBinFilePath;
 
+        // 8. 更新数据库中的TimeSet元数据
+        qDebug() << "替换TimeSet - 开始更新数据库元数据...";
+        QList<int> allRowIds;
+        QSqlQuery idQuery(db);
+        QString idSql = QString("SELECT id FROM vector_table_data WHERE table_id = %1 ORDER BY sort_index").arg(tableId);
+        if (!idQuery.exec(idSql))
+        {
+            throw std::runtime_error(("查询行ID失败: " + idQuery.lastError().text()).toStdString());
+        }
+        while (idQuery.next())
+        {
+            allRowIds.append(idQuery.value(0).toInt());
+        }
+
+        // 自动修复：检查并补全缺失的数据库行
+        if (allRows.size() > allRowIds.size())
+        {
+            qWarning() << "数据不一致：二进制文件有" << allRows.size() << "行，但数据库只有" << allRowIds.size() << "行。将补全缺失的数据库记录。";
+            QSqlQuery insertQuery(db);
+            insertQuery.prepare("INSERT INTO vector_table_data (table_id, sort_index, timeset_id, instruction_id, comment, label) "
+                                "VALUES (?, ?, ?, ?, '', '')");
+            int existingRows = allRowIds.size();
+            for (int i = existingRows; i < allRows.size(); ++i)
+            {
+                if (i < allRows.size() && timeSetColumnIndex >= 0 && timeSetColumnIndex < allRows[i].size() && instructionIdColumnIndex >= 0 && instructionIdColumnIndex < allRows[i].size())
+                {
+                    insertQuery.bindValue(0, tableId);
+                    insertQuery.bindValue(1, i);
+                    insertQuery.bindValue(2, allRows[i][timeSetColumnIndex].toInt());
+                    insertQuery.bindValue(3, allRows[i][instructionIdColumnIndex].toInt());
+                    if (!insertQuery.exec())
+                    {
+                        throw std::runtime_error(("补全数据库行失败: " + insertQuery.lastError().text()).toStdString());
+                    }
+                    allRowIds.append(insertQuery.lastInsertId().toInt());
+                }
+                else
+                {
+                    qWarning() << "跳过为行" << i << "补全数据库记录，因为数据格式无效或缺少必要的列(TimeSet/Instruction)。";
+                }
+            }
+            qDebug() << "成功补全" << (allRowIds.size() - existingRows) << "行数据库记录。";
+        }
+
+        // 更新现有行的TimeSet ID
+        QSqlQuery updateQuery(db);
+        updateQuery.prepare("UPDATE vector_table_data SET timeset_id = ? WHERE id = ?");
+        int dbUpdatedCount = 0;
+        for (int i = 0; i < allRows.size(); ++i)
+        {
+            if (i >= allRowIds.size() || i >= allRows.size())
+                continue;
+
+            bool wasProcessed = false;
+            if (selectedUiRows.isEmpty())
+            {
+                wasProcessed = true; // Process all if no selection
+            }
+            else
+            {
+                wasProcessed = selectedUiRows.contains(i);
+            }
+
+            // 只更新被替换的行
+            if (wasProcessed)
+            {
+                int currentDbId = allRowIds[i];
+                int newTimeSetId = allRows[i][timeSetColumnIndex].toInt();
+                updateQuery.bindValue(0, newTimeSetId);
+                updateQuery.bindValue(1, currentDbId);
+                if (updateQuery.exec())
+                {
+                    if (updateQuery.numRowsAffected() > 0)
+                    {
+                        dbUpdatedCount++;
+                    }
+                }
+                else
+                {
+                    qWarning() << "更新数据库失败，行索引:" << i << ", DB ID:" << currentDbId << ", 错误:" << updateQuery.lastError().text();
+                }
+            }
+        }
+        qDebug() << "替换TimeSet - 数据库元数据更新完成，共更新" << dbUpdatedCount << "行。";
+
         // 提交事务
         if (!db.commit())
         {
@@ -1134,7 +1267,6 @@ void MainWindow::showReplaceTimeSetDialog()
     }
 }
 
-
 // 添加单个管脚
 void MainWindow::addSinglePin()
 {
@@ -1166,8 +1298,6 @@ void MainWindow::addSinglePin()
         }
     }
 }
-
-
 
 // 删除管脚
 void MainWindow::deletePins()

@@ -10599,6 +10599,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QSet \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
@@ -10721,6 +10722,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QToolTip \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h \
@@ -10752,6 +10754,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: C:/VecEdit/vector/fillve
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabwidget.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtooltip.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \

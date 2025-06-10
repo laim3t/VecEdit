@@ -84,11 +84,15 @@ private slots:
     void validateInputs();
     void onStartLabelSelected(int index);
     void onEndLabelSelected(int index);
+    void addPatternRow();
+    void deleteSelectedRows();
 
 private:
     void setupUI();
     bool isValidFillRange() const;    // 检查填充范围是否合法
     bool isMultipleOfPattern() const; // 检查是否为模式行数的整数倍
+    void initializeTable();
+    int startRow() const;
 
     QComboBox *m_valueComboBox; // 单值填充选择（保留原功能）
     QLineEdit *m_startRowEdit;
