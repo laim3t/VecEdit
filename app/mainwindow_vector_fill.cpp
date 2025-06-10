@@ -68,6 +68,39 @@ void MainWindow::showFillVectorDialog()
         dialog.setSelectedRange(minRow, maxRow);
     }
 
+    // 获取标签数据
+    QList<QPair<QString, int>> labelRows;
+
+    // 尝试找到Label列（通常是第一列）
+    int labelColumnIndex = -1;
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    {
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+        if (headerItem && (headerItem->text().toLower() == "label" || headerItem->text() == "标签"))
+        {
+            labelColumnIndex = col;
+            break;
+        }
+    }
+
+    // 如果找到了Label列，收集标签和对应的行号
+    if (labelColumnIndex >= 0)
+    {
+        for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
+        {
+            QTableWidgetItem *labelItem = m_vectorTableWidget->item(row, labelColumnIndex);
+            if (labelItem && !labelItem->text().trimmed().isEmpty())
+            {
+                // 将UI行号转换为绝对行号（1-based）
+                int absoluteRow = pageOffset + row + 1;
+                labelRows.append(QPair<QString, int>(labelItem->text().trimmed(), absoluteRow));
+            }
+        }
+    }
+
+    // 设置标签列表到对话框
+    dialog.setLabelList(labelRows);
+
     if (dialog.exec() == QDialog::Accepted)
     {
         QString value = dialog.getSelectedValue();

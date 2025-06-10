@@ -94,6 +94,7 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialogButtonBox \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QFormLayout \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \

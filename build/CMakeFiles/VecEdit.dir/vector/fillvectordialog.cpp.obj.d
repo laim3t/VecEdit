@@ -322,6 +322,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qformlayout.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLayout \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayout.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
  C:/VecEdit/database/databasemanager.h \

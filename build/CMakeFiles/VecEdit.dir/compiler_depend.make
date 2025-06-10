@@ -2135,6 +2135,7 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: C:/VecEdit/app/mainwindow.cpp \
   C:/VecEdit/app/mainwindow_pins_timeset.cpp \
   C:/VecEdit/app/mainwindow_project_tables.cpp \
   C:/VecEdit/app/mainwindow_setup.cpp \
+  C:/VecEdit/app/mainwindow_vector_fill.cpp \
   c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw.h \
   c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw_mac.h \
   c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw_off_t.h \
@@ -13154,6 +13155,8 @@ c:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_wsa_errnos.h:
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake:
+
+C:/VecEdit/app/mainwindow_vector_fill.cpp:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/locale.h:
 

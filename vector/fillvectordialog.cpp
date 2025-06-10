@@ -24,6 +24,8 @@ FillVectorDialog::FillVectorDialog(QWidget *parent)
     // 连接信号和槽
     connect(m_startRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);
     connect(m_endRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);
+    connect(m_startLabelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &FillVectorDialog::onStartLabelSelected);
+    connect(m_endLabelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &FillVectorDialog::onEndLabelSelected);
 }
 
 FillVectorDialog::~FillVectorDialog()
@@ -42,15 +44,25 @@ void FillVectorDialog::setupUI()
     m_valueComboBox = new QComboBox(this);
     formLayout->addRow(tr("填充值:"), m_valueComboBox);
 
-    // 从行输入框 (从1开始)
+    // 从行输入框组合布局 (从1开始)
+    QHBoxLayout *startRowLayout = new QHBoxLayout();
     m_startRowEdit = new QLineEdit(this);
     m_startRowEdit->setValidator(new QIntValidator(1, 9999, this));
-    formLayout->addRow(tr("从:"), m_startRowEdit);
+    m_startLabelCombo = new QComboBox(this);
+    m_startLabelCombo->addItem(tr("选择标签"));
+    startRowLayout->addWidget(m_startRowEdit);
+    startRowLayout->addWidget(m_startLabelCombo);
+    formLayout->addRow(tr("从:"), startRowLayout);
 
-    // 到行输入框 (从1开始)
+    // 到行输入框组合布局 (从1开始)
+    QHBoxLayout *endRowLayout = new QHBoxLayout();
     m_endRowEdit = new QLineEdit(this);
     m_endRowEdit->setValidator(new QIntValidator(1, 9999, this));
-    formLayout->addRow(tr("到:"), m_endRowEdit);
+    m_endLabelCombo = new QComboBox(this);
+    m_endLabelCombo->addItem(tr("选择标签"));
+    endRowLayout->addWidget(m_endRowEdit);
+    endRowLayout->addWidget(m_endLabelCombo);
+    formLayout->addRow(tr("到:"), endRowLayout);
 
     // 最大行数显示（只读）
     m_maxRowCountLabel = new QLineEdit(this);
@@ -82,7 +94,7 @@ void FillVectorDialog::setupUI()
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     // 设置固定大小
-    setFixedSize(300, 220);
+    setFixedSize(350, 250);
 }
 
 void FillVectorDialog::validateInputs()
@@ -152,6 +164,51 @@ void FillVectorDialog::setSelectedRange(int startRow, int endRow)
 
     // 行数保持显示向量表总行数，不随选中行数变化
     m_maxRowCountLabel->setText(QString::number(m_vectorRowCount));
+
+    validateInputs();
+}
+
+void FillVectorDialog::setLabelList(const QList<QPair<QString, int>> &labels)
+{
+    m_labels = labels;
+
+    // 先清除旧数据
+    m_startLabelCombo->clear();
+    m_endLabelCombo->clear();
+
+    // 添加初始选项
+    m_startLabelCombo->addItem(tr("选择标签"));
+    m_endLabelCombo->addItem(tr("选择标签"));
+
+    // 填充标签下拉框
+    for (const auto &label : m_labels)
+    {
+        QString displayText = QString("%1").arg(label.first);
+        m_startLabelCombo->addItem(displayText, label.second);
+        m_endLabelCombo->addItem(displayText, label.second);
+    }
+}
+
+void FillVectorDialog::onStartLabelSelected(int index)
+{
+    if (index <= 0)
+        return; // 忽略第一个"选择标签"项或无效项
+
+    // 获取行号并填入输入框
+    int row = m_startLabelCombo->itemData(index).toInt();
+    m_startRowEdit->setText(QString::number(row));
+
+    validateInputs();
+}
+
+void FillVectorDialog::onEndLabelSelected(int index)
+{
+    if (index <= 0)
+        return; // 忽略第一个"选择标签"项或无效项
+
+    // 获取行号并填入输入框
+    int row = m_endLabelCombo->itemData(index).toInt();
+    m_endRowEdit->setText(QString::number(row));
 
     validateInputs();
 }
