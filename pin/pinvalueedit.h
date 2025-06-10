@@ -13,7 +13,7 @@ public:
     {
         setMaxLength(1);               // 限制输入一个字符
         setAlignment(Qt::AlignCenter); // 文本居中显示
-        setToolTip("输入提示：0,1,L,l,H,h,X,x,；默认：X");
+        setToolTip("输入提示：0,1,L,l,H,h,X,x,S,s,V,v,M,m；默认：X");
 
         // 设置样式以匹配标准表格单元格
         setStyleSheet("QLineEdit { border: none; }");
@@ -31,7 +31,7 @@ protected slots:
         if (text.isEmpty())
             return;
 
-        QString validChars = "01LlHhXx";
+        QString validChars = "01LlHhXxSsVvMm";
         QChar ch = text[0];
 
         // 检查是否为有效字符
@@ -42,7 +42,7 @@ protected slots:
         }
 
         // 将小写字母转换为大写
-        if (ch == 'l' || ch == 'h' || ch == 'x')
+        if (ch == 'l' || ch == 'h' || ch == 'x' || ch == 's' || ch == 'v' || ch == 'm')
         {
             blockSignals(true); // 阻止再次触发textChanged信号
             setText(text.toUpper());

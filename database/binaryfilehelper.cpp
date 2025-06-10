@@ -341,7 +341,8 @@ namespace Persistence
                 {
                     pinValue = val.toString().left(1).toUpper(); // 只取第一个字符并转为大写
                     // 验证是否为有效的管脚状态
-                    if (pinValue != "0" && pinValue != "1" && pinValue != "X" && pinValue != "L" && pinValue != "H" && pinValue != "Z")
+                    if (pinValue != "0" && pinValue != "1" && pinValue != "X" && pinValue != "L" &&
+                        pinValue != "H" && pinValue != "S" && pinValue != "V" && pinValue != "M")
                     {
                         pinValue = "X"; // 无效的状态使用X
                         // 移除循环中的日志
