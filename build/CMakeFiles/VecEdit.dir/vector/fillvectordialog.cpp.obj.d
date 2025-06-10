@@ -334,6 +334,12 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qtextstream.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h \
  C:/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
@@ -353,10 +359,6 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfileinfo.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfile.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qtextstream.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \

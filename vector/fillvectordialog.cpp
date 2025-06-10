@@ -22,6 +22,10 @@ FillVectorDialog::FillVectorDialog(QWidget *parent)
     m_valueComboBox->addItem("V");
     m_valueComboBox->addItem("M");
 
+    // 创建并设置模式表格的自定义委托
+    m_patternDelegate = new PatternTableItemDelegate(this);
+    m_patternTableWidget->setItemDelegate(m_patternDelegate);
+
     // 连接信号和槽
     connect(m_startRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);
     connect(m_endRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);
@@ -89,6 +93,9 @@ void FillVectorDialog::setupUI()
     m_patternTableWidget->setHorizontalHeaderLabels(QStringList() << tr("值"));
     m_patternTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_patternTableWidget->setMinimumHeight(150);
+    m_patternTableWidget->setToolTip("输入提示：0,1,L,H,X,S,V,M；默认：X (小写字母会自动转换为大写)");
+    // 设置交替行的颜色，增强可读性
+    m_patternTableWidget->setAlternatingRowColors(true);
     mainLayout->addWidget(m_patternTableWidget);
 
     // 创建按钮
@@ -254,7 +261,30 @@ void FillVectorDialog::setSelectedCellsData(const QList<QString> &values)
     for (int i = 0; i < values.size(); ++i)
     {
         m_patternTableWidget->insertRow(i);
-        QTableWidgetItem *item = new QTableWidgetItem(values[i]);
+
+        // 获取并规范化值（与委托的规则一致）
+        QString value = values[i];
+        if (value.isEmpty())
+        {
+            value = "X"; // 默认值为X
+        }
+        else
+        {
+            QString validChars = "01LHXSVMlhxsvm";
+            if (value.length() >= 1 && validChars.contains(value.at(0)))
+            {
+                // 取第一个字符并转为大写
+                value = value.left(1).toUpper();
+            }
+            else
+            {
+                // 无效字符，使用默认值X
+                value = "X";
+            }
+        }
+
+        QTableWidgetItem *item = new QTableWidgetItem(value);
+        item->setTextAlignment(Qt::AlignCenter);
         m_patternTableWidget->setItem(i, 0, item);
     }
 }

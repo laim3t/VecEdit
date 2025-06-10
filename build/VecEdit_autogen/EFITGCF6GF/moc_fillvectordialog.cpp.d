@@ -1,5 +1,6 @@
 C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit/vector/fillvectordialog.h \
   C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
@@ -15,7 +16,9 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qconfig.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainerfwd.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainertools_impl.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatastream.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qflags.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qgenericatomic.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
@@ -60,6 +63,7 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qsysinfo.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qsystemdetection.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qtcore-config.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/qtextstream.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qtypeinfo.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qvarlengtharray.h \
@@ -102,6 +106,7 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
@@ -126,6 +131,7 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \

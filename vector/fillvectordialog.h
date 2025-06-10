@@ -13,6 +13,47 @@
 #include <QList>
 #include <QPair>
 #include <QTableWidget>
+#include <QStyledItemDelegate>
+#include <QDebug>
+
+// 用于模式表格的自定义单元格委托，限制输入和自动转换大写
+class PatternTableItemDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+public:
+    PatternTableItemDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        QLineEdit *lineEdit = new QLineEdit(parent);
+        lineEdit->setMaxLength(1); // 限制输入一个字符
+        lineEdit->setAlignment(Qt::AlignCenter);
+        lineEdit->setToolTip("输入提示：0,1,L,l,H,h,X,x,S,s,V,v,M,m；默认：X");
+        return lineEdit;
+    }
+
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+    {
+        QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
+        if (!lineEdit)
+            return;
+
+        QString value = lineEdit->text();
+        if (value.isEmpty())
+        {
+            value = "X"; // 默认值为X
+        }
+
+        // 验证字符是否合法
+        QString validChars = "01LHXSVMlhxsvm";
+        if (validChars.contains(value.at(0)))
+        {
+            // 将小写字母转为大写
+            value = value.toUpper();
+            model->setData(index, value, Qt::EditRole);
+        }
+    }
+};
 
 class FillVectorDialog : public QDialog
 {
@@ -59,7 +100,8 @@ private:
     QPushButton *m_okButton;
     QPushButton *m_cancelButton;
     QDialogButtonBox *m_buttonBox;
-    QTableWidget *m_patternTableWidget; // 模式编辑表格
+    QTableWidget *m_patternTableWidget;          // 模式编辑表格
+    PatternTableItemDelegate *m_patternDelegate; // 模式表格的自定义委托
 
     int m_vectorRowCount;
     QList<QPair<QString, int>> m_labels; // 标签名称和对应行号
