@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[71];
-    char stringdata0[1188];
+    QByteArrayData data[73];
+    char stringdata0[1217];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -95,15 +95,17 @@ QT_MOC_LITERAL(58, 974, 18), // "onTableCellChanged"
 QT_MOC_LITERAL(59, 993, 3), // "row"
 QT_MOC_LITERAL(60, 997, 6), // "column"
 QT_MOC_LITERAL(61, 1004, 18), // "onTableRowModified"
-QT_MOC_LITERAL(62, 1023, 23), // "refreshSidebarNavigator"
-QT_MOC_LITERAL(63, 1047, 20), // "onSidebarItemClicked"
-QT_MOC_LITERAL(64, 1068, 16), // "QTreeWidgetItem*"
-QT_MOC_LITERAL(65, 1085, 4), // "item"
-QT_MOC_LITERAL(66, 1090, 16), // "onPinItemClicked"
-QT_MOC_LITERAL(67, 1107, 20), // "onTimeSetItemClicked"
-QT_MOC_LITERAL(68, 1128, 24), // "onVectorTableItemClicked"
-QT_MOC_LITERAL(69, 1153, 18), // "onLabelItemClicked"
-QT_MOC_LITERAL(70, 1172, 15) // "updateMenuState"
+QT_MOC_LITERAL(62, 1023, 24), // "showPinColumnContextMenu"
+QT_MOC_LITERAL(63, 1048, 3), // "pos"
+QT_MOC_LITERAL(64, 1052, 23), // "refreshSidebarNavigator"
+QT_MOC_LITERAL(65, 1076, 20), // "onSidebarItemClicked"
+QT_MOC_LITERAL(66, 1097, 16), // "QTreeWidgetItem*"
+QT_MOC_LITERAL(67, 1114, 4), // "item"
+QT_MOC_LITERAL(68, 1119, 16), // "onPinItemClicked"
+QT_MOC_LITERAL(69, 1136, 20), // "onTimeSetItemClicked"
+QT_MOC_LITERAL(70, 1157, 24), // "onVectorTableItemClicked"
+QT_MOC_LITERAL(71, 1182, 18), // "onLabelItemClicked"
+QT_MOC_LITERAL(72, 1201, 15) // "updateMenuState"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -133,7 +135,8 @@ QT_MOC_LITERAL(70, 1172, 15) // "updateMenuState"
     "loadNextPage\0loadPrevPage\0changePageSize\0"
     "newSize\0jumpToPage\0pageNum\0"
     "onTableCellChanged\0row\0column\0"
-    "onTableRowModified\0refreshSidebarNavigator\0"
+    "onTableRowModified\0showPinColumnContextMenu\0"
+    "pos\0refreshSidebarNavigator\0"
     "onSidebarItemClicked\0QTreeWidgetItem*\0"
     "item\0onPinItemClicked\0onTimeSetItemClicked\0"
     "onVectorTableItemClicked\0onLabelItemClicked\0"
@@ -147,7 +150,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      52,   14, // methods
+      53,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -155,60 +158,61 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  274,    2, 0x06 /* Public */,
+       1,    0,  279,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  275,    2, 0x08 /* Private */,
-       4,    0,  276,    2, 0x08 /* Private */,
-       5,    0,  277,    2, 0x08 /* Private */,
-       6,    0,  278,    2, 0x08 /* Private */,
-       7,    0,  279,    2, 0x08 /* Private */,
-       8,    0,  280,    2, 0x08 /* Private */,
-       9,    0,  281,    2, 0x08 /* Private */,
-      10,    1,  282,    2, 0x08 /* Private */,
-      13,    1,  285,    2, 0x08 /* Private */,
-      13,    0,  288,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  289,    2, 0x08 /* Private */,
-      16,    0,  290,    2, 0x08 /* Private */,
-      17,    1,  291,    2, 0x08 /* Private */,
-      19,    1,  294,    2, 0x08 /* Private */,
-      20,    0,  297,    2, 0x08 /* Private */,
-      21,    0,  298,    2, 0x08 /* Private */,
-      22,    2,  299,    2, 0x08 /* Private */,
-      25,    3,  304,    2, 0x08 /* Private */,
-      25,    2,  311,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  316,    2, 0x08 /* Private */,
-      28,    0,  317,    2, 0x08 /* Private */,
-      29,    0,  318,    2, 0x08 /* Private */,
-      30,    0,  319,    2, 0x08 /* Private */,
-      31,    0,  320,    2, 0x08 /* Private */,
-      32,    2,  321,    2, 0x08 /* Private */,
-      36,    0,  326,    2, 0x08 /* Private */,
-      37,    2,  327,    2, 0x08 /* Private */,
-      39,    0,  332,    2, 0x08 /* Private */,
-      40,    3,  333,    2, 0x08 /* Private */,
-      43,    0,  340,    2, 0x08 /* Private */,
-      44,    0,  341,    2, 0x08 /* Private */,
-      45,    0,  342,    2, 0x08 /* Private */,
-      46,    0,  343,    2, 0x08 /* Private */,
-      47,    0,  344,    2, 0x08 /* Private */,
-      48,    1,  345,    2, 0x08 /* Private */,
-      49,    0,  348,    2, 0x08 /* Private */,
-      50,    1,  349,    2, 0x08 /* Private */,
-      51,    0,  352,    2, 0x08 /* Private */,
-      52,    0,  353,    2, 0x08 /* Private */,
-      53,    0,  354,    2, 0x08 /* Private */,
-      54,    1,  355,    2, 0x08 /* Private */,
-      56,    1,  358,    2, 0x08 /* Private */,
-      58,    2,  361,    2, 0x08 /* Private */,
-      61,    1,  366,    2, 0x08 /* Private */,
-      62,    0,  369,    2, 0x08 /* Private */,
-      63,    2,  370,    2, 0x08 /* Private */,
-      66,    2,  375,    2, 0x08 /* Private */,
-      67,    2,  380,    2, 0x08 /* Private */,
-      68,    2,  385,    2, 0x08 /* Private */,
-      69,    2,  390,    2, 0x08 /* Private */,
-      70,    0,  395,    2, 0x08 /* Private */,
+       3,    0,  280,    2, 0x08 /* Private */,
+       4,    0,  281,    2, 0x08 /* Private */,
+       5,    0,  282,    2, 0x08 /* Private */,
+       6,    0,  283,    2, 0x08 /* Private */,
+       7,    0,  284,    2, 0x08 /* Private */,
+       8,    0,  285,    2, 0x08 /* Private */,
+       9,    0,  286,    2, 0x08 /* Private */,
+      10,    1,  287,    2, 0x08 /* Private */,
+      13,    1,  290,    2, 0x08 /* Private */,
+      13,    0,  293,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  294,    2, 0x08 /* Private */,
+      16,    0,  295,    2, 0x08 /* Private */,
+      17,    1,  296,    2, 0x08 /* Private */,
+      19,    1,  299,    2, 0x08 /* Private */,
+      20,    0,  302,    2, 0x08 /* Private */,
+      21,    0,  303,    2, 0x08 /* Private */,
+      22,    2,  304,    2, 0x08 /* Private */,
+      25,    3,  309,    2, 0x08 /* Private */,
+      25,    2,  316,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  321,    2, 0x08 /* Private */,
+      28,    0,  322,    2, 0x08 /* Private */,
+      29,    0,  323,    2, 0x08 /* Private */,
+      30,    0,  324,    2, 0x08 /* Private */,
+      31,    0,  325,    2, 0x08 /* Private */,
+      32,    2,  326,    2, 0x08 /* Private */,
+      36,    0,  331,    2, 0x08 /* Private */,
+      37,    2,  332,    2, 0x08 /* Private */,
+      39,    0,  337,    2, 0x08 /* Private */,
+      40,    3,  338,    2, 0x08 /* Private */,
+      43,    0,  345,    2, 0x08 /* Private */,
+      44,    0,  346,    2, 0x08 /* Private */,
+      45,    0,  347,    2, 0x08 /* Private */,
+      46,    0,  348,    2, 0x08 /* Private */,
+      47,    0,  349,    2, 0x08 /* Private */,
+      48,    1,  350,    2, 0x08 /* Private */,
+      49,    0,  353,    2, 0x08 /* Private */,
+      50,    1,  354,    2, 0x08 /* Private */,
+      51,    0,  357,    2, 0x08 /* Private */,
+      52,    0,  358,    2, 0x08 /* Private */,
+      53,    0,  359,    2, 0x08 /* Private */,
+      54,    1,  360,    2, 0x08 /* Private */,
+      56,    1,  363,    2, 0x08 /* Private */,
+      58,    2,  366,    2, 0x08 /* Private */,
+      61,    1,  371,    2, 0x08 /* Private */,
+      62,    1,  374,    2, 0x08 /* Private */,
+      64,    0,  377,    2, 0x08 /* Private */,
+      65,    2,  378,    2, 0x08 /* Private */,
+      68,    2,  383,    2, 0x08 /* Private */,
+      69,    2,  388,    2, 0x08 /* Private */,
+      70,    2,  393,    2, 0x08 /* Private */,
+      71,    2,  398,    2, 0x08 /* Private */,
+      72,    0,  403,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -258,12 +262,13 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void, QMetaType::Int,   57,
     QMetaType::Void, QMetaType::Int, QMetaType::Int,   59,   60,
     QMetaType::Void, QMetaType::Int,   59,
+    QMetaType::Void, QMetaType::QPoint,   63,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
-    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
-    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
-    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
-    QMetaType::Void, 0x80000000 | 64, QMetaType::Int,   65,   60,
+    QMetaType::Void, 0x80000000 | 66, QMetaType::Int,   67,   60,
+    QMetaType::Void, 0x80000000 | 66, QMetaType::Int,   67,   60,
+    QMetaType::Void, 0x80000000 | 66, QMetaType::Int,   67,   60,
+    QMetaType::Void, 0x80000000 | 66, QMetaType::Int,   67,   60,
+    QMetaType::Void, 0x80000000 | 66, QMetaType::Int,   67,   60,
     QMetaType::Void,
 
        0        // eod
@@ -324,13 +329,14 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 42: _t->jumpToPage((*reinterpret_cast< int(*)>(_a[1]))); break;
         case 43: _t->onTableCellChanged((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 44: _t->onTableRowModified((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 45: _t->refreshSidebarNavigator(); break;
-        case 46: _t->onSidebarItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 47: _t->onPinItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 48: _t->onTimeSetItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 49: _t->onVectorTableItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 50: _t->onLabelItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 51: _t->updateMenuState(); break;
+        case 45: _t->showPinColumnContextMenu((*reinterpret_cast< const QPoint(*)>(_a[1]))); break;
+        case 46: _t->refreshSidebarNavigator(); break;
+        case 47: _t->onSidebarItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 48: _t->onPinItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 49: _t->onTimeSetItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 50: _t->onVectorTableItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 51: _t->onLabelItemClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 52: _t->updateMenuState(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -406,13 +412,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 52)
+        if (_id < 53)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 52;
+        _id -= 53;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 52)
+        if (_id < 53)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 52;
+        _id -= 53;
     }
     return _id;
 }

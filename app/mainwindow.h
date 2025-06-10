@@ -159,6 +159,9 @@ private slots:
     void onTableCellChanged(int row, int column);
     void onTableRowModified(int row);
 
+    // 显示管脚列的右键菜单
+    void showPinColumnContextMenu(const QPoint &pos);
+
     // 侧边导航栏相关槽
     void refreshSidebarNavigator();
     void onSidebarItemClicked(QTreeWidgetItem *item, int column);

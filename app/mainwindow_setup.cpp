@@ -360,6 +360,11 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
 
+    // 启用自定义右键菜单
+    m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
+            this, &MainWindow::showPinColumnContextMenu);
+
     // 连接单元格修改信号
     connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
 

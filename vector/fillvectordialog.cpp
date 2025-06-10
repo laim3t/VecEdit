@@ -11,13 +11,15 @@ FillVectorDialog::FillVectorDialog(QWidget *parent)
     setWindowTitle(tr("填充向量行"));
     setupUI();
 
-    // 添加填充值选项（0,1,L,H,Z,X）
+    // 添加填充值选项（0,1,L,H,X,S,V,M）
     m_valueComboBox->addItem("0");
     m_valueComboBox->addItem("1");
     m_valueComboBox->addItem("L");
     m_valueComboBox->addItem("H");
-    m_valueComboBox->addItem("Z");
     m_valueComboBox->addItem("X");
+    m_valueComboBox->addItem("S");
+    m_valueComboBox->addItem("V");
+    m_valueComboBox->addItem("M");
 
     // 连接信号和槽
     connect(m_startRowEdit, &QLineEdit::textChanged, this, &FillVectorDialog::validateInputs);

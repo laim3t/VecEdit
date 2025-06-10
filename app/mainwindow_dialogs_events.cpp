@@ -294,6 +294,7 @@ void MainWindow::onTableRowModified(int row)
     // 标记行为已修改
     VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
 }
+
 // 跳转到指定页
 void MainWindow::jumpToPage(int pageNum)
 {
@@ -1061,5 +1062,55 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
                 break;
             }
         }
+    }
+}
+
+// 显示管脚列的右键菜单
+void MainWindow::showPinColumnContextMenu(const QPoint &pos)
+{
+    // 获取鼠标点击位置的单元格索引
+    QModelIndex index = m_vectorTableWidget->indexAt(pos);
+    if (!index.isValid())
+        return;
+
+    // 获取当前选择的单元格列表
+    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    if (selectedIndexes.isEmpty())
+        return;
+
+    // 检查所有选中的单元格是否都在同一列
+    int col = index.column();
+    bool allSameColumn = true;
+    for (const QModelIndex &idx : selectedIndexes)
+    {
+        if (idx.column() != col)
+        {
+            allSameColumn = false;
+            break;
+        }
+    }
+
+    // 获取当前表格的列头信息，判断是否为管脚列
+    QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+    if (!headerItem)
+        return;
+
+    QString headerText = headerItem->text();
+
+    // 检查是否为管脚列（简单判断：非Label/Instruction/TimeSet/Comment等标准列）
+    QStringList standardColumns = {"Label", "标签", "Instruction", "指令", "TimeSet", "时序", "Capture", "捕获", "Ext", "扩展", "Comment", "注释"};
+    bool isPinColumn = !standardColumns.contains(headerText, Qt::CaseInsensitive);
+
+    if (isPinColumn && allSameColumn)
+    {
+        // 创建右键菜单
+        QMenu contextMenu(this);
+
+        // 添加"向量填充"操作
+        QAction *fillVectorAction = contextMenu.addAction(tr("向量填充"));
+        connect(fillVectorAction, &QAction::triggered, this, &MainWindow::showFillVectorDialog);
+
+        // 显示右键菜单
+        contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
     }
 }
