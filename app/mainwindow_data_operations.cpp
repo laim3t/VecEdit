@@ -184,20 +184,34 @@ void MainWindow::deleteSelectedVectorRows()
     QString tableName = m_vectorTableSelector->currentText();
     qDebug() << funcName << " - 当前选择的向量表：" << tableName << "，ID：" << tableId;
 
-    // 获取选中的行
+    // 获取选中的行（综合两种选择模式）
+    QSet<int> selectedRowSet;
     QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+
+    // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
     if (selectedIndexes.isEmpty())
+    {
+        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    }
+
+    // 从获取到的索引中提取行号
+    foreach (const QModelIndex &index, selectedIndexes)
+    {
+        selectedRowSet.insert(index.row());
+    }
+
+    if (selectedRowSet.isEmpty())
     {
         QMessageBox::warning(this, "删除失败", "请先选择要删除的行");
         qWarning() << funcName << " - 用户未选择任何行";
         return;
     }
 
-    qDebug() << funcName << " - 用户选择了" << selectedIndexes.size() << "行";
+    qDebug() << funcName << " - 用户选择了" << selectedRowSet.size() << "行";
 
     // 确认删除
     QMessageBox::StandardButton reply = QMessageBox::question(this, "确认删除",
-                                                              QString("确定要删除选定的 %1 行吗？此操作不可撤销。").arg(selectedIndexes.size()),
+                                                              QString("确定要删除选定的 %1 行吗？此操作不可撤销。").arg(selectedRowSet.size()),
                                                               QMessageBox::Yes | QMessageBox::No);
     if (reply != QMessageBox::Yes)
     {
@@ -206,12 +220,8 @@ void MainWindow::deleteSelectedVectorRows()
     }
 
     // 获取所有选中的行索引
-    QList<int> selectedRows;
-    foreach (const QModelIndex &index, selectedIndexes)
-    {
-        selectedRows.append(index.row());
-        qDebug() << funcName << " - 选中的行索引：" << index.row();
-    }
+    QList<int> selectedRows = selectedRowSet.values();
+    qDebug() << funcName << " - 选中的行索引：" << selectedRows;
 
     // 使用数据处理器删除选中的行
     QString errorMessage;
@@ -359,8 +369,6 @@ void MainWindow::deleteVectorRowsInRange()
         }
     }
 }
-
-
 
 // 刷新当前向量表数据
 void MainWindow::refreshVectorTableData()
