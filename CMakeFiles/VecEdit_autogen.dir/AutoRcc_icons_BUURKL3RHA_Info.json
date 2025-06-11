@@ -1,0 +1,37 @@
+{
+	"BUILD_DIR" : "C:/VecEdit/VecEdit_autogen",
+	"CMAKE_BINARY_DIR" : "C:/VecEdit",
+	"CMAKE_CURRENT_BINARY_DIR" : "C:/VecEdit",
+	"CMAKE_CURRENT_SOURCE_DIR" : "C:/VecEdit",
+	"CMAKE_SOURCE_DIR" : "C:/VecEdit",
+	"CROSS_CONFIG" : false,
+	"GENERATOR" : "Visual Studio 17 2022",
+	"INCLUDE_DIR" : "C:/VecEdit/VecEdit_autogen/include",
+	"INCLUDE_DIR_Debug" : "C:/VecEdit/VecEdit_autogen/include_Debug",
+	"INCLUDE_DIR_MinSizeRel" : "C:/VecEdit/VecEdit_autogen/include_MinSizeRel",
+	"INCLUDE_DIR_RelWithDebInfo" : "C:/VecEdit/VecEdit_autogen/include_RelWithDebInfo",
+	"INCLUDE_DIR_Release" : "C:/VecEdit/VecEdit_autogen/include_Release",
+	"INPUTS" : 
+	[
+		"C:/VecEdit/resources/icons/x-circle.svg",
+		"C:/VecEdit/resources/icons/plus-circle.svg",
+		"C:/VecEdit/resources/icons/branch-closed.svg",
+		"C:/VecEdit/resources/icons/branch-open.svg",
+		"C:/VecEdit/resources/db/schema.sql"
+	],
+	"LOCK_FILE" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Lock.lock",
+	"MULTI_CONFIG" : true,
+	"OPTIONS" : [ "-name", "icons", "--no-compress" ],
+	"OUTPUT_CHECKSUM" : "BUURKL3RHA",
+	"OUTPUT_NAME" : "qrc_icons.cpp",
+	"RCC_EXECUTABLE" : "C:/Qt/5.15.2/mingw81_32/bin/rcc.exe",
+	"RCC_LIST_OPTIONS" : [],
+	"SETTINGS_FILE" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Used.txt",
+	"SETTINGS_FILE_Debug" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Used_Debug.txt",
+	"SETTINGS_FILE_MinSizeRel" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Used_MinSizeRel.txt",
+	"SETTINGS_FILE_RelWithDebInfo" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Used_RelWithDebInfo.txt",
+	"SETTINGS_FILE_Release" : "C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Used_Release.txt",
+	"SOURCE" : "C:/VecEdit/resources/qt/icons.qrc",
+	"USE_BETTER_GRAPH" : false,
+	"VERBOSITY" : 0
+}

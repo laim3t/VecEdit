@@ -460,7 +460,6 @@ void MainWindow::checkAndFixAllVectorTables()
     qDebug() << funcName << " - 检查完成，共 " << totalCount << " 个表，修复了 " << fixedCount << " 个表";
 }
 
-
 // 辅助方法：从数据库加载向量表元数据
 bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount)
 {

@@ -333,7 +333,6 @@
 		"QT_CORE_LIB",
 		"QT_GUI_LIB",
 		"QT_MESSAGELOGCONTEXT",
-		"QT_NO_DEBUG",
 		"QT_SQL_LIB",
 		"QT_WIDGETS_LIB"
 	],
@@ -375,7 +374,7 @@
 	"MOC_PATH_PREFIX" : false,
 	"MOC_PREDEFS_CMD" : 
 	[
-		"C:/Qt/Tools/mingw810_32/bin/c++.exe",
+		"c:/Qt/Tools/mingw810_32/bin/g++.exe",
 		"-std=gnu++17",
 		"-w",
 		"-dM",

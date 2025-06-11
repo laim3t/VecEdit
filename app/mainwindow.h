@@ -180,6 +180,7 @@ private:
     void setupVectorTableUI();
     void setupTabBar();
     void setupSidebarNavigator();
+    void setupVectorColumnPropertiesBar();
     void resetSidebarNavigator();
     void addVectorTableTab(int tableId, const QString &tableName);
     void loadAllVectorTables();
@@ -277,6 +278,10 @@ private:
     // 侧边导航栏组件
     QDockWidget *m_sidebarDock;
     QTreeWidget *m_sidebarTree;
+
+    // 向量列属性栏组件
+    QDockWidget *m_columnPropertiesDock; // 向量列属性栏容器
+    QWidget *m_columnPropertiesWidget;   // 向量列属性内容区域
 
     QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
     bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2);

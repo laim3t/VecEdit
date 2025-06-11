@@ -1,0 +1,5 @@
+C:/VecEdit/CMakeFiles/VecEdit.dir
+C:/VecEdit/CMakeFiles/PACKAGE.dir
+C:/VecEdit/CMakeFiles/INSTALL.dir
+C:/VecEdit/CMakeFiles/ALL_BUILD.dir
+C:/VecEdit/CMakeFiles/ZERO_CHECK.dir

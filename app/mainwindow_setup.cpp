@@ -3,7 +3,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     setupMenu();
-    setupSidebarNavigator(); // 添加侧边导航栏设置
+    setupSidebarNavigator();          // 添加侧边导航栏设置
+    setupVectorColumnPropertiesBar(); // 添加向量列属性栏设置
 
     // 创建对话框管理器
     m_dialogManager = new DialogManager(this);
@@ -708,6 +709,14 @@ void MainWindow::saveWindowState()
         settings.setValue("MainWindow/sidebarDocked", !m_sidebarDock->isFloating());
         settings.setValue("MainWindow/sidebarArea", (int)dockWidgetArea(m_sidebarDock));
     }
+
+    // 保存向量列属性栏状态
+    if (m_columnPropertiesDock)
+    {
+        settings.setValue("MainWindow/columnPropertiesVisible", m_columnPropertiesDock->isVisible());
+        settings.setValue("MainWindow/columnPropertiesDocked", !m_columnPropertiesDock->isFloating());
+        settings.setValue("MainWindow/columnPropertiesArea", (int)dockWidgetArea(m_columnPropertiesDock));
+    }
 }
 
 // 恢复窗口状态
@@ -761,7 +770,7 @@ void MainWindow::restoreWindowState()
         }
     }
 
-    // 恢复侧边栏状态
+    // 恢复侧边栏状态（如果QMainWindow::restoreState没有处理）
     if (m_sidebarDock)
     {
         if (settings.contains("MainWindow/sidebarVisible"))
@@ -784,6 +793,30 @@ void MainWindow::restoreWindowState()
             }
         }
     }
+
+    // 恢复向量列属性栏状态（如果QMainWindow::restoreState没有处理）
+    if (m_columnPropertiesDock)
+    {
+        if (settings.contains("MainWindow/columnPropertiesVisible"))
+        {
+            bool visible = settings.value("MainWindow/columnPropertiesVisible").toBool();
+            m_columnPropertiesDock->setVisible(visible);
+        }
+
+        if (settings.contains("MainWindow/columnPropertiesDocked") && settings.contains("MainWindow/columnPropertiesArea"))
+        {
+            bool docked = settings.value("MainWindow/columnPropertiesDocked").toBool();
+            if (!docked)
+            {
+                m_columnPropertiesDock->setFloating(true);
+            }
+            else
+            {
+                Qt::DockWidgetArea area = (Qt::DockWidgetArea)settings.value("MainWindow/columnPropertiesArea").toInt();
+                addDockWidget(area, m_columnPropertiesDock);
+            }
+        }
+    }
 }
 
 void MainWindow::updateMenuState()
@@ -792,4 +825,45 @@ void MainWindow::updateMenuState()
     m_newProjectAction->setEnabled(!projectOpen);
     m_openProjectAction->setEnabled(!projectOpen);
     m_closeProjectAction->setEnabled(projectOpen);
+}
+
+// 设置向量列属性栏
+void MainWindow::setupVectorColumnPropertiesBar()
+{
+    // 创建右侧停靠的向量列属性栏
+    m_columnPropertiesDock = new QDockWidget(tr("向量列属性栏"), this);
+    m_columnPropertiesDock->setObjectName("columnPropertiesDock");
+    m_columnPropertiesDock->setAllowedAreas(Qt::RightDockWidgetArea);
+    m_columnPropertiesDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+
+    // 创建属性栏内容容器
+    m_columnPropertiesWidget = new QWidget(m_columnPropertiesDock);
+    QVBoxLayout *propertiesLayout = new QVBoxLayout(m_columnPropertiesWidget);
+
+    // 设置属性栏样式
+    QString propertiesStyle = R"(
+        QWidget {
+            background-color: #F0F0F0;
+            border: 1px solid #A0A0A0;
+        }
+    )";
+    m_columnPropertiesWidget->setStyleSheet(propertiesStyle);
+
+    // 设置最小宽度
+    m_columnPropertiesWidget->setMinimumWidth(200);
+
+    // 设置占位标签
+    QLabel *placeholderLabel = new QLabel(tr("向量列属性"), m_columnPropertiesWidget);
+    placeholderLabel->setAlignment(Qt::AlignCenter);
+    placeholderLabel->setStyleSheet("font-size: 14pt; padding: 10px;");
+    propertiesLayout->addWidget(placeholderLabel);
+
+    // 添加占位空间
+    propertiesLayout->addStretch();
+
+    // 将容器设置为停靠部件的内容
+    m_columnPropertiesDock->setWidget(m_columnPropertiesWidget);
+
+    // 将属性栏添加到主窗口的右侧
+    addDockWidget(Qt::RightDockWidgetArea, m_columnPropertiesDock);
 }
