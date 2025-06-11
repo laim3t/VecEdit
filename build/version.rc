@@ -6,8 +6,8 @@
 #define APP_LANG_CHARSET_STRING "040904b0"
 
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION 0,0,0,4
-    PRODUCTVERSION 0,0,0,4
+    FILEVERSION 0,0,4,0
+    PRODUCTVERSION 0,0,4,0
     FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 #if defined(_DEBUG) || defined(DEBUG)
     FILEFLAGS VS_FF_DEBUG
@@ -24,12 +24,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "HongBangDianZi\0" // TODO: 请替换为您的公司名称
             VALUE "FileDescription", "VecEdit Application\0"
-            VALUE "FileVersion", "0.0.0.4\0"
+            VALUE "FileVersion", "0.0.4\0"
             VALUE "InternalName", "VecEdit\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 YourCompanyName\0" // TODO: 请替换年份和您的公司名称
             VALUE "OriginalFilename", "VecEdit.exe\0"
             VALUE "ProductName", "VecEdit\0"
-            VALUE "ProductVersion", "0.0.0.4\0"
+            VALUE "ProductVersion", "0.0.4\0"
         END
     END
     BLOCK "VarFileInfo"

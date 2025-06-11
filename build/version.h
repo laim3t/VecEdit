@@ -8,7 +8,7 @@
 #define VECEDIT_VERSION_TWEAK @PROJECT_VERSION_TWEAK @
 
 // Full version string e.g., "0.0.0.3"
-#define VECEDIT_VERSION_STRING "0.0.0.4"
+#define VECEDIT_VERSION_STRING "0.0.4"
 
 // Helper macros to stringify version components
 #define VECEDIT_VERSION_TO_STRING_HELPER(x) #x
