@@ -177,6 +177,9 @@ private slots:
     // 向量列属性栏相关槽
     void updateVectorColumnProperties(int row, int column);
 
+    // 计算16进制值并显示在向量列属性栏中
+    void calculateAndDisplayHexValue(const QList<int> &selectedRows, int column);
+
 private:
     void setupUI();
     void setupMenu();

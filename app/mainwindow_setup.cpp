@@ -375,15 +375,15 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
 
-    // 启用自定义右键菜单
+    // 设置表格右键菜单和信号/槽连接
     m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
 
-    // 连接单元格修改信号
+    // 监听单元格变更事件
     connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
 
-    // 连接单元格点击信号以更新向量列属性栏
+    // 单元格点击时更新向量列属性栏
     connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
 
     // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
@@ -395,6 +395,61 @@ void MainWindow::setupVectorTableUI()
                 onTableRowModified(row);
             });
         } });
+
+    // 添加选择变更事件处理，更新16进制值
+    connect(m_vectorTableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
+            [this](const QItemSelection &selected, const QItemSelection &deselected)
+            {
+                // 获取当前选中的列
+                QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+                if (selectedIndexes.isEmpty())
+                    return;
+
+                // 检查是否所有选择都在同一列
+                int column = selectedIndexes.first().column();
+                bool sameColumn = true;
+
+                for (const QModelIndex &idx : selectedIndexes)
+                {
+                    if (idx.column() != column)
+                    {
+                        sameColumn = false;
+                        break;
+                    }
+                }
+
+                // 只有当所有选择都在同一列时才更新16进制值
+                if (sameColumn)
+                {
+                    QList<int> selectedRows;
+                    for (const QModelIndex &idx : selectedIndexes)
+                    {
+                        if (!selectedRows.contains(idx.row()))
+                            selectedRows.append(idx.row());
+                    }
+
+                    // 获取当前表的列配置信息
+                    if (m_vectorTabWidget && m_vectorTabWidget->currentIndex() >= 0)
+                    {
+                        int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
+                        QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+
+                        // 检查列索引是否有效
+                        if (column >= 0 && column < columns.size())
+                        {
+                            // 获取列类型
+                            Vector::ColumnDataType colType = columns[column].type;
+
+                            // 只处理管脚列
+                            if (colType == Vector::ColumnDataType::PIN_STATE_ID)
+                            {
+                                // 更新管脚名称和16进制值
+                                updateVectorColumnProperties(selectedRows.first(), column);
+                            }
+                        }
+                    }
+                }
+            });
 
     // 连接向量表选择器信号
     connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -907,6 +962,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     QLabel *hexValueLabel = new QLabel(tr("16进制值"));
     m_pinValueField = new QLineEdit();
     m_pinValueField->setReadOnly(true);
+    m_pinValueField->setStyleSheet("background-color: #F8F8F8;"); // 设置浅灰色背景以指示只读
     pinLayout->addWidget(hexValueLabel, 1, 0);
     pinLayout->addWidget(m_pinValueField, 1, 1);
 

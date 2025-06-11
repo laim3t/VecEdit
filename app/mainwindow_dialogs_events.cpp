@@ -1186,11 +1186,19 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
                 m_pinNameLabel->setText(pinName);
             }
 
-            // 暂时清空16进制值字段（根据要求，该字段先空着）
-            if (m_pinValueField)
+            // 获取当前选中的行
+            QList<int> selectedRows;
+            QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
+            foreach (QTableWidgetItem *item, selectedItems)
             {
-                m_pinValueField->clear();
+                if (item->column() == column && !selectedRows.contains(item->row()))
+                {
+                    selectedRows.append(item->row());
+                }
             }
+
+            // 计算并显示16进制值
+            calculateAndDisplayHexValue(selectedRows, column);
 
             // 设置默认错误个数为0
             if (m_errorCountField)
@@ -1198,5 +1206,105 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
                 m_errorCountField->setText("0");
             }
         }
+    }
+}
+
+// 计算16进制值并显示在向量列属性栏中
+void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int column)
+{
+    // 如果没有选择行或列无效，则直接返回
+    if (selectedRows.isEmpty() || column < 0 || !m_vectorTableWidget)
+    {
+        if (m_pinValueField)
+        {
+            m_pinValueField->clear();
+        }
+        return;
+    }
+
+    // 只处理前8行数据
+    QList<int> processRows = selectedRows;
+    if (processRows.size() > 8)
+    {
+        // 按行号排序，确保从上到下处理
+        std::sort(processRows.begin(), processRows.end());
+        // 只保留前8行
+        processRows = processRows.mid(0, 8);
+    }
+
+    // 收集选中单元格的内容
+    QStringList cellValues;
+    bool only01 = true; // 是否只包含0和1
+    bool onlyHL = true; // 是否只包含H和L
+
+    for (int row : processRows)
+    {
+        QTableWidgetItem *item = m_vectorTableWidget->item(row, column);
+        if (!item)
+            continue;
+
+        QString cellValue = item->text().trimmed();
+        cellValues.append(cellValue);
+
+        // 检查是否只包含0和1
+        if (!cellValue.isEmpty() && cellValue != "0" && cellValue != "1")
+        {
+            only01 = false;
+        }
+
+        // 检查是否只包含H和L
+        if (!cellValue.isEmpty() && cellValue != "H" && cellValue != "L")
+        {
+            onlyHL = false;
+        }
+    }
+
+    QString hexResult;
+
+    // 情况A：纯0和1
+    if (only01 && !cellValues.isEmpty())
+    {
+        QString binaryStr;
+        for (const QString &value : cellValues)
+        {
+            binaryStr += value;
+        }
+
+        bool ok;
+        int decimal = binaryStr.toInt(&ok, 2);
+        if (ok)
+        {
+            hexResult = QString("0x%1").arg(decimal, 0, 16).toUpper();
+        }
+    }
+    // 情况B：纯H和L
+    else if (onlyHL && !cellValues.isEmpty())
+    {
+        QString binaryStr;
+        for (const QString &value : cellValues)
+        {
+            if (value == "H")
+                binaryStr += "1";
+            else if (value == "L")
+                binaryStr += "0";
+        }
+
+        bool ok;
+        int decimal = binaryStr.toInt(&ok, 2);
+        if (ok)
+        {
+            hexResult = QString("+0x%1").arg(decimal, 0, 16).toUpper();
+        }
+    }
+    // 情况C：混合或特殊字符
+    else
+    {
+        hexResult = cellValues.join("");
+    }
+
+    // 显示结果
+    if (m_pinValueField)
+    {
+        m_pinValueField->setText(hexResult);
     }
 }
