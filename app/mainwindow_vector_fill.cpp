@@ -1,3 +1,23 @@
+// ==========================================================
+//  Headers for: mainwindow_vector_fill.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QMessageBox>
+#include <QTableWidget>
+#include <QDebug>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QFile>
+
+// Project-specific headers
+#include "vector/vectordatahandler.h"
+#include "vector/fillvectordialog.h" // 假设存在这个对话框
+#include "database/databasemanager.h"
+#include "common/utils/pathutils.h"
+
 // 显示填充向量对话框
 void MainWindow::showFillVectorDialog()
 {

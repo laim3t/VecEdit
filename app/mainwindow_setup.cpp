@@ -1,3 +1,17 @@
+// ==========================================================
+//  Headers for: mainwindow_setup.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QtWidgets>
+
+// Project-specific headers
+#include "common/dialogmanager.h"
+#include "common/tablestylemanager.h"
+#include "vector/vectortabledelegate.h"
+#include "pin/pinvalueedit.h"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false)
 {

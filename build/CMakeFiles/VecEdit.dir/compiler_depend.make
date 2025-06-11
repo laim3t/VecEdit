@@ -1838,6 +1838,7 @@ CMakeFiles/VecEdit.dir/app/main.cpp.obj: C:/VecEdit/app/main.cpp \
 CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: C:/VecEdit/app/mainwindow.cpp \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDir \
@@ -2102,6 +2103,7 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj: C:/VecEdit/app/mainwindow.cpp \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
+  C:/VecEdit/app/mainwindow.h \
   C:/VecEdit/common/binary_field_lengths.h \
   C:/VecEdit/common/binary_file_format.h \
   C:/VecEdit/common/dialogmanager.h \
@@ -14267,6 +14269,8 @@ c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h:
 
 c:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h:
 
+C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication:
+
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonParseError:
@@ -14324,8 +14328,6 @@ C:/VecEdit/app/mainwindow_datafix_helpers.cpp:
 C:/VecEdit/app/mainwindow_pins_timeset.cpp:
 
 C:/VecEdit/app/mainwindow_project_tables.cpp:
-
-C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QMetaEnum:
 

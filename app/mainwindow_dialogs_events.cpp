@@ -1,3 +1,28 @@
+// ==========================================================
+//  Headers for: mainwindow_dialogs_events.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QMessageBox>
+#include <QDebug>
+#include <QInputDialog>
+#include <QTableWidget>
+#include <QMenu>
+#include <QTreeWidget>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QHeaderView>
+
+// Project-specific headers
+#include "database/databasemanager.h"
+#include "common/dialogmanager.h"
+#include "timeset/timesetdialog.h"
+#include "vector/vectordatahandler.h"
+#include "common/tablestylemanager.h"
+#include "vector/vectortabledelegate.h"
+
 void MainWindow::showDatabaseViewDialog()
 {
     // 检查是否有打开的数据库

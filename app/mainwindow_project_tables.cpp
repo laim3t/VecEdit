@@ -1,3 +1,23 @@
+// ==========================================================
+//  Headers for: mainwindow_project_tables.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QStandardPaths>
+#include <QSettings>
+#include <QDebug>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+
+// Project-specific headers
+#include "database/databasemanager.h"
+#include "vector/vectordatahandler.h"
+#include "common/utils/pathutils.h"
+
 void MainWindow::createNewProject()
 {
     // 先关闭当前项目

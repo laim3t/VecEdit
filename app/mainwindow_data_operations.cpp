@@ -1,3 +1,24 @@
+// ==========================================================
+//  Headers for: mainwindow_data_operations.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QMessageBox>
+#include <QTableWidget>
+#include <QStatusBar>
+#include <QCoreApplication>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
+
+// Project-specific headers
+#include "database/databasemanager.h"
+#include "vector/vectordatahandler.h"
+#include "vector/deleterangevectordialog.h"
+#include "common/dialogmanager.h"
+
 // 保存向量表数据
 void MainWindow::saveVectorTableData()
 {

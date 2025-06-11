@@ -1843,6 +1843,7 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj
  C:/VecEdit/app/mainwindow.cpp
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDir
@@ -2107,6 +2108,7 @@ CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h
+ C:/VecEdit/app/mainwindow.h
  C:/VecEdit/common/binary_field_lengths.h
  C:/VecEdit/common/binary_file_format.h
  C:/VecEdit/common/dialogmanager.h

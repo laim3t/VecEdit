@@ -1,3 +1,21 @@
+// ==========================================================
+//  Headers for: mainwindow_datafix_helpers.cpp
+// ==========================================================
+#include "app/mainwindow.h"
+
+// Qt Widgets & Core
+#include <QDebug>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+
+// Project-specific headers
+#include "database/databasemanager.h"
+#include "vector/vectordatahandler.h"
+
 // Add this new function implementation
 bool MainWindow::areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2)
 {
