@@ -182,6 +182,9 @@ private slots:
 
     // 处理16进制值编辑后的同步操作
     void onHexValueEdited();
+    
+    // 实时验证16进制输入
+    void validateHexInput(const QString &text);
 
 private:
     void setupUI();

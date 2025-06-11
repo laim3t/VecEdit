@@ -907,24 +907,47 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_columnPropertiesDock->setObjectName("columnPropertiesDock");
     m_columnPropertiesDock->setAllowedAreas(Qt::RightDockWidgetArea);
     m_columnPropertiesDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    
+    // 添加边框线样式
+    m_columnPropertiesDock->setStyleSheet(
+        "QDockWidget {"
+        "   border: 1px solid #A0A0A0;"
+        "}"
+        "QDockWidget::title {"
+        "   background-color: #E1E1E1;"
+        "   padding-left: 5px;"
+        "   border-bottom: 1px solid #A0A0A0;"
+        "}"
+    );
 
     // 创建属性栏内容容器
     m_columnPropertiesWidget = new QWidget(m_columnPropertiesDock);
+    m_columnPropertiesWidget->setObjectName("columnPropertiesWidget");
     QVBoxLayout *propertiesLayout = new QVBoxLayout(m_columnPropertiesWidget);
     propertiesLayout->setSpacing(10);
+    propertiesLayout->setContentsMargins(10, 10, 10, 10);
 
     // 设置属性栏样式
     QString propertiesStyle = R"(
-        QWidget {
+        QWidget#columnPropertiesWidget {
             background-color: #F0F0F0;
+            border: 1px solid #A0A0A0;
+            margin: 0px;
         }
         QLabel {
             font-weight: bold;
         }
+        QLabel[objectName="titleLabel"] {
+            background-color: #E1E1E1;
+            border-bottom: 1px solid #A0A0A0;
+        }
         QLineEdit {
-            padding: 2px;
+            padding: 4px;
             border: 1px solid #A0A0A0;
             background-color: white;
+            border-radius: 2px;
+            min-height: 22px;
+            margin: 1px;
         }
     )";
     m_columnPropertiesWidget->setStyleSheet(propertiesStyle);
@@ -934,6 +957,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 添加标题
     QLabel *titleLabel = new QLabel(tr("向量列属性"), m_columnPropertiesWidget);
+    titleLabel->setObjectName("titleLabel");
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("font-size: 14pt; padding: 10px;");
     propertiesLayout->addWidget(titleLabel);
@@ -949,7 +973,10 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 管脚值区域
     QGridLayout *pinLayout = new QGridLayout();
-    pinLayout->setColumnStretch(1, 1);
+    pinLayout->setColumnStretch(1, 1); 
+    pinLayout->setAlignment(Qt::AlignLeft);
+    pinLayout->setHorizontalSpacing(10);
+    pinLayout->setVerticalSpacing(10);
 
     // 管脚
     QLabel *pinLabel = new QLabel(tr("管脚"));
@@ -963,18 +990,26 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_pinValueField = new QLineEdit();
     m_pinValueField->setReadOnly(false); // 改为可编辑
     m_pinValueField->setPlaceholderText(tr("输入16进制值"));
-    m_pinValueField->setMaxLength(6);   // 限制最大长度为6（"0x"或"+0x"前缀加2位16进制数）
-    m_pinValueField->setFixedWidth(80); // 设置固定宽度以适应两位16进制值
+    // 不设置maxLength，让显示可以超过6个字符
+    // 在验证函数中会限制用户输入不超过6个字符
+    m_pinValueField->setFixedWidth(200); // 设置更宽的固定宽度以便能显示8个选中单元格的内容
+    m_pinValueField->setProperty("invalid", false); // 初始状态：有效
+    m_pinValueField->setToolTipDuration(5000);      // 设置提示显示时间为5秒
     pinLayout->addWidget(hexValueLabel, 1, 0);
     pinLayout->addWidget(m_pinValueField, 1, 1);
 
     // 连接编辑完成信号
     connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
+    
+    // 连接文本变化信号，实时验证输入
+    connect(m_pinValueField, &QLineEdit::textChanged, this, &MainWindow::validateHexInput);
 
     // 错误个数
     QLabel *errorCountLabel = new QLabel(tr("错误个数"));
     m_errorCountField = new QLineEdit("0");
     m_errorCountField->setReadOnly(true);
+    m_errorCountField->setFixedWidth(200); // 与16进制值文本框保持相同宽度
+    m_errorCountField->setPlaceholderText(tr("错误数量"));
     pinLayout->addWidget(errorCountLabel, 2, 0);
     pinLayout->addWidget(m_errorCountField, 2, 1);
 
