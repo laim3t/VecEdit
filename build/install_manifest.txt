@@ -1,0 +1,4 @@
+C:/VecEdit/build/install/bin/VecEdit.exe
+C:/VecEdit/build/install/bin/libgcc_s_dw2-1.dll
+C:/VecEdit/build/install/bin/libstdc++-6.dll
+C:/VecEdit/build/install/bin/libwinpthread-1.dll

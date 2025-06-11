@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(VecEdit VERSION 0.0.0.2 LANGUAGES CXX)
+project(VecEdit VERSION 0.0.0.4 LANGUAGES CXX)
 
 # 启用 Qt 的自动化功能
 set(CMAKE_AUTOMOC ON)
@@ -16,6 +16,14 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
 
 # 从找到的 Qt5 包中安全地获取其 bin 目录的路径
 get_filename_component(QT_BIN_DIR "${Qt5_DIR}/../../bin" ABSOLUTE)
+
+# 显式查找 windeployqt.exe 并打印路径以供调试
+find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
+if(NOT WINDEPLOYQT_EXECUTABLE)
+    message(FATAL_ERROR "Could not find windeployqt.exe. Please ensure it is in your PATH or Qt installation's bin directory.")
+else()
+    message(STATUS "Found windeployqt.exe at: ${WINDEPLOYQT_EXECUTABLE}")
+endif()
 
 # 设置日志输出相关的编译定义
 add_compile_definitions(QT_MESSAGELOGCONTEXT)
@@ -134,6 +142,9 @@ target_include_directories(VecEdit PRIVATE
 # --- 安装与打包 ---
 include(GNUInstallDirs)
 
+# 将安装路径设置回默认值，或一个您希望的固定目录
+# set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
+
 # 1. 定义安装规则
 install(TARGETS VecEdit
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
@@ -142,46 +153,47 @@ install(TARGETS VecEdit
 )
 
 if(WIN32)
-    # 2. 侦錯腳本：檢查 CPack 內部的環境變數
+    # 2. 【新流程】在"安装"阶段（而不是打包阶段）部署依赖项
+    #    这会把所有依赖项和 VecEdit.exe 一起复制到 CMAKE_INSTALL_PREFIX 目录
     install(CODE "
-        message(STATUS \"--- [偵錯] 開始檢查 CPack 內部環境 ---\")
-
-        # 執行 Windows 的 cmd 命令來印出 PATH
+        message(STATUS \"Deploying Qt dependencies to '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}'...\")
         execute_process(
-            COMMAND cmd /c \"echo %PATH%\"
-            OUTPUT_VARIABLE cpack_env_path
-            OUTPUT_STRIP_TRAILING_WHITESPACE
+            COMMAND \"${WINDEPLOYQT_EXECUTABLE}\"
+                --no-translations
+                --no-compiler-runtime
+                \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/VecEdit.exe\"
         )
-        message(STATUS \"[偵錯] CPack 腳本看到的 PATH 是: \${cpack_env_path}\")
-
-        # 讓 CPack 腳本自己去找 windeployqt
-        execute_process(
-            COMMAND where windeployqt
-            RESULT_VARIABLE find_result
-            ERROR_QUIET
-        )
-
-        if(NOT find_result EQUAL 0)
-            message(FATAL_ERROR \"[偵錯] 失敗！CPack 腳本在它自己的 PATH 中找不到 'windeployqt'。這證實了環境變數沒有被正確傳遞！\")
-        else()
-             message(STATUS \"[偵錯] 成功！CPack 腳本可以找到 'windeployqt'。這意味著問題可能更複雜。\")
-        endif()
-
-        message(STATUS \"--- [偵錯] 檢查結束 ---\")
     " COMPONENT Runtime)
+
+    # 3. (仅限 MinGW) 手动部署 C++ 运行时库
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        get_filename_component(MINGW_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        set(MINGW_RUNTIME_LIBS
+            libgcc_s_dw2-1.dll
+            libstdc++-6.dll
+            libwinpthread-1.dll
+        )
+        foreach(LIB_NAME ${MINGW_RUNTIME_LIBS})
+            if(EXISTS "${MINGW_BIN_DIR}/${LIB_NAME}")
+                install(FILES "${MINGW_BIN_DIR}/${LIB_NAME}"
+                    DESTINATION ${CMAKE_INSTALL_BINDIR}
+                    COMPONENT Runtime
+                )
+            endif()
+        endforeach()
+    endif()
 endif()
 
 # 4. 配置 CPack 用于创建最终的发布包
+#    CPack 现在只负责将 ${CMAKE_BINARY_DIR}/install 目录（由上一步的 install 命令生成）的内容打包
+set(CPACK_INSTALLED_DIRECTORIES "${CMAKE_BINARY_DIR}/install;/")
+
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "VecEdit Application")
 
-# 指定需要打包的组件
-set(CPACK_COMPONENTS_ALL Runtime)
-
 # 指定打包格式
 set(CPACK_GENERATOR "ZIP")
-set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
 # 必须在最后包含 CPack 模块
 include(CPack)

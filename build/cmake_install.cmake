@@ -2,7 +2,7 @@
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/VecEdit")
+  set(CMAKE_INSTALL_PREFIX "C:/VecEdit/build/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "Debug")
+    set(CMAKE_INSTALL_CONFIG_NAME "")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -49,31 +49,26 @@ endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
   
-        message(STATUS "--- [偵錯] 開始檢查 CPack 內部環境 ---")
-
-        # 執行 Windows 的 cmd 命令來印出 PATH
+        message(STATUS "Deploying Qt dependencies to 'C:/VecEdit/build/install/bin'...")
         execute_process(
-            COMMAND cmd /c "echo %PATH%"
-            OUTPUT_VARIABLE cpack_env_path
-            OUTPUT_STRIP_TRAILING_WHITESPACE
+            COMMAND "C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe"
+                --no-translations
+                --no-compiler-runtime
+                "C:/VecEdit/build/install/bin/VecEdit.exe"
         )
-        message(STATUS "[偵錯] CPack 腳本看到的 PATH 是: ${cpack_env_path}")
-
-        # 讓 CPack 腳本自己去找 windeployqt
-        execute_process(
-            COMMAND where windeployqt
-            RESULT_VARIABLE find_result
-            ERROR_QUIET
-        )
-
-        if(NOT find_result EQUAL 0)
-            message(FATAL_ERROR "[偵錯] 失敗！CPack 腳本在它自己的 PATH 中找不到 'windeployqt'。這證實了環境變數沒有被正確傳遞！")
-        else()
-             message(STATUS "[偵錯] 成功！CPack 腳本可以找到 'windeployqt'。這意味著問題可能更複雜。")
-        endif()
-
-        message(STATUS "--- [偵錯] 檢查結束 ---")
     
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE FILE FILES "C:/Qt/Tools/mingw810_32/bin/libgcc_s_dw2-1.dll")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE FILE FILES "C:/Qt/Tools/mingw810_32/bin/libstdc++-6.dll")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE FILE FILES "C:/Qt/Tools/mingw810_32/bin/libwinpthread-1.dll")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
