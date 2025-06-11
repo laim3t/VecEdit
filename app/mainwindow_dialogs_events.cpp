@@ -1114,3 +1114,64 @@ void MainWindow::showPinColumnContextMenu(const QPoint &pos)
         contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
     }
 }
+
+// 更新向量列属性栏
+void MainWindow::updateVectorColumnProperties(int row, int column)
+{
+    // 检查是否有向量表被打开
+    if (!m_vectorTableWidget || m_vectorTableWidget->columnCount() == 0)
+    {
+        return;
+    }
+
+    // 检查是否有Tab被打开
+    if (m_vectorTabWidget->count() == 0 || m_vectorTabWidget->currentIndex() < 0)
+    {
+        return;
+    }
+
+    // 获取当前表的列配置信息
+    int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+
+    // 检查列索引是否有效
+    if (column < 0 || column >= columns.size())
+    {
+        return;
+    }
+
+    // 获取列类型
+    Vector::ColumnDataType colType = columns[column].type;
+
+    // 只处理管脚列
+    if (colType == Vector::ColumnDataType::PIN_STATE_ID)
+    {
+        // 获取管脚名称（从列标题获取而不是从单元格获取）
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(column);
+        if (headerItem)
+        {
+            // 获取表头文本并只提取第一行（管脚名称）
+            QString headerText = headerItem->text();
+            // 按换行符分割文本，取第一行
+            QString pinName = headerText.split("\n").at(0);
+
+            // 更新管脚名称标签
+            if (m_pinNameLabel)
+            {
+                m_pinNameLabel->setText(pinName);
+            }
+
+            // 暂时清空16进制值字段（根据要求，该字段先空着）
+            if (m_pinValueField)
+            {
+                m_pinValueField->clear();
+            }
+
+            // 设置默认错误个数为0
+            if (m_errorCountField)
+            {
+                m_errorCountField->setText("0");
+            }
+        }
+    }
+}

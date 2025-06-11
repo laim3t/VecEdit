@@ -369,6 +369,9 @@ void MainWindow::setupVectorTableUI()
     // 连接单元格修改信号
     connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
 
+    // 连接单元格点击信号以更新向量列属性栏
+    connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
+
     // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
     connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
             {
@@ -839,12 +842,20 @@ void MainWindow::setupVectorColumnPropertiesBar()
     // 创建属性栏内容容器
     m_columnPropertiesWidget = new QWidget(m_columnPropertiesDock);
     QVBoxLayout *propertiesLayout = new QVBoxLayout(m_columnPropertiesWidget);
+    propertiesLayout->setSpacing(10);
 
     // 设置属性栏样式
     QString propertiesStyle = R"(
         QWidget {
             background-color: #F0F0F0;
+        }
+        QLabel {
+            font-weight: bold;
+        }
+        QLineEdit {
+            padding: 2px;
             border: 1px solid #A0A0A0;
+            background-color: white;
         }
     )";
     m_columnPropertiesWidget->setStyleSheet(propertiesStyle);
@@ -852,11 +863,47 @@ void MainWindow::setupVectorColumnPropertiesBar()
     // 设置最小宽度
     m_columnPropertiesWidget->setMinimumWidth(200);
 
-    // 设置占位标签
-    QLabel *placeholderLabel = new QLabel(tr("向量列属性"), m_columnPropertiesWidget);
-    placeholderLabel->setAlignment(Qt::AlignCenter);
-    placeholderLabel->setStyleSheet("font-size: 14pt; padding: 10px;");
-    propertiesLayout->addWidget(placeholderLabel);
+    // 添加标题
+    QLabel *titleLabel = new QLabel(tr("向量列属性"), m_columnPropertiesWidget);
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setStyleSheet("font-size: 14pt; padding: 10px;");
+    propertiesLayout->addWidget(titleLabel);
+
+    // 列名称区域
+    QLabel *columnNameTitle = new QLabel(tr("列名称:"));
+    propertiesLayout->addWidget(columnNameTitle);
+
+    // 在表格中以16进制显示提示
+    QLabel *hexDisplayLabel = new QLabel(tr("在表格中以16进制显示"));
+    hexDisplayLabel->setStyleSheet("font-weight: normal; color: #666666;");
+    propertiesLayout->addWidget(hexDisplayLabel);
+
+    // 管脚值区域
+    QGridLayout *pinLayout = new QGridLayout();
+    pinLayout->setColumnStretch(1, 1);
+
+    // 管脚
+    QLabel *pinLabel = new QLabel(tr("管脚"));
+    m_pinNameLabel = new QLabel(tr(""));
+    m_pinNameLabel->setStyleSheet("font-weight: normal;");
+    pinLayout->addWidget(pinLabel, 0, 0);
+    pinLayout->addWidget(m_pinNameLabel, 0, 1);
+
+    // 16进制值
+    QLabel *hexValueLabel = new QLabel(tr("16进制值"));
+    m_pinValueField = new QLineEdit();
+    m_pinValueField->setReadOnly(true);
+    pinLayout->addWidget(hexValueLabel, 1, 0);
+    pinLayout->addWidget(m_pinValueField, 1, 1);
+
+    // 错误个数
+    QLabel *errorCountLabel = new QLabel(tr("错误个数"));
+    m_errorCountField = new QLineEdit("0");
+    m_errorCountField->setReadOnly(true);
+    pinLayout->addWidget(errorCountLabel, 2, 0);
+    pinLayout->addWidget(m_errorCountField, 2, 1);
+
+    propertiesLayout->addLayout(pinLayout);
 
     // 添加占位空间
     propertiesLayout->addStretch();

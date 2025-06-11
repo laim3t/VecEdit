@@ -174,6 +174,9 @@ private slots:
     // 更新菜单项状态
     void updateMenuState();
 
+    // 向量列属性栏相关槽
+    void updateVectorColumnProperties(int row, int column);
+
 private:
     void setupUI();
     void setupMenu();
@@ -282,6 +285,9 @@ private:
     // 向量列属性栏组件
     QDockWidget *m_columnPropertiesDock; // 向量列属性栏容器
     QWidget *m_columnPropertiesWidget;   // 向量列属性内容区域
+    QLabel *m_pinNameLabel;              // 管脚名称标签
+    QLineEdit *m_pinValueField;          // 16进制值字段
+    QLineEdit *m_errorCountField;        // 错误个数字段
 
     QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
     bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2);
