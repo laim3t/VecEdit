@@ -13,7 +13,7 @@
 #include "pin/pinvalueedit.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_isUpdatingUI(false)
+    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1)
 {
     setupUI();
     setupMenu();
@@ -961,10 +961,15 @@ void MainWindow::setupVectorColumnPropertiesBar()
     // 16进制值
     QLabel *hexValueLabel = new QLabel(tr("16进制值"));
     m_pinValueField = new QLineEdit();
-    m_pinValueField->setReadOnly(true);
-    m_pinValueField->setStyleSheet("background-color: #F8F8F8;"); // 设置浅灰色背景以指示只读
+    m_pinValueField->setReadOnly(false); // 改为可编辑
+    m_pinValueField->setPlaceholderText(tr("输入16进制值"));
+    m_pinValueField->setMaxLength(6);   // 限制最大长度为6（"0x"或"+0x"前缀加2位16进制数）
+    m_pinValueField->setFixedWidth(80); // 设置固定宽度以适应两位16进制值
     pinLayout->addWidget(hexValueLabel, 1, 0);
     pinLayout->addWidget(m_pinValueField, 1, 1);
+
+    // 连接编辑完成信号
+    connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
 
     // 错误个数
     QLabel *errorCountLabel = new QLabel(tr("错误个数"));

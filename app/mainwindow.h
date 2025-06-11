@@ -180,6 +180,9 @@ private slots:
     // 计算16进制值并显示在向量列属性栏中
     void calculateAndDisplayHexValue(const QList<int> &selectedRows, int column);
 
+    // 处理16进制值编辑后的同步操作
+    void onHexValueEdited();
+
 private:
     void setupUI();
     void setupMenu();
@@ -291,6 +294,10 @@ private:
     QLabel *m_pinNameLabel;              // 管脚名称标签
     QLineEdit *m_pinValueField;          // 16进制值字段
     QLineEdit *m_errorCountField;        // 错误个数字段
+
+    // 当前选中的用于16进制值显示和编辑的信息
+    int m_currentHexValueColumn;      // 当前16进制值对应的列
+    QList<int> m_currentSelectedRows; // 当前选中的行
 
     QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
     bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2);

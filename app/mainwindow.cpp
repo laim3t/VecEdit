@@ -69,6 +69,7 @@
 #include <QProgressDialog>
 #include <QTreeView>
 #include <QStandardItemModel>
+#include <QMessageBox>
 
 #include "migration/datamigrator.h"
 // The compiler will merge all these files into one translation unit.

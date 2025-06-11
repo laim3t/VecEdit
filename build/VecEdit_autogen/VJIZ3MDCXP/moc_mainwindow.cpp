@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[79];
-    char stringdata0[1339];
+    QByteArrayData data[80];
+    char stringdata0[1356];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -111,7 +111,8 @@ QT_MOC_LITERAL(74, 1234, 18), // "onLabelItemClicked"
 QT_MOC_LITERAL(75, 1253, 15), // "updateMenuState"
 QT_MOC_LITERAL(76, 1269, 28), // "updateVectorColumnProperties"
 QT_MOC_LITERAL(77, 1298, 27), // "calculateAndDisplayHexValue"
-QT_MOC_LITERAL(78, 1326, 12) // "selectedRows"
+QT_MOC_LITERAL(78, 1326, 12), // "selectedRows"
+QT_MOC_LITERAL(79, 1339, 16) // "onHexValueEdited"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -149,7 +150,8 @@ QT_MOC_LITERAL(78, 1326, 12) // "selectedRows"
     "item\0onPinItemClicked\0onTimeSetItemClicked\0"
     "onVectorTableItemClicked\0onLabelItemClicked\0"
     "updateMenuState\0updateVectorColumnProperties\0"
-    "calculateAndDisplayHexValue\0selectedRows"
+    "calculateAndDisplayHexValue\0selectedRows\0"
+    "onHexValueEdited"
 };
 #undef QT_MOC_LITERAL
 
@@ -159,7 +161,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      56,   14, // methods
+      57,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -167,64 +169,65 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  294,    2, 0x06 /* Public */,
+       1,    0,  299,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  295,    2, 0x08 /* Private */,
-       4,    0,  296,    2, 0x08 /* Private */,
-       5,    0,  297,    2, 0x08 /* Private */,
-       6,    0,  298,    2, 0x08 /* Private */,
-       7,    0,  299,    2, 0x08 /* Private */,
-       8,    0,  300,    2, 0x08 /* Private */,
-       9,    0,  301,    2, 0x08 /* Private */,
-      10,    1,  302,    2, 0x08 /* Private */,
-      13,    1,  305,    2, 0x08 /* Private */,
-      13,    0,  308,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  309,    2, 0x08 /* Private */,
-      16,    0,  310,    2, 0x08 /* Private */,
-      17,    1,  311,    2, 0x08 /* Private */,
-      19,    1,  314,    2, 0x08 /* Private */,
-      20,    0,  317,    2, 0x08 /* Private */,
-      21,    0,  318,    2, 0x08 /* Private */,
-      22,    2,  319,    2, 0x08 /* Private */,
-      25,    3,  324,    2, 0x08 /* Private */,
-      25,    2,  331,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  336,    2, 0x08 /* Private */,
-      28,    0,  337,    2, 0x08 /* Private */,
-      29,    0,  338,    2, 0x08 /* Private */,
-      30,    0,  339,    2, 0x08 /* Private */,
-      31,    0,  340,    2, 0x08 /* Private */,
-      32,    2,  341,    2, 0x08 /* Private */,
-      36,    1,  346,    2, 0x08 /* Private */,
-      39,    0,  349,    2, 0x08 /* Private */,
-      40,    2,  350,    2, 0x08 /* Private */,
-      42,    0,  355,    2, 0x08 /* Private */,
-      43,    3,  356,    2, 0x08 /* Private */,
-      46,    0,  363,    2, 0x08 /* Private */,
-      47,    0,  364,    2, 0x08 /* Private */,
-      48,    0,  365,    2, 0x08 /* Private */,
-      49,    0,  366,    2, 0x08 /* Private */,
-      50,    0,  367,    2, 0x08 /* Private */,
-      51,    1,  368,    2, 0x08 /* Private */,
-      52,    0,  371,    2, 0x08 /* Private */,
-      53,    1,  372,    2, 0x08 /* Private */,
-      54,    0,  375,    2, 0x08 /* Private */,
-      55,    0,  376,    2, 0x08 /* Private */,
-      56,    0,  377,    2, 0x08 /* Private */,
-      57,    1,  378,    2, 0x08 /* Private */,
-      59,    1,  381,    2, 0x08 /* Private */,
-      61,    2,  384,    2, 0x08 /* Private */,
-      64,    1,  389,    2, 0x08 /* Private */,
-      65,    1,  392,    2, 0x08 /* Private */,
-      67,    0,  395,    2, 0x08 /* Private */,
-      68,    2,  396,    2, 0x08 /* Private */,
-      71,    2,  401,    2, 0x08 /* Private */,
-      72,    2,  406,    2, 0x08 /* Private */,
-      73,    2,  411,    2, 0x08 /* Private */,
-      74,    2,  416,    2, 0x08 /* Private */,
-      75,    0,  421,    2, 0x08 /* Private */,
-      76,    2,  422,    2, 0x08 /* Private */,
-      77,    2,  427,    2, 0x08 /* Private */,
+       3,    0,  300,    2, 0x08 /* Private */,
+       4,    0,  301,    2, 0x08 /* Private */,
+       5,    0,  302,    2, 0x08 /* Private */,
+       6,    0,  303,    2, 0x08 /* Private */,
+       7,    0,  304,    2, 0x08 /* Private */,
+       8,    0,  305,    2, 0x08 /* Private */,
+       9,    0,  306,    2, 0x08 /* Private */,
+      10,    1,  307,    2, 0x08 /* Private */,
+      13,    1,  310,    2, 0x08 /* Private */,
+      13,    0,  313,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  314,    2, 0x08 /* Private */,
+      16,    0,  315,    2, 0x08 /* Private */,
+      17,    1,  316,    2, 0x08 /* Private */,
+      19,    1,  319,    2, 0x08 /* Private */,
+      20,    0,  322,    2, 0x08 /* Private */,
+      21,    0,  323,    2, 0x08 /* Private */,
+      22,    2,  324,    2, 0x08 /* Private */,
+      25,    3,  329,    2, 0x08 /* Private */,
+      25,    2,  336,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  341,    2, 0x08 /* Private */,
+      28,    0,  342,    2, 0x08 /* Private */,
+      29,    0,  343,    2, 0x08 /* Private */,
+      30,    0,  344,    2, 0x08 /* Private */,
+      31,    0,  345,    2, 0x08 /* Private */,
+      32,    2,  346,    2, 0x08 /* Private */,
+      36,    1,  351,    2, 0x08 /* Private */,
+      39,    0,  354,    2, 0x08 /* Private */,
+      40,    2,  355,    2, 0x08 /* Private */,
+      42,    0,  360,    2, 0x08 /* Private */,
+      43,    3,  361,    2, 0x08 /* Private */,
+      46,    0,  368,    2, 0x08 /* Private */,
+      47,    0,  369,    2, 0x08 /* Private */,
+      48,    0,  370,    2, 0x08 /* Private */,
+      49,    0,  371,    2, 0x08 /* Private */,
+      50,    0,  372,    2, 0x08 /* Private */,
+      51,    1,  373,    2, 0x08 /* Private */,
+      52,    0,  376,    2, 0x08 /* Private */,
+      53,    1,  377,    2, 0x08 /* Private */,
+      54,    0,  380,    2, 0x08 /* Private */,
+      55,    0,  381,    2, 0x08 /* Private */,
+      56,    0,  382,    2, 0x08 /* Private */,
+      57,    1,  383,    2, 0x08 /* Private */,
+      59,    1,  386,    2, 0x08 /* Private */,
+      61,    2,  389,    2, 0x08 /* Private */,
+      64,    1,  394,    2, 0x08 /* Private */,
+      65,    1,  397,    2, 0x08 /* Private */,
+      67,    0,  400,    2, 0x08 /* Private */,
+      68,    2,  401,    2, 0x08 /* Private */,
+      71,    2,  406,    2, 0x08 /* Private */,
+      72,    2,  411,    2, 0x08 /* Private */,
+      73,    2,  416,    2, 0x08 /* Private */,
+      74,    2,  421,    2, 0x08 /* Private */,
+      75,    0,  426,    2, 0x08 /* Private */,
+      76,    2,  427,    2, 0x08 /* Private */,
+      77,    2,  432,    2, 0x08 /* Private */,
+      79,    0,  437,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -285,6 +288,7 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int, QMetaType::Int,   62,   63,
     QMetaType::Void, 0x80000000 | 34, QMetaType::Int,   78,   63,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -355,6 +359,7 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 53: _t->updateMenuState(); break;
         case 54: _t->updateVectorColumnProperties((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 55: _t->calculateAndDisplayHexValue((*reinterpret_cast< const QList<int>(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 56: _t->onHexValueEdited(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -437,13 +442,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 56)
+        if (_id < 57)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 56;
+        _id -= 57;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 56)
+        if (_id < 57)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 56;
+        _id -= 57;
     }
     return _id;
 }

@@ -1187,18 +1187,21 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
             }
 
             // 获取当前选中的行
-            QList<int> selectedRows;
+            m_currentSelectedRows.clear();
             QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
             foreach (QTableWidgetItem *item, selectedItems)
             {
-                if (item->column() == column && !selectedRows.contains(item->row()))
+                if (item->column() == column && !m_currentSelectedRows.contains(item->row()))
                 {
-                    selectedRows.append(item->row());
+                    m_currentSelectedRows.append(item->row());
                 }
             }
 
+            // 保存当前选中的列
+            m_currentHexValueColumn = column;
+
             // 计算并显示16进制值
-            calculateAndDisplayHexValue(selectedRows, column);
+            calculateAndDisplayHexValue(m_currentSelectedRows, column);
 
             // 设置默认错误个数为0
             if (m_errorCountField)
@@ -1274,7 +1277,8 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
         int decimal = binaryStr.toInt(&ok, 2);
         if (ok)
         {
-            hexResult = QString("0x%1").arg(decimal, 0, 16).toUpper();
+            // 格式化为两位16进制，不足补0
+            hexResult = QString("0x%1").arg(decimal, 2, 16, QChar('0')).toUpper();
         }
     }
     // 情况B：纯H和L
@@ -1293,7 +1297,8 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
         int decimal = binaryStr.toInt(&ok, 2);
         if (ok)
         {
-            hexResult = QString("+0x%1").arg(decimal, 0, 16).toUpper();
+            // 格式化为两位16进制，不足补0
+            hexResult = QString("+0x%1").arg(decimal, 2, 16, QChar('0')).toUpper();
         }
     }
     // 情况C：混合或特殊字符
@@ -1307,4 +1312,150 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
     {
         m_pinValueField->setText(hexResult);
     }
+}
+
+// 处理16进制值编辑后的同步操作
+void MainWindow::onHexValueEdited()
+{
+    // 获取输入的16进制值
+    QString hexValue = m_pinValueField->text().trimmed();
+    if (hexValue.isEmpty())
+        return;
+
+    // 使用已保存的列和行信息，如果不存在则尝试获取当前选中内容
+    QList<int> selectedRows = m_currentSelectedRows;
+    int selectedColumn = m_currentHexValueColumn;
+
+    // 如果没有保存的列信息或行信息，则尝试从当前选中项获取
+    if (selectedColumn < 0 || selectedRows.isEmpty())
+    {
+        selectedRows.clear();
+        bool sameColumn = true;
+
+        QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
+        if (selectedItems.isEmpty())
+            return;
+
+        selectedColumn = selectedItems.first()->column();
+
+        // 检查是否所有选择都在同一列
+        for (QTableWidgetItem *item : selectedItems)
+        {
+            if (item->column() != selectedColumn)
+            {
+                sameColumn = false;
+                break;
+            }
+
+            if (!selectedRows.contains(item->row()))
+                selectedRows.append(item->row());
+        }
+
+        if (!sameColumn || selectedRows.isEmpty())
+            return;
+    }
+
+    // 确保行按从上到下排序
+    std::sort(selectedRows.begin(), selectedRows.end());
+
+    // 获取当前表的列配置信息
+    if (m_vectorTabWidget->currentIndex() < 0)
+        return;
+
+    int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+
+    // 检查列索引是否有效且是否为PIN_STATE_ID列
+    if (selectedColumn < 0 || selectedColumn >= columns.size())
+        return;
+
+    Vector::ColumnDataType colType = columns[selectedColumn].type;
+    if (colType != Vector::ColumnDataType::PIN_STATE_ID)
+        return;
+
+    // 判断格式类型和提取16进制值
+    bool useHLFormat = false;
+    QString hexDigits;
+
+    // 解析输入，检查前缀和提取16进制部分
+    if (hexValue.startsWith("+0x", Qt::CaseInsensitive))
+    {
+        // +0x前缀表示H/L格式
+        useHLFormat = true;
+        hexDigits = hexValue.mid(3); // 去掉'+0x'前缀
+    }
+    else if (hexValue.startsWith("0x", Qt::CaseInsensitive))
+    {
+        // 0x前缀表示0/1格式
+        useHLFormat = false;
+        hexDigits = hexValue.mid(2); // 去掉'0x'前缀
+    }
+    else
+    {
+        // 其他格式无法处理
+        return;
+    }
+
+    // 确保16进制部分是有效的
+    if (!hexDigits.contains(QRegExp("^[0-9A-Fa-f]{1,2}$")))
+    {
+        return; // 无效的16进制输入
+    }
+
+    // 如果只有一个数字，前面补0
+    if (hexDigits.length() == 1)
+    {
+        hexDigits = "0" + hexDigits;
+
+        // 更新显示值
+        if (useHLFormat)
+        {
+            m_pinValueField->setText("+0x" + hexDigits.toUpper());
+        }
+        else
+        {
+            m_pinValueField->setText("0x" + hexDigits.toUpper());
+        }
+    }
+
+    // 转换16进制为整数
+    bool ok;
+    int value = hexDigits.toInt(&ok, 16);
+    if (!ok)
+        return; // 转换失败，退出
+
+    // 转换为8位二进制字符串
+    QString binaryStr = QString::number(value, 2);
+
+    // 补齐前导0使长度为8
+    while (binaryStr.length() < 8)
+        binaryStr.prepend('0');
+
+    // 确保是8位二进制
+    if (binaryStr.length() > 8)
+        binaryStr = binaryStr.right(8);
+
+    // 最多更新8行
+    int maxRows = qMin(8, selectedRows.size());
+
+    for (int i = 0; i < maxRows; i++)
+    {
+        QTableWidgetItem *item = m_vectorTableWidget->item(selectedRows.at(i), selectedColumn);
+        if (item)
+        {
+            if (useHLFormat)
+            {
+                // 使用H/L格式：0->L, 1->H
+                item->setText(binaryStr.at(i) == '1' ? "H" : "L");
+            }
+            else
+            {
+                // 使用0/1格式
+                item->setText(QString(binaryStr.at(i)));
+            }
+        }
+    }
+
+    // 再次更新显示的16进制值，以确保格式正确
+    calculateAndDisplayHexValue(selectedRows, selectedColumn);
 }
