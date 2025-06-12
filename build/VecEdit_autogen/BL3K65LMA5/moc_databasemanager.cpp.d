@@ -1,5 +1,5 @@
-C:/VecEdit/build/VecEdit_autogen/BL3K65LMA5/moc_databasemanager.cpp: C:/VecEdit/database/databasemanager.h \
-  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/build/VecEdit_autogen/BL3K65LMA5/moc_databasemanager.cpp: E:/QT_project/1/VecEdit/database/databasemanager.h \
+  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDir \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \

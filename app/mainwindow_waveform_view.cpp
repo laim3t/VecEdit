@@ -1,15 +1,6 @@
 // ==========================================================
 //  波形图视图相关实现：mainwindow_waveform_view.cpp
 // ==========================================================
-#include "app/mainwindow.h"
-
-// Qt Widgets & Core
-#include <QtWidgets>
-
-// 项目特定头文件
-#include "temp_qcustomplot/lib/qcustomplot.h"
-#include "pin/pinvalueedit.h"
-#include "vector/vector_data_types.h"
 
 void MainWindow::setupWaveformView()
 {

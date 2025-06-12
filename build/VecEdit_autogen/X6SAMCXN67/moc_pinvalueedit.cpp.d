@@ -1,5 +1,5 @@
-C:/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_pinvalueedit.cpp: C:/VecEdit/pin/pinvalueedit.h \
-  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/build/VecEdit_autogen/X6SAMCXN67/moc_pinvalueedit.cpp: E:/QT_project/1/VecEdit/pin/pinvalueedit.h \
+  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qalgorithms.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qarraydata.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qatomic.h \

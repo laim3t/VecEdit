@@ -1,5 +1,5 @@
-C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_vectordatahandler.cpp: C:/VecEdit/vector/vectordatahandler.h \
-  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_vectordatahandler.cpp: E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
+  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
@@ -300,4 +300,4 @@ C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_vectordatahandler.cpp: C:/VecEdi
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
-  C:/VecEdit/vector/vector_data_types.h
+  E:/QT_project/1/VecEdit/vector/vector_data_types.h

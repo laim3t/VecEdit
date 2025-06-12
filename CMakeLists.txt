@@ -115,8 +115,8 @@ set_source_files_properties(${PROJECT_RESOURCES} PROPERTIES AUTORCC_OPTIONS "--n
 
 # 添加 QCustomPlot 库
 set(QCUSTOMPLOT_SOURCES
-    temp_qcustomplot/lib/qcustomplot.cpp
-    temp_qcustomplot/lib/qcustomplot.h
+    common/qcustomplot.cpp
+    common/qcustomplot.h
 )
 
 # 创建可执行文件
@@ -145,7 +145,6 @@ target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/pin
     ${CMAKE_CURRENT_SOURCE_DIR}/timeset
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
-    ${CMAKE_CURRENT_SOURCE_DIR}/temp_qcustomplot/lib # QCustomPlot 库目录
 )
 
 # --- 安装与打包 ---

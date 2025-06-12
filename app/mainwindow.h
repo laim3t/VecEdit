@@ -30,7 +30,7 @@
 #include "../vector/vectordatahandler.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
-#include "../temp_qcustomplot/lib/qcustomplot.h"
+#include "qcustomplot.h"
 
 // 前置声明
 class VectorTableItemDelegate;
