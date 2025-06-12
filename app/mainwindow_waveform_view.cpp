@@ -43,7 +43,8 @@ void MainWindow::setupWaveformView()
 
     // 创建波形图
     m_waveformPlot = new QCustomPlot(m_waveformContainer);
-    m_waveformPlot->setMinimumHeight(150);
+    m_waveformPlot->setMinimumHeight(250);
+    m_waveformPlot->setMinimumWidth(1000);
     m_waveformPlot->xAxis->setLabel(tr("行号"));
     m_waveformPlot->yAxis->setLabel(tr("值"));
     m_waveformPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
@@ -151,9 +152,9 @@ void MainWindow::updateWaveformView()
     }
 
     // 6. 定义Y轴电平带
-    const double Y_HIGH_TOP = 1.0, Y_HIGH_BOTTOM = 0.8;
-    const double Y_MID_TOP = 0.6, Y_MID_BOTTOM = 0.4;
-    const double Y_LOW_TOP = 0.2, Y_LOW_BOTTOM = 0.0;
+    const double Y_HIGH_TOP = 20.0, Y_HIGH_BOTTOM = 16.0;
+    const double Y_MID_TOP = 12.0, Y_MID_BOTTOM = 8.0;
+    const double Y_LOW_TOP = 4.0, Y_LOW_BOTTOM = 0.0;
 
     // 7. 准备数据容器
     int rowCount = m_vectorTableWidget->rowCount();
@@ -207,7 +208,7 @@ void MainWindow::updateWaveformView()
     fillB_top_g->setBrush(brushB);
     fillB_top_g->setChannelFillGraph(fillB_bottom_g);
 
-    line_g->setPen(QPen(Qt::red, 1.5));
+    line_g->setPen(QPen(Qt::red, 2.5));
     line_g->setBrush(Qt::NoBrush);
 
     // 10. 设置数据和线型
@@ -223,13 +224,10 @@ void MainWindow::updateWaveformView()
     fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
 
     // 11. 最终绘图设置
-    m_waveformPlot->xAxis->setRange(0, rowCount > 0 ? rowCount : 10);
-    m_waveformPlot->yAxis->setRange(-0.1, 1.1);
+    m_waveformPlot->xAxis->setRange(0, rowCount > 0 ? qMin(rowCount, 5) : 10);
+    m_waveformPlot->yAxis->setRange(-2.0, 22.0);
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
-    m_waveformPlot->plotLayout()->insertRow(0);
-    auto title = new QCPTextElement(m_waveformPlot, tr("管脚 '%1' 波形图").arg(pinName), QFont("sans", 12, QFont::Bold));
-    m_waveformPlot->plotLayout()->addElement(0, 0, title);
 
     // 12. 重绘
     m_waveformPlot->replot();
