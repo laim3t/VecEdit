@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[82];
-    char stringdata0[1378];
+    QByteArrayData data[87];
+    char stringdata0[1469];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -114,7 +114,12 @@ QT_MOC_LITERAL(77, 1298, 27), // "calculateAndDisplayHexValue"
 QT_MOC_LITERAL(78, 1326, 12), // "selectedRows"
 QT_MOC_LITERAL(79, 1339, 16), // "onHexValueEdited"
 QT_MOC_LITERAL(80, 1356, 16), // "validateHexInput"
-QT_MOC_LITERAL(81, 1373, 4) // "text"
+QT_MOC_LITERAL(81, 1373, 4), // "text"
+QT_MOC_LITERAL(82, 1378, 17), // "setupWaveformView"
+QT_MOC_LITERAL(83, 1396, 18), // "updateWaveformView"
+QT_MOC_LITERAL(84, 1415, 18), // "toggleWaveformView"
+QT_MOC_LITERAL(85, 1434, 4), // "show"
+QT_MOC_LITERAL(86, 1439, 29) // "onWaveformPinSelectionChanged"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -154,7 +159,9 @@ QT_MOC_LITERAL(81, 1373, 4) // "text"
     "updateMenuState\0updateVectorColumnProperties\0"
     "calculateAndDisplayHexValue\0selectedRows\0"
     "onHexValueEdited\0validateHexInput\0"
-    "text"
+    "text\0setupWaveformView\0updateWaveformView\0"
+    "toggleWaveformView\0show\0"
+    "onWaveformPinSelectionChanged"
 };
 #undef QT_MOC_LITERAL
 
@@ -164,7 +171,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      58,   14, // methods
+      62,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -172,66 +179,70 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  304,    2, 0x06 /* Public */,
+       1,    0,  324,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  305,    2, 0x08 /* Private */,
-       4,    0,  306,    2, 0x08 /* Private */,
-       5,    0,  307,    2, 0x08 /* Private */,
-       6,    0,  308,    2, 0x08 /* Private */,
-       7,    0,  309,    2, 0x08 /* Private */,
-       8,    0,  310,    2, 0x08 /* Private */,
-       9,    0,  311,    2, 0x08 /* Private */,
-      10,    1,  312,    2, 0x08 /* Private */,
-      13,    1,  315,    2, 0x08 /* Private */,
-      13,    0,  318,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  319,    2, 0x08 /* Private */,
-      16,    0,  320,    2, 0x08 /* Private */,
-      17,    1,  321,    2, 0x08 /* Private */,
-      19,    1,  324,    2, 0x08 /* Private */,
-      20,    0,  327,    2, 0x08 /* Private */,
-      21,    0,  328,    2, 0x08 /* Private */,
-      22,    2,  329,    2, 0x08 /* Private */,
-      25,    3,  334,    2, 0x08 /* Private */,
-      25,    2,  341,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  346,    2, 0x08 /* Private */,
-      28,    0,  347,    2, 0x08 /* Private */,
-      29,    0,  348,    2, 0x08 /* Private */,
-      30,    0,  349,    2, 0x08 /* Private */,
-      31,    0,  350,    2, 0x08 /* Private */,
-      32,    2,  351,    2, 0x08 /* Private */,
-      36,    1,  356,    2, 0x08 /* Private */,
-      39,    0,  359,    2, 0x08 /* Private */,
-      40,    2,  360,    2, 0x08 /* Private */,
-      42,    0,  365,    2, 0x08 /* Private */,
-      43,    3,  366,    2, 0x08 /* Private */,
-      46,    0,  373,    2, 0x08 /* Private */,
-      47,    0,  374,    2, 0x08 /* Private */,
-      48,    0,  375,    2, 0x08 /* Private */,
-      49,    0,  376,    2, 0x08 /* Private */,
-      50,    0,  377,    2, 0x08 /* Private */,
-      51,    1,  378,    2, 0x08 /* Private */,
-      52,    0,  381,    2, 0x08 /* Private */,
-      53,    1,  382,    2, 0x08 /* Private */,
-      54,    0,  385,    2, 0x08 /* Private */,
-      55,    0,  386,    2, 0x08 /* Private */,
-      56,    0,  387,    2, 0x08 /* Private */,
-      57,    1,  388,    2, 0x08 /* Private */,
-      59,    1,  391,    2, 0x08 /* Private */,
-      61,    2,  394,    2, 0x08 /* Private */,
-      64,    1,  399,    2, 0x08 /* Private */,
-      65,    1,  402,    2, 0x08 /* Private */,
-      67,    0,  405,    2, 0x08 /* Private */,
-      68,    2,  406,    2, 0x08 /* Private */,
-      71,    2,  411,    2, 0x08 /* Private */,
-      72,    2,  416,    2, 0x08 /* Private */,
-      73,    2,  421,    2, 0x08 /* Private */,
-      74,    2,  426,    2, 0x08 /* Private */,
-      75,    0,  431,    2, 0x08 /* Private */,
-      76,    2,  432,    2, 0x08 /* Private */,
-      77,    2,  437,    2, 0x08 /* Private */,
-      79,    0,  442,    2, 0x08 /* Private */,
-      80,    1,  443,    2, 0x08 /* Private */,
+       3,    0,  325,    2, 0x08 /* Private */,
+       4,    0,  326,    2, 0x08 /* Private */,
+       5,    0,  327,    2, 0x08 /* Private */,
+       6,    0,  328,    2, 0x08 /* Private */,
+       7,    0,  329,    2, 0x08 /* Private */,
+       8,    0,  330,    2, 0x08 /* Private */,
+       9,    0,  331,    2, 0x08 /* Private */,
+      10,    1,  332,    2, 0x08 /* Private */,
+      13,    1,  335,    2, 0x08 /* Private */,
+      13,    0,  338,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  339,    2, 0x08 /* Private */,
+      16,    0,  340,    2, 0x08 /* Private */,
+      17,    1,  341,    2, 0x08 /* Private */,
+      19,    1,  344,    2, 0x08 /* Private */,
+      20,    0,  347,    2, 0x08 /* Private */,
+      21,    0,  348,    2, 0x08 /* Private */,
+      22,    2,  349,    2, 0x08 /* Private */,
+      25,    3,  354,    2, 0x08 /* Private */,
+      25,    2,  361,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  366,    2, 0x08 /* Private */,
+      28,    0,  367,    2, 0x08 /* Private */,
+      29,    0,  368,    2, 0x08 /* Private */,
+      30,    0,  369,    2, 0x08 /* Private */,
+      31,    0,  370,    2, 0x08 /* Private */,
+      32,    2,  371,    2, 0x08 /* Private */,
+      36,    1,  376,    2, 0x08 /* Private */,
+      39,    0,  379,    2, 0x08 /* Private */,
+      40,    2,  380,    2, 0x08 /* Private */,
+      42,    0,  385,    2, 0x08 /* Private */,
+      43,    3,  386,    2, 0x08 /* Private */,
+      46,    0,  393,    2, 0x08 /* Private */,
+      47,    0,  394,    2, 0x08 /* Private */,
+      48,    0,  395,    2, 0x08 /* Private */,
+      49,    0,  396,    2, 0x08 /* Private */,
+      50,    0,  397,    2, 0x08 /* Private */,
+      51,    1,  398,    2, 0x08 /* Private */,
+      52,    0,  401,    2, 0x08 /* Private */,
+      53,    1,  402,    2, 0x08 /* Private */,
+      54,    0,  405,    2, 0x08 /* Private */,
+      55,    0,  406,    2, 0x08 /* Private */,
+      56,    0,  407,    2, 0x08 /* Private */,
+      57,    1,  408,    2, 0x08 /* Private */,
+      59,    1,  411,    2, 0x08 /* Private */,
+      61,    2,  414,    2, 0x08 /* Private */,
+      64,    1,  419,    2, 0x08 /* Private */,
+      65,    1,  422,    2, 0x08 /* Private */,
+      67,    0,  425,    2, 0x08 /* Private */,
+      68,    2,  426,    2, 0x08 /* Private */,
+      71,    2,  431,    2, 0x08 /* Private */,
+      72,    2,  436,    2, 0x08 /* Private */,
+      73,    2,  441,    2, 0x08 /* Private */,
+      74,    2,  446,    2, 0x08 /* Private */,
+      75,    0,  451,    2, 0x08 /* Private */,
+      76,    2,  452,    2, 0x08 /* Private */,
+      77,    2,  457,    2, 0x08 /* Private */,
+      79,    0,  462,    2, 0x08 /* Private */,
+      80,    1,  463,    2, 0x08 /* Private */,
+      82,    0,  466,    2, 0x08 /* Private */,
+      83,    0,  467,    2, 0x08 /* Private */,
+      84,    1,  468,    2, 0x08 /* Private */,
+      86,    1,  471,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -294,6 +305,10 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void, 0x80000000 | 34, QMetaType::Int,   78,   63,
     QMetaType::Void,
     QMetaType::Void, QMetaType::QString,   81,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Bool,   85,
+    QMetaType::Void, QMetaType::Int,   18,
 
        0        // eod
 };
@@ -366,6 +381,10 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 55: _t->calculateAndDisplayHexValue((*reinterpret_cast< const QList<int>(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
         case 56: _t->onHexValueEdited(); break;
         case 57: _t->validateHexInput((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 58: _t->setupWaveformView(); break;
+        case 59: _t->updateWaveformView(); break;
+        case 60: _t->toggleWaveformView((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 61: _t->onWaveformPinSelectionChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -448,13 +467,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 58)
+        if (_id < 62)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 58;
+        _id -= 62;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 58)
+        if (_id < 62)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 58;
+        _id -= 62;
     }
     return _id;
 }

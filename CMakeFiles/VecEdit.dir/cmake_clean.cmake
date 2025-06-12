@@ -40,6 +40,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj"
   "CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj.d"
+  "CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj"
+  "CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj"
   "CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj"

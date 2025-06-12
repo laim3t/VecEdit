@@ -299,6 +299,9 @@ Qt5Core_DIR:PATH=C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core
 //The directory containing a CMake configuration file for Qt5Gui.
 Qt5Gui_DIR:PATH=C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Gui
 
+//The directory containing a CMake configuration file for Qt5PrintSupport.
+Qt5PrintSupport_DIR:PATH=C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5PrintSupport
+
 //The directory containing a CMake configuration file for Qt5Sql.
 Qt5Sql_DIR:PATH=C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Sql
 

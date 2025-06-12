@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找 Qt5 包
-find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent)
+find_package(Qt5 REQUIRED COMPONENTS Widgets Sql Concurrent PrintSupport)
 
 # 从找到的 Qt5 包中安全地获取其 bin 目录的路径
 get_filename_component(QT_BIN_DIR "${Qt5_DIR}/../../bin" ABSOLUTE)
@@ -113,10 +113,17 @@ endif()
 # 为 Qt 资源编译器设置不压缩选项
 set_source_files_properties(${PROJECT_RESOURCES} PROPERTIES AUTORCC_OPTIONS "--no-compress")
 
+# 添加 QCustomPlot 库
+set(QCUSTOMPLOT_SOURCES
+    temp_qcustomplot/lib/qcustomplot.cpp
+    temp_qcustomplot/lib/qcustomplot.h
+)
+
 # 创建可执行文件
 add_executable(VecEdit WIN32 MACOSX_BUNDLE
     ${PROJECT_SOURCES}
     ${PROJECT_RESOURCES}
+    ${QCUSTOMPLOT_SOURCES}
 )
 
 # 链接所需的 Qt 库
@@ -124,6 +131,7 @@ target_link_libraries(VecEdit PRIVATE
     Qt5::Widgets
     Qt5::Sql
     Qt5::Concurrent
+    Qt5::PrintSupport  # QCustomPlot 需要 PrintSupport 模块
 )
 
 # 添加必要的包含目录
@@ -137,6 +145,7 @@ target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/pin
     ${CMAKE_CURRENT_SOURCE_DIR}/timeset
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
+    ${CMAKE_CURRENT_SOURCE_DIR}/temp_qcustomplot/lib # QCustomPlot 库目录
 )
 
 # --- 安装与打包 ---

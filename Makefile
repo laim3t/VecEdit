@@ -675,6 +675,30 @@ pin/vectorpinsettingsdialog.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.s
 .PHONY : pin/vectorpinsettingsdialog.cpp.s
 
+temp_qcustomplot/lib/qcustomplot.obj: temp_qcustomplot/lib/qcustomplot.cpp.obj
+.PHONY : temp_qcustomplot/lib/qcustomplot.obj
+
+# target to build an object file
+temp_qcustomplot/lib/qcustomplot.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj
+.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.obj
+
+temp_qcustomplot/lib/qcustomplot.i: temp_qcustomplot/lib/qcustomplot.cpp.i
+.PHONY : temp_qcustomplot/lib/qcustomplot.i
+
+# target to preprocess a source file
+temp_qcustomplot/lib/qcustomplot.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.i
+.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.i
+
+temp_qcustomplot/lib/qcustomplot.s: temp_qcustomplot/lib/qcustomplot.cpp.s
+.PHONY : temp_qcustomplot/lib/qcustomplot.s
+
+# target to generate assembly for a file
+temp_qcustomplot/lib/qcustomplot.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.s
+.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.s
+
 timeset/filltimesetdialog.obj: timeset/filltimesetdialog.cpp.obj
 .PHONY : timeset/filltimesetdialog.obj
 
@@ -1045,6 +1069,9 @@ help:
 	@echo ... pin/vectorpinsettingsdialog.obj
 	@echo ... pin/vectorpinsettingsdialog.i
 	@echo ... pin/vectorpinsettingsdialog.s
+	@echo ... temp_qcustomplot/lib/qcustomplot.obj
+	@echo ... temp_qcustomplot/lib/qcustomplot.i
+	@echo ... temp_qcustomplot/lib/qcustomplot.s
 	@echo ... timeset/filltimesetdialog.obj
 	@echo ... timeset/filltimesetdialog.i
 	@echo ... timeset/filltimesetdialog.s

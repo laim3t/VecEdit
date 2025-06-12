@@ -30,6 +30,7 @@
 #include "../vector/vectordatahandler.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
+#include "../temp_qcustomplot/lib/qcustomplot.h"
 
 // 前置声明
 class VectorTableItemDelegate;
@@ -186,6 +187,12 @@ private slots:
     // 实时验证16进制输入
     void validateHexInput(const QString &text);
 
+    // 波形图相关槽函数
+    void setupWaveformView();
+    void updateWaveformView();
+    void toggleWaveformView(bool show);
+    void onWaveformPinSelectionChanged(int index);
+
 private:
     void setupUI();
     void setupMenu();
@@ -311,6 +318,13 @@ private:
     QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData> &oldRowData,
                                                     const QList<Vector::ColumnInfo> &oldColumns,
                                                     const QList<Vector::ColumnInfo> &newColumns);
+
+    // 波形图视图相关UI组件
+    QWidget *m_waveformContainer;
+    QCustomPlot *m_waveformPlot;
+    QComboBox *m_waveformPinSelector;
+    QAction *m_toggleWaveformAction;
+    bool m_isWaveformVisible;
 };
 
 #endif // MAINWINDOW_H

@@ -95,6 +95,9 @@ void MainWindow::setupUI()
     // 创建向量表显示界面
     setupVectorTableUI();
 
+    // 创建波形图视图界面
+    setupWaveformView();
+
     // 初始显示欢迎页面
     mainLayout->addWidget(m_welcomeWidget);
     m_vectorTableContainer->setVisible(false);
@@ -217,6 +220,14 @@ void MainWindow::setupMenu()
     QAction *togglePropertiesAction = m_columnPropertiesDock->toggleViewAction();
     togglePropertiesAction->setText(tr("向量列属性"));
     m_viewMenu->addAction(togglePropertiesAction);
+
+    // 添加波形图视图切换项
+    m_viewMenu->addSeparator();
+    m_toggleWaveformAction = new QAction(tr("波形图视图"), this);
+    m_toggleWaveformAction->setCheckable(true);
+    m_toggleWaveformAction->setChecked(false);
+    connect(m_toggleWaveformAction, &QAction::toggled, this, &MainWindow::toggleWaveformView);
+    m_viewMenu->addAction(m_toggleWaveformAction);
 }
 
 void MainWindow::setupVectorTableUI()

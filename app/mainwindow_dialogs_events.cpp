@@ -99,6 +99,12 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     int tableId = m_vectorTableSelector->currentData().toInt();
     qDebug() << funcName << " - 当前表ID:" << tableId;
 
+    // 清空波形图管脚选择器，以便在加载表格后重新填充
+    if (m_waveformPinSelector)
+    {
+        m_waveformPinSelector->clear();
+    }
+
     // 刷新代理的表ID缓存
     if (m_itemDelegate)
     {
@@ -148,6 +154,12 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     if (loadSuccess)
     {
         qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
+
+        // 更新波形图视图
+        if (m_isWaveformVisible && m_waveformPlot)
+        {
+            updateWaveformView();
+        }
 
         // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
         if (m_vectorTableWidget->columnCount() < 6)

@@ -18,6 +18,7 @@ set(CMAKE_TARGET_DEFINITIONS_RC
   "QT_GUI_LIB"
   "QT_MESSAGELOGCONTEXT"
   "QT_NO_DEBUG"
+  "QT_PRINTSUPPORT_LIB"
   "QT_SQL_LIB"
   "QT_WIDGETS_LIB"
   )
@@ -33,6 +34,7 @@ set(CMAKE_RC_TARGET_INCLUDE_PATH
   "pin"
   "timeset"
   "vector"
+  "temp_qcustomplot/lib"
   "C:/Qt/5.15.2/mingw81_32/include"
   "C:/Qt/5.15.2/mingw81_32/include/QtWidgets"
   "C:/Qt/5.15.2/mingw81_32/include/QtGui"
@@ -41,6 +43,7 @@ set(CMAKE_RC_TARGET_INCLUDE_PATH
   "C:/Qt/5.15.2/mingw81_32/./mkspecs/win32-g++"
   "C:/Qt/5.15.2/mingw81_32/include/QtSql"
   "C:/Qt/5.15.2/mingw81_32/include/QtConcurrent"
+  "C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport"
   )
 
 # The set of dependency files which are needed:
@@ -65,6 +68,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/VecEdit/pin/pinsettingsdialog.cpp" "CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj.d"
   "C:/VecEdit/pin/pinvalueedit.cpp" "CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj.d"
   "C:/VecEdit/pin/vectorpinsettingsdialog.cpp" "CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj.d"
+  "C:/VecEdit/temp_qcustomplot/lib/qcustomplot.cpp" "CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj.d"
   "C:/VecEdit/timeset/filltimesetdialog.cpp" "CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj.d"
   "C:/VecEdit/timeset/replacetimesetdialog.cpp" "CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj.d"
   "C:/VecEdit/timeset/timesetdataaccess.cpp" "CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj" "gcc" "CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj.d"

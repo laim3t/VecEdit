@@ -545,11 +545,26 @@ CMakeFiles/VecEdit.dir/version.rc.obj: version.rc
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building RC object CMakeFiles/VecEdit.dir/version.rc.obj"
 	C:\Qt\Tools\mingw810_32\bin\windres.exe -O coff $(RC_DEFINES) $(RC_INCLUDES) $(RC_FLAGS) C:\VecEdit\build\version.rc CMakeFiles\VecEdit.dir\version.rc.obj
 
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj: C:/VecEdit/temp_qcustomplot/lib/qcustomplot.cpp
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj"
+	c:\Qt\Tools\mingw810_32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj -MF CMakeFiles\VecEdit.dir\temp_qcustomplot\lib\qcustomplot.cpp.obj.d -o CMakeFiles\VecEdit.dir\temp_qcustomplot\lib\qcustomplot.cpp.obj -c C:\VecEdit\temp_qcustomplot\lib\qcustomplot.cpp
+
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.i"
+	c:\Qt\Tools\mingw810_32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\VecEdit\temp_qcustomplot\lib\qcustomplot.cpp > CMakeFiles\VecEdit.dir\temp_qcustomplot\lib\qcustomplot.cpp.i
+
+CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.s"
+	c:\Qt\Tools\mingw810_32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\temp_qcustomplot\lib\qcustomplot.cpp -o CMakeFiles\VecEdit.dir\temp_qcustomplot\lib\qcustomplot.cpp.s
+
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
 	c:\Qt\Tools\mingw810_32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj -MF CMakeFiles\VecEdit.dir\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp.obj.d -o CMakeFiles\VecEdit.dir\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp.obj -c C:\VecEdit\build\VecEdit_autogen\BUURKL3RHA\qrc_icons.cpp
 
 CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.i: cmake_force
@@ -593,6 +608,7 @@ VecEdit_OBJECTS = \
 "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj" \
 "CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj" \
 "CMakeFiles/VecEdit.dir/version.rc.obj" \
+"CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj" \
 "CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj"
 
 # External object files for target VecEdit
@@ -629,18 +645,20 @@ VecEdit.exe: CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/version.rc.obj
+VecEdit.exe: CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/build.make
-VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Widgets.a
 VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Sql.a
 VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Concurrent.a
+VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5PrintSupport.a
+VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Widgets.a
 VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Gui.a
 VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libQt5Core.a
 VecEdit.exe: C:/Qt/5.15.2/mingw81_32/lib/libqtmain.a
 VecEdit.exe: CMakeFiles/VecEdit.dir/linkLibs.rsp
 VecEdit.exe: CMakeFiles/VecEdit.dir/objects1.rsp
 VecEdit.exe: CMakeFiles/VecEdit.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Linking CXX executable VecEdit.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\VecEdit\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Linking CXX executable VecEdit.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\VecEdit.dir\link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

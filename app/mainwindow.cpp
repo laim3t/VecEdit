@@ -81,3 +81,4 @@
 #include "mainwindow_dialogs_events.cpp"
 #include "mainwindow_datafix_helpers.cpp"
 #include "mainwindow_vector_fill.cpp"
+#include "mainwindow_waveform_view.cpp"

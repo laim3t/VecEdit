@@ -9,6 +9,7 @@
 #include "X6SAMCXN67/moc_pinsettingsdialog.cpp"
 #include "X6SAMCXN67/moc_pinvalueedit.cpp"
 #include "X6SAMCXN67/moc_vectorpinsettingsdialog.cpp"
+#include "6OWUFIL4R2/moc_qcustomplot.cpp"
 #include "OBAQL5E4PX/moc_filltimesetdialog.cpp"
 #include "OBAQL5E4PX/moc_replacetimesetdialog.cpp"
 #include "OBAQL5E4PX/moc_timesetdialog.cpp"
