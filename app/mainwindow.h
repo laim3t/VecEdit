@@ -193,6 +193,7 @@ private:
     void setupTabBar();
     void setupSidebarNavigator();
     void setupVectorColumnPropertiesBar();
+    QFrame *createHorizontalSeparator(); // 创建水平分隔线的辅助函数
     void resetSidebarNavigator();
     void addVectorTableTab(int tableId, const QString &tableName);
     void loadAllVectorTables();
@@ -233,6 +234,7 @@ private:
     QString m_currentDbPath;
 
     // 菜单项
+    QMenu *m_viewMenu; // "视图"菜单
     QAction *m_newProjectAction;
     QAction *m_openProjectAction;
     QAction *m_closeProjectAction;

@@ -1628,15 +1628,18 @@ void MainWindow::onHexValueEdited()
                 QModelIndex endIndex = m_vectorTableWidget->model()->index(endRow, selectedColumn);
                 QItemSelection selection(startIndex, endIndex);
                 m_vectorTableWidget->selectionModel()->select(selection, QItemSelectionModel::Select);
+
+                // 连续模式下保持焦点在文本框，方便用户继续输入
+                m_pinValueField->setFocus();
             }
             else
             {
                 // 普通模式：只选择下一个单元格
                 m_vectorTableWidget->setCurrentCell(startRow, selectedColumn);
-            }
 
-            // 设置焦点到表格，确保可见
-            m_vectorTableWidget->setFocus();
+                // 普通模式下焦点设置到表格
+                m_vectorTableWidget->setFocus();
+            }
         }
     }
 }

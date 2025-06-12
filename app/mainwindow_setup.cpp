@@ -16,9 +16,9 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1)
 {
     setupUI();
+    setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
+    setupVectorColumnPropertiesBar(); // 必须在 setupMenu() 之前调用，因为它初始化了 m_columnPropertiesDock
     setupMenu();
-    setupSidebarNavigator();          // 添加侧边导航栏设置
-    setupVectorColumnPropertiesBar(); // 添加向量列属性栏设置
 
     // 创建对话框管理器
     m_dialogManager = new DialogManager(this);
@@ -207,6 +207,16 @@ void MainWindow::setupMenu()
             // 设置新的窗口大小
             resize(width, height);
         } });
+
+    // 创建"视图"菜单 (用于控制Dock部件的显示/隐藏)
+    m_viewMenu = menuBar()->addMenu(tr("视图(&I)"));
+    QAction *toggleSidebarAction = m_sidebarDock->toggleViewAction();
+    toggleSidebarAction->setText(tr("导航栏"));
+    m_viewMenu->addAction(toggleSidebarAction);
+
+    QAction *togglePropertiesAction = m_columnPropertiesDock->toggleViewAction();
+    togglePropertiesAction->setText(tr("向量列属性"));
+    m_viewMenu->addAction(togglePropertiesAction);
 }
 
 void MainWindow::setupVectorTableUI()
@@ -600,29 +610,62 @@ void MainWindow::setupSidebarNavigator()
     m_sidebarDock = new QDockWidget(tr("导航栏"), this);
     m_sidebarDock->setObjectName("sidebarDock");
     m_sidebarDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    m_sidebarDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    m_sidebarDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
+
+    // 添加边框线样式，与向量列属性栏保持一致
+    m_sidebarDock->setStyleSheet(
+        "QDockWidget {"
+        "   border: 1px solid #A0A0A0;"
+        "}"
+        "QDockWidget::title {"
+        "   background-color: #E1E1E1;"
+        "   padding-left: 5px;"
+        "   border-bottom: 1px solid #A0A0A0;"
+        "}");
+
+    // 创建导航栏内容容器
+    QWidget *sidebarContainer = new QWidget(m_sidebarDock);
+    sidebarContainer->setObjectName("sidebarContainer");
+    QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebarContainer);
+    sidebarLayout->setSpacing(10);
+    sidebarLayout->setContentsMargins(10, 10, 10, 10);
+
+    // 设置容器样式，与向量列属性栏保持一致
+    QString containerStyle = R"(
+        QWidget#sidebarContainer {
+            background-color: #F0F0F0;
+            border: 1px solid #A0A0A0;
+            margin: 0px;
+        }
+    )";
+    sidebarContainer->setStyleSheet(containerStyle);
+
+    // 移除标题，根据用户要求统一界面
 
     // 创建树形控件
-    m_sidebarTree = new QTreeWidget(m_sidebarDock);
+    m_sidebarTree = new QTreeWidget(sidebarContainer);
     m_sidebarTree->setHeaderLabel(tr("项目组件"));
     m_sidebarTree->setColumnCount(1);
     m_sidebarTree->setIconSize(QSize(16, 16));
+    m_sidebarTree->setHeaderHidden(true); // 隐藏头部，使样式更简洁
 
     // 设置树形控件样式
     QString treeStyle = R"(
         QTreeWidget {
             background-color: #F0F0F0;
-            border: 1px solid #A0A0A0;
+            border: none;
             font-size: 11pt;
         }
         QTreeWidget::item {
-            padding: 3px 0px;
+            padding: 5px 0px;
         }
         QTreeWidget::item:selected {
             background-color: #C0C0C0;
         }
     )";
     m_sidebarTree->setStyleSheet(treeStyle);
+
+    sidebarLayout->addWidget(m_sidebarTree);
 
     // 创建根节点
     QTreeWidgetItem *pinRoot = new QTreeWidgetItem(m_sidebarTree);
@@ -648,11 +691,17 @@ void MainWindow::setupSidebarNavigator()
     // 连接信号槽
     connect(m_sidebarTree, &QTreeWidget::itemClicked, this, &MainWindow::onSidebarItemClicked);
 
-    // 将树形控件设置为停靠部件的内容
-    m_sidebarDock->setWidget(m_sidebarTree);
+    // 添加占位空间
+    sidebarLayout->addStretch();
+
+    // 将容器设置为停靠部件的内容
+    m_sidebarDock->setWidget(sidebarContainer);
 
     // 将侧边栏添加到主窗口的左侧
     addDockWidget(Qt::LeftDockWidgetArea, m_sidebarDock);
+
+    // 设置最小宽度，与向量列属性栏保持一致
+    sidebarContainer->setMinimumWidth(200);
 }
 
 void MainWindow::resetSidebarNavigator()
@@ -899,6 +948,17 @@ void MainWindow::updateMenuState()
     m_closeProjectAction->setEnabled(projectOpen);
 }
 
+// 创建水平分隔线的辅助函数
+QFrame *MainWindow::createHorizontalSeparator()
+{
+    QFrame *separator = new QFrame();
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    separator->setMaximumHeight(1);                                        // 使分隔线更细
+    separator->setStyleSheet("background-color: #CCCCCC; margin: 6px 0;"); // 浅灰色分隔线
+    return separator;
+}
+
 // 设置向量列属性栏
 void MainWindow::setupVectorColumnPropertiesBar()
 {
@@ -906,7 +966,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_columnPropertiesDock = new QDockWidget(tr("向量列属性栏"), this);
     m_columnPropertiesDock->setObjectName("columnPropertiesDock");
     m_columnPropertiesDock->setAllowedAreas(Qt::RightDockWidgetArea);
-    m_columnPropertiesDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    m_columnPropertiesDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
 
     // 添加边框线样式
     m_columnPropertiesDock->setStyleSheet(
@@ -923,8 +983,8 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_columnPropertiesWidget = new QWidget(m_columnPropertiesDock);
     m_columnPropertiesWidget->setObjectName("columnPropertiesWidget");
     QVBoxLayout *propertiesLayout = new QVBoxLayout(m_columnPropertiesWidget);
-    propertiesLayout->setSpacing(10);
-    propertiesLayout->setContentsMargins(10, 10, 10, 10);
+    propertiesLayout->setSpacing(10);                     // 调整控件之间的垂直间距
+    propertiesLayout->setContentsMargins(12, 12, 12, 12); // 调整与窗口边缘的间距
 
     // 设置属性栏样式
     QString propertiesStyle = R"(
@@ -935,18 +995,23 @@ void MainWindow::setupVectorColumnPropertiesBar()
         }
         QLabel {
             font-weight: bold;
+            padding-top: 3px; /* 上方添加内边距使标签垂直居中 */
         }
         QLabel[objectName="titleLabel"] {
             background-color: #E1E1E1;
             border-bottom: 1px solid #A0A0A0;
         }
         QLineEdit {
-            padding: 4px;
+            padding: 3px 6px; /* 适当内部填充 */
             border: 1px solid #A0A0A0;
             background-color: white;
-            border-radius: 2px;
-            min-height: 22px;
-            margin: 1px;
+            border-radius: 3px; /* 适当圆角 */
+            min-height: 26px; /* 适当高度 */
+            margin: 2px; /* 适当外边距 */
+        }
+        /* 表单布局中的QLabel */
+        QFormLayout > QLabel {
+            margin-left: 2px; /* 左侧添加边距 */
         }
     )";
     m_columnPropertiesWidget->setStyleSheet(propertiesStyle);
@@ -954,12 +1019,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     // 设置最小宽度
     m_columnPropertiesWidget->setMinimumWidth(200);
 
-    // 添加标题
-    QLabel *titleLabel = new QLabel(tr("向量列属性"), m_columnPropertiesWidget);
-    titleLabel->setObjectName("titleLabel");
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setStyleSheet("font-size: 14pt; padding: 10px;");
-    propertiesLayout->addWidget(titleLabel);
+    // 移除标题，根据用户要求统一界面
 
     // 列名称区域
     QLabel *columnNameTitle = new QLabel(tr("列名称:"));
@@ -983,32 +1043,61 @@ void MainWindow::setupVectorColumnPropertiesBar()
     hexDisplayLabel->setStyleSheet("font-weight: normal; color: #666666;");
     propertiesLayout->addWidget(hexDisplayLabel);
 
-    // 管脚值区域
-    QGridLayout *pinLayout = new QGridLayout();
-    pinLayout->setColumnStretch(1, 1);
-    pinLayout->setAlignment(Qt::AlignLeft);
-    pinLayout->setHorizontalSpacing(10);
-    pinLayout->setVerticalSpacing(10);
+    // 添加第一条水平分隔线
+    propertiesLayout->addWidget(createHorizontalSeparator());
+
+    // 使用表单布局替代网格布局，实现更好的对齐效果
+    QFormLayout *formLayout = new QFormLayout();
+    formLayout->setFieldGrowthPolicy(QFormLayout::FieldsStayAtSizeHint); // 防止字段自动拉伸
+    formLayout->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);     // 标签左对齐且垂直居中
+    formLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);          // 表单整体左对齐和顶部对齐
+    formLayout->setHorizontalSpacing(12);                                // 标签和字段之间水平间距
+    formLayout->setVerticalSpacing(12);                                  // 行之间的垂直间距
 
     // 管脚
     QLabel *pinLabel = new QLabel(tr("管脚"));
     m_pinNameLabel = new QLabel(tr(""));
     m_pinNameLabel->setStyleSheet("font-weight: normal;");
-    pinLayout->addWidget(pinLabel, 0, 0);
-    pinLayout->addWidget(m_pinNameLabel, 0, 1);
+    formLayout->addRow(pinLabel, m_pinNameLabel);
+
+    // 添加小型分隔线（仅用于表单内的分隔）
+    QFrame *miniSeparator = createHorizontalSeparator();
+    miniSeparator->setStyleSheet("background-color: #E0E0E0; margin: 3px 0;"); // 更淡的颜色和更小的边距
+    formLayout->addRow("", miniSeparator);
 
     // 16进制值
     QLabel *hexValueLabel = new QLabel(tr("16进制值"));
+
+    // 创建带有描述的标签
+    QWidget *hexLabelWithDesc = new QWidget();
+    QVBoxLayout *hexLabelLayout = new QVBoxLayout(hexLabelWithDesc);
+    hexLabelLayout->setSpacing(2);
+    hexLabelLayout->setContentsMargins(0, 0, 0, 0);
+
+    hexLabelLayout->addWidget(hexValueLabel);
+
+    QLabel *hexValueDesc = new QLabel(tr("(串行1的8行数据)"));
+    hexValueDesc->setStyleSheet("font-weight: normal; font-size: 9pt; color: #666666;");
+    hexLabelLayout->addWidget(hexValueDesc);
+
     m_pinValueField = new QLineEdit();
     m_pinValueField->setReadOnly(false); // 改为可编辑
     m_pinValueField->setPlaceholderText(tr("输入16进制值"));
     // 不设置maxLength，让显示可以超过6个字符
     // 在验证函数中会限制用户输入不超过6个字符
-    m_pinValueField->setFixedWidth(200);            // 设置更宽的固定宽度以便能显示8个选中单元格的内容
-    m_pinValueField->setProperty("invalid", false); // 初始状态：有效
-    m_pinValueField->setToolTipDuration(5000);      // 设置提示显示时间为5秒
-    pinLayout->addWidget(hexValueLabel, 1, 0);
-    pinLayout->addWidget(m_pinValueField, 1, 1);
+    m_pinValueField->setFixedWidth(120);                               // 调整到合适宽度
+    m_pinValueField->setMinimumHeight(26);                             // 调整高度使布局更协调
+    m_pinValueField->setProperty("invalid", false);                    // 初始状态：有效
+    m_pinValueField->setToolTipDuration(5000);                         // 设置提示显示时间为5秒
+    m_pinValueField->setStyleSheet("QLineEdit { padding: 3px 6px; }"); // 调整内边距
+
+    // 将标签和输入框添加到表单布局
+    formLayout->addRow(hexLabelWithDesc, m_pinValueField);
+
+    // 添加小型分隔线
+    QFrame *miniSeparator2 = createHorizontalSeparator();
+    miniSeparator2->setStyleSheet("background-color: #E0E0E0; margin: 3px 0;"); // 更淡的颜色和更小的边距
+    formLayout->addRow("", miniSeparator2);
 
     // 连接编辑完成信号
     connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
@@ -1020,12 +1109,19 @@ void MainWindow::setupVectorColumnPropertiesBar()
     QLabel *errorCountLabel = new QLabel(tr("错误个数"));
     m_errorCountField = new QLineEdit(""); // 初始为空，不设置默认值
     m_errorCountField->setReadOnly(true);
-    m_errorCountField->setFixedWidth(200); // 与16进制值文本框保持相同宽度
+    m_errorCountField->setFixedWidth(120);   // 与16进制值文本框保持相同宽度
+    m_errorCountField->setMinimumHeight(26); // 与16进制值文本框保持一致的高度
     m_errorCountField->setPlaceholderText(tr("错误数量"));
-    pinLayout->addWidget(errorCountLabel, 2, 0);
-    pinLayout->addWidget(m_errorCountField, 2, 1);
+    m_errorCountField->setStyleSheet("QLineEdit { padding: 3px 6px; }"); // 与16进制值文本框保持一致的样式
 
-    propertiesLayout->addLayout(pinLayout);
+    // 添加到表单布局
+    formLayout->addRow(errorCountLabel, m_errorCountField);
+
+    // 添加表单布局到主布局
+    propertiesLayout->addLayout(formLayout);
+
+    // 添加水平分隔线
+    propertiesLayout->addWidget(createHorizontalSeparator());
 
     // 添加占位空间
     propertiesLayout->addStretch();
