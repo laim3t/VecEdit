@@ -192,6 +192,11 @@ private slots:
     void updateWaveformView();
     void toggleWaveformView(bool show);
     void onWaveformPinSelectionChanged(int index);
+    void onWaveformContextMenuRequested(const QPoint &pos);
+
+    void on_action_triggered(bool checked);
+    void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
+    void updateWindowTitle(const QString &dbPath = QString());
 
 private:
     void setupUI();

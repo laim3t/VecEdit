@@ -14,6 +14,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QHeaderView>
+#include <QFileInfo>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -1856,4 +1857,28 @@ void MainWindow::validateHexInput(const QString &text)
     m_pinValueField->setStyleSheet("");
     m_pinValueField->setToolTip("");
     m_pinValueField->setProperty("invalid", false);
+}
+
+void MainWindow::on_action_triggered(bool checked)
+{
+    // 这个槽函数当前没有具体操作，可以根据需要进行扩展
+    qDebug() << "Action triggered, checked:" << checked;
+}
+
+void MainWindow::onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column)
+{
+    // 双击时展开或折叠项目
+    if (item) {
+        item->setExpanded(!item->isExpanded());
+    }
+}
+
+void MainWindow::updateWindowTitle(const QString &dbPath)
+{
+    if (dbPath.isEmpty()) {
+        setWindowTitle(tr("向量编辑器"));
+    } else {
+        QFileInfo fileInfo(dbPath);
+        setWindowTitle(tr("向量编辑器 - %1").arg(fileInfo.fileName()));
+    }
 }

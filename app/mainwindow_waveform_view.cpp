@@ -48,6 +48,8 @@ void MainWindow::setupWaveformView()
     m_waveformPlot->xAxis->setLabel(tr("行号"));
     m_waveformPlot->yAxis->setLabel(tr("值"));
     m_waveformPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    m_waveformPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
     waveformLayout->addWidget(m_waveformPlot);
 
     // 设置默认值
@@ -231,4 +233,42 @@ void MainWindow::updateWaveformView()
 
     // 12. 重绘
     m_waveformPlot->replot();
+}
+
+void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
+{
+    if (!m_waveformPlot || m_waveformPlot->graphCount() == 0 || !m_vectorTableWidget)
+        return;
+
+    // Convert widget coordinates to plot coordinates to find the row index
+    double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
+    int rowIndex = qRound(key);
+
+    // Validate the row index
+    if (rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
+        return;
+
+    QMenu contextMenu(this);
+    QAction *jumpAction = contextMenu.addAction(tr("跳转至向量表"));
+
+    connect(jumpAction, &QAction::triggered, this, [this, rowIndex]() {
+        // Find the column index from the currently selected pin
+        QString pinName = m_waveformPinSelector->currentText();
+        int pinColumnIndex = -1;
+        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+            if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
+                pinColumnIndex = col;
+                break;
+            }
+        }
+
+        if (pinColumnIndex >= 0) {
+            // Jump to the cell
+            m_vectorTableWidget->setCurrentCell(rowIndex, pinColumnIndex);
+            m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowIndex, pinColumnIndex), QAbstractItemView::PositionAtCenter);
+            m_vectorTableWidget->setFocus(); // Ensure the table gets focus
+        }
+    });
+
+    contextMenu.exec(m_waveformPlot->mapToGlobal(pos));
 }
