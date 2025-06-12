@@ -1195,6 +1195,9 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
                 newMin = qMax(0.0, newMax - rangeSize);
             }
             
+            // 确保最小值始终为0（不显示负坐标）
+            newMin = qMax(0.0, newMin);
+            
             m_waveformPlot->xAxis->setRange(newMin, newMax);
         }
 

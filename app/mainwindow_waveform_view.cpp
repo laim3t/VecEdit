@@ -47,6 +47,15 @@ void MainWindow::setupWaveformView()
     m_waveformPlot->setMinimumWidth(1000);
     m_waveformPlot->xAxis->setLabel(tr("行号"));
     m_waveformPlot->yAxis->setLabel(tr("值"));
+    
+    // 设置X轴只显示整数刻度
+    QSharedPointer<QCPAxisTickerFixed> intTicker(new QCPAxisTickerFixed);
+    intTicker->setTickStep(1.0);  // 刻度间隔为1
+    m_waveformPlot->xAxis->setTicker(intTicker);
+    m_waveformPlot->xAxis->setSubTicks(false); // 不显示子刻度
+    m_waveformPlot->xAxis->setNumberFormat("f"); // 使用固定点表示法
+    m_waveformPlot->xAxis->setNumberPrecision(0); // 不显示小数位
+    
     m_waveformPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
     m_waveformPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
@@ -230,7 +239,9 @@ void MainWindow::updateWaveformView()
     fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
 
     // 11. 最终绘图设置
-    m_waveformPlot->xAxis->setRange(0, rowCount > 0 ? qMin(rowCount, 5) : 10);
+    // 确保X轴范围从0开始，不显示负坐标
+    double xMax = rowCount > 0 ? qMin(rowCount, 5) : 10;
+    m_waveformPlot->xAxis->setRange(0, xMax);
     m_waveformPlot->yAxis->setRange(-2.0, 22.0);
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
@@ -302,13 +313,14 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setProperty("isSelectionHighlight", true);
     
-    // 设置矩形的位置，覆盖选中的数据点
-    highlightRect->topLeft->setCoords(rowIndex - 0.4, m_waveformPlot->yAxis->range().upper);
-    highlightRect->bottomRight->setCoords(rowIndex + 0.4, m_waveformPlot->yAxis->range().lower);
+    // 设置矩形的位置，覆盖整个格子区域（从当前点到下一个点）
+    // 左边界是当前点减去一点偏移，右边界是下一个点减去一点偏移
+    highlightRect->topLeft->setCoords(rowIndex - 0.02, m_waveformPlot->yAxis->range().upper);
+    highlightRect->bottomRight->setCoords(rowIndex + 0.98, m_waveformPlot->yAxis->range().lower);
     
     // 设置矩形的样式
-    highlightRect->setPen(QPen(Qt::yellow, 2, Qt::DashLine));
-    highlightRect->setBrush(QBrush(QColor(255, 255, 0, 30)));
+    highlightRect->setPen(QPen(Qt::green, 2, Qt::DashLine));
+    highlightRect->setBrush(QBrush(QColor(0, 255, 0, 30)));
     
     // 重绘波形图
     m_waveformPlot->replot();
@@ -327,7 +339,7 @@ void MainWindow::setupWaveformClickHandling()
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
             int rowIndex = qRound(key);
             
-            // 检查索引是否有效
+            // 检查索引是否有效（只响应正坐标）
             if (rowIndex >= 0 && rowIndex < m_vectorTableWidget->rowCount()) {
                 // 高亮显示选中的点
                 highlightWaveformPoint(rowIndex);
