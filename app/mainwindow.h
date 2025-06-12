@@ -193,6 +193,9 @@ private slots:
     void toggleWaveformView(bool show);
     void onWaveformPinSelectionChanged(int index);
     void onWaveformContextMenuRequested(const QPoint &pos);
+    void setupWaveformClickHandling();
+    void highlightWaveformPoint(int rowIndex);
+    void jumpToWaveformPoint(int rowIndex, const QString &pinName);
 
     void on_action_triggered(bool checked);
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
@@ -330,6 +333,7 @@ private:
     QComboBox *m_waveformPinSelector;
     QAction *m_toggleWaveformAction;
     bool m_isWaveformVisible;
+    int m_selectedWaveformPoint;  // 记录当前选中的波形点
 };
 
 #endif // MAINWINDOW_H

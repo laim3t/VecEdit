@@ -52,8 +52,12 @@ void MainWindow::setupWaveformView()
     connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
     waveformLayout->addWidget(m_waveformPlot);
 
+    // 设置波形图点击处理
+    setupWaveformClickHandling();
+
     // 设置默认值
     m_isWaveformVisible = false;
+    m_selectedWaveformPoint = -1;  // 初始化选中点为-1（表示未选中）
 
     // 将波形图容器添加到主窗口
     QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
@@ -248,6 +252,9 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
     if (rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
         return;
 
+    // 更新选中点并高亮显示
+    highlightWaveformPoint(rowIndex);
+
     QMenu contextMenu(this);
     QAction *jumpAction = contextMenu.addAction(tr("跳转至向量表"));
 
@@ -271,4 +278,60 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
     });
 
     contextMenu.exec(m_waveformPlot->mapToGlobal(pos));
+}
+
+// 高亮显示波形图中的指定点
+void MainWindow::highlightWaveformPoint(int rowIndex)
+{
+    if (!m_waveformPlot || rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
+        return;
+
+    // 保存选中的点
+    m_selectedWaveformPoint = rowIndex;
+
+    // 移除所有已有的选中标记
+    for (int i = m_waveformPlot->itemCount() - 1; i >= 0; i--) {
+        if (auto item = dynamic_cast<QCPItemRect*>(m_waveformPlot->item(i))) {
+            if (item->property("isSelectionHighlight").toBool()) {
+                m_waveformPlot->removeItem(i);
+            }
+        }
+    }
+
+    // 创建一个矩形用于高亮选中的点
+    QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
+    highlightRect->setProperty("isSelectionHighlight", true);
+    
+    // 设置矩形的位置，覆盖选中的数据点
+    highlightRect->topLeft->setCoords(rowIndex - 0.4, m_waveformPlot->yAxis->range().upper);
+    highlightRect->bottomRight->setCoords(rowIndex + 0.4, m_waveformPlot->yAxis->range().lower);
+    
+    // 设置矩形的样式
+    highlightRect->setPen(QPen(Qt::yellow, 2, Qt::DashLine));
+    highlightRect->setBrush(QBrush(QColor(255, 255, 0, 30)));
+    
+    // 重绘波形图
+    m_waveformPlot->replot();
+}
+
+// 添加鼠标点击事件处理
+void MainWindow::setupWaveformClickHandling()
+{
+    if (!m_waveformPlot)
+        return;
+    
+    // 连接鼠标点击信号
+    connect(m_waveformPlot, &QCustomPlot::mousePress, this, [this](QMouseEvent *event) {
+        if (event->button() == Qt::LeftButton) {
+            // 获取点击位置对应的数据点索引
+            double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
+            int rowIndex = qRound(key);
+            
+            // 检查索引是否有效
+            if (rowIndex >= 0 && rowIndex < m_vectorTableWidget->rowCount()) {
+                // 高亮显示选中的点
+                highlightWaveformPoint(rowIndex);
+            }
+        }
+    });
 }

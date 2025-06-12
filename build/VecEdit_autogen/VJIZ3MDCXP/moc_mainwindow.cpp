@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[93];
-    char stringdata0[1589];
+    QByteArrayData data[98];
+    char stringdata0[1676];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -121,11 +121,16 @@ QT_MOC_LITERAL(84, 1415, 18), // "toggleWaveformView"
 QT_MOC_LITERAL(85, 1434, 4), // "show"
 QT_MOC_LITERAL(86, 1439, 29), // "onWaveformPinSelectionChanged"
 QT_MOC_LITERAL(87, 1469, 30), // "onWaveformContextMenuRequested"
-QT_MOC_LITERAL(88, 1500, 19), // "on_action_triggered"
-QT_MOC_LITERAL(89, 1520, 7), // "checked"
-QT_MOC_LITERAL(90, 1528, 35), // "onProjectStructureItemDoubleC..."
-QT_MOC_LITERAL(91, 1564, 17), // "updateWindowTitle"
-QT_MOC_LITERAL(92, 1582, 6) // "dbPath"
+QT_MOC_LITERAL(88, 1500, 26), // "setupWaveformClickHandling"
+QT_MOC_LITERAL(89, 1527, 22), // "highlightWaveformPoint"
+QT_MOC_LITERAL(90, 1550, 8), // "rowIndex"
+QT_MOC_LITERAL(91, 1559, 19), // "jumpToWaveformPoint"
+QT_MOC_LITERAL(92, 1579, 7), // "pinName"
+QT_MOC_LITERAL(93, 1587, 19), // "on_action_triggered"
+QT_MOC_LITERAL(94, 1607, 7), // "checked"
+QT_MOC_LITERAL(95, 1615, 35), // "onProjectStructureItemDoubleC..."
+QT_MOC_LITERAL(96, 1651, 17), // "updateWindowTitle"
+QT_MOC_LITERAL(97, 1669, 6) // "dbPath"
 
     },
     "MainWindow\0windowResized\0\0createNewProject\0"
@@ -169,6 +174,9 @@ QT_MOC_LITERAL(92, 1582, 6) // "dbPath"
     "toggleWaveformView\0show\0"
     "onWaveformPinSelectionChanged\0"
     "onWaveformContextMenuRequested\0"
+    "setupWaveformClickHandling\0"
+    "highlightWaveformPoint\0rowIndex\0"
+    "jumpToWaveformPoint\0pinName\0"
     "on_action_triggered\0checked\0"
     "onProjectStructureItemDoubleClicked\0"
     "updateWindowTitle\0dbPath"
@@ -181,7 +189,7 @@ static const uint qt_meta_data_MainWindow[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      67,   14, // methods
+      70,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -189,75 +197,78 @@ static const uint qt_meta_data_MainWindow[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  349,    2, 0x06 /* Public */,
+       1,    0,  364,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  350,    2, 0x08 /* Private */,
-       4,    0,  351,    2, 0x08 /* Private */,
-       5,    0,  352,    2, 0x08 /* Private */,
-       6,    0,  353,    2, 0x08 /* Private */,
-       7,    0,  354,    2, 0x08 /* Private */,
-       8,    0,  355,    2, 0x08 /* Private */,
-       9,    0,  356,    2, 0x08 /* Private */,
-      10,    1,  357,    2, 0x08 /* Private */,
-      13,    1,  360,    2, 0x08 /* Private */,
-      13,    0,  363,    2, 0x28 /* Private | MethodCloned */,
-      15,    0,  364,    2, 0x08 /* Private */,
-      16,    0,  365,    2, 0x08 /* Private */,
-      17,    1,  366,    2, 0x08 /* Private */,
-      19,    1,  369,    2, 0x08 /* Private */,
-      20,    0,  372,    2, 0x08 /* Private */,
-      21,    0,  373,    2, 0x08 /* Private */,
-      22,    2,  374,    2, 0x08 /* Private */,
-      25,    3,  379,    2, 0x08 /* Private */,
-      25,    2,  386,    2, 0x28 /* Private | MethodCloned */,
-      27,    0,  391,    2, 0x08 /* Private */,
-      28,    0,  392,    2, 0x08 /* Private */,
-      29,    0,  393,    2, 0x08 /* Private */,
-      30,    0,  394,    2, 0x08 /* Private */,
-      31,    0,  395,    2, 0x08 /* Private */,
-      32,    2,  396,    2, 0x08 /* Private */,
-      36,    1,  401,    2, 0x08 /* Private */,
-      39,    0,  404,    2, 0x08 /* Private */,
-      40,    2,  405,    2, 0x08 /* Private */,
-      42,    0,  410,    2, 0x08 /* Private */,
-      43,    3,  411,    2, 0x08 /* Private */,
-      46,    0,  418,    2, 0x08 /* Private */,
-      47,    0,  419,    2, 0x08 /* Private */,
-      48,    0,  420,    2, 0x08 /* Private */,
-      49,    0,  421,    2, 0x08 /* Private */,
-      50,    0,  422,    2, 0x08 /* Private */,
-      51,    1,  423,    2, 0x08 /* Private */,
-      52,    0,  426,    2, 0x08 /* Private */,
-      53,    1,  427,    2, 0x08 /* Private */,
-      54,    0,  430,    2, 0x08 /* Private */,
-      55,    0,  431,    2, 0x08 /* Private */,
-      56,    0,  432,    2, 0x08 /* Private */,
-      57,    1,  433,    2, 0x08 /* Private */,
-      59,    1,  436,    2, 0x08 /* Private */,
-      61,    2,  439,    2, 0x08 /* Private */,
-      64,    1,  444,    2, 0x08 /* Private */,
-      65,    1,  447,    2, 0x08 /* Private */,
-      67,    0,  450,    2, 0x08 /* Private */,
-      68,    2,  451,    2, 0x08 /* Private */,
-      71,    2,  456,    2, 0x08 /* Private */,
-      72,    2,  461,    2, 0x08 /* Private */,
-      73,    2,  466,    2, 0x08 /* Private */,
-      74,    2,  471,    2, 0x08 /* Private */,
-      75,    0,  476,    2, 0x08 /* Private */,
-      76,    2,  477,    2, 0x08 /* Private */,
-      77,    2,  482,    2, 0x08 /* Private */,
-      79,    0,  487,    2, 0x08 /* Private */,
-      80,    1,  488,    2, 0x08 /* Private */,
-      82,    0,  491,    2, 0x08 /* Private */,
-      83,    0,  492,    2, 0x08 /* Private */,
-      84,    1,  493,    2, 0x08 /* Private */,
-      86,    1,  496,    2, 0x08 /* Private */,
-      87,    1,  499,    2, 0x08 /* Private */,
-      88,    1,  502,    2, 0x08 /* Private */,
-      90,    2,  505,    2, 0x08 /* Private */,
-      91,    1,  510,    2, 0x08 /* Private */,
-      91,    0,  513,    2, 0x28 /* Private | MethodCloned */,
+       3,    0,  365,    2, 0x08 /* Private */,
+       4,    0,  366,    2, 0x08 /* Private */,
+       5,    0,  367,    2, 0x08 /* Private */,
+       6,    0,  368,    2, 0x08 /* Private */,
+       7,    0,  369,    2, 0x08 /* Private */,
+       8,    0,  370,    2, 0x08 /* Private */,
+       9,    0,  371,    2, 0x08 /* Private */,
+      10,    1,  372,    2, 0x08 /* Private */,
+      13,    1,  375,    2, 0x08 /* Private */,
+      13,    0,  378,    2, 0x28 /* Private | MethodCloned */,
+      15,    0,  379,    2, 0x08 /* Private */,
+      16,    0,  380,    2, 0x08 /* Private */,
+      17,    1,  381,    2, 0x08 /* Private */,
+      19,    1,  384,    2, 0x08 /* Private */,
+      20,    0,  387,    2, 0x08 /* Private */,
+      21,    0,  388,    2, 0x08 /* Private */,
+      22,    2,  389,    2, 0x08 /* Private */,
+      25,    3,  394,    2, 0x08 /* Private */,
+      25,    2,  401,    2, 0x28 /* Private | MethodCloned */,
+      27,    0,  406,    2, 0x08 /* Private */,
+      28,    0,  407,    2, 0x08 /* Private */,
+      29,    0,  408,    2, 0x08 /* Private */,
+      30,    0,  409,    2, 0x08 /* Private */,
+      31,    0,  410,    2, 0x08 /* Private */,
+      32,    2,  411,    2, 0x08 /* Private */,
+      36,    1,  416,    2, 0x08 /* Private */,
+      39,    0,  419,    2, 0x08 /* Private */,
+      40,    2,  420,    2, 0x08 /* Private */,
+      42,    0,  425,    2, 0x08 /* Private */,
+      43,    3,  426,    2, 0x08 /* Private */,
+      46,    0,  433,    2, 0x08 /* Private */,
+      47,    0,  434,    2, 0x08 /* Private */,
+      48,    0,  435,    2, 0x08 /* Private */,
+      49,    0,  436,    2, 0x08 /* Private */,
+      50,    0,  437,    2, 0x08 /* Private */,
+      51,    1,  438,    2, 0x08 /* Private */,
+      52,    0,  441,    2, 0x08 /* Private */,
+      53,    1,  442,    2, 0x08 /* Private */,
+      54,    0,  445,    2, 0x08 /* Private */,
+      55,    0,  446,    2, 0x08 /* Private */,
+      56,    0,  447,    2, 0x08 /* Private */,
+      57,    1,  448,    2, 0x08 /* Private */,
+      59,    1,  451,    2, 0x08 /* Private */,
+      61,    2,  454,    2, 0x08 /* Private */,
+      64,    1,  459,    2, 0x08 /* Private */,
+      65,    1,  462,    2, 0x08 /* Private */,
+      67,    0,  465,    2, 0x08 /* Private */,
+      68,    2,  466,    2, 0x08 /* Private */,
+      71,    2,  471,    2, 0x08 /* Private */,
+      72,    2,  476,    2, 0x08 /* Private */,
+      73,    2,  481,    2, 0x08 /* Private */,
+      74,    2,  486,    2, 0x08 /* Private */,
+      75,    0,  491,    2, 0x08 /* Private */,
+      76,    2,  492,    2, 0x08 /* Private */,
+      77,    2,  497,    2, 0x08 /* Private */,
+      79,    0,  502,    2, 0x08 /* Private */,
+      80,    1,  503,    2, 0x08 /* Private */,
+      82,    0,  506,    2, 0x08 /* Private */,
+      83,    0,  507,    2, 0x08 /* Private */,
+      84,    1,  508,    2, 0x08 /* Private */,
+      86,    1,  511,    2, 0x08 /* Private */,
+      87,    1,  514,    2, 0x08 /* Private */,
+      88,    0,  517,    2, 0x08 /* Private */,
+      89,    1,  518,    2, 0x08 /* Private */,
+      91,    2,  521,    2, 0x08 /* Private */,
+      93,    1,  526,    2, 0x08 /* Private */,
+      95,    2,  529,    2, 0x08 /* Private */,
+      96,    1,  534,    2, 0x08 /* Private */,
+      96,    0,  537,    2, 0x28 /* Private | MethodCloned */,
 
  // signals: parameters
     QMetaType::Void,
@@ -325,9 +336,12 @@ static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void, QMetaType::Bool,   85,
     QMetaType::Void, QMetaType::Int,   18,
     QMetaType::Void, QMetaType::QPoint,   66,
-    QMetaType::Void, QMetaType::Bool,   89,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Int,   90,
+    QMetaType::Void, QMetaType::Int, QMetaType::QString,   90,   92,
+    QMetaType::Void, QMetaType::Bool,   94,
     QMetaType::Void, 0x80000000 | 69, QMetaType::Int,   70,   63,
-    QMetaType::Void, QMetaType::QString,   92,
+    QMetaType::Void, QMetaType::QString,   97,
     QMetaType::Void,
 
        0        // eod
@@ -406,10 +420,13 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 60: _t->toggleWaveformView((*reinterpret_cast< bool(*)>(_a[1]))); break;
         case 61: _t->onWaveformPinSelectionChanged((*reinterpret_cast< int(*)>(_a[1]))); break;
         case 62: _t->onWaveformContextMenuRequested((*reinterpret_cast< const QPoint(*)>(_a[1]))); break;
-        case 63: _t->on_action_triggered((*reinterpret_cast< bool(*)>(_a[1]))); break;
-        case 64: _t->onProjectStructureItemDoubleClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
-        case 65: _t->updateWindowTitle((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 66: _t->updateWindowTitle(); break;
+        case 63: _t->setupWaveformClickHandling(); break;
+        case 64: _t->highlightWaveformPoint((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 65: _t->jumpToWaveformPoint((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 66: _t->on_action_triggered((*reinterpret_cast< bool(*)>(_a[1]))); break;
+        case 67: _t->onProjectStructureItemDoubleClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 68: _t->updateWindowTitle((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 69: _t->updateWindowTitle(); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
@@ -492,13 +509,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 67)
+        if (_id < 70)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 67;
+        _id -= 70;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 67)
+        if (_id < 70)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 67;
+        _id -= 70;
     }
     return _id;
 }

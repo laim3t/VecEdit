@@ -1106,50 +1106,100 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 // 显示管脚列的右键菜单
 void MainWindow::showPinColumnContextMenu(const QPoint &pos)
 {
-    // 获取鼠标点击位置的单元格索引
-    QModelIndex index = m_vectorTableWidget->indexAt(pos);
-    if (!index.isValid())
+    if (!m_vectorTableWidget)
         return;
 
-    // 获取当前选择的单元格列表
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
-    if (selectedIndexes.isEmpty())
+    // 获取右键点击的单元格位置
+    QTableWidgetItem *item = m_vectorTableWidget->itemAt(pos);
+    if (!item)
         return;
 
-    // 检查所有选中的单元格是否都在同一列
-    int col = index.column();
-    bool allSameColumn = true;
-    for (const QModelIndex &idx : selectedIndexes)
+    int row = item->row();
+    int col = item->column();
+
+    // 获取当前表ID
+    int currentTableId = m_vectorTableSelector->currentData().toInt();
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+
+    // 检查是否是管脚列
+    bool isPinColumn = false;
+    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
     {
-        if (idx.column() != col)
-        {
-            allSameColumn = false;
+        isPinColumn = true;
+    }
+
+    // 如果不是管脚列，不显示菜单
+    if (!isPinColumn)
+        return;
+
+    QMenu contextMenu(this);
+    
+    // 添加"跳转至波形图"选项
+    if (m_isWaveformVisible) {
+        QString pinName = m_vectorTableWidget->horizontalHeaderItem(col)->text();
+        QAction *jumpToWaveformAction = contextMenu.addAction(tr("跳转至波形图"));
+        connect(jumpToWaveformAction, &QAction::triggered, this, [this, row, pinName]() {
+            jumpToWaveformPoint(row, pinName);
+        });
+        
+        // 添加分隔线
+        contextMenu.addSeparator();
+    }
+
+    QAction *fillVectorAction = contextMenu.addAction(tr("向量填充"));
+    connect(fillVectorAction, &QAction::triggered, this, [this]() {
+        // 直接调用MainWindow的showFillVectorDialog方法
+        this->showFillVectorDialog();
+    });
+
+    contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
+}
+
+// 实现跳转到波形图指定点的函数
+void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
+{
+    // 确保波形图是可见的
+    if (!m_isWaveformVisible) {
+        toggleWaveformView(true);
+    }
+
+    // 选择正确的管脚
+    for (int i = 0; i < m_waveformPinSelector->count(); i++) {
+        if (m_waveformPinSelector->itemText(i) == pinName) {
+            if (m_waveformPinSelector->currentIndex() != i) {
+                m_waveformPinSelector->setCurrentIndex(i);
+                // onWaveformPinSelectionChanged 会自动更新波形图
+            } else {
+                // 如果已经是当前选中的管脚，手动更新波形图
+                updateWaveformView();
+            }
             break;
         }
     }
 
-    // 获取当前表格的列头信息，判断是否为管脚列
-    QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-    if (!headerItem)
-        return;
+    // 确保rowIndex在可见范围内
+    if (m_waveformPlot) {
+        double currentMin = m_waveformPlot->xAxis->range().lower;
+        double currentMax = m_waveformPlot->xAxis->range().upper;
+        double rangeSize = currentMax - currentMin;
 
-    QString headerText = headerItem->text();
+        // 如果点不在当前可见范围内，调整范围
+        if (rowIndex < currentMin || rowIndex > currentMax) {
+            // 计算新的范围，使rowIndex在中间
+            double newMin = qMax(0.0, rowIndex - rangeSize / 2);
+            double newMax = newMin + rangeSize;
+            
+            // 确保不超过数据范围
+            if (newMax > m_vectorTableWidget->rowCount()) {
+                newMax = m_vectorTableWidget->rowCount();
+                newMin = qMax(0.0, newMax - rangeSize);
+            }
+            
+            m_waveformPlot->xAxis->setRange(newMin, newMax);
+        }
 
-    // 检查是否为管脚列（简单判断：非Label/Instruction/TimeSet/Comment等标准列）
-    QStringList standardColumns = {"Label", "标签", "Instruction", "指令", "TimeSet", "时序", "Capture", "捕获", "Ext", "扩展", "Comment", "注释"};
-    bool isPinColumn = !standardColumns.contains(headerText, Qt::CaseInsensitive);
-
-    if (isPinColumn && allSameColumn)
-    {
-        // 创建右键菜单
-        QMenu contextMenu(this);
-
-        // 添加"向量填充"操作
-        QAction *fillVectorAction = contextMenu.addAction(tr("向量填充"));
-        connect(fillVectorAction, &QAction::triggered, this, &MainWindow::showFillVectorDialog);
-
-        // 显示右键菜单
-        contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
+        // 高亮显示选中的点
+        highlightWaveformPoint(rowIndex);
     }
 }
 
@@ -1461,22 +1511,24 @@ void MainWindow::onHexValueEdited()
     // 判断格式类型和提取16进制值
     bool useHLFormat = false;
     QString hexDigits;
+    bool validFormat = false;  // 定义并初始化validFormat变量
 
     // 统一将输入转为小写以便处理
     QString lowerHexValue = hexValue.toLower();
 
-    // 解析输入，检查前缀和提取16进制部分
     if (lowerHexValue.startsWith("+0x"))
     {
         // +0x前缀表示H/L格式
         useHLFormat = true;
         hexDigits = lowerHexValue.mid(3); // 去掉'+0x'前缀
+        validFormat = true;  // 设置为有效格式
     }
     else if (lowerHexValue.startsWith("0x"))
     {
         // 0x前缀表示0/1格式
         useHLFormat = false;
         hexDigits = lowerHexValue.mid(2); // 去掉'0x'前缀
+        validFormat = true;  // 设置为有效格式
     }
     else
     {
@@ -1484,58 +1536,49 @@ void MainWindow::onHexValueEdited()
         return;
     }
 
-    // 确保16进制部分是有效的 (允许大小写的A-F)
-    QRegExp hexRegex("^[0-9A-Fa-f]{1,2}$");
+    // 检查格式是否有效
+    if (!validFormat)
+    {
+        // 如果不是标准的16进制格式，可能是显示模式（如XXXXXX），不应该显示错误
+        m_pinValueField->setStyleSheet("");
+        m_pinValueField->setToolTip("");
+        m_pinValueField->setProperty("invalid", false);
+        return;
+    }
+
+    // 检查16进制部分是否有效
+    QRegExp hexRegex("^[0-9a-f]{1,2}$");
     if (!hexRegex.exactMatch(hexDigits))
     {
-        return; // 无效的16进制输入
+        m_pinValueField->setStyleSheet("border: 2px solid red");
+        m_pinValueField->setToolTip(tr("输入错误：16进制值必须是1-2位的有效16进制数字 (0-9, A-F)"));
+        m_pinValueField->setProperty("invalid", true);
+        return;
     }
 
-    // 如果只有一个数字，前面补0
-    if (hexDigits.length() == 1)
-    {
-        hexDigits = "0" + hexDigits;
-    }
-
-    // 始终更新显示值为标准格式（小写x，大写十六进制数字）
-    if (useHLFormat)
-    {
-        m_pinValueField->setText("+0x" + hexDigits.toUpper());
-    }
-    else
-    {
-        m_pinValueField->setText("0x" + hexDigits.toUpper());
-    }
-
-    // 确保前缀中的x是小写的
-    QString currentText = m_pinValueField->text();
-    if (currentText.contains("0X"))
-    {
-        currentText.replace("0X", "0x");
-        m_pinValueField->setText(currentText);
-    }
-    if (currentText.contains("+0X"))
-    {
-        currentText.replace("+0X", "+0x");
-        m_pinValueField->setText(currentText);
-    }
-
-    // 转换16进制为整数
+    // 转换为二进制检查位数
     bool ok;
-    int value = hexDigits.toInt(&ok, 16);
+    int decimalValue = hexDigits.toInt(&ok, 16);
     if (!ok)
-        return; // 转换失败，退出
+    {
+        m_pinValueField->setStyleSheet("border: 2px solid red");
+        m_pinValueField->setToolTip(tr("输入错误：无法转换为有效的16进制数"));
+        m_pinValueField->setProperty("invalid", true);
+        return;
+    }
 
-    // 转换为8位二进制字符串
-    QString binaryStr = QString::number(value, 2);
+    // 转换为二进制字符串
+    QString binaryStr = QString::number(decimalValue, 2);
 
-    // 补齐前导0使长度为8
+    // 补齐前导零到8位
     while (binaryStr.length() < 8)
+    {
         binaryStr.prepend('0');
+    }
 
-    // 确保是8位二进制
-    if (binaryStr.length() > 8)
-        binaryStr = binaryStr.right(8);
+    // 检查二进制位数和选中行数是否匹配
+    // 需要找到最左侧的'1'位，确保所有有效位都可以显示
+    bool isBitCountInvalid = false;
 
     // 计算需要的有效位数（最高位的1到最右侧的距离）
     int effectiveBits = 0;
@@ -1555,105 +1598,71 @@ void MainWindow::onHexValueEdited()
         effectiveBits = 1;
     }
 
-    // 验证有效位数不超过选中的行数
+    // 如果有效位数超过选中行数，则输入无效
     if (effectiveBits > selectedRows.size())
     {
-        // 这里我们发现有效位数超过了选中行数，不执行操作
-        QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRows.size()).arg(hexDigits.toUpper()).arg(effectiveBits);
+        isBitCountInvalid = true;
+    }
+
+    if (isBitCountInvalid)
+    {
         m_pinValueField->setStyleSheet("border: 2px solid red");
+
+        QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRows.size()).arg(hexDigits.toUpper()).arg(effectiveBits);
+
+        // 添加帮助信息
+        if (selectedRows.size() == 1)
+        {
+            errorMsg += tr("\n\n对于1行，最大值为: 0x01");
+        }
+        else if (selectedRows.size() == 2)
+        {
+            errorMsg += tr("\n\n对于2行，最大值为: 0x03");
+        }
+        else if (selectedRows.size() == 3)
+        {
+            errorMsg += tr("\n\n对于3行，最大值为: 0x07");
+        }
+        else if (selectedRows.size() <= 8)
+        {
+            // 生成对应的最大值
+            int maxValue = (1 << selectedRows.size()) - 1;
+            QString maxHex = QString("0x%1").arg(maxValue, 2, 16, QChar('0')).toUpper();
+            errorMsg += tr("\n\n对于%1行，最大值为: %2").arg(selectedRows.size()).arg(maxHex);
+        }
+
         m_pinValueField->setToolTip(errorMsg);
         m_pinValueField->setProperty("invalid", true);
         return;
     }
 
-    // 最多更新8行
-    int maxRows = qMin(8, selectedRows.size());
+    // 所有验证通过，输入有效
+    m_pinValueField->setStyleSheet("");
+    m_pinValueField->setToolTip("");
+    m_pinValueField->setProperty("invalid", false);
+}
 
-    // 对行进行排序，确保从上到下填充
-    std::sort(selectedRows.begin(), selectedRows.end());
+void MainWindow::on_action_triggered(bool checked)
+{
+    // 这个槽函数当前没有具体操作，可以根据需要进行扩展
+    qDebug() << "Action triggered, checked:" << checked;
+}
 
-    for (int i = 0; i < maxRows; i++)
-    {
-        // 从表格的底部行开始映射
-        // 这样二进制从右到左对应表格从下到上
-        int rowIndex = maxRows - 1 - i;
-        QTableWidgetItem *item = m_vectorTableWidget->item(selectedRows.at(rowIndex), selectedColumn);
-        if (item)
-        {
-            // 从二进制字符串的"低位"开始读取 (从右向左)
-            // 这使得输入的最右边一位对应表格的最底行
-            int binIndex = binaryStr.length() - 1 - i;
-            if (binIndex >= 0) // 确保索引有效
-            {
-                if (useHLFormat)
-                {
-                    // 使用H/L格式：0->L, 1->H
-                    item->setText(binaryStr.at(binIndex) == '1' ? "H" : "L");
-                }
-                else
-                {
-                    // 使用0/1格式
-                    item->setText(QString(binaryStr.at(binIndex)));
-                }
-            }
-        }
+void MainWindow::onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column)
+{
+    // 双击时展开或折叠项目
+    if (item) {
+        item->setExpanded(!item->isExpanded());
     }
+}
 
-    // 再次更新显示的16进制值，以确保格式正确
-    calculateAndDisplayHexValue(selectedRows, selectedColumn);
-
-    // 根据用户要求，根据选中行数自动选择下一行或连续8个单元格
-    if (!selectedRows.isEmpty())
-    {
-        // 先清除当前的选择
-        m_vectorTableWidget->clearSelection();
-
-        // 确保行按从上到下排序
-        std::sort(selectedRows.begin(), selectedRows.end());
-
-        // 获取起始行
-        int startRow;
-        if (selectedRows.size() <= 8)
-        {
-            // 使用最后一个选中行的下一行作为起始
-            startRow = selectedRows.last() + 1;
-        }
-        else
-        {
-            // 如果选中行大于8行，则选择选中范围的第9行
-            startRow = selectedRows.first() + 8;
-        }
-
-        // 确保起始行在当前页中且有效
-        if (startRow < m_vectorTableWidget->rowCount())
-        {
-            // 检查是否启用了"连续"选择模式
-            if (m_continuousSelectCheckBox && m_continuousSelectCheckBox->isChecked())
-            {
-                // 连续模式：选择8个连续单元格
-                int endRow = qMin(startRow + 7, m_vectorTableWidget->rowCount() - 1);
-
-                // 设置当前单元格为起始行
-                m_vectorTableWidget->setCurrentCell(startRow, selectedColumn);
-
-                // 选择连续的单元格范围
-                QModelIndex startIndex = m_vectorTableWidget->model()->index(startRow, selectedColumn);
-                QModelIndex endIndex = m_vectorTableWidget->model()->index(endRow, selectedColumn);
-                QItemSelection selection(startIndex, endIndex);
-                m_vectorTableWidget->selectionModel()->select(selection, QItemSelectionModel::Select);
-
-                // 连续模式下保持焦点在文本框，方便用户继续输入
-                m_pinValueField->setFocus();
-            }
-            else
-            {
-                // 普通模式：只选择下一个单元格
-                m_vectorTableWidget->setCurrentCell(startRow, selectedColumn);
-
-                // 普通模式下焦点设置到表格
-                m_vectorTableWidget->setFocus();
-            }
-        }
+void MainWindow::updateWindowTitle(const QString &dbPath)
+{
+    if (dbPath.isEmpty()) {
+        setWindowTitle(tr("向量编辑器"));
+    } else {
+        QFileInfo fileInfo(dbPath);
+        setWindowTitle(tr("向量编辑器 - %1").arg(fileInfo.fileName()));
     }
 }
 
@@ -1789,10 +1798,6 @@ void MainWindow::validateHexInput(const QString &text)
         binaryStr.prepend('0');
     }
 
-    // 检查二进制位数和选中行数是否匹配
-    // 需要找到最左侧的'1'位，确保所有有效位都可以显示
-    bool isBitCountInvalid = false;
-
     // 计算需要的有效位数（最高位的1到最右侧的距离）
     int effectiveBits = 0;
     for (int i = 0; i < binaryStr.length(); i++)
@@ -1813,11 +1818,6 @@ void MainWindow::validateHexInput(const QString &text)
 
     // 如果有效位数超过选中行数，则输入无效
     if (effectiveBits > selectedRowCount)
-    {
-        isBitCountInvalid = true;
-    }
-
-    if (isBitCountInvalid)
     {
         m_pinValueField->setStyleSheet("border: 2px solid red");
 
@@ -1857,28 +1857,4 @@ void MainWindow::validateHexInput(const QString &text)
     m_pinValueField->setStyleSheet("");
     m_pinValueField->setToolTip("");
     m_pinValueField->setProperty("invalid", false);
-}
-
-void MainWindow::on_action_triggered(bool checked)
-{
-    // 这个槽函数当前没有具体操作，可以根据需要进行扩展
-    qDebug() << "Action triggered, checked:" << checked;
-}
-
-void MainWindow::onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column)
-{
-    // 双击时展开或折叠项目
-    if (item) {
-        item->setExpanded(!item->isExpanded());
-    }
-}
-
-void MainWindow::updateWindowTitle(const QString &dbPath)
-{
-    if (dbPath.isEmpty()) {
-        setWindowTitle(tr("向量编辑器"));
-    } else {
-        QFileInfo fileInfo(dbPath);
-        setWindowTitle(tr("向量编辑器 - %1").arg(fileInfo.fileName()));
-    }
 }
