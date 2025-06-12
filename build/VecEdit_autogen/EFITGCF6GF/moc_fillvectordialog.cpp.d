@@ -1,5 +1,5 @@
-E:/QT_project/1/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: E:/QT_project/1/VecEdit/vector/fillvectordialog.h \
-  E:/QT_project/1/VecEdit/build/VecEdit_autogen/moc_predefs.h \
+C:/VecEdit/build/VecEdit_autogen/EFITGCF6GF/moc_fillvectordialog.cpp: C:/VecEdit/vector/fillvectordialog.h \
+  C:/VecEdit/build/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \

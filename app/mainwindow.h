@@ -182,7 +182,7 @@ private slots:
 
     // 处理16进制值编辑后的同步操作
     void onHexValueEdited();
-    
+
     // 实时验证16进制输入
     void validateHexInput(const QString &text);
 
@@ -292,11 +292,13 @@ private:
     QTreeWidget *m_sidebarTree;
 
     // 向量列属性栏组件
-    QDockWidget *m_columnPropertiesDock; // 向量列属性栏容器
-    QWidget *m_columnPropertiesWidget;   // 向量列属性内容区域
-    QLabel *m_pinNameLabel;              // 管脚名称标签
-    QLineEdit *m_pinValueField;          // 16进制值字段
-    QLineEdit *m_errorCountField;        // 错误个数字段
+    QDockWidget *m_columnPropertiesDock;   // 向量列属性栏容器
+    QWidget *m_columnPropertiesWidget;     // 向量列属性内容区域
+    QLabel *m_columnNamePinLabel;          // 列名称旁的管脚标签
+    QLabel *m_pinNameLabel;                // 管脚名称标签
+    QLineEdit *m_pinValueField;            // 16进制值字段
+    QLineEdit *m_errorCountField;          // 错误个数字段
+    QCheckBox *m_continuousSelectCheckBox; // 连续选择勾选框
 
     // 当前选中的用于16进制值显示和编辑的信息
     int m_currentHexValueColumn;      // 当前16进制值对应的列

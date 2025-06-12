@@ -1154,9 +1154,10 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
     {
         return;
     }
-    
+
     // 重置16进制输入框的验证状态
-    if (m_pinValueField) {
+    if (m_pinValueField)
+    {
         m_pinValueField->setStyleSheet("");
         m_pinValueField->setToolTip("");
         m_pinValueField->setProperty("invalid", false);
@@ -1175,7 +1176,7 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
     // 获取列类型
     Vector::ColumnDataType colType = columns[column].type;
 
-    // 只处理管脚列
+    // 处理管脚列
     if (colType == Vector::ColumnDataType::PIN_STATE_ID)
     {
         // 获取管脚名称（从列标题获取而不是从单元格获取）
@@ -1191,6 +1192,12 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
             if (m_pinNameLabel)
             {
                 m_pinNameLabel->setText(pinName);
+            }
+
+            // 更新列名称旁的管脚标签
+            if (m_columnNamePinLabel)
+            {
+                m_columnNamePinLabel->setText(pinName);
             }
 
             // 获取当前选中的行
@@ -1215,7 +1222,51 @@ void MainWindow::updateVectorColumnProperties(int row, int column)
             {
                 m_errorCountField->setText("0");
             }
+
+            // 启用连续勾选框
+            if (m_continuousSelectCheckBox)
+            {
+                m_continuousSelectCheckBox->setEnabled(true);
+            }
         }
+    }
+    // 处理非管脚列（清空所有显示）
+    else
+    {
+        // 清空管脚名称标签
+        if (m_pinNameLabel)
+        {
+            m_pinNameLabel->setText("");
+        }
+
+        // 清空列名称旁的管脚标签
+        if (m_columnNamePinLabel)
+        {
+            m_columnNamePinLabel->setText("");
+        }
+
+        // 清空16进制值输入框
+        if (m_pinValueField)
+        {
+            m_pinValueField->clear();
+        }
+
+        // 清空错误个数字段
+        if (m_errorCountField)
+        {
+            m_errorCountField->setText("");
+        }
+
+        // 禁用连续勾选框
+        if (m_continuousSelectCheckBox)
+        {
+            m_continuousSelectCheckBox->setEnabled(false);
+            m_continuousSelectCheckBox->setChecked(false);
+        }
+
+        // 重置当前选中列和行
+        m_currentHexValueColumn = -1;
+        m_currentSelectedRows.clear();
     }
 }
 
@@ -1313,9 +1364,10 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
     {
         // 将所有单元格值连接起来，不截断长度
         hexResult = cellValues.join("");
-        
+
         // 如果结果太长，可以考虑显示提示信息，表明这是多个单元格的混合值
-        if (hexResult.length() > 15) {
+        if (hexResult.length() > 15)
+        {
             // 超过15个字符时截断并添加省略号
             hexResult = hexResult.left(12) + "...";
         }
@@ -1337,7 +1389,8 @@ void MainWindow::onHexValueEdited()
         return;
 
     // 如果输入无效，则不执行任何操作
-    if (m_pinValueField->property("invalid").toBool()) {
+    if (m_pinValueField->property("invalid").toBool())
+    {
         return;
     }
 
@@ -1440,14 +1493,16 @@ void MainWindow::onHexValueEdited()
     {
         m_pinValueField->setText("0x" + hexDigits.toUpper());
     }
-    
+
     // 确保前缀中的x是小写的
     QString currentText = m_pinValueField->text();
-    if (currentText.contains("0X")) {
+    if (currentText.contains("0X"))
+    {
         currentText.replace("0X", "0x");
         m_pinValueField->setText(currentText);
     }
-    if (currentText.contains("+0X")) {
+    if (currentText.contains("+0X"))
+    {
         currentText.replace("+0X", "+0x");
         m_pinValueField->setText(currentText);
     }
@@ -1468,24 +1523,28 @@ void MainWindow::onHexValueEdited()
     // 确保是8位二进制
     if (binaryStr.length() > 8)
         binaryStr = binaryStr.right(8);
-        
+
     // 计算需要的有效位数（最高位的1到最右侧的距离）
     int effectiveBits = 0;
-    for (int i = 0; i < binaryStr.length(); i++) {
-        if (binaryStr[i] == '1') {
+    for (int i = 0; i < binaryStr.length(); i++)
+    {
+        if (binaryStr[i] == '1')
+        {
             // 找到最左边的'1'位，计算它到最右边的距离
             effectiveBits = binaryStr.length() - i;
             break;
         }
     }
-    
+
     // 如果全是0，则只需要1行
-    if (effectiveBits == 0) {
+    if (effectiveBits == 0)
+    {
         effectiveBits = 1;
     }
-    
+
     // 验证有效位数不超过选中的行数
-    if (effectiveBits > selectedRows.size()) {
+    if (effectiveBits > selectedRows.size())
+    {
         // 这里我们发现有效位数超过了选中行数，不执行操作
         QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRows.size()).arg(hexDigits.toUpper()).arg(effectiveBits);
         m_pinValueField->setStyleSheet("border: 2px solid red");
@@ -1499,7 +1558,7 @@ void MainWindow::onHexValueEdited()
 
     // 对行进行排序，确保从上到下填充
     std::sort(selectedRows.begin(), selectedRows.end());
-    
+
     for (int i = 0; i < maxRows; i++)
     {
         // 从表格的底部行开始映射
@@ -1529,29 +1588,53 @@ void MainWindow::onHexValueEdited()
 
     // 再次更新显示的16进制值，以确保格式正确
     calculateAndDisplayHexValue(selectedRows, selectedColumn);
-    
-    // 根据用户要求，根据选中行数自动选择下一行
-    if (!selectedRows.isEmpty()) {
+
+    // 根据用户要求，根据选中行数自动选择下一行或连续8个单元格
+    if (!selectedRows.isEmpty())
+    {
         // 先清除当前的选择
         m_vectorTableWidget->clearSelection();
-        
+
         // 确保行按从上到下排序
         std::sort(selectedRows.begin(), selectedRows.end());
-        
-        int targetRow;
-        if (selectedRows.size() <= 8) {
-            // 根据用户要求，小于等于8行的情况，应该选择最后一个选中行的下一行
-            // 从第四行跳到第五行
-            targetRow = selectedRows.last() + 1;
-        } else {
-            // 如果选中行大于8行，则选择选中范围的第9行
-            targetRow = selectedRows.first() + 8;
+
+        // 获取起始行
+        int startRow;
+        if (selectedRows.size() <= 8)
+        {
+            // 使用最后一个选中行的下一行作为起始
+            startRow = selectedRows.last() + 1;
         }
-        
-        // 确保目标行在当前页中且有效
-        if (targetRow < m_vectorTableWidget->rowCount()) {
-            // 选择指定行和相同列的单元格
-            m_vectorTableWidget->setCurrentCell(targetRow, selectedColumn);
+        else
+        {
+            // 如果选中行大于8行，则选择选中范围的第9行
+            startRow = selectedRows.first() + 8;
+        }
+
+        // 确保起始行在当前页中且有效
+        if (startRow < m_vectorTableWidget->rowCount())
+        {
+            // 检查是否启用了"连续"选择模式
+            if (m_continuousSelectCheckBox && m_continuousSelectCheckBox->isChecked())
+            {
+                // 连续模式：选择8个连续单元格
+                int endRow = qMin(startRow + 7, m_vectorTableWidget->rowCount() - 1);
+
+                // 设置当前单元格为起始行
+                m_vectorTableWidget->setCurrentCell(startRow, selectedColumn);
+
+                // 选择连续的单元格范围
+                QModelIndex startIndex = m_vectorTableWidget->model()->index(startRow, selectedColumn);
+                QModelIndex endIndex = m_vectorTableWidget->model()->index(endRow, selectedColumn);
+                QItemSelection selection(startIndex, endIndex);
+                m_vectorTableWidget->selectionModel()->select(selection, QItemSelectionModel::Select);
+            }
+            else
+            {
+                // 普通模式：只选择下一个单元格
+                m_vectorTableWidget->setCurrentCell(startRow, selectedColumn);
+            }
+
             // 设置焦点到表格，确保可见
             m_vectorTableWidget->setFocus();
         }
@@ -1562,7 +1645,8 @@ void MainWindow::onHexValueEdited()
 void MainWindow::validateHexInput(const QString &text)
 {
     // 如果为空则重置状态
-    if (text.isEmpty()) {
+    if (text.isEmpty())
+    {
         m_pinValueField->setStyleSheet("");
         m_pinValueField->setToolTip("");
         m_pinValueField->setProperty("invalid", false);
@@ -1571,30 +1655,36 @@ void MainWindow::validateHexInput(const QString &text)
 
     // 获取当前选中的行数
     int selectedRowCount = m_currentSelectedRows.size();
-    if (selectedRowCount == 0) {
+    if (selectedRowCount == 0)
+    {
         // 如果没有选中行，尝试从当前选择获取
         QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
+        if (!selectedItems.isEmpty())
+        {
             QSet<int> rowSet;
             int firstColumn = selectedItems.first()->column();
             bool sameColumn = true;
 
-            for (QTableWidgetItem *item : selectedItems) {
-                if (item->column() != firstColumn) {
+            for (QTableWidgetItem *item : selectedItems)
+            {
+                if (item->column() != firstColumn)
+                {
                     sameColumn = false;
                     break;
                 }
                 rowSet.insert(item->row());
             }
 
-            if (sameColumn) {
+            if (sameColumn)
+            {
                 selectedRowCount = rowSet.size();
             }
         }
     }
 
     // 没有选中任何行，不进行验证
-    if (selectedRowCount == 0) {
+    if (selectedRowCount == 0)
+    {
         m_pinValueField->setStyleSheet("");
         m_pinValueField->setToolTip("");
         m_pinValueField->setProperty("invalid", false);
@@ -1603,9 +1693,11 @@ void MainWindow::validateHexInput(const QString &text)
 
     // 如果文本长度超过6，并且不是由calculateAndDisplayHexValue函数设置的，
     // 则可能是用户正在手动输入过长的内容
-    if (text.length() > 6) {
+    if (text.length() > 6)
+    {
         // 检查是否像是用户输入的16进制值（以0x或+0x开头）
-        if (text.startsWith("0x", Qt::CaseInsensitive) || text.startsWith("+0x", Qt::CaseInsensitive)) {
+        if (text.startsWith("0x", Qt::CaseInsensitive) || text.startsWith("+0x", Qt::CaseInsensitive))
+        {
             m_pinValueField->setStyleSheet("border: 2px solid red");
             m_pinValueField->setToolTip(tr("输入错误：16进制值前缀后最多只能有2位数字 (0-9, A-F)"));
             m_pinValueField->setProperty("invalid", true);
@@ -1623,23 +1715,27 @@ void MainWindow::validateHexInput(const QString &text)
     QString hexDigits;
     bool validFormat = false;
     bool useHLFormat = false;
-    
+
     // 统一将输入转为小写以便处理
     QString lowerText = text.toLower();
 
-    if (lowerText.startsWith("+0x")) {
+    if (lowerText.startsWith("+0x"))
+    {
         // +0x前缀表示H/L格式
         useHLFormat = true;
         hexDigits = lowerText.mid(3); // 去掉'+0x'前缀
         validFormat = true;
-    } else if (lowerText.startsWith("0x")) {
+    }
+    else if (lowerText.startsWith("0x"))
+    {
         // 0x前缀表示0/1格式
         hexDigits = lowerText.mid(2); // 去掉'0x'前缀
         validFormat = true;
     }
 
     // 检查格式是否有效
-    if (!validFormat) {
+    if (!validFormat)
+    {
         // 如果不是标准的16进制格式，可能是显示模式（如XXXXXX），不应该显示错误
         m_pinValueField->setStyleSheet("");
         m_pinValueField->setToolTip("");
@@ -1649,7 +1745,8 @@ void MainWindow::validateHexInput(const QString &text)
 
     // 检查16进制部分是否有效
     QRegExp hexRegex("^[0-9a-f]{1,2}$");
-    if (!hexRegex.exactMatch(hexDigits)) {
+    if (!hexRegex.exactMatch(hexDigits))
+    {
         m_pinValueField->setStyleSheet("border: 2px solid red");
         m_pinValueField->setToolTip(tr("输入错误：16进制值必须是1-2位的有效16进制数字 (0-9, A-F)"));
         m_pinValueField->setProperty("invalid", true);
@@ -1659,7 +1756,8 @@ void MainWindow::validateHexInput(const QString &text)
     // 转换为二进制检查位数
     bool ok;
     int decimalValue = hexDigits.toInt(&ok, 16);
-    if (!ok) {
+    if (!ok)
+    {
         m_pinValueField->setStyleSheet("border: 2px solid red");
         m_pinValueField->setToolTip(tr("输入错误：无法转换为有效的16进制数"));
         m_pinValueField->setProperty("invalid", true);
@@ -1668,57 +1766,72 @@ void MainWindow::validateHexInput(const QString &text)
 
     // 转换为二进制字符串
     QString binaryStr = QString::number(decimalValue, 2);
-    
+
     // 补齐前导零到8位
-    while (binaryStr.length() < 8) {
+    while (binaryStr.length() < 8)
+    {
         binaryStr.prepend('0');
     }
 
     // 检查二进制位数和选中行数是否匹配
     // 需要找到最左侧的'1'位，确保所有有效位都可以显示
     bool isBitCountInvalid = false;
-    
+
     // 计算需要的有效位数（最高位的1到最右侧的距离）
     int effectiveBits = 0;
-    for (int i = 0; i < binaryStr.length(); i++) {
-        if (binaryStr[i] == '1') {
+    for (int i = 0; i < binaryStr.length(); i++)
+    {
+        if (binaryStr[i] == '1')
+        {
             // 找到最左边的'1'位，计算它到最右边的距离
             effectiveBits = binaryStr.length() - i;
             break;
         }
     }
-    
+
     // 如果全是0，则只需要1行
-    if (effectiveBits == 0) {
+    if (effectiveBits == 0)
+    {
         effectiveBits = 1;
     }
-    
+
     // 如果有效位数超过选中行数，则输入无效
-    if (effectiveBits > selectedRowCount) {
+    if (effectiveBits > selectedRowCount)
+    {
         isBitCountInvalid = true;
     }
 
-    if (isBitCountInvalid) {
+    if (isBitCountInvalid)
+    {
         m_pinValueField->setStyleSheet("border: 2px solid red");
-        
+
         QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRowCount).arg(hexDigits.toUpper()).arg(effectiveBits);
-        
+
         // 添加帮助信息
-        if (selectedRowCount == 1) {
+        if (selectedRowCount == 1)
+        {
             errorMsg += tr("\n\n对于1行，最大值为: 0x01");
-        } else if (selectedRowCount == 2) {
+        }
+        else if (selectedRowCount == 2)
+        {
             errorMsg += tr("\n\n对于2行，最大值为: 0x03");
-        } else if (selectedRowCount == 3) {
+        }
+        else if (selectedRowCount == 3)
+        {
             errorMsg += tr("\n\n对于3行，最大值为: 0x07");
-        } else if (selectedRowCount == 4) {
+        }
+        else if (selectedRowCount == 4)
+        {
             errorMsg += tr("\n\n对于4行，最大值为: 0x0F");
-        } else if (selectedRowCount <= 8) {
+        }
+        else if (selectedRowCount <= 8)
+        {
             // 生成对应的最大值
             int maxValue = (1 << selectedRowCount) - 1;
             QString maxHex = QString("0x%1").arg(maxValue, 2, 16, QChar('0')).toUpper();
             errorMsg += tr("\n\n对于%1行，最大值为: %2").arg(selectedRowCount).arg(maxHex);
         }
-        
+
         m_pinValueField->setToolTip(errorMsg);
         m_pinValueField->setProperty("invalid", true);
         return;

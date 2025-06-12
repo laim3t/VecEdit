@@ -907,7 +907,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_columnPropertiesDock->setObjectName("columnPropertiesDock");
     m_columnPropertiesDock->setAllowedAreas(Qt::RightDockWidgetArea);
     m_columnPropertiesDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-    
+
     // 添加边框线样式
     m_columnPropertiesDock->setStyleSheet(
         "QDockWidget {"
@@ -917,8 +917,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
         "   background-color: #E1E1E1;"
         "   padding-left: 5px;"
         "   border-bottom: 1px solid #A0A0A0;"
-        "}"
-    );
+        "}");
 
     // 创建属性栏内容容器
     m_columnPropertiesWidget = new QWidget(m_columnPropertiesDock);
@@ -964,7 +963,20 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 列名称区域
     QLabel *columnNameTitle = new QLabel(tr("列名称:"));
-    propertiesLayout->addWidget(columnNameTitle);
+    m_columnNamePinLabel = new QLabel("");
+    m_columnNamePinLabel->setStyleSheet("font-weight: normal;");
+    QHBoxLayout *columnNameLayout = new QHBoxLayout();
+    columnNameLayout->addWidget(columnNameTitle);
+    columnNameLayout->addWidget(m_columnNamePinLabel);
+    columnNameLayout->addStretch(); // 添加弹簧，将左侧控件和右侧控件分开
+
+    // 添加连续勾选框到右侧
+    m_continuousSelectCheckBox = new QCheckBox(tr("连续"));
+    m_continuousSelectCheckBox->setChecked(false); // 默认不勾选
+    m_continuousSelectCheckBox->setToolTip(tr("勾选后，16进制值回车将选择后续8个连续单元格"));
+    columnNameLayout->addWidget(m_continuousSelectCheckBox);
+
+    propertiesLayout->addLayout(columnNameLayout);
 
     // 在表格中以16进制显示提示
     QLabel *hexDisplayLabel = new QLabel(tr("在表格中以16进制显示"));
@@ -973,7 +985,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 管脚值区域
     QGridLayout *pinLayout = new QGridLayout();
-    pinLayout->setColumnStretch(1, 1); 
+    pinLayout->setColumnStretch(1, 1);
     pinLayout->setAlignment(Qt::AlignLeft);
     pinLayout->setHorizontalSpacing(10);
     pinLayout->setVerticalSpacing(10);
@@ -992,7 +1004,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     m_pinValueField->setPlaceholderText(tr("输入16进制值"));
     // 不设置maxLength，让显示可以超过6个字符
     // 在验证函数中会限制用户输入不超过6个字符
-    m_pinValueField->setFixedWidth(200); // 设置更宽的固定宽度以便能显示8个选中单元格的内容
+    m_pinValueField->setFixedWidth(200);            // 设置更宽的固定宽度以便能显示8个选中单元格的内容
     m_pinValueField->setProperty("invalid", false); // 初始状态：有效
     m_pinValueField->setToolTipDuration(5000);      // 设置提示显示时间为5秒
     pinLayout->addWidget(hexValueLabel, 1, 0);
@@ -1000,13 +1012,13 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 连接编辑完成信号
     connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
-    
+
     // 连接文本变化信号，实时验证输入
     connect(m_pinValueField, &QLineEdit::textChanged, this, &MainWindow::validateHexInput);
 
     // 错误个数
     QLabel *errorCountLabel = new QLabel(tr("错误个数"));
-    m_errorCountField = new QLineEdit("0");
+    m_errorCountField = new QLineEdit(""); // 初始为空，不设置默认值
     m_errorCountField->setReadOnly(true);
     m_errorCountField->setFixedWidth(200); // 与16进制值文本框保持相同宽度
     m_errorCountField->setPlaceholderText(tr("错误数量"));
