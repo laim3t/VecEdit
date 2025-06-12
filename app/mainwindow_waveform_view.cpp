@@ -257,7 +257,7 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 
     // Convert widget coordinates to plot coordinates to find the row index
     double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
-    int rowIndex = qRound(key);
+    int rowIndex = static_cast<int>(floor(key));
 
     // Validate the row index
     if (rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
@@ -337,7 +337,7 @@ void MainWindow::setupWaveformClickHandling()
         if (event->button() == Qt::LeftButton) {
             // 获取点击位置对应的数据点索引
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
-            int rowIndex = qRound(key);
+            int rowIndex = static_cast<int>(floor(key));
             
             // 检查索引是否有效（只响应正坐标）
             if (rowIndex >= 0 && rowIndex < m_vectorTableWidget->rowCount()) {
