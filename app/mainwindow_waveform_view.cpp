@@ -128,6 +128,19 @@ void MainWindow::updateWaveformView()
 
     // 2. 清理旧状态
     m_waveformPlot->clearGraphs();
+
+    // 清除上次绘制的'V'状态方框
+    for (int i = m_waveformPlot->itemCount() - 1; i >= 0; --i)
+    {
+        if (auto item = m_waveformPlot->item(i))
+        {
+            if (item->property("isVBox").toBool())
+            {
+                m_waveformPlot->removeItem(item);
+            }
+        }
+    }
+
     if (m_waveformPlot->plotLayout()->elementCount() > 0)
     {
         if (auto *oldTitle = m_waveformPlot->plotLayout()->element(0, 0))
@@ -239,35 +252,61 @@ void MainWindow::updateWaveformView()
         case '0':
             lineData[i] = Y_LOW_BOTTOM;
             break;
-        case 'H':
-            lineData[i] = Y_HIGH_TOP;
-            fillA_top[i] = Y_HIGH_TOP;
-            fillA_bottom[i] = Y_LOW_BOTTOM; // 将底部边界扩展到整个区域
-            break;
-        case 'L':
-            lineData[i] = Y_LOW_BOTTOM;
-            fillB_top[i] = Y_HIGH_TOP; // 将顶部边界扩展到整个区域
-            fillB_bottom[i] = Y_LOW_BOTTOM;
-            break;
-        case 'M':
-            lineData[i] = Y_MID_TOP;
-            fillA_top[i] = Y_MID_TOP;
-            fillA_bottom[i] = Y_MID_BOTTOM;
-            break;
-        case 'S':
-            lineData[i] = Y_HIGH_TOP;
-            fillB_top[i] = Y_HIGH_TOP;
-            fillB_bottom[i] = Y_HIGH_BOTTOM;
-            break;
         case 'V':
-            lineData[i] = Y_MID_TOP;
-            fillA_top[i] = Y_MID_TOP;
-            fillA_bottom[i] = Y_MID_BOTTOM;
+            lineData[i] = qQNaN(); // V不画主线, 用方框代替
+
+            // 绘制红色方框
+            {
+                QCPItemRect *box = new QCPItemRect(m_waveformPlot);
+                box->setProperty("isVBox", true);
+                box->setPen(QPen(Qt::red, 2.5));
+                box->setBrush(Qt::NoBrush);
+                box->topLeft->setCoords(i, Y_HIGH_TOP);           // 扩展到顶部
+                box->bottomRight->setCoords(i + 1, Y_LOW_BOTTOM); // 扩展到底部
+            }
+
+            // V的填充逻辑，扩展到整个区域
+            if (i % 2 == 0)
+            { // 偶数行用蓝色
+                fillA_top[i] = Y_HIGH_TOP;
+                fillA_bottom[i] = Y_LOW_BOTTOM;
+            }
+            else
+            { // 奇数行用紫色
+                fillB_top[i] = Y_HIGH_TOP;
+                fillB_bottom[i] = Y_LOW_BOTTOM;
+            }
             break;
+        case 'H':
+        case 'L':
+        case 'M':
+        case 'S': // S状态特殊处理，不显示红线
         case 'X':
-            lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-            fillB_top[i] = Y_MID_TOP;
-            fillB_bottom[i] = Y_MID_BOTTOM;
+            // 根据字母状态设置线条高度
+            if (state == 'S')
+                lineData[i] = qQNaN(); // S状态不显示红线，只保留填充效果
+            else if (state == 'H')
+                lineData[i] = Y_HIGH_TOP;
+            else if (state == 'L')
+                lineData[i] = Y_LOW_BOTTOM;
+            else if (state == 'M')
+                lineData[i] = Y_MID_TOP;
+            else // 'X'
+                lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+
+            // 根据行号奇偶性交替使用蓝色和紫色填充
+            if (i % 2 == 0)
+            {
+                // 偶数行使用蓝色填充(fillA)
+                fillA_top[i] = Y_HIGH_TOP;
+                fillA_bottom[i] = Y_LOW_BOTTOM;
+            }
+            else
+            {
+                // 奇数行使用紫色填充(fillB)
+                fillB_top[i] = Y_HIGH_TOP;
+                fillB_bottom[i] = Y_LOW_BOTTOM;
+            }
             break;
         default:
             lineData[i] = qQNaN();
