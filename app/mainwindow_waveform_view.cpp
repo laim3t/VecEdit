@@ -129,12 +129,14 @@ void MainWindow::updateWaveformView()
     // 2. 清理旧状态
     m_waveformPlot->clearGraphs();
 
-    // 清除上次绘制的'V'状态方框
+    // 清除上次绘制的'V'状态方框, 以及X状态的线和过渡线
     for (int i = m_waveformPlot->itemCount() - 1; i >= 0; --i)
     {
         if (auto item = m_waveformPlot->item(i))
         {
-            if (item->property("isVBox").toBool())
+            if (item->property("isVBox").toBool() ||
+                item->property("isXLine").toBool() ||
+                item->property("isXTransition").toBool())
             {
                 m_waveformPlot->removeItem(item);
             }
@@ -280,30 +282,47 @@ void MainWindow::updateWaveformView()
         case 'H':
         case 'L':
         case 'M':
-        case 'S': // S状态特殊处理，不显示红线
+        case 'S':
         case 'X':
-            // 根据字母状态设置线条高度
+            // Part 1: 设置主波形线的数据，确保M和X的连接性
             if (state == 'S')
-                lineData[i] = qQNaN(); // S状态不显示红线，只保留填充效果
-            else if (state == 'H')
-                lineData[i] = Y_HIGH_TOP;
-            else if (state == 'L')
-                lineData[i] = Y_LOW_BOTTOM;
-            else if (state == 'M')
-                lineData[i] = Y_MID_TOP;
-            else // 'X'
-                lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-
-            // 根据行号奇偶性交替使用蓝色和紫色填充
-            if (i % 2 == 0)
             {
-                // 偶数行使用蓝色填充(fillA)
+                lineData[i] = qQNaN(); // S 状态无主线，保持断开
+            }
+            else if (state == 'H')
+            {
+                lineData[i] = Y_HIGH_TOP;
+            }
+            else if (state == 'L')
+            {
+                lineData[i] = Y_LOW_BOTTOM;
+            }
+            else if (state == 'M' || state == 'X')
+            {
+                lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0; // M和X有中线
+            }
+
+            // Part 2: 为特定状态绘制覆盖项
+            if (state == 'X')
+            {
+                // X 需要额外画一条灰线来覆盖红色的主线
+                QCPItemLine *line = new QCPItemLine(m_waveformPlot);
+                line->setLayer("overlay"); // 强制将灰线绘制在顶层，确保覆盖
+                line->setProperty("isXLine", true);
+                line->setPen(QPen(Qt::gray, 2.5));
+                double y = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+                line->start->setCoords(i, y);
+                line->end->setCoords(i + 1, y);
+            }
+
+            // Part 3: 所有字母状态统一的填充逻辑
+            if (i % 2 == 0)
+            { // 偶数行用蓝色
                 fillA_top[i] = Y_HIGH_TOP;
                 fillA_bottom[i] = Y_LOW_BOTTOM;
             }
             else
-            {
-                // 奇数行使用紫色填充(fillB)
+            { // 奇数行用紫色
                 fillB_top[i] = Y_HIGH_TOP;
                 fillB_bottom[i] = Y_LOW_BOTTOM;
             }
@@ -311,6 +330,59 @@ void MainWindow::updateWaveformView()
         default:
             lineData[i] = qQNaN();
             break;
+        }
+
+        // 新增：处理状态转换时的垂直线颜色
+        if (i > 0)
+        {
+            const QChar previousState = allRows[i - 1][pinColumnIndex].toString().at(0);
+            const QChar currentState = state;
+
+            // 当从一个有主线的状态转换到 'X' 状态时，垂直线应为灰色
+            if (currentState == 'X')
+            {
+                if (previousState == 'V')
+                {
+                    // V->X的特殊过渡，需要画一条完整高度的灰线来覆盖V的右边框
+                    QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
+                    transitionLine->setLayer("overlay");
+                    transitionLine->setProperty("isXTransition", true);
+                    transitionLine->setPen(QPen(Qt::gray, 2.5));
+                    transitionLine->start->setCoords(i, Y_HIGH_TOP);
+                    transitionLine->end->setCoords(i, Y_LOW_BOTTOM);
+                }
+                else
+                {
+                    double previousY = qQNaN();
+                    switch (previousState.toLatin1())
+                    {
+                    case '1':
+                    case 'H':
+                        previousY = Y_HIGH_TOP;
+                        break;
+                    case '0':
+                    case 'L':
+                        previousY = Y_LOW_BOTTOM;
+                        break;
+                    case 'M':
+                        previousY = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+                        break;
+                    default:
+                        break; // From S, V, or X itself, do nothing
+                    }
+
+                    if (!qIsNaN(previousY))
+                    {
+                        double currentY = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+                        QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
+                        transitionLine->setLayer("overlay");
+                        transitionLine->setProperty("isXTransition", true);
+                        transitionLine->setPen(QPen(Qt::gray, 2.5));
+                        transitionLine->start->setCoords(i, previousY);
+                        transitionLine->end->setCoords(i, currentY);
+                    }
+                }
+            }
         }
     }
     if (rowCount > 0)
