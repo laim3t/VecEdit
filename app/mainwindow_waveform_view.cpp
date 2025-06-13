@@ -65,6 +65,7 @@ void MainWindow::setupWaveformView()
 
     // 创建波形图
     m_waveformPlot = new QCustomPlot(m_waveformContainer);
+    m_waveformPlot->addLayer("selection"); // 为高亮和标签创建一个顶层图层
     m_waveformPlot->setMinimumHeight(200); // 降低最小高度，便于停靠
     m_waveformPlot->xAxis->setLabel(tr("行号"));
     m_waveformPlot->yAxis->setLabel(tr("值"));
@@ -126,10 +127,11 @@ void MainWindow::updateWaveformView()
     if (!m_waveformPinSelector || !m_waveformPlot)
         return;
 
-    // 2. 清理旧状态
+    // =======================================================================
+    // 阶段 1: 清理画布
+    // =======================================================================
     m_waveformPlot->clearGraphs();
-
-    // 清除上次绘制的'V'状态方框, 以及X状态的线和过渡线
+    // 清除上次绘制的所有自定义Item
     for (int i = m_waveformPlot->itemCount() - 1; i >= 0; --i)
     {
         if (auto item = m_waveformPlot->item(i))
@@ -142,7 +144,6 @@ void MainWindow::updateWaveformView()
             }
         }
     }
-
     if (m_waveformPlot->plotLayout()->elementCount() > 0)
     {
         if (auto *oldTitle = m_waveformPlot->plotLayout()->element(0, 0))
@@ -154,13 +155,15 @@ void MainWindow::updateWaveformView()
         }
     }
 
-    // 3. 如果选择器为空，则填充管脚列表
+    // =======================================================================
+    // 阶段 2: 数据准备
+    // =======================================================================
+
+    // 2.1 获取数据源
     if (m_waveformPinSelector->count() == 0 && m_vectorTableWidget)
     {
         // 清空现有的选择项
         m_waveformPinSelector->clear();
-
-        // 遍历所有列
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
             QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
@@ -171,24 +174,17 @@ void MainWindow::updateWaveformView()
                 QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
-                    // 只取管脚名称的第一部分（以换行符分割）
                     QString displayName = headerText.split('\n').first();
-
-                    // 添加项目，显示简短名称，但保留完整名称作为用户数据
                     m_waveformPinSelector->addItem(displayName, headerText);
                 }
             }
         }
     }
-
-    // 4. 检查是否有管脚可供绘制
     if (m_waveformPinSelector->count() == 0)
     {
         m_waveformPlot->replot();
         return;
     }
-
-    // 5. 获取选定的管脚信息
     QString pinName = m_waveformPinSelector->currentData().toString();
     if (!m_vectorTableWidget || m_vectorTableWidget->columnCount() <= 0)
     {
@@ -209,151 +205,162 @@ void MainWindow::updateWaveformView()
         m_waveformPlot->replot();
         return;
     }
-
-    // 6. 定义Y轴电平带
-    const double Y_HIGH_TOP = 20.0, Y_HIGH_BOTTOM = 16.0;
-    const double Y_MID_TOP = 12.0, Y_MID_BOTTOM = 8.0;
-    const double Y_LOW_TOP = 4.0, Y_LOW_BOTTOM = 0.0;
-
-    // 7. 准备数据容器
     int currentTableId = m_vectorTableSelector->currentData().toInt();
     bool ok = false;
     QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
-
     if (!ok)
     {
         qWarning() << "updateWaveformView - Failed to get all vector rows.";
         m_waveformPlot->replot();
         return;
     }
-
     int rowCount = allRows.count();
-    QVector<double> xData(rowCount + 1),
-        lineData(rowCount + 1),
-        fillA_top(rowCount + 1), fillA_bottom(rowCount + 1),
-        fillB_top(rowCount + 1), fillB_bottom(rowCount + 1);
 
-    // 8. 遍历表格填充数据
+    // 2.2 定义Y轴电平带
+    const double Y_HIGH_TOP = 20.0, Y_HIGH_BOTTOM = 16.0;
+    const double Y_MID_TOP = 12.0, Y_MID_BOTTOM = 8.0;
+    const double Y_LOW_TOP = 4.0, Y_LOW_BOTTOM = 0.0;
+
+    // 2.3 准备数据容器
+    QVector<double> xData(rowCount + 1);
+    QVector<double> mainLineData(rowCount + 1);
+    QVector<double> fillA_top(rowCount + 1), fillA_bottom(rowCount + 1);
+    QVector<double> fillB_top(rowCount + 1), fillB_bottom(rowCount + 1);
+
+    // 2.4 循环填充数据容器（只填充，不绘制）
     for (int i = 0; i < rowCount; ++i)
     {
         xData[i] = i;
-        const auto &rowData = allRows[i];
-        QChar state = ' ';
-        if (pinColumnIndex < rowData.size())
-        {
-            state = rowData[pinColumnIndex].toString().at(0);
-        }
+        QChar state = allRows[i][pinColumnIndex].toString().at(0);
 
+        // 初始化
+        mainLineData[i] = qQNaN();
         fillA_top[i] = fillA_bottom[i] = qQNaN();
         fillB_top[i] = fillB_bottom[i] = qQNaN();
+
+        // 填充主线条数据
         switch (state.toLatin1())
         {
         case '1':
-            lineData[i] = Y_HIGH_TOP;
+        case 'H':
+            mainLineData[i] = Y_HIGH_TOP;
             break;
         case '0':
-            lineData[i] = Y_LOW_BOTTOM;
-            break;
-        case 'V':
-            lineData[i] = qQNaN(); // V不画主线, 用方框代替
-
-            // 绘制红色方框
-            {
-                QCPItemRect *box = new QCPItemRect(m_waveformPlot);
-                box->setProperty("isVBox", true);
-                box->setPen(QPen(Qt::red, 2.5));
-                box->setBrush(Qt::NoBrush);
-                box->topLeft->setCoords(i, Y_HIGH_TOP);           // 扩展到顶部
-                box->bottomRight->setCoords(i + 1, Y_LOW_BOTTOM); // 扩展到底部
-            }
-
-            // V的填充逻辑，扩展到整个区域
-            if (i % 2 == 0)
-            { // 偶数行用蓝色
-                fillA_top[i] = Y_HIGH_TOP;
-                fillA_bottom[i] = Y_LOW_BOTTOM;
-            }
-            else
-            { // 奇数行用紫色
-                fillB_top[i] = Y_HIGH_TOP;
-                fillB_bottom[i] = Y_LOW_BOTTOM;
-            }
-            break;
-        case 'H':
         case 'L':
-        case 'M':
-        case 'S':
-        case 'X':
-            // Part 1: 设置主波形线的数据，确保M和X的连接性
-            if (state == 'S')
-            {
-                lineData[i] = qQNaN(); // S 状态无主线，保持断开
-            }
-            else if (state == 'H')
-            {
-                lineData[i] = Y_HIGH_TOP;
-            }
-            else if (state == 'L')
-            {
-                lineData[i] = Y_LOW_BOTTOM;
-            }
-            else if (state == 'M' || state == 'X')
-            {
-                lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0; // M和X有中线
-            }
-
-            // Part 2: 为特定状态绘制覆盖项
-            if (state == 'X')
-            {
-                // X 需要额外画一条灰线来覆盖红色的主线
-                QCPItemLine *line = new QCPItemLine(m_waveformPlot);
-                line->setLayer("overlay"); // 强制将灰线绘制在顶层，确保覆盖
-                line->setProperty("isXLine", true);
-                line->setPen(QPen(Qt::gray, 2.5));
-                double y = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-                line->start->setCoords(i, y);
-                line->end->setCoords(i + 1, y);
-            }
-
-            // Part 3: 所有字母状态统一的填充逻辑
-            if (i % 2 == 0)
-            { // 偶数行用蓝色
-                fillA_top[i] = Y_HIGH_TOP;
-                fillA_bottom[i] = Y_LOW_BOTTOM;
-            }
-            else
-            { // 奇数行用紫色
-                fillB_top[i] = Y_HIGH_TOP;
-                fillB_bottom[i] = Y_LOW_BOTTOM;
-            }
+            mainLineData[i] = Y_LOW_BOTTOM;
             break;
-        default:
-            lineData[i] = qQNaN();
+        case 'M':
+        case 'X': // X也在此处获取数据以保证线条连续性
+            mainLineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+            break;
+        default: // S 和 V 没有主线条
             break;
         }
 
-        // 新增：处理状态转换时的垂直线颜色
+        // 填充背景数据 (所有字母状态都有背景)
+        if (state.isLetter())
+        {
+            if (i % 2 == 0) // 偶数行蓝色
+            {
+                fillA_top[i] = Y_HIGH_TOP;
+                fillA_bottom[i] = Y_LOW_BOTTOM;
+            }
+            else // 奇数行紫色
+            {
+                fillB_top[i] = Y_HIGH_TOP;
+                fillB_bottom[i] = Y_LOW_BOTTOM;
+            }
+        }
+    }
+    // 为lsStepLeft扩展最后一个数据点
+    if (rowCount > 0)
+    {
+        xData[rowCount] = rowCount;
+        mainLineData[rowCount] = mainLineData[rowCount - 1];
+        fillA_top[rowCount] = fillA_top[rowCount - 1];
+        fillA_bottom[rowCount] = fillA_bottom[rowCount - 1];
+        fillB_top[rowCount] = fillB_top[rowCount - 1];
+        fillB_bottom[rowCount] = fillB_bottom[rowCount - 1];
+    }
+
+    // =======================================================================
+    // 阶段 3: 统一绘制
+    // =======================================================================
+
+    // 3.1 绘制背景填充层
+    QCPGraph *fillB_bottom_g = m_waveformPlot->addGraph();
+    QCPGraph *fillB_top_g = m_waveformPlot->addGraph();
+    QCPGraph *fillA_bottom_g = m_waveformPlot->addGraph();
+    QCPGraph *fillA_top_g = m_waveformPlot->addGraph();
+
+    QBrush brushA(QColor(0, 0, 255, 70), Qt::DiagCrossPattern);
+    fillA_top_g->setPen(Qt::NoPen);
+    fillA_bottom_g->setPen(Qt::NoPen);
+    fillA_top_g->setBrush(brushA);
+    fillA_top_g->setChannelFillGraph(fillA_bottom_g);
+    fillA_top_g->setData(xData, fillA_top);
+    fillA_bottom_g->setData(xData, fillA_bottom);
+    fillA_top_g->setLineStyle(QCPGraph::lsStepLeft);
+    fillA_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
+
+    QBrush brushB(QColor(128, 0, 128, 70), Qt::DiagCrossPattern);
+    fillB_top_g->setPen(Qt::NoPen);
+    fillB_bottom_g->setPen(Qt::NoPen);
+    fillB_top_g->setBrush(brushB);
+    fillB_top_g->setChannelFillGraph(fillB_bottom_g);
+    fillB_top_g->setData(xData, fillB_top);
+    fillB_bottom_g->setData(xData, fillB_bottom);
+    fillB_top_g->setLineStyle(QCPGraph::lsStepLeft);
+    fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
+
+    // 3.2 绘制主线条层
+    QCPGraph *line_g = m_waveformPlot->addGraph();
+    line_g->setPen(QPen(Qt::red, 2.5));
+    line_g->setBrush(Qt::NoBrush);
+    line_g->setData(xData, mainLineData);
+    line_g->setLineStyle(QCPGraph::lsStepLeft);
+
+    // 3.3 绘制独立的样式Item和覆盖层
+    for (int i = 0; i < rowCount; ++i)
+    {
+        QChar state = allRows[i][pinColumnIndex].toString().at(0);
+
+        // 绘制 'V' 状态的红色方框
+        if (state == 'V')
+        {
+            QCPItemRect *box = new QCPItemRect(m_waveformPlot);
+            box->setProperty("isVBox", true);
+            box->setPen(QPen(Qt::red, 2.5));
+            box->setBrush(Qt::NoBrush);
+            box->topLeft->setCoords(i, Y_HIGH_TOP);
+            box->bottomRight->setCoords(i + 1, Y_LOW_BOTTOM);
+        }
+
+        // 绘制 'X' 状态的灰色中线覆盖层
+        if (state == 'X')
+        {
+            QCPItemLine *line = new QCPItemLine(m_waveformPlot);
+            line->setLayer("overlay");
+            line->setProperty("isXLine", true);
+            line->setPen(QPen(Qt::gray, 2.5));
+            double y = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+            line->start->setCoords(i, y);
+            line->end->setCoords(i + 1, y);
+        }
+
+        // 绘制 '->X' 的灰色过渡线覆盖层
         if (i > 0)
         {
-            const QChar previousState = allRows[i - 1][pinColumnIndex].toString().at(0);
-            const QChar currentState = state;
-
-            // 当从一个有主线的状态转换到 'X' 状态时，垂直线应为灰色
-            if (currentState == 'X')
+            QChar previousState = allRows[i - 1][pinColumnIndex].toString().at(0);
+            if (state == 'X')
             {
+                double previousY = qQNaN();
                 if (previousState == 'V')
                 {
-                    // V->X的特殊过渡，需要画一条完整高度的灰线来覆盖V的右边框
-                    QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
-                    transitionLine->setLayer("overlay");
-                    transitionLine->setProperty("isXTransition", true);
-                    transitionLine->setPen(QPen(Qt::gray, 2.5));
-                    transitionLine->start->setCoords(i, Y_HIGH_TOP);
-                    transitionLine->end->setCoords(i, Y_LOW_BOTTOM);
+                    previousY = Y_HIGH_TOP; // 用于画完整边框
                 }
                 else
                 {
-                    double previousY = qQNaN();
                     switch (previousState.toLatin1())
                     {
                     case '1':
@@ -367,77 +374,32 @@ void MainWindow::updateWaveformView()
                     case 'M':
                         previousY = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
                         break;
-                    default:
-                        break; // From S, V, or X itself, do nothing
                     }
+                }
 
-                    if (!qIsNaN(previousY))
-                    {
-                        double currentY = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-                        QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
-                        transitionLine->setLayer("overlay");
-                        transitionLine->setProperty("isXTransition", true);
-                        transitionLine->setPen(QPen(Qt::gray, 2.5));
-                        transitionLine->start->setCoords(i, previousY);
-                        transitionLine->end->setCoords(i, currentY);
-                    }
+                if (!qIsNaN(previousY))
+                {
+                    QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
+                    transitionLine->setLayer("overlay");
+                    transitionLine->setProperty("isXTransition", true);
+                    transitionLine->setPen(QPen(Qt::gray, 2.5));
+                    transitionLine->start->setCoords(i, previousY);
+
+                    double currentY = (previousState == 'V') ? Y_LOW_BOTTOM : (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+                    transitionLine->end->setCoords(i, currentY);
                 }
             }
         }
     }
-    if (rowCount > 0)
-    { // 为lsStepLeft扩展数据以绘制最后一段
-        xData[rowCount] = rowCount;
-        lineData[rowCount] = lineData[rowCount - 1];
-        fillA_top[rowCount] = fillA_top[rowCount - 1];
-        fillA_bottom[rowCount] = fillA_bottom[rowCount - 1];
-        fillB_top[rowCount] = fillB_top[rowCount - 1];
-        fillB_bottom[rowCount] = fillB_bottom[rowCount - 1];
-    }
 
-    // 9. 创建和配置Graphs
-    QCPGraph *fillB_bottom_g = m_waveformPlot->addGraph();
-    QCPGraph *fillB_top_g = m_waveformPlot->addGraph();
-    QCPGraph *fillA_bottom_g = m_waveformPlot->addGraph();
-    QCPGraph *fillA_top_g = m_waveformPlot->addGraph();
-    QCPGraph *line_g = m_waveformPlot->addGraph();
-
-    QBrush brushA(QColor(0, 0, 255, 70), Qt::DiagCrossPattern);
-    fillA_top_g->setPen(Qt::NoPen);
-    fillA_bottom_g->setPen(Qt::NoPen); // 设置底部图形也为无画笔，去除边界线
-    fillA_top_g->setBrush(brushA);
-    fillA_top_g->setChannelFillGraph(fillA_bottom_g);
-
-    QBrush brushB(QColor(128, 0, 128, 70), Qt::DiagCrossPattern);
-    fillB_top_g->setPen(Qt::NoPen);
-    fillB_bottom_g->setPen(Qt::NoPen); // 设置底部图形也为无画笔，去除边界线
-    fillB_top_g->setBrush(brushB);
-    fillB_top_g->setChannelFillGraph(fillB_bottom_g);
-
-    line_g->setPen(QPen(Qt::red, 2.5));
-    line_g->setBrush(Qt::NoBrush);
-
-    // 10. 设置数据和线型
-    line_g->setData(xData, lineData);
-    line_g->setLineStyle(QCPGraph::lsStepLeft);
-    fillA_top_g->setData(xData, fillA_top);
-    fillA_bottom_g->setData(xData, fillA_bottom);
-    fillA_top_g->setLineStyle(QCPGraph::lsStepLeft);
-    fillA_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
-    fillB_top_g->setData(xData, fillB_top);
-    fillB_bottom_g->setData(xData, fillB_bottom);
-    fillB_top_g->setLineStyle(QCPGraph::lsStepLeft);
-    fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
-
-    // 11. 最终绘图设置
-    // 确保X轴范围从0开始，不显示负坐标
-    double xMax = rowCount > 0 ? qMin(rowCount, 5) : 10;
+    // 3.4 最终绘图设置
+    double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10; // 保持之前的缩放级别
     m_waveformPlot->xAxis->setRange(0, xMax);
     m_waveformPlot->yAxis->setRange(-2.0, 22.0);
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
 
-    // 12. 重绘
+    // 3.5 重绘
     m_waveformPlot->replot();
 }
 
@@ -529,6 +491,7 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
 
     // 创建一个矩形用于高亮选中的点
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
+    highlightRect->setLayer("selection"); // 将高亮矩形放到顶层
     highlightRect->setProperty("isSelectionHighlight", true);
     highlightRect->topLeft->setCoords(rowIndex - 0.02, m_waveformPlot->yAxis->range().upper);
     highlightRect->bottomRight->setCoords(rowIndex + 0.98, m_waveformPlot->yAxis->range().lower);
@@ -597,6 +560,7 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
 
                 // 创建文本标签
                 QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
+                hexLabel->setLayer("selection"); // 将标签放到顶层
                 hexLabel->setProperty("isHexValueLabel", true);
                 hexLabel->setText(hexValue);
                 hexLabel->setFont(QFont("sans-serif", 10));
