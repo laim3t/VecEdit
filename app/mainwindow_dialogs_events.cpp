@@ -1133,24 +1133,24 @@ void MainWindow::showPinColumnContextMenu(const QPoint &pos)
         return;
 
     QMenu contextMenu(this);
-    
+
     // 添加"跳转至波形图"选项
-    if (m_isWaveformVisible) {
+    if (m_isWaveformVisible)
+    {
         QString pinName = m_vectorTableWidget->horizontalHeaderItem(col)->text();
         QAction *jumpToWaveformAction = contextMenu.addAction(tr("跳转至波形图"));
-        connect(jumpToWaveformAction, &QAction::triggered, this, [this, row, pinName]() {
-            jumpToWaveformPoint(row, pinName);
-        });
-        
+        connect(jumpToWaveformAction, &QAction::triggered, this, [this, row, pinName]()
+                { jumpToWaveformPoint(row, pinName); });
+
         // 添加分隔线
         contextMenu.addSeparator();
     }
 
     QAction *fillVectorAction = contextMenu.addAction(tr("向量填充"));
-    connect(fillVectorAction, &QAction::triggered, this, [this]() {
+    connect(fillVectorAction, &QAction::triggered, this, [this]()
+            {
         // 直接调用MainWindow的showFillVectorDialog方法
-        this->showFillVectorDialog();
-    });
+        this->showFillVectorDialog(); });
 
     contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
 }
@@ -1159,17 +1159,23 @@ void MainWindow::showPinColumnContextMenu(const QPoint &pos)
 void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
 {
     // 确保波形图是可见的
-    if (!m_isWaveformVisible) {
+    if (!m_isWaveformVisible)
+    {
         toggleWaveformView(true);
     }
 
     // 选择正确的管脚
-    for (int i = 0; i < m_waveformPinSelector->count(); i++) {
-        if (m_waveformPinSelector->itemText(i) == pinName) {
-            if (m_waveformPinSelector->currentIndex() != i) {
+    for (int i = 0; i < m_waveformPinSelector->count(); i++)
+    {
+        if (m_waveformPinSelector->itemData(i).toString() == pinName)
+        {
+            if (m_waveformPinSelector->currentIndex() != i)
+            {
                 m_waveformPinSelector->setCurrentIndex(i);
                 // onWaveformPinSelectionChanged 会自动更新波形图
-            } else {
+            }
+            else
+            {
                 // 如果已经是当前选中的管脚，手动更新波形图
                 updateWaveformView();
             }
@@ -1178,26 +1184,29 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
     }
 
     // 确保rowIndex在可见范围内
-    if (m_waveformPlot) {
+    if (m_waveformPlot)
+    {
         double currentMin = m_waveformPlot->xAxis->range().lower;
         double currentMax = m_waveformPlot->xAxis->range().upper;
         double rangeSize = currentMax - currentMin;
 
         // 如果点不在当前可见范围内，调整范围
-        if (rowIndex < currentMin || rowIndex > currentMax) {
+        if (rowIndex < currentMin || rowIndex > currentMax)
+        {
             // 计算新的范围，使rowIndex在中间
             double newMin = qMax(0.0, rowIndex - rangeSize / 2);
             double newMax = newMin + rangeSize;
-            
+
             // 确保不超过数据范围
-            if (newMax > m_vectorTableWidget->rowCount()) {
+            if (newMax > m_vectorTableWidget->rowCount())
+            {
                 newMax = m_vectorTableWidget->rowCount();
                 newMin = qMax(0.0, newMax - rangeSize);
             }
-            
+
             // 确保最小值始终为0（不显示负坐标）
             newMin = qMax(0.0, newMin);
-            
+
             m_waveformPlot->xAxis->setRange(newMin, newMax);
         }
 
@@ -1401,8 +1410,17 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
         int decimal = binaryStr.toInt(&ok, 2);
         if (ok)
         {
-            // 格式化为两位16进制，不足补0，确保x是小写
-            hexResult = QString("0x%1").arg(decimal, 2, 16, QChar('0')).toUpper().replace("0X", "0x");
+            // 根据行数决定16进制格式
+            if (processRows.size() <= 4)
+            {
+                // 少于等于4行，不补零
+                hexResult = QString("0x%1").arg(decimal, 0, 16).toUpper().replace("0X", "0x");
+            }
+            else
+            {
+                // 超过4行，格式化为两位16进制，不足补0
+                hexResult = QString("0x%1").arg(decimal, 2, 16, QChar('0')).toUpper().replace("0X", "0x");
+            }
         }
     }
     // 情况B：纯H和L
@@ -1421,8 +1439,17 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
         int decimal = binaryStr.toInt(&ok, 2);
         if (ok)
         {
-            // 格式化为两位16进制，不足补0，确保x是小写
-            hexResult = QString("+0x%1").arg(decimal, 2, 16, QChar('0')).toUpper().replace("+0X", "+0x");
+            // 根据行数决定16进制格式
+            if (processRows.size() <= 4)
+            {
+                // 少于等于4行，不补零
+                hexResult = QString("+0x%1").arg(decimal, 0, 16).toUpper().replace("+0X", "+0x");
+            }
+            else
+            {
+                // 超过4行，格式化为两位16进制，不足补0
+                hexResult = QString("+0x%1").arg(decimal, 2, 16, QChar('0')).toUpper().replace("+0X", "+0x");
+            }
         }
     }
     // 情况C：混合或特殊字符
@@ -1514,7 +1541,7 @@ void MainWindow::onHexValueEdited()
     // 判断格式类型和提取16进制值
     bool useHLFormat = false;
     QString hexDigits;
-    bool validFormat = false;  // 定义并初始化validFormat变量
+    bool validFormat = false; // 定义并初始化validFormat变量
 
     // 统一将输入转为小写以便处理
     QString lowerHexValue = hexValue.toLower();
@@ -1524,14 +1551,14 @@ void MainWindow::onHexValueEdited()
         // +0x前缀表示H/L格式
         useHLFormat = true;
         hexDigits = lowerHexValue.mid(3); // 去掉'+0x'前缀
-        validFormat = true;  // 设置为有效格式
+        validFormat = true;               // 设置为有效格式
     }
     else if (lowerHexValue.startsWith("0x"))
     {
         // 0x前缀表示0/1格式
         useHLFormat = false;
         hexDigits = lowerHexValue.mid(2); // 去掉'0x'前缀
-        validFormat = true;  // 设置为有效格式
+        validFormat = true;               // 设置为有效格式
     }
     else
     {
@@ -1579,10 +1606,6 @@ void MainWindow::onHexValueEdited()
         binaryStr.prepend('0');
     }
 
-    // 检查二进制位数和选中行数是否匹配
-    // 需要找到最左侧的'1'位，确保所有有效位都可以显示
-    bool isBitCountInvalid = false;
-
     // 计算需要的有效位数（最高位的1到最右侧的距离）
     int effectiveBits = 0;
     for (int i = 0; i < binaryStr.length(); i++)
@@ -1604,11 +1627,6 @@ void MainWindow::onHexValueEdited()
     // 如果有效位数超过选中行数，则输入无效
     if (effectiveBits > selectedRows.size())
     {
-        isBitCountInvalid = true;
-    }
-
-    if (isBitCountInvalid)
-    {
         m_pinValueField->setStyleSheet("border: 2px solid red");
 
         QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRows.size()).arg(hexDigits.toUpper()).arg(effectiveBits);
@@ -1625,6 +1643,10 @@ void MainWindow::onHexValueEdited()
         else if (selectedRows.size() == 3)
         {
             errorMsg += tr("\n\n对于3行，最大值为: 0x07");
+        }
+        else if (selectedRows.size() == 4)
+        {
+            errorMsg += tr("\n\n对于4行，最大值为: 0x0F");
         }
         else if (selectedRows.size() <= 8)
         {
@@ -1654,16 +1676,20 @@ void MainWindow::on_action_triggered(bool checked)
 void MainWindow::onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column)
 {
     // 双击时展开或折叠项目
-    if (item) {
+    if (item)
+    {
         item->setExpanded(!item->isExpanded());
     }
 }
 
 void MainWindow::updateWindowTitle(const QString &dbPath)
 {
-    if (dbPath.isEmpty()) {
+    if (dbPath.isEmpty())
+    {
         setWindowTitle(tr("向量编辑器"));
-    } else {
+    }
+    else
+    {
         QFileInfo fileInfo(dbPath);
         setWindowTitle(tr("向量编辑器 - %1").arg(fileInfo.fileName()));
     }

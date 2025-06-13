@@ -134,6 +134,9 @@ target_link_libraries(VecEdit PRIVATE
     Qt5::PrintSupport  # QCustomPlot 需要 PrintSupport 模块
 )
 
+# 【新】为 VecEdit 目标启用预编译头文件
+target_precompile_headers(VecEdit PRIVATE app/pch.h)
+
 # 添加必要的包含目录
 target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} # 用于 version.h 等生成文件

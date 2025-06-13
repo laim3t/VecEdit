@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
     setupVectorColumnPropertiesBar(); // 必须在 setupMenu() 之前调用，因为它初始化了 m_columnPropertiesDock
+    setupWaveformView();              // 必须在 setupMenu() 之前调用，因为它初始化了 m_waveformDock
     setupMenu();
 
     // 创建对话框管理器
@@ -95,11 +96,9 @@ void MainWindow::setupUI()
     // 创建向量表显示界面
     setupVectorTableUI();
 
-    // 创建波形图视图界面
-    setupWaveformView();
-
     // 初始显示欢迎页面
     mainLayout->addWidget(m_welcomeWidget);
+    mainLayout->addWidget(m_vectorTableContainer);
     m_vectorTableContainer->setVisible(false);
 
     setCentralWidget(m_centralWidget);
@@ -223,10 +222,8 @@ void MainWindow::setupMenu()
 
     // 添加波形图视图切换项
     m_viewMenu->addSeparator();
-    m_toggleWaveformAction = new QAction(tr("波形图视图"), this);
-    m_toggleWaveformAction->setCheckable(true);
-    m_toggleWaveformAction->setChecked(false);
-    connect(m_toggleWaveformAction, &QAction::toggled, this, &MainWindow::toggleWaveformView);
+    m_toggleWaveformAction = m_waveformDock->toggleViewAction();
+    m_toggleWaveformAction->setText(tr("波形图视图"));
     m_viewMenu->addAction(m_toggleWaveformAction);
 }
 
@@ -849,6 +846,14 @@ void MainWindow::saveWindowState()
         settings.setValue("MainWindow/columnPropertiesDocked", !m_columnPropertiesDock->isFloating());
         settings.setValue("MainWindow/columnPropertiesArea", (int)dockWidgetArea(m_columnPropertiesDock));
     }
+
+    // 保存波形图停靠窗口状态
+    if (m_waveformDock)
+    {
+        settings.setValue("MainWindow/waveformVisible", m_waveformDock->isVisible());
+        settings.setValue("MainWindow/waveformDocked", !m_waveformDock->isFloating());
+        settings.setValue("MainWindow/waveformArea", (int)dockWidgetArea(m_waveformDock));
+    }
 }
 
 // 恢复窗口状态
@@ -946,6 +951,30 @@ void MainWindow::restoreWindowState()
             {
                 Qt::DockWidgetArea area = (Qt::DockWidgetArea)settings.value("MainWindow/columnPropertiesArea").toInt();
                 addDockWidget(area, m_columnPropertiesDock);
+            }
+        }
+    }
+
+    // 恢复波形图停靠窗口状态
+    if (m_waveformDock)
+    {
+        if (settings.contains("MainWindow/waveformVisible"))
+        {
+            bool visible = settings.value("MainWindow/waveformVisible").toBool();
+            m_waveformDock->setVisible(visible);
+        }
+
+        if (settings.contains("MainWindow/waveformDocked") && settings.contains("MainWindow/waveformArea"))
+        {
+            bool docked = settings.value("MainWindow/waveformDocked").toBool();
+            if (!docked)
+            {
+                m_waveformDock->setFloating(true);
+            }
+            else
+            {
+                Qt::DockWidgetArea area = (Qt::DockWidgetArea)settings.value("MainWindow/waveformArea").toInt();
+                addDockWidget(area, m_waveformDock);
             }
         }
     }

@@ -328,12 +328,13 @@ private:
                                                     const QList<Vector::ColumnInfo> &newColumns);
 
     // 波形图视图相关UI组件
-    QWidget *m_waveformContainer;
+    QDockWidget *m_waveformDock;  // 波形图停靠窗口
+    QWidget *m_waveformContainer; // 波形图内容容器
     QCustomPlot *m_waveformPlot;
     QComboBox *m_waveformPinSelector;
     QAction *m_toggleWaveformAction;
     bool m_isWaveformVisible;
-    int m_selectedWaveformPoint;  // 记录当前选中的波形点
+    int m_selectedWaveformPoint; // 记录当前选中的波形点
 };
 
 #endif // MAINWINDOW_H

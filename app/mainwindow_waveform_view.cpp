@@ -4,27 +4,49 @@
 
 void MainWindow::setupWaveformView()
 {
-    // 创建波形图容器
-    m_waveformContainer = new QWidget(this);
+    // 创建波形图停靠窗口
+    m_waveformDock = new QDockWidget(tr("波形图视图"), this);
+    m_waveformDock->setObjectName("waveformDock");
+    m_waveformDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    m_waveformDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
+
+    // 添加边框线样式，与其他停靠窗口保持一致
+    m_waveformDock->setStyleSheet(
+        "QDockWidget {"
+        "   border: 1px solid #A0A0A0;"
+        "}"
+        "QDockWidget::title {"
+        "   background-color: #E1E1E1;"
+        "   padding-left: 5px;"
+        "   border-bottom: 1px solid #A0A0A0;"
+        "}");
+
+    // 创建波形图容器作为停靠窗口的内容
+    m_waveformContainer = new QWidget(m_waveformDock);
+    m_waveformContainer->setObjectName("waveformContainer");
     QVBoxLayout *waveformLayout = new QVBoxLayout(m_waveformContainer);
     waveformLayout->setContentsMargins(5, 5, 5, 5);
+
+    // 设置容器样式，与其他停靠窗口保持一致
+    QString containerStyle = R"(
+        QWidget#waveformContainer {
+            background-color: #F0F0F0;
+            border: 1px solid #A0A0A0;
+            margin: 0px;
+        }
+    )";
+    m_waveformContainer->setStyleSheet(containerStyle);
 
     // 创建顶部工具栏
     QWidget *toolbarWidget = new QWidget(m_waveformContainer);
     QHBoxLayout *toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 标题标签
-    QLabel *titleLabel = new QLabel(tr("波形图视图"), toolbarWidget);
-    QFont titleFont = titleLabel->font();
-    titleFont.setBold(true);
-    titleLabel->setFont(titleFont);
-    toolbarLayout->addWidget(titleLabel);
-
-    // 添加管脚选择器
+    // 管脚选择器标签
     QLabel *pinSelectorLabel = new QLabel(tr("选择管脚:"), toolbarWidget);
     toolbarLayout->addWidget(pinSelectorLabel);
 
+    // 添加管脚选择器
     m_waveformPinSelector = new QComboBox(toolbarWidget);
     toolbarLayout->addWidget(m_waveformPinSelector);
     connect(m_waveformPinSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -43,19 +65,18 @@ void MainWindow::setupWaveformView()
 
     // 创建波形图
     m_waveformPlot = new QCustomPlot(m_waveformContainer);
-    m_waveformPlot->setMinimumHeight(250);
-    m_waveformPlot->setMinimumWidth(1000);
+    m_waveformPlot->setMinimumHeight(200); // 降低最小高度，便于停靠
     m_waveformPlot->xAxis->setLabel(tr("行号"));
     m_waveformPlot->yAxis->setLabel(tr("值"));
-    
+
     // 设置X轴只显示整数刻度
     QSharedPointer<QCPAxisTickerFixed> intTicker(new QCPAxisTickerFixed);
-    intTicker->setTickStep(1.0);  // 刻度间隔为1
+    intTicker->setTickStep(1.0); // 刻度间隔为1
     m_waveformPlot->xAxis->setTicker(intTicker);
-    m_waveformPlot->xAxis->setSubTicks(false); // 不显示子刻度
-    m_waveformPlot->xAxis->setNumberFormat("f"); // 使用固定点表示法
+    m_waveformPlot->xAxis->setSubTicks(false);    // 不显示子刻度
+    m_waveformPlot->xAxis->setNumberFormat("f");  // 使用固定点表示法
     m_waveformPlot->xAxis->setNumberPrecision(0); // 不显示小数位
-    
+
     m_waveformPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
     m_waveformPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
@@ -64,24 +85,22 @@ void MainWindow::setupWaveformView()
     // 设置波形图点击处理
     setupWaveformClickHandling();
 
-    // 设置默认值
-    m_isWaveformVisible = false;
-    m_selectedWaveformPoint = -1;  // 初始化选中点为-1（表示未选中）
+    // 将容器设置为停靠窗口的内容
+    m_waveformDock->setWidget(m_waveformContainer);
 
-    // 将波形图容器添加到主窗口
-    QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
-    if (mainLayout)
-    {
-        mainLayout->addWidget(m_waveformContainer);
-        m_waveformContainer->setVisible(false); // 初始时隐藏
-    }
+    // 添加到主窗口底部
+    addDockWidget(Qt::BottomDockWidgetArea, m_waveformDock);
+
+    // 设置默认值
+    m_isWaveformVisible = true;
+    m_selectedWaveformPoint = -1; // 初始化选中点为-1（表示未选中）
 }
 
 void MainWindow::toggleWaveformView(bool show)
 {
-    if (m_waveformContainer)
+    if (m_waveformDock)
     {
-        m_waveformContainer->setVisible(show);
+        m_waveformDock->setVisible(show);
         m_isWaveformVisible = show;
 
         if (show)
@@ -111,9 +130,9 @@ void MainWindow::updateWaveformView()
     m_waveformPlot->clearGraphs();
     if (m_waveformPlot->plotLayout()->elementCount() > 0)
     {
-        if (auto* oldTitle = m_waveformPlot->plotLayout()->element(0, 0))
+        if (auto *oldTitle = m_waveformPlot->plotLayout()->element(0, 0))
         {
-            if (dynamic_cast<QCPTextElement*>(oldTitle))
+            if (dynamic_cast<QCPTextElement *>(oldTitle))
             {
                 m_waveformPlot->plotLayout()->remove(oldTitle);
             }
@@ -123,7 +142,10 @@ void MainWindow::updateWaveformView()
     // 3. 如果选择器为空，则填充管脚列表
     if (m_waveformPinSelector->count() == 0 && m_vectorTableWidget)
     {
-        QStringList pinHeaders;
+        // 清空现有的选择项
+        m_waveformPinSelector->clear();
+
+        // 遍历所有列
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
             QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
@@ -134,34 +156,41 @@ void MainWindow::updateWaveformView()
                 QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
-                    pinHeaders << headerText;
+                    // 只取管脚名称的第一部分（以换行符分割）
+                    QString displayName = headerText.split('\n').first();
+
+                    // 添加项目，显示简短名称，但保留完整名称作为用户数据
+                    m_waveformPinSelector->addItem(displayName, headerText);
                 }
             }
         }
-        m_waveformPinSelector->clear();
-        m_waveformPinSelector->addItems(pinHeaders);
     }
 
     // 4. 检查是否有管脚可供绘制
-    if (m_waveformPinSelector->count() == 0) {
+    if (m_waveformPinSelector->count() == 0)
+    {
         m_waveformPlot->replot();
         return;
     }
 
     // 5. 获取选定的管脚信息
-    QString pinName = m_waveformPinSelector->currentText();
-    if (!m_vectorTableWidget || m_vectorTableWidget->columnCount() <= 0) {
+    QString pinName = m_waveformPinSelector->currentData().toString();
+    if (!m_vectorTableWidget || m_vectorTableWidget->columnCount() <= 0)
+    {
         m_waveformPlot->replot();
         return;
     }
     int pinColumnIndex = -1;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
-        if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    {
+        if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName)
+        {
             pinColumnIndex = col;
             break;
         }
     }
-    if (pinColumnIndex < 0) {
+    if (pinColumnIndex < 0)
+    {
         m_waveformPlot->replot();
         return;
     }
@@ -179,31 +208,64 @@ void MainWindow::updateWaveformView()
         fillB_top(rowCount + 1), fillB_bottom(rowCount + 1);
 
     // 8. 遍历表格填充数据
-    for (int i = 0; i < rowCount; ++i) {
+    for (int i = 0; i < rowCount; ++i)
+    {
         xData[i] = i;
-        QTableWidgetItem* item = m_vectorTableWidget->item(i, pinColumnIndex);
+        QTableWidgetItem *item = m_vectorTableWidget->item(i, pinColumnIndex);
         QChar state = item ? item->text().at(0) : ' ';
         fillA_top[i] = fillA_bottom[i] = qQNaN();
         fillB_top[i] = fillB_bottom[i] = qQNaN();
-        switch (state.toLatin1()) {
-            case '1': lineData[i] = Y_HIGH_TOP; break;
-            case '0': lineData[i] = Y_LOW_BOTTOM; break;
-            case 'H': lineData[i] = Y_HIGH_TOP; fillA_top[i] = Y_HIGH_TOP; fillA_bottom[i] = Y_HIGH_BOTTOM; break;
-            case 'L': lineData[i] = Y_LOW_BOTTOM; fillB_top[i] = Y_LOW_TOP; fillB_bottom[i] = Y_LOW_BOTTOM; break;
-            case 'M': lineData[i] = Y_MID_TOP; fillA_top[i] = Y_MID_TOP; fillA_bottom[i] = Y_MID_BOTTOM; break;
-            case 'S': lineData[i] = Y_HIGH_TOP; fillB_top[i] = Y_HIGH_TOP; fillB_bottom[i] = Y_HIGH_BOTTOM; break;
-            case 'V': lineData[i] = Y_MID_TOP; fillA_top[i] = Y_MID_TOP; fillA_bottom[i] = Y_MID_BOTTOM; break;
-            case 'X': lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0; fillB_top[i] = Y_MID_TOP; fillB_bottom[i] = Y_MID_BOTTOM; break;
-            default: lineData[i] = qQNaN(); break;
+        switch (state.toLatin1())
+        {
+        case '1':
+            lineData[i] = Y_HIGH_TOP;
+            break;
+        case '0':
+            lineData[i] = Y_LOW_BOTTOM;
+            break;
+        case 'H':
+            lineData[i] = Y_HIGH_TOP;
+            fillA_top[i] = Y_HIGH_TOP;
+            fillA_bottom[i] = Y_HIGH_BOTTOM;
+            break;
+        case 'L':
+            lineData[i] = Y_LOW_BOTTOM;
+            fillB_top[i] = Y_LOW_TOP;
+            fillB_bottom[i] = Y_LOW_BOTTOM;
+            break;
+        case 'M':
+            lineData[i] = Y_MID_TOP;
+            fillA_top[i] = Y_MID_TOP;
+            fillA_bottom[i] = Y_MID_BOTTOM;
+            break;
+        case 'S':
+            lineData[i] = Y_HIGH_TOP;
+            fillB_top[i] = Y_HIGH_TOP;
+            fillB_bottom[i] = Y_HIGH_BOTTOM;
+            break;
+        case 'V':
+            lineData[i] = Y_MID_TOP;
+            fillA_top[i] = Y_MID_TOP;
+            fillA_bottom[i] = Y_MID_BOTTOM;
+            break;
+        case 'X':
+            lineData[i] = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+            fillB_top[i] = Y_MID_TOP;
+            fillB_bottom[i] = Y_MID_BOTTOM;
+            break;
+        default:
+            lineData[i] = qQNaN();
+            break;
         }
     }
-    if (rowCount > 0) { // 为lsStepLeft扩展数据以绘制最后一段
+    if (rowCount > 0)
+    { // 为lsStepLeft扩展数据以绘制最后一段
         xData[rowCount] = rowCount;
-        lineData[rowCount] = lineData[rowCount-1];
-        fillA_top[rowCount] = fillA_top[rowCount-1];
-        fillA_bottom[rowCount] = fillA_bottom[rowCount-1];
-        fillB_top[rowCount] = fillB_top[rowCount-1];
-        fillB_bottom[rowCount] = fillB_bottom[rowCount-1];
+        lineData[rowCount] = lineData[rowCount - 1];
+        fillA_top[rowCount] = fillA_top[rowCount - 1];
+        fillA_bottom[rowCount] = fillA_bottom[rowCount - 1];
+        fillB_top[rowCount] = fillB_top[rowCount - 1];
+        fillB_bottom[rowCount] = fillB_bottom[rowCount - 1];
     }
 
     // 9. 创建和配置Graphs
@@ -269,9 +331,10 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
     QMenu contextMenu(this);
     QAction *jumpAction = contextMenu.addAction(tr("跳转至向量表"));
 
-    connect(jumpAction, &QAction::triggered, this, [this, rowIndex]() {
+    connect(jumpAction, &QAction::triggered, this, [this, rowIndex]()
+            {
         // Find the column index from the currently selected pin
-        QString pinName = m_waveformPinSelector->currentText();
+        QString pinName = m_waveformPinSelector->currentData().toString();
         int pinColumnIndex = -1;
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
             if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
@@ -285,8 +348,7 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
             m_vectorTableWidget->setCurrentCell(rowIndex, pinColumnIndex);
             m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowIndex, pinColumnIndex), QAbstractItemView::PositionAtCenter);
             m_vectorTableWidget->setFocus(); // Ensure the table gets focus
-        }
-    });
+        } });
 
     contextMenu.exec(m_waveformPlot->mapToGlobal(pos));
 }
@@ -294,16 +356,19 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 // 高亮显示波形图中的指定点
 void MainWindow::highlightWaveformPoint(int rowIndex)
 {
-    if (!m_waveformPlot || rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
+    if (!m_waveformPlot || rowIndex < 0 || !m_vectorTableWidget || rowIndex >= m_vectorTableWidget->rowCount())
         return;
 
     // 保存选中的点
     m_selectedWaveformPoint = rowIndex;
 
-    // 移除所有已有的选中标记
-    for (int i = m_waveformPlot->itemCount() - 1; i >= 0; i--) {
-        if (auto item = dynamic_cast<QCPItemRect*>(m_waveformPlot->item(i))) {
-            if (item->property("isSelectionHighlight").toBool()) {
+    // 移除所有已有的选中标记和文本标签
+    for (int i = m_waveformPlot->itemCount() - 1; i >= 0; i--)
+    {
+        if (auto item = m_waveformPlot->item(i))
+        {
+            if (item->property("isSelectionHighlight").toBool() || item->property("isHexValueLabel").toBool())
+            {
                 m_waveformPlot->removeItem(i);
             }
         }
@@ -312,16 +377,65 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
     // 创建一个矩形用于高亮选中的点
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setProperty("isSelectionHighlight", true);
-    
-    // 设置矩形的位置，覆盖整个格子区域（从当前点到下一个点）
-    // 左边界是当前点减去一点偏移，右边界是下一个点减去一点偏移
     highlightRect->topLeft->setCoords(rowIndex - 0.02, m_waveformPlot->yAxis->range().upper);
     highlightRect->bottomRight->setCoords(rowIndex + 0.98, m_waveformPlot->yAxis->range().lower);
-    
-    // 设置矩形的样式
-    highlightRect->setPen(QPen(Qt::green, 2, Qt::DashLine));
-    highlightRect->setBrush(QBrush(QColor(0, 255, 0, 30)));
-    
+    highlightRect->setPen(QPen(Qt::blue, 1));
+    highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
+
+    // 创建并显示十六进制值标签
+    // 1. 获取列索引
+    QString pinName = m_waveformPinSelector->currentData().toString();
+    int pinColumnIndex = -1;
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    {
+        if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName)
+        {
+            pinColumnIndex = col;
+            break;
+        }
+    }
+
+    if (pinColumnIndex >= 0)
+    {
+        // 2. 获取单元格内容
+        QTableWidgetItem *item = m_vectorTableWidget->item(rowIndex, pinColumnIndex);
+        if (item)
+        {
+            QString cellValue = item->text();
+            bool ok;
+            int intValue = cellValue.toInt(&ok);
+            QString hexValue;
+
+            // 3. 转换为十六进制
+            if (ok)
+            {
+                hexValue = "0x" + QString::number(intValue, 16);
+            }
+            else
+            {
+                // 对于非数字，可以根据需要进行映射
+                // 这里暂时简单显示原值
+                hexValue = cellValue;
+            }
+
+            // 4. 创建文本标签
+            QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
+            hexLabel->setProperty("isHexValueLabel", true);
+            hexLabel->setText(hexValue);
+            hexLabel->setFont(QFont("sans-serif", 10));
+            hexLabel->setColor(Qt::black);
+
+            // 设置背景
+            hexLabel->setBrush(QBrush(QColor(240, 240, 240, 200)));
+            hexLabel->setPen(QPen(Qt::gray));
+            hexLabel->setPadding(QMargins(5, 2, 5, 2));
+
+            // 5. 设置标签位置
+            double yPos = (m_waveformPlot->yAxis->range().upper + m_waveformPlot->yAxis->range().lower) / 2.0;
+            hexLabel->position->setCoords(rowIndex + 0.5, yPos);
+        }
+    }
+
     // 重绘波形图
     m_waveformPlot->replot();
 }
@@ -331,9 +445,10 @@ void MainWindow::setupWaveformClickHandling()
 {
     if (!m_waveformPlot)
         return;
-    
+
     // 连接鼠标点击信号
-    connect(m_waveformPlot, &QCustomPlot::mousePress, this, [this](QMouseEvent *event) {
+    connect(m_waveformPlot, &QCustomPlot::mousePress, this, [this](QMouseEvent *event)
+            {
         if (event->button() == Qt::LeftButton) {
             // 获取点击位置对应的数据点索引
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
@@ -344,6 +459,5 @@ void MainWindow::setupWaveformClickHandling()
                 // 高亮显示选中的点
                 highlightWaveformPoint(rowIndex);
             }
-        }
-    });
+        } });
 }

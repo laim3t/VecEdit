@@ -19,58 +19,6 @@
 #include "common/binary_file_format.h"
 #include "common/utils/pathutils.h" // 修正包含路径
 
-#include <QMenuBar>
-#include <QMenu>
-#include <QAction>
-#include <QApplication>
-#include <QStandardPaths>
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QSqlRecord>
-#include <QHeaderView>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QDebug>
-#include <QStatusBar>
-#include <QHBoxLayout>
-#include <QPushButton>
-#include <QTableWidgetItem>
-#include <QFont>
-#include <QStyledItemDelegate>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QGridLayout>
-#include <QGroupBox>
-#include <QFormLayout>
-#include <QLineEdit>
-#include <QKeyEvent>
-#include <QIcon>
-#include <QFileInfo>
-#include <QDialogButtonBox>
-#include <QInputDialog>
-#include <QSpinBox>
-#include <QScrollArea>
-#include <QTimer>
-#include <QListWidget>
-#include <QListWidgetItem>
-#include <QDir>
-#include <QFile>
-#include <QDateTime>
-#include <QSplitter>
-#include <QSizePolicy>
-#include <QSettings>
-#include <QCloseEvent>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonParseError>
-#include <QToolBar>
-#include <QToolButton>
-#include <QVariant>
-#include <QProgressDialog>
-#include <QTreeView>
-#include <QStandardItemModel>
-#include <QMessageBox>
-
 #include "migration/datamigrator.h"
 // The compiler will merge all these files into one translation unit.
 // Do NOT add these new .cpp files to your CMakeLists.txt
