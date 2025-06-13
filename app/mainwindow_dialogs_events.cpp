@@ -331,6 +331,17 @@ void MainWindow::onTableRowModified(int row)
 
     // 标记行为已修改
     VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
+
+    // 如果波形图可见，则更新它
+    if (m_isWaveformVisible)
+    {
+        updateWaveformView();
+        // 确保修改后高亮仍然在正确的位置
+        if (m_selectedWaveformPoint >= 0)
+        {
+             highlightWaveformPoint(m_selectedWaveformPoint);
+        }
+    }
 }
 
 // 跳转到指定页

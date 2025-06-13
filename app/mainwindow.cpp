@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include <QMouseEvent>
 #include "database/databasemanager.h"
 #include "database/databaseviewdialog.h"
 #include "database/binaryfilehelper.h"

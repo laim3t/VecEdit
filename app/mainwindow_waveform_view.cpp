@@ -86,6 +86,16 @@ void MainWindow::setupWaveformView()
     // 设置波形图点击处理
     setupWaveformClickHandling();
 
+    // 创建行内编辑器
+    m_waveformValueEditor = new QLineEdit(m_waveformPlot);
+    m_waveformValueEditor->setVisible(false);
+    m_waveformValueEditor->setFrame(false);
+    m_waveformValueEditor->setMaxLength(1); // 限制只能输入一个字符
+    m_waveformValueEditor->setToolTip(tr("有效输入: 0, 1, L, H, X, S, V, M"));
+    m_waveformValueEditor->setStyleSheet("QLineEdit { border: 1px solid blue; background-color: white; }");
+    // 改为连接 editingFinished 信号，以便处理回车和失去焦点两种情况
+    connect(m_waveformValueEditor, &QLineEdit::editingFinished, this, &MainWindow::onWaveformValueEdited);
+
     // 将容器设置为停靠窗口的内容
     m_waveformDock->setWidget(m_waveformContainer);
 
@@ -214,6 +224,26 @@ void MainWindow::updateWaveformView()
         m_waveformPlot->replot();
         return;
     }
+
+    // [新增] 使用当前页面中已修改的、最新的数据"覆盖"从数据处理器获取的基础数据
+    if (m_vectorTableWidget && pinColumnIndex >= 0)
+    {
+        int firstRowOfPage = m_currentPage * m_pageSize;
+        for (int i = 0; i < m_vectorTableWidget->rowCount(); ++i)
+        {
+            int actualRowIndex = firstRowOfPage + i;
+            if (actualRowIndex < allRows.count())
+            {
+                QTableWidgetItem *item = m_vectorTableWidget->item(i, pinColumnIndex);
+                if (item)
+                {
+                    // 使用表格当前的值更新 allRows 对应位置的值
+                    allRows[actualRowIndex][pinColumnIndex] = item->text();
+                }
+            }
+        }
+    }
+    
     int rowCount = allRows.count();
 
     // 2.2 定义Y轴电平带
@@ -607,4 +637,124 @@ void MainWindow::setupWaveformClickHandling()
                 highlightWaveformPoint(rowIndex);
             }
         } });
+
+    // 连接鼠标双击信号
+    connect(m_waveformPlot, &QCustomPlot::mouseDoubleClick, this, &MainWindow::onWaveformDoubleClicked);
+}
+
+void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
+{
+    if (!m_waveformPlot || !m_vectorTableWidget || !m_waveformValueEditor) return;
+
+    // 1. 获取点击位置对应的行列信息
+    double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
+    int rowIndex = static_cast<int>(floor(key));
+
+    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    if (rowIndex < 0 || rowIndex >= totalRows) return;
+
+    QString pinName = m_waveformPinSelector->currentData().toString();
+    int pinColumnIndex = -1;
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+        if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
+            pinColumnIndex = col;
+            break;
+        }
+    }
+
+    if (pinColumnIndex < 0) return;
+
+    // 2. 准备编辑器
+    // 保存编辑上下文
+    m_editingRow = rowIndex;
+    m_editingPinColumn = pinColumnIndex;
+
+    // 计算行在当前页的索引
+    int rowInPage = rowIndex % m_pageSize;
+
+    // 获取当前值
+    QString currentValue = "0";
+    if (rowInPage < m_vectorTableWidget->rowCount()) {
+        QTableWidgetItem *cell = m_vectorTableWidget->item(rowInPage, pinColumnIndex);
+        if (cell) {
+            currentValue = cell->text();
+        }
+    }
+    
+    m_waveformValueEditor->setText(currentValue);
+
+    // 3. 定位并显示编辑器
+    // 获取高亮矩形的位置来定位编辑器
+    QCPItemRect *highlightRect = nullptr;
+    for (int i = 0; i < m_waveformPlot->itemCount(); ++i) {
+        if (auto item = m_waveformPlot->item(i)) {
+            if (item->property("isSelectionHighlight").toBool()) {
+                highlightRect = qobject_cast<QCPItemRect*>(item);
+                break;
+            }
+        }
+    }
+
+    if(highlightRect) {
+        // 将 plot 坐标转换为 widget 像素坐标
+        int x = m_waveformPlot->xAxis->coordToPixel(highlightRect->topLeft->coords().x());
+        int y = m_waveformPlot->yAxis->coordToPixel(highlightRect->topLeft->coords().y());
+        int width = m_waveformPlot->xAxis->coordToPixel(highlightRect->bottomRight->coords().x()) - x;
+        int height = m_waveformPlot->yAxis->coordToPixel(highlightRect->bottomRight->coords().y()) - y;
+        
+        // 微调编辑框使其居中
+        m_waveformValueEditor->setGeometry(x, y + height / 2 - m_waveformValueEditor->height() / 2, width, m_waveformValueEditor->height());
+        m_waveformValueEditor->setVisible(true);
+        m_waveformValueEditor->setFocus();
+        m_waveformValueEditor->selectAll();
+    }
+}
+
+void MainWindow::onWaveformValueEdited()
+{
+    if (!m_waveformValueEditor || m_editingRow < 0 || m_editingPinColumn < 0 || !m_vectorTableWidget) {
+        if(m_waveformValueEditor) m_waveformValueEditor->setVisible(false);
+        return;
+    }
+
+    // 1. 隐藏编辑器
+    m_waveformValueEditor->setVisible(false);
+
+    // 2. 获取新值
+    QString newValue = m_waveformValueEditor->text().toUpper(); // 自动转为大写
+    
+    // 验证新值是否有效
+    const QString validChars = "01LHXSVM";
+    if (newValue.isEmpty() || !validChars.contains(newValue.at(0))) {
+         // 如果无效，则不更新，直接隐藏编辑器
+        m_editingRow = -1;
+        m_editingPinColumn = -1;
+        return;
+    }
+
+    // 3. 更新表格
+    int rowInPage = m_editingRow % m_pageSize;
+    if (rowInPage < m_vectorTableWidget->rowCount()) {
+        QTableWidgetItem *cell = m_vectorTableWidget->item(rowInPage, m_editingPinColumn);
+        if (cell) {
+            // 检查值是否真的改变了
+            if (cell->text() != newValue) {
+                cell->setText(newValue);
+                // onTableCellChanged 会被自动触发，处理数据保存
+            }
+        } else {
+            // 如果单元格不存在，创建一个新的
+            QTableWidgetItem *newItem = new QTableWidgetItem(newValue);
+            m_vectorTableWidget->setItem(rowInPage, m_editingPinColumn, newItem);
+        }
+    }
+
+    // 4. 更新波形图 (onTableCellChanged 也会更新，但为确保立即反馈，可以手动调用)
+    updateWaveformView();
+    // 确保更新后高亮仍然在
+    highlightWaveformPoint(m_editingRow);
+
+    // 5. 重置编辑状态
+    m_editingRow = -1;
+    m_editingPinColumn = -1;
 }

@@ -197,6 +197,8 @@ private slots:
     void highlightWaveformPoint(int rowIndex);
     void jumpToWaveformPoint(int rowIndex, const QString &pinName);
     void saveCurrentTableData(); // 保存当前页表格数据，用于页面切换时
+    void onWaveformDoubleClicked(QMouseEvent *event);
+    void onWaveformValueEdited();
 
     void on_action_triggered(bool checked);
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
@@ -336,6 +338,11 @@ private:
     QAction *m_toggleWaveformAction;
     bool m_isWaveformVisible;
     int m_selectedWaveformPoint; // 记录当前选中的波形点
+
+    // 波形图在线编辑
+    QLineEdit *m_waveformValueEditor = nullptr;
+    int m_editingRow = -1;
+    int m_editingPinColumn = -1;
 };
 
 #endif // MAINWINDOW_H
