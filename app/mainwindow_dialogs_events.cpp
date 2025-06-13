@@ -1626,6 +1626,57 @@ void MainWindow::onHexValueEdited()
     {
         onTableRowModified(selectedRows.first());
     }
+
+    // --- 新增：处理回车后的跳转和选择逻辑 ---
+
+    // 1. 确定最后一个被影响的行和总行数
+    int lastAffectedRow = -1;
+    if (selectedRows.size() <= 8)
+    {
+        lastAffectedRow = selectedRows.last();
+    }
+    else
+    {
+        lastAffectedRow = selectedRows[7]; // n > 8 时，只影响前8行
+    }
+
+    int totalRowCount = m_vectorTableWidget->rowCount();
+    int nextRow = lastAffectedRow + 1;
+
+    // 如果下一行超出表格范围，则不执行任何操作
+    if (nextRow >= totalRowCount)
+    {
+        return;
+    }
+
+    // 2. 清除当前选择
+    m_vectorTableWidget->clearSelection();
+
+    // 3. 根据"连续"模式设置新选择
+    if (m_continuousSelectCheckBox && m_continuousSelectCheckBox->isChecked())
+    {
+        // 连续模式开启
+        int selectionStartRow = nextRow;
+        int selectionEndRow = qMin(selectionStartRow + 7, totalRowCount - 1);
+
+        // 创建选择范围
+        QTableWidgetSelectionRange range(selectionStartRow, m_currentHexValueColumn,
+                                         selectionEndRow, m_currentHexValueColumn);
+        m_vectorTableWidget->setCurrentItem(m_vectorTableWidget->item(selectionStartRow, m_currentHexValueColumn));
+        m_vectorTableWidget->setRangeSelected(range, true);
+
+        // 确保新选区可见
+        m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(selectionStartRow, m_currentHexValueColumn), QAbstractItemView::PositionAtTop);
+
+        // 将焦点设置回输入框
+        m_pinValueField->setFocus();
+        m_pinValueField->selectAll();
+    }
+    else
+    {
+        // 连续模式关闭
+        m_vectorTableWidget->setCurrentCell(nextRow, m_currentHexValueColumn);
+    }
 }
 
 void MainWindow::on_action_triggered(bool checked)
