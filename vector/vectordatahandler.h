@@ -54,6 +54,9 @@ public:
     // 获取指定表的schema版本
     int getSchemaVersion(int tableId);
 
+    // 获取指定表的所有行数据
+    QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
+
     // 插入向量行数据
     bool insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId,
                           QTableWidget *dataTable, bool appendToEnd,

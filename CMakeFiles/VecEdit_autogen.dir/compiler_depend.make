@@ -971,6 +971,8 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   common/dialogmanager.h \
   common/logger.cpp \
   common/logger.h \
+  common/qcustomplot.cpp \
+  common/qcustomplot.h \
   common/tablestylemanager.cpp \
   common/tablestylemanager.h \
   common/tablestyleperformancetester.cpp \
@@ -997,9 +999,6 @@ VecEdit_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   pin/vectorpinsettingsdialog.cpp \
   pin/vectorpinsettingsdialog.h \
   resources/qt/icons.qrc \
-  temp_qcustomplot/lib/config.h \
-  temp_qcustomplot/lib/qcustomplot.cpp \
-  temp_qcustomplot/lib/qcustomplot.h \
   timeset/filltimesetdialog.cpp \
   timeset/filltimesetdialog.h \
   timeset/replacetimesetdialog.cpp \
@@ -1103,15 +1102,13 @@ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcndr.h:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfig.cmake:
 
-C:/Qt/5.15.2/mingw81_32/include/QtCore/QTimer:
-
-C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake:
-
-temp_qcustomplot/lib/qcustomplot.h:
-
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qpdfwriter.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleauto.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtCore/QTimer:
+
+C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CPackComponent.cmake:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractproxymodel.h:
 
@@ -1176,6 +1173,8 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric:
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qeasingcurve.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/QCache:
+
+common/qcustomplot.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qreadwritelock.h:
 
@@ -1803,11 +1802,11 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/qplugin.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/fibersapi.h:
 
-version.h.in:
-
 C:/Qt/5.15.2/mingw81_32/include/QtGui/QWindow:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qpluginloader.h:
+
+version.h.in:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cctype:
 
@@ -1856,8 +1855,6 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/qrefcount.h:
 C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qfiledialog.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qregularexpression.h:
-
-temp_qcustomplot/lib/config.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qstatemachine.h:
 
@@ -3055,6 +3052,8 @@ common/logger.cpp:
 
 common/logger.h:
 
+common/qcustomplot.cpp:
+
 common/tablestylemanager.cpp:
 
 database/databasemanager.h:
@@ -3064,8 +3063,6 @@ pin/pingroupdialog.h:
 pin/pinsettingsdialog.cpp:
 
 pin/vectorpinsettingsdialog.h:
-
-temp_qcustomplot/lib/qcustomplot.cpp:
 
 timeset/filltimesetdialog.cpp:
 

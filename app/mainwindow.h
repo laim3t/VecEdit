@@ -196,6 +196,7 @@ private slots:
     void setupWaveformClickHandling();
     void highlightWaveformPoint(int rowIndex);
     void jumpToWaveformPoint(int rowIndex, const QString &pinName);
+    void saveCurrentTableData(); // 保存当前页表格数据，用于页面切换时
 
     void on_action_triggered(bool checked);
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);

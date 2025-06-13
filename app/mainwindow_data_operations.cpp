@@ -562,3 +562,41 @@ void MainWindow::changePageSize(int newSize)
     // 重新加载当前页
     loadCurrentPage();
 }
+
+void MainWindow::saveCurrentTableData()
+{
+    const QString funcName = "MainWindow::saveCurrentTableData";
+    qDebug() << funcName << " - 开始保存当前页面数据";
+
+    // 获取当前选择的向量表
+    if (m_vectorTableSelector->currentIndex() < 0 || !m_vectorTableWidget)
+    {
+        qDebug() << funcName << " - 无当前表或表格控件，不进行保存";
+        return;
+    }
+
+    // 获取表ID
+    int tableId = m_vectorTableSelector->currentData().toInt();
+
+    // 保存结果变量
+    QString errorMessage;
+
+    // 使用分页保存模式
+    bool saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
+        tableId,
+        m_vectorTableWidget,
+        m_currentPage,
+        m_pageSize,
+        m_totalRows,
+        errorMessage);
+
+    if (!saveSuccess)
+    {
+        qWarning() << funcName << " - 保存失败: " << errorMessage;
+        // 这里不弹出错误消息框，因为这是自动保存，不应打断用户操作
+    }
+    else
+    {
+        qDebug() << funcName << " - 保存成功";
+    }
+}

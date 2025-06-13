@@ -201,7 +201,18 @@ void MainWindow::updateWaveformView()
     const double Y_LOW_TOP = 4.0, Y_LOW_BOTTOM = 0.0;
 
     // 7. 准备数据容器
-    int rowCount = m_vectorTableWidget->rowCount();
+    int currentTableId = m_vectorTableSelector->currentData().toInt();
+    bool ok = false;
+    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+
+    if (!ok)
+    {
+        qWarning() << "updateWaveformView - Failed to get all vector rows.";
+        m_waveformPlot->replot();
+        return;
+    }
+
+    int rowCount = allRows.count();
     QVector<double> xData(rowCount + 1),
         lineData(rowCount + 1),
         fillA_top(rowCount + 1), fillA_bottom(rowCount + 1),
@@ -211,8 +222,13 @@ void MainWindow::updateWaveformView()
     for (int i = 0; i < rowCount; ++i)
     {
         xData[i] = i;
-        QTableWidgetItem *item = m_vectorTableWidget->item(i, pinColumnIndex);
-        QChar state = item ? item->text().at(0) : ' ';
+        const auto &rowData = allRows[i];
+        QChar state = ' ';
+        if (pinColumnIndex < rowData.size())
+        {
+            state = rowData[pinColumnIndex].toString().at(0);
+        }
+
         fillA_top[i] = fillA_bottom[i] = qQNaN();
         fillB_top[i] = fillB_bottom[i] = qQNaN();
         switch (state.toLatin1())
@@ -226,11 +242,11 @@ void MainWindow::updateWaveformView()
         case 'H':
             lineData[i] = Y_HIGH_TOP;
             fillA_top[i] = Y_HIGH_TOP;
-            fillA_bottom[i] = Y_HIGH_BOTTOM;
+            fillA_bottom[i] = Y_LOW_BOTTOM; // 将底部边界扩展到整个区域
             break;
         case 'L':
             lineData[i] = Y_LOW_BOTTOM;
-            fillB_top[i] = Y_LOW_TOP;
+            fillB_top[i] = Y_HIGH_TOP; // 将顶部边界扩展到整个区域
             fillB_bottom[i] = Y_LOW_BOTTOM;
             break;
         case 'M':
@@ -275,13 +291,15 @@ void MainWindow::updateWaveformView()
     QCPGraph *fillA_top_g = m_waveformPlot->addGraph();
     QCPGraph *line_g = m_waveformPlot->addGraph();
 
-    QBrush brushA(QColor(0, 0, 255, 40), Qt::CrossPattern);
+    QBrush brushA(QColor(0, 0, 255, 70), Qt::DiagCrossPattern);
     fillA_top_g->setPen(Qt::NoPen);
+    fillA_bottom_g->setPen(Qt::NoPen); // 设置底部图形也为无画笔，去除边界线
     fillA_top_g->setBrush(brushA);
     fillA_top_g->setChannelFillGraph(fillA_bottom_g);
 
-    QBrush brushB(QColor(128, 0, 128, 40), Qt::CrossPattern);
+    QBrush brushB(QColor(128, 0, 128, 70), Qt::DiagCrossPattern);
     fillB_top_g->setPen(Qt::NoPen);
+    fillB_bottom_g->setPen(Qt::NoPen); // 设置底部图形也为无画笔，去除边界线
     fillB_top_g->setBrush(brushB);
     fillB_top_g->setChannelFillGraph(fillB_bottom_g);
 
@@ -321,8 +339,9 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
     double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
     int rowIndex = static_cast<int>(floor(key));
 
-    // Validate the row index
-    if (rowIndex < 0 || rowIndex >= m_vectorTableWidget->rowCount())
+    // 验证行索引是否有效
+    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    if (rowIndex < 0 || rowIndex >= totalRows)
         return;
 
     // 更新选中点并高亮显示
@@ -344,10 +363,33 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
         }
 
         if (pinColumnIndex >= 0) {
-            // Jump to the cell
-            m_vectorTableWidget->setCurrentCell(rowIndex, pinColumnIndex);
-            m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowIndex, pinColumnIndex), QAbstractItemView::PositionAtCenter);
-            m_vectorTableWidget->setFocus(); // Ensure the table gets focus
+            // 计算行应该在哪个页面
+            int pageForRow = rowIndex / m_pageSize;
+            int rowInPage = rowIndex % m_pageSize;
+            
+            // 如果需要，切换到正确的页面
+            if (pageForRow != m_currentPage) {
+                // 保存旧页面数据
+                saveCurrentTableData();
+                
+                // 更新页码
+                m_currentPage = pageForRow;
+                
+                // 更新分页信息UI
+                updatePaginationInfo();
+                
+                // 加载新页面
+                int tableId = m_vectorTableSelector->currentData().toInt();
+                VectorDataHandler::instance().loadVectorTablePageData(
+                    tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            }
+            
+            // Jump to the cell - 使用页内行索引
+            if (rowInPage < m_vectorTableWidget->rowCount()) {
+                m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
+                m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowInPage, pinColumnIndex), QAbstractItemView::PositionAtCenter);
+                m_vectorTableWidget->setFocus(); // Ensure the table gets focus
+            }
         } });
 
     contextMenu.exec(m_waveformPlot->mapToGlobal(pos));
@@ -356,7 +398,7 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 // 高亮显示波形图中的指定点
 void MainWindow::highlightWaveformPoint(int rowIndex)
 {
-    if (!m_waveformPlot || rowIndex < 0 || !m_vectorTableWidget || rowIndex >= m_vectorTableWidget->rowCount())
+    if (!m_waveformPlot || rowIndex < 0)
         return;
 
     // 保存选中的点
@@ -397,42 +439,71 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
 
     if (pinColumnIndex >= 0)
     {
-        // 2. 获取单元格内容
-        QTableWidgetItem *item = m_vectorTableWidget->item(rowIndex, pinColumnIndex);
-        if (item)
+        // 计算行应该在哪个页面
+        int pageForRow = rowIndex / m_pageSize;
+        int rowInPage = rowIndex % m_pageSize;
+
+        // 如果需要，切换到正确的页面
+        if (pageForRow != m_currentPage)
         {
-            QString cellValue = item->text();
-            bool ok;
-            int intValue = cellValue.toInt(&ok);
-            QString hexValue;
+            // 保存旧页面数据
+            saveCurrentTableData();
 
-            // 3. 转换为十六进制
-            if (ok)
+            // 更新页码
+            m_currentPage = pageForRow;
+
+            // 更新分页信息UI
+            updatePaginationInfo();
+
+            // 加载新页面
+            int tableId = m_vectorTableSelector->currentData().toInt();
+            VectorDataHandler::instance().loadVectorTablePageData(
+                tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        }
+
+        // 确保行索引有效
+        if (rowInPage < m_vectorTableWidget->rowCount())
+        {
+            // 获取单元格内容
+            QTableWidgetItem *item = m_vectorTableWidget->item(rowInPage, pinColumnIndex);
+            if (item)
             {
-                hexValue = "0x" + QString::number(intValue, 16);
+                QString cellValue = item->text();
+                bool ok;
+                int intValue = cellValue.toInt(&ok);
+                QString hexValue;
+
+                // 转换为十六进制
+                if (ok)
+                {
+                    hexValue = "0x" + QString::number(intValue, 16);
+                }
+                else
+                {
+                    // 对于非数字，可以根据需要进行映射
+                    hexValue = cellValue;
+                }
+
+                // 创建文本标签
+                QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
+                hexLabel->setProperty("isHexValueLabel", true);
+                hexLabel->setText(hexValue);
+                hexLabel->setFont(QFont("sans-serif", 10));
+                hexLabel->setColor(Qt::black);
+
+                // 设置背景
+                hexLabel->setBrush(QBrush(QColor(240, 240, 240, 200)));
+                hexLabel->setPen(QPen(Qt::gray));
+                hexLabel->setPadding(QMargins(5, 2, 5, 2));
+
+                // 设置标签位置
+                double yPos = (m_waveformPlot->yAxis->range().upper + m_waveformPlot->yAxis->range().lower) / 2.0;
+                hexLabel->position->setCoords(rowIndex + 0.5, yPos);
+
+                // 高亮表格中的对应单元格
+                m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
+                m_vectorTableWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
             }
-            else
-            {
-                // 对于非数字，可以根据需要进行映射
-                // 这里暂时简单显示原值
-                hexValue = cellValue;
-            }
-
-            // 4. 创建文本标签
-            QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
-            hexLabel->setProperty("isHexValueLabel", true);
-            hexLabel->setText(hexValue);
-            hexLabel->setFont(QFont("sans-serif", 10));
-            hexLabel->setColor(Qt::black);
-
-            // 设置背景
-            hexLabel->setBrush(QBrush(QColor(240, 240, 240, 200)));
-            hexLabel->setPen(QPen(Qt::gray));
-            hexLabel->setPadding(QMargins(5, 2, 5, 2));
-
-            // 5. 设置标签位置
-            double yPos = (m_waveformPlot->yAxis->range().upper + m_waveformPlot->yAxis->range().lower) / 2.0;
-            hexLabel->position->setCoords(rowIndex + 0.5, yPos);
         }
     }
 
@@ -455,7 +526,8 @@ void MainWindow::setupWaveformClickHandling()
             int rowIndex = static_cast<int>(floor(key));
             
             // 检查索引是否有效（只响应正坐标）
-            if (rowIndex >= 0 && rowIndex < m_vectorTableWidget->rowCount()) {
+            int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+            if (rowIndex >= 0 && rowIndex < totalRows) {
                 // 高亮显示选中的点
                 highlightWaveformPoint(rowIndex);
             }

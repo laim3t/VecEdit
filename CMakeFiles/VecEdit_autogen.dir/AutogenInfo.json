@@ -112,6 +112,12 @@
 		],
 		[ "C:/VecEdit/common/logger.h", "MU", "P66WHCG54J/moc_logger.cpp", null ],
 		[
+			"C:/VecEdit/common/qcustomplot.h",
+			"MU",
+			"P66WHCG54J/moc_qcustomplot.cpp",
+			null
+		],
+		[
 			"C:/VecEdit/common/tablestylemanager.h",
 			"MU",
 			"P66WHCG54J/moc_tablestylemanager.cpp",
@@ -181,12 +187,6 @@
 			"C:/VecEdit/pin/vectorpinsettingsdialog.h",
 			"MU",
 			"X6SAMCXN67/moc_vectorpinsettingsdialog.cpp",
-			null
-		],
-		[
-			"C:/VecEdit/temp_qcustomplot/lib/qcustomplot.h",
-			"MU",
-			"6OWUFIL4R2/moc_qcustomplot.cpp",
 			null
 		],
 		[
@@ -293,7 +293,6 @@
 		"C:/VecEdit/pin",
 		"C:/VecEdit/timeset",
 		"C:/VecEdit/vector",
-		"C:/VecEdit/temp_qcustomplot/lib",
 		"C:/Qt/5.15.2/mingw81_32/include",
 		"C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
 		"C:/Qt/5.15.2/mingw81_32/include/QtGui",
@@ -339,6 +338,7 @@
 		[ "C:/VecEdit/app/mainwindow.cpp", "MU", null ],
 		[ "C:/VecEdit/common/dialogmanager.cpp", "MU", null ],
 		[ "C:/VecEdit/common/logger.cpp", "MU", null ],
+		[ "C:/VecEdit/common/qcustomplot.cpp", "MU", null ],
 		[ "C:/VecEdit/common/tablestylemanager.cpp", "MU", null ],
 		[ "C:/VecEdit/common/tablestyleperformancetester.cpp", "MU", null ],
 		[ "C:/VecEdit/database/binaryfilehelper.cpp", "MU", null ],
@@ -352,7 +352,6 @@
 		[ "C:/VecEdit/pin/pinsettingsdialog.cpp", "MU", null ],
 		[ "C:/VecEdit/pin/pinvalueedit.cpp", "MU", null ],
 		[ "C:/VecEdit/pin/vectorpinsettingsdialog.cpp", "MU", null ],
-		[ "C:/VecEdit/temp_qcustomplot/lib/qcustomplot.cpp", "MU", null ],
 		[ "C:/VecEdit/timeset/filltimesetdialog.cpp", "MU", null ],
 		[ "C:/VecEdit/timeset/replacetimesetdialog.cpp", "MU", null ],
 		[ "C:/VecEdit/timeset/timesetdataaccess.cpp", "MU", null ],

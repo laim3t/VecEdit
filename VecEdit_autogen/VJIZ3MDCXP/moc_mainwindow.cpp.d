@@ -856,9 +856,8 @@ C:/VecEdit/VecEdit_autogen/VJIZ3MDCXP/moc_mainwindow.cpp: C:/VecEdit/app/mainwin
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
   C:/VecEdit/common/binary_field_lengths.h \
   C:/VecEdit/common/binary_file_format.h \
+  C:/VecEdit/common/qcustomplot.h \
   C:/VecEdit/common/tablestylemanager.h \
   C:/VecEdit/database/binaryfilehelper.h \
-  C:/VecEdit/temp_qcustomplot/lib/config.h \
-  C:/VecEdit/temp_qcustomplot/lib/qcustomplot.h \
   C:/VecEdit/vector/vector_data_types.h \
   C:/VecEdit/vector/vectordatahandler.h

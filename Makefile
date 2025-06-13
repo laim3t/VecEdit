@@ -315,6 +315,21 @@ app/mainwindow.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/app/mainwindow.cpp.s
 .PHONY : app/mainwindow.cpp.s
 
+# target to build an object file
+cmake_pch.hxx.gch:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch
+.PHONY : cmake_pch.hxx.gch
+
+# target to preprocess a source file
+cmake_pch.hxx.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/cmake_pch.hxx.i
+.PHONY : cmake_pch.hxx.i
+
+# target to generate assembly for a file
+cmake_pch.hxx.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/cmake_pch.hxx.s
+.PHONY : cmake_pch.hxx.s
+
 common/dialogmanager.obj: common/dialogmanager.cpp.obj
 .PHONY : common/dialogmanager.obj
 
@@ -362,6 +377,30 @@ common/logger.s: common/logger.cpp.s
 common/logger.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/logger.cpp.s
 .PHONY : common/logger.cpp.s
+
+common/qcustomplot.obj: common/qcustomplot.cpp.obj
+.PHONY : common/qcustomplot.obj
+
+# target to build an object file
+common/qcustomplot.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.obj
+.PHONY : common/qcustomplot.cpp.obj
+
+common/qcustomplot.i: common/qcustomplot.cpp.i
+.PHONY : common/qcustomplot.i
+
+# target to preprocess a source file
+common/qcustomplot.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.i
+.PHONY : common/qcustomplot.cpp.i
+
+common/qcustomplot.s: common/qcustomplot.cpp.s
+.PHONY : common/qcustomplot.s
+
+# target to generate assembly for a file
+common/qcustomplot.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.s
+.PHONY : common/qcustomplot.cpp.s
 
 common/tablestylemanager.obj: common/tablestylemanager.cpp.obj
 .PHONY : common/tablestylemanager.obj
@@ -674,30 +713,6 @@ pin/vectorpinsettingsdialog.s: pin/vectorpinsettingsdialog.cpp.s
 pin/vectorpinsettingsdialog.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.s
 .PHONY : pin/vectorpinsettingsdialog.cpp.s
-
-temp_qcustomplot/lib/qcustomplot.obj: temp_qcustomplot/lib/qcustomplot.cpp.obj
-.PHONY : temp_qcustomplot/lib/qcustomplot.obj
-
-# target to build an object file
-temp_qcustomplot/lib/qcustomplot.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.obj
-.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.obj
-
-temp_qcustomplot/lib/qcustomplot.i: temp_qcustomplot/lib/qcustomplot.cpp.i
-.PHONY : temp_qcustomplot/lib/qcustomplot.i
-
-# target to preprocess a source file
-temp_qcustomplot/lib/qcustomplot.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.i
-.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.i
-
-temp_qcustomplot/lib/qcustomplot.s: temp_qcustomplot/lib/qcustomplot.cpp.s
-.PHONY : temp_qcustomplot/lib/qcustomplot.s
-
-# target to generate assembly for a file
-temp_qcustomplot/lib/qcustomplot.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/temp_qcustomplot/lib/qcustomplot.cpp.s
-.PHONY : temp_qcustomplot/lib/qcustomplot.cpp.s
 
 timeset/filltimesetdialog.obj: timeset/filltimesetdialog.cpp.obj
 .PHONY : timeset/filltimesetdialog.obj
@@ -1024,12 +1039,18 @@ help:
 	@echo ... app/mainwindow.obj
 	@echo ... app/mainwindow.i
 	@echo ... app/mainwindow.s
+	@echo ... cmake_pch.hxx.gch
+	@echo ... cmake_pch.hxx.i
+	@echo ... cmake_pch.hxx.s
 	@echo ... common/dialogmanager.obj
 	@echo ... common/dialogmanager.i
 	@echo ... common/dialogmanager.s
 	@echo ... common/logger.obj
 	@echo ... common/logger.i
 	@echo ... common/logger.s
+	@echo ... common/qcustomplot.obj
+	@echo ... common/qcustomplot.i
+	@echo ... common/qcustomplot.s
 	@echo ... common/tablestylemanager.obj
 	@echo ... common/tablestylemanager.i
 	@echo ... common/tablestylemanager.s
@@ -1069,9 +1090,6 @@ help:
 	@echo ... pin/vectorpinsettingsdialog.obj
 	@echo ... pin/vectorpinsettingsdialog.i
 	@echo ... pin/vectorpinsettingsdialog.s
-	@echo ... temp_qcustomplot/lib/qcustomplot.obj
-	@echo ... temp_qcustomplot/lib/qcustomplot.i
-	@echo ... temp_qcustomplot/lib/qcustomplot.s
 	@echo ... timeset/filltimesetdialog.obj
 	@echo ... timeset/filltimesetdialog.i
 	@echo ... timeset/filltimesetdialog.s

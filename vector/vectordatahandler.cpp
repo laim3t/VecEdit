@@ -4299,3 +4299,57 @@ int VectorDataHandler::getSchemaVersion(int tableId)
     }
     return metaQuery.value(0).toInt();
 }
+
+QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok)
+{
+    const QString funcName = "VectorDataHandler::getAllVectorRows";
+    qDebug() << funcName << "- Getting all rows for table" << tableId;
+    ok = false;
+    QString errorMsg;
+
+    // 首先，解析二进制文件的绝对路径
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << "- Failed to resolve binary file path for table" << tableId << "Error:" << errorMsg;
+        return QList<Vector::RowData>();
+    }
+
+    // 检查缓存是否有效
+    if (isTableDataCacheValid(tableId, absoluteBinFilePath))
+    {
+        qDebug() << funcName << "- Cache is valid, returning cached data for table" << tableId;
+        ok = true;
+        return m_tableDataCache[tableId];
+    }
+
+    // 缓存无效或不存在，从文件加载
+    qDebug() << funcName << "- Cache not valid, loading from file for table" << tableId;
+
+    // 加载元数据以获取列结构和schema版本
+    QString binFileName; // 这个是相对路径，从meta里读出来的
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int rowCount = 0; // 这个也是从meta里读出来的
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
+    {
+        qWarning() << funcName << "- Failed to load vector table metadata for table" << tableId;
+        return QList<Vector::RowData>();
+    }
+
+    // 从二进制文件读取所有行
+    QList<Vector::RowData> rows;
+    if (!readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, rows))
+    {
+        qWarning() << funcName << "- Failed to read all rows from binary for table" << tableId;
+        return QList<Vector::RowData>();
+    }
+
+    // 更新缓存
+    updateTableDataCache(tableId, rows, absoluteBinFilePath);
+
+    qDebug() << funcName << "- Successfully loaded" << rows.count() << "rows for table" << tableId;
+    ok = true;
+    return rows;
+}

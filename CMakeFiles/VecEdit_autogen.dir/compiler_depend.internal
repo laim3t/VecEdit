@@ -972,6 +972,8 @@ C:/VecEdit/VecEdit_autogen/timestamp
  C:/VecEdit/common/dialogmanager.h
  C:/VecEdit/common/logger.cpp
  C:/VecEdit/common/logger.h
+ C:/VecEdit/common/qcustomplot.cpp
+ C:/VecEdit/common/qcustomplot.h
  C:/VecEdit/common/tablestylemanager.cpp
  C:/VecEdit/common/tablestylemanager.h
  C:/VecEdit/common/tablestyleperformancetester.cpp
@@ -998,9 +1000,6 @@ C:/VecEdit/VecEdit_autogen/timestamp
  C:/VecEdit/pin/vectorpinsettingsdialog.cpp
  C:/VecEdit/pin/vectorpinsettingsdialog.h
  C:/VecEdit/resources/qt/icons.qrc
- C:/VecEdit/temp_qcustomplot/lib/config.h
- C:/VecEdit/temp_qcustomplot/lib/qcustomplot.cpp
- C:/VecEdit/temp_qcustomplot/lib/qcustomplot.h
  C:/VecEdit/timeset/filltimesetdialog.cpp
  C:/VecEdit/timeset/filltimesetdialog.h
  C:/VecEdit/timeset/replacetimesetdialog.cpp
