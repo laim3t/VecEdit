@@ -1581,23 +1581,22 @@ void MainWindow::onHexValueEdited()
         return;
     }
 
-    // 转换为二进制字符串 (不补零)
-    QString binaryStr = QString::number(decimalValue, 2);
+    // 1. 转换为8位二进制字符串
+    QString binaryStr = QString::number(decimalValue, 2).rightJustified(8, '0');
 
-    // 如果二进制位数超过选中行数，则输入无效
-    if (binaryStr.length() > selectedRows.size())
-    {
-        // 此处应由 validateHexInput 阻止，但作为安全措施保留
-        return;
-    }
+    // 2. 确定要操作的行数 (最多8行)
+    int rowsToChange = qMin(selectedRows.size(), 8);
 
-    // 将二进制字符串 "覆写" 到选中的单元格 (只覆写N位)
+    // 3. 从8位字符串中截取右边的部分
+    QString finalBinaryStr = binaryStr.right(rowsToChange);
+
+    // 4. 将最终的二进制字符串覆写到选中的单元格
     m_vectorTableWidget->blockSignals(true);
 
-    for (int i = 0; i < binaryStr.length(); ++i)
+    for (int i = 0; i < finalBinaryStr.length(); ++i)
     {
         int row = selectedRows[i];
-        QChar bit = binaryStr[i];
+        QChar bit = finalBinaryStr[i];
         QString newValue;
         if (useHLFormat)
         {
@@ -1760,29 +1759,6 @@ void MainWindow::validateHexInput(const QString &text)
     {
         m_pinValueField->setStyleSheet("border: 2px solid red");
         m_pinValueField->setToolTip(tr("输入错误：16进制值必须是1-2位的有效16进制数字 (0-9, A-F)"));
-        m_pinValueField->setProperty("invalid", true);
-        return;
-    }
-
-    bool ok;
-    int decimalValue = hexDigits.toInt(&ok, 16);
-    if (!ok)
-    {
-        m_pinValueField->setStyleSheet("border: 2px solid red");
-        m_pinValueField->setToolTip(tr("输入错误：无法转换为有效的16进制数"));
-        m_pinValueField->setProperty("invalid", true);
-        return;
-    }
-
-    // 转换为二进制字符串 (不补零)
-    QString binaryStr = QString::number(decimalValue, 2);
-
-    // 如果二进制位数超过选中行数，则输入无效
-    if (binaryStr.length() > selectedRowCount)
-    {
-        m_pinValueField->setStyleSheet("border: 2px solid red");
-        QString errorMsg = tr("输入错误：0x%1 需要 %2 行，但只选中了 %3 行。").arg(hexDigits.toUpper()).arg(binaryStr.length()).arg(selectedRowCount);
-        m_pinValueField->setToolTip(errorMsg);
         m_pinValueField->setProperty("invalid", true);
         return;
     }
