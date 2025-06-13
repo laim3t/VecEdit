@@ -1665,6 +1665,62 @@ void MainWindow::onHexValueEdited()
     m_pinValueField->setStyleSheet("");
     m_pinValueField->setToolTip("");
     m_pinValueField->setProperty("invalid", false);
+
+    // 将二进制字符串应用到选中的单元格
+    m_vectorTableWidget->blockSignals(true); // 避免触发onTableCellChanged
+
+    // 从二进制字符串的末尾开始，倒序填充到选中的行
+    int binIndex = binaryStr.length() - 1;
+    for (int i = selectedRows.size() - 1; i >= 0; --i)
+    {
+        int row = selectedRows[i];
+        if (binIndex >= 0)
+        {
+            QChar bit = binaryStr[binIndex--];
+            QString newValue;
+            if (useHLFormat)
+            {
+                newValue = (bit == '1' ? "H" : "L");
+            }
+            else
+            {
+                newValue = bit;
+            }
+
+            QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
+            if (item)
+            {
+                item->setText(newValue);
+            }
+            else
+            {
+                item = new QTableWidgetItem(newValue);
+                m_vectorTableWidget->setItem(row, selectedColumn, item);
+            }
+        }
+        else
+        {
+            // 如果二进制字符串比选中行短（例如，有效位数为3，但选中了4行），用默认值填充剩余的更"高位"的行
+            QString defaultValue = useHLFormat ? "L" : "0";
+            QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
+            if (item)
+            {
+                item->setText(defaultValue);
+            }
+            else
+            {
+                item = new QTableWidgetItem(defaultValue);
+                m_vectorTableWidget->setItem(row, selectedColumn, item);
+            }
+        }
+    }
+    m_vectorTableWidget->blockSignals(false); // 恢复信号
+
+    // 手动触发一次数据变更的逻辑，以便undo/redo和保存状态能够更新
+    if (!selectedRows.isEmpty())
+    {
+        onTableRowModified(selectedRows.first());
+    }
 }
 
 void MainWindow::on_action_triggered(bool checked)
