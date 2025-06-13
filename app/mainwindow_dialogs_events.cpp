@@ -1541,180 +1541,86 @@ void MainWindow::onHexValueEdited()
     // 判断格式类型和提取16进制值
     bool useHLFormat = false;
     QString hexDigits;
-    bool validFormat = false; // 定义并初始化validFormat变量
+    bool validFormat = false;
 
     // 统一将输入转为小写以便处理
     QString lowerHexValue = hexValue.toLower();
 
     if (lowerHexValue.startsWith("+0x"))
     {
-        // +0x前缀表示H/L格式
         useHLFormat = true;
-        hexDigits = lowerHexValue.mid(3); // 去掉'+0x'前缀
-        validFormat = true;               // 设置为有效格式
+        hexDigits = lowerHexValue.mid(3);
+        validFormat = true;
     }
     else if (lowerHexValue.startsWith("0x"))
     {
-        // 0x前缀表示0/1格式
         useHLFormat = false;
-        hexDigits = lowerHexValue.mid(2); // 去掉'0x'前缀
-        validFormat = true;               // 设置为有效格式
+        hexDigits = lowerHexValue.mid(2);
+        validFormat = true;
     }
     else
     {
-        // 其他格式无法处理
         return;
     }
 
-    // 检查格式是否有效
     if (!validFormat)
     {
-        // 如果不是标准的16进制格式，可能是显示模式（如XXXXXX），不应该显示错误
-        m_pinValueField->setStyleSheet("");
-        m_pinValueField->setToolTip("");
-        m_pinValueField->setProperty("invalid", false);
         return;
     }
 
-    // 检查16进制部分是否有效
-    QRegExp hexRegex("^[0-9a-f]{1,2}$");
+    QRegExp hexRegex("^[0-9a-fA-F]{1,2}$");
     if (!hexRegex.exactMatch(hexDigits))
     {
-        m_pinValueField->setStyleSheet("border: 2px solid red");
-        m_pinValueField->setToolTip(tr("输入错误：16进制值必须是1-2位的有效16进制数字 (0-9, A-F)"));
-        m_pinValueField->setProperty("invalid", true);
         return;
     }
 
-    // 转换为二进制检查位数
     bool ok;
     int decimalValue = hexDigits.toInt(&ok, 16);
     if (!ok)
     {
-        m_pinValueField->setStyleSheet("border: 2px solid red");
-        m_pinValueField->setToolTip(tr("输入错误：无法转换为有效的16进制数"));
-        m_pinValueField->setProperty("invalid", true);
         return;
     }
 
-    // 转换为二进制字符串
+    // 转换为二进制字符串 (不补零)
     QString binaryStr = QString::number(decimalValue, 2);
 
-    // 补齐前导零到8位
-    while (binaryStr.length() < 8)
+    // 如果二进制位数超过选中行数，则输入无效
+    if (binaryStr.length() > selectedRows.size())
     {
-        binaryStr.prepend('0');
-    }
-
-    // 计算需要的有效位数（最高位的1到最右侧的距离）
-    int effectiveBits = 0;
-    for (int i = 0; i < binaryStr.length(); i++)
-    {
-        if (binaryStr[i] == '1')
-        {
-            // 找到最左边的'1'位，计算它到最右边的距离
-            effectiveBits = binaryStr.length() - i;
-            break;
-        }
-    }
-
-    // 如果全是0，则只需要1行
-    if (effectiveBits == 0)
-    {
-        effectiveBits = 1;
-    }
-
-    // 如果有效位数超过选中行数，则输入无效
-    if (effectiveBits > selectedRows.size())
-    {
-        m_pinValueField->setStyleSheet("border: 2px solid red");
-
-        QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRows.size()).arg(hexDigits.toUpper()).arg(effectiveBits);
-
-        // 添加帮助信息
-        if (selectedRows.size() == 1)
-        {
-            errorMsg += tr("\n\n对于1行，最大值为: 0x01");
-        }
-        else if (selectedRows.size() == 2)
-        {
-            errorMsg += tr("\n\n对于2行，最大值为: 0x03");
-        }
-        else if (selectedRows.size() == 3)
-        {
-            errorMsg += tr("\n\n对于3行，最大值为: 0x07");
-        }
-        else if (selectedRows.size() == 4)
-        {
-            errorMsg += tr("\n\n对于4行，最大值为: 0x0F");
-        }
-        else if (selectedRows.size() <= 8)
-        {
-            // 生成对应的最大值
-            int maxValue = (1 << selectedRows.size()) - 1;
-            QString maxHex = QString("0x%1").arg(maxValue, 2, 16, QChar('0')).toUpper();
-            errorMsg += tr("\n\n对于%1行，最大值为: %2").arg(selectedRows.size()).arg(maxHex);
-        }
-
-        m_pinValueField->setToolTip(errorMsg);
-        m_pinValueField->setProperty("invalid", true);
+        // 此处应由 validateHexInput 阻止，但作为安全措施保留
         return;
     }
 
-    // 所有验证通过，输入有效
-    m_pinValueField->setStyleSheet("");
-    m_pinValueField->setToolTip("");
-    m_pinValueField->setProperty("invalid", false);
+    // 将二进制字符串 "覆写" 到选中的单元格 (只覆写N位)
+    m_vectorTableWidget->blockSignals(true);
 
-    // 将二进制字符串应用到选中的单元格
-    m_vectorTableWidget->blockSignals(true); // 避免触发onTableCellChanged
-
-    // 从二进制字符串的末尾开始，倒序填充到选中的行
-    int binIndex = binaryStr.length() - 1;
-    for (int i = selectedRows.size() - 1; i >= 0; --i)
+    for (int i = 0; i < binaryStr.length(); ++i)
     {
         int row = selectedRows[i];
-        if (binIndex >= 0)
+        QChar bit = binaryStr[i];
+        QString newValue;
+        if (useHLFormat)
         {
-            QChar bit = binaryStr[binIndex--];
-            QString newValue;
-            if (useHLFormat)
-            {
-                newValue = (bit == '1' ? "H" : "L");
-            }
-            else
-            {
-                newValue = bit;
-            }
-
-            QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
-            if (item)
-            {
-                item->setText(newValue);
-            }
-            else
-            {
-                item = new QTableWidgetItem(newValue);
-                m_vectorTableWidget->setItem(row, selectedColumn, item);
-            }
+            newValue = (bit == '1' ? "H" : "L");
         }
         else
         {
-            // 如果二进制字符串比选中行短（例如，有效位数为3，但选中了4行），用默认值填充剩余的更"高位"的行
-            QString defaultValue = useHLFormat ? "L" : "0";
-            QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
-            if (item)
-            {
-                item->setText(defaultValue);
-            }
-            else
-            {
-                item = new QTableWidgetItem(defaultValue);
-                m_vectorTableWidget->setItem(row, selectedColumn, item);
-            }
+            newValue = bit;
+        }
+
+        QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
+        if (item)
+        {
+            item->setText(newValue);
+        }
+        else
+        {
+            item = new QTableWidgetItem(newValue);
+            m_vectorTableWidget->setItem(row, selectedColumn, item);
         }
     }
-    m_vectorTableWidget->blockSignals(false); // 恢复信号
+
+    m_vectorTableWidget->blockSignals(false);
 
     // 手动触发一次数据变更的逻辑，以便undo/redo和保存状态能够更新
     if (!selectedRows.isEmpty())
@@ -1821,39 +1727,34 @@ void MainWindow::validateHexInput(const QString &text)
         return;
     }
 
+    // --- 验证逻辑简化 ---
+
     // 解析输入值
     QString hexDigits;
     bool validFormat = false;
-    bool useHLFormat = false;
 
     // 统一将输入转为小写以便处理
     QString lowerText = text.toLower();
 
     if (lowerText.startsWith("+0x"))
     {
-        // +0x前缀表示H/L格式
-        useHLFormat = true;
-        hexDigits = lowerText.mid(3); // 去掉'+0x'前缀
+        hexDigits = lowerText.mid(3);
         validFormat = true;
     }
     else if (lowerText.startsWith("0x"))
     {
-        // 0x前缀表示0/1格式
-        hexDigits = lowerText.mid(2); // 去掉'0x'前缀
+        hexDigits = lowerText.mid(2);
         validFormat = true;
     }
 
-    // 检查格式是否有效
     if (!validFormat)
     {
-        // 如果不是标准的16进制格式，可能是显示模式（如XXXXXX），不应该显示错误
         m_pinValueField->setStyleSheet("");
         m_pinValueField->setToolTip("");
         m_pinValueField->setProperty("invalid", false);
         return;
     }
 
-    // 检查16进制部分是否有效
     QRegExp hexRegex("^[0-9a-f]{1,2}$");
     if (!hexRegex.exactMatch(hexDigits))
     {
@@ -1863,7 +1764,6 @@ void MainWindow::validateHexInput(const QString &text)
         return;
     }
 
-    // 转换为二进制检查位数
     bool ok;
     int decimalValue = hexDigits.toInt(&ok, 16);
     if (!ok)
@@ -1874,71 +1774,20 @@ void MainWindow::validateHexInput(const QString &text)
         return;
     }
 
-    // 转换为二进制字符串
+    // 转换为二进制字符串 (不补零)
     QString binaryStr = QString::number(decimalValue, 2);
 
-    // 补齐前导零到8位
-    while (binaryStr.length() < 8)
-    {
-        binaryStr.prepend('0');
-    }
-
-    // 计算需要的有效位数（最高位的1到最右侧的距离）
-    int effectiveBits = 0;
-    for (int i = 0; i < binaryStr.length(); i++)
-    {
-        if (binaryStr[i] == '1')
-        {
-            // 找到最左边的'1'位，计算它到最右边的距离
-            effectiveBits = binaryStr.length() - i;
-            break;
-        }
-    }
-
-    // 如果全是0，则只需要1行
-    if (effectiveBits == 0)
-    {
-        effectiveBits = 1;
-    }
-
-    // 如果有效位数超过选中行数，则输入无效
-    if (effectiveBits > selectedRowCount)
+    // 如果二进制位数超过选中行数，则输入无效
+    if (binaryStr.length() > selectedRowCount)
     {
         m_pinValueField->setStyleSheet("border: 2px solid red");
-
-        QString errorMsg = tr("输入错误：选中了%1行，但0x%2需要至少%3行。").arg(selectedRowCount).arg(hexDigits.toUpper()).arg(effectiveBits);
-
-        // 添加帮助信息
-        if (selectedRowCount == 1)
-        {
-            errorMsg += tr("\n\n对于1行，最大值为: 0x01");
-        }
-        else if (selectedRowCount == 2)
-        {
-            errorMsg += tr("\n\n对于2行，最大值为: 0x03");
-        }
-        else if (selectedRowCount == 3)
-        {
-            errorMsg += tr("\n\n对于3行，最大值为: 0x07");
-        }
-        else if (selectedRowCount == 4)
-        {
-            errorMsg += tr("\n\n对于4行，最大值为: 0x0F");
-        }
-        else if (selectedRowCount <= 8)
-        {
-            // 生成对应的最大值
-            int maxValue = (1 << selectedRowCount) - 1;
-            QString maxHex = QString("0x%1").arg(maxValue, 2, 16, QChar('0')).toUpper();
-            errorMsg += tr("\n\n对于%1行，最大值为: %2").arg(selectedRowCount).arg(maxHex);
-        }
-
+        QString errorMsg = tr("输入错误：0x%1 需要 %2 行，但只选中了 %3 行。").arg(hexDigits.toUpper()).arg(binaryStr.length()).arg(selectedRowCount);
         m_pinValueField->setToolTip(errorMsg);
         m_pinValueField->setProperty("invalid", true);
         return;
     }
 
-    // 所有验证通过，输入有效
+    // 所有验证通过
     m_pinValueField->setStyleSheet("");
     m_pinValueField->setToolTip("");
     m_pinValueField->setProperty("invalid", false);
