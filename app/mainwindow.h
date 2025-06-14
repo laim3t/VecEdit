@@ -343,13 +343,14 @@ private:
                                                     const QList<Vector::ColumnInfo> &newColumns);
 
     // 波形图视图相关UI组件
-    QDockWidget *m_waveformDock;  // 波形图停靠窗口
-    QWidget *m_waveformContainer; // 波形图内容容器
-    QCustomPlot *m_waveformPlot;
-    QComboBox *m_waveformPinSelector;
+    QDockWidget *m_waveformDock = nullptr;
+    QWidget *m_waveformContainer = nullptr;
+    QCustomPlot *m_waveformPlot = nullptr;
+    QComboBox *m_waveformPinSelector = nullptr;
     QAction *m_toggleWaveformAction;
-    bool m_isWaveformVisible;
-    int m_selectedWaveformPoint; // 记录当前选中的波形点
+    bool m_isWaveformVisible = false;
+    int m_selectedWaveformPoint = -1;
+    double m_currentXOffset = 0.0;  // [新增] 当前波形图的X轴偏移量
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;

@@ -542,7 +542,16 @@ void MainWindow::updateWaveformView()
         {
             xData[i] += xOffset;
         }
+
+        // [新增] 使用偏移后的xData重新设置背景图层的数据
+        fillA_top_g->setData(xData, fillA_top);
+        fillA_bottom_g->setData(xData, fillA_bottom);
+        fillB_top_g->setData(xData, fillB_top);
+        fillB_bottom_g->setData(xData, fillB_bottom);
     }
+
+    // 保存当前偏移量供其他函数使用
+    m_currentXOffset = xOffset;
 
     // 3.2 绘制主线条层
     QCPGraph *line_g = m_waveformPlot->addGraph();
@@ -641,7 +650,8 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 
     // Convert widget coordinates to plot coordinates to find the row index
     double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
-    int rowIndex = static_cast<int>(floor(key));
+    // 在计算行索引时，减去偏移量
+    int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
 
     // 验证行索引是否有效
     int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
@@ -724,8 +734,8 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setLayer("selection"); // 将高亮矩形放到顶层
     highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex - 0.02, m_waveformPlot->yAxis->range().upper);
-    highlightRect->bottomRight->setCoords(rowIndex + 0.98, m_waveformPlot->yAxis->range().lower);
+    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset - 0.02, m_waveformPlot->yAxis->range().upper);
+    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 0.98, m_waveformPlot->yAxis->range().lower);
     highlightRect->setPen(QPen(Qt::blue, 1));
     highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
 
@@ -804,7 +814,7 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
 
                 // 设置标签位置
                 double yPos = (m_waveformPlot->yAxis->range().upper + m_waveformPlot->yAxis->range().lower) / 2.0;
-                hexLabel->position->setCoords(rowIndex + 0.5, yPos);
+                hexLabel->position->setCoords(rowIndex + m_currentXOffset + 0.5, yPos);
 
                 // 高亮表格中的对应单元格
                 m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
@@ -829,7 +839,8 @@ void MainWindow::setupWaveformClickHandling()
         if (event->button() == Qt::LeftButton) {
             // 获取点击位置对应的数据点索引
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
-            int rowIndex = static_cast<int>(floor(key));
+            // 在计算行索引时考虑偏移量
+            int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
             
             // 检查索引是否有效（只响应正坐标）
             int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
@@ -849,7 +860,8 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
     // 1. 获取点击位置对应的行列信息
     double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
-    int rowIndex = static_cast<int>(floor(key));
+    // 在计算行索引时考虑偏移量
+    int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
 
     int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
     if (rowIndex < 0 || rowIndex >= totalRows) return;
