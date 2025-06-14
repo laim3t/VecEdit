@@ -131,6 +131,16 @@ void MainWindow::saveVectorTableData()
             // 有变更的情况，显示保存了多少行
             QMessageBox::information(this, "保存成功", errorMessage);
             statusBar()->showMessage(errorMessage);
+
+            // 清除修改标志
+            m_hasUnsavedChanges = false;
+
+            // 清除所有修改行的标记
+            int tableId = m_vectorTableSelector->currentData().toInt();
+            VectorDataHandler::instance().clearModifiedRows(tableId);
+
+            // 更新窗口标题
+            updateWindowTitle(m_currentDbPath);
         }
 
         // 不再重新加载当前页数据，保留用户的编辑状态
@@ -599,4 +609,30 @@ void MainWindow::saveCurrentTableData()
     {
         qDebug() << funcName << " - 保存成功";
     }
+}
+
+// 判断是否有未保存的内容
+bool MainWindow::hasUnsavedChanges() const
+{
+    // 如果没有打开的数据库或没有选中的向量表，则没有未保存的内容
+    if (m_currentDbPath.isEmpty() || m_vectorTableSelector->count() == 0)
+    {
+        return false;
+    }
+
+    // 获取当前选中的向量表ID
+    int tableId = -1;
+    int currentIdx = m_vectorTableSelector->currentIndex();
+    if (currentIdx >= 0)
+    {
+        tableId = m_vectorTableSelector->currentData().toInt();
+    }
+    else
+    {
+        return false;
+    }
+
+    // 检查VectorDataHandler中是否有该表的修改行
+    // 任何一行被修改，就表示有未保存的内容
+    return VectorDataHandler::instance().isRowModified(tableId, -1);
 }

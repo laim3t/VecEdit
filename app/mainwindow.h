@@ -286,10 +286,17 @@ private:
     QPushButton *m_jumpButton;     // 跳转按钮
 
     // 分页相关数据
-    int m_currentPage; // 当前页码(从0开始)
-    int m_pageSize;    // 每页行数
-    int m_totalPages;  // 总页数
-    int m_totalRows;   // 总行数
+    int m_currentPage;    // 当前页码（从0开始）
+    int m_pageSize;       // 每页显示的行数
+    int m_totalPages;     // 总页数
+    int m_totalRows;      // 总行数
+    bool m_pagingEnabled; // 是否启用分页
+
+    // 数据修改状态
+    bool m_hasUnsavedChanges; // 跟踪是否有未保存的内容
+
+    // 判断是否有未保存的内容
+    bool hasUnsavedChanges() const;
 
     // Tab页签组件
     QTabWidget *m_vectorTabWidget;

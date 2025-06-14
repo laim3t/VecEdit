@@ -332,6 +332,10 @@ void MainWindow::onTableRowModified(int row)
     // 标记行为已修改
     VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
 
+    // 更新修改标志和窗口标题
+    m_hasUnsavedChanges = true;
+    updateWindowTitle(m_currentDbPath);
+
     // 如果波形图可见，则更新它
     if (m_isWaveformVisible)
     {
@@ -339,7 +343,7 @@ void MainWindow::onTableRowModified(int row)
         // 确保修改后高亮仍然在正确的位置
         if (m_selectedWaveformPoint >= 0)
         {
-             highlightWaveformPoint(m_selectedWaveformPoint);
+            highlightWaveformPoint(m_selectedWaveformPoint);
         }
     }
 }
@@ -1707,14 +1711,16 @@ void MainWindow::onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int 
 
 void MainWindow::updateWindowTitle(const QString &dbPath)
 {
+    QString prefix = m_hasUnsavedChanges ? "*" : "";
+
     if (dbPath.isEmpty())
     {
-        setWindowTitle(tr("向量编辑器"));
+        setWindowTitle(prefix + tr("向量编辑器"));
     }
     else
     {
         QFileInfo fileInfo(dbPath);
-        setWindowTitle(tr("向量编辑器 - %1").arg(fileInfo.fileName()));
+        setWindowTitle(prefix + tr("向量编辑器 - %1").arg(fileInfo.fileName()));
     }
 }
 

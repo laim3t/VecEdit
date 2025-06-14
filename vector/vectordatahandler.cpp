@@ -3512,6 +3512,13 @@ void VectorDataHandler::clearModifiedRows(int tableId)
 // 检查行是否被修改过
 bool VectorDataHandler::isRowModified(int tableId, int rowIndex)
 {
+    // 当rowIndex为-1时，检查整个表是否有任何修改
+    if (rowIndex == -1)
+    {
+        return m_modifiedRows.contains(tableId) && !m_modifiedRows[tableId].isEmpty();
+    }
+
+    // 检查特定行是否被修改
     return m_modifiedRows.contains(tableId) && m_modifiedRows[tableId].contains(rowIndex);
 }
 

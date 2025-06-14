@@ -182,6 +182,43 @@ void MainWindow::closeCurrentProject()
 {
     if (!m_currentDbPath.isEmpty())
     {
+        // 如果有未保存的内容，提示用户保存
+        if (m_hasUnsavedChanges)
+        {
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this,
+                "保存修改",
+                "关闭项目前，是否保存当前未保存的内容？",
+                QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+            if (reply == QMessageBox::Yes)
+            {
+                saveVectorTableData();
+
+                // 如果保存后仍有未保存内容（可能保存失败），询问是否继续关闭
+                if (m_hasUnsavedChanges)
+                {
+                    QMessageBox::StandardButton continueReply = QMessageBox::question(
+                        this,
+                        "保存失败",
+                        "保存失败，是否仍然关闭项目？",
+                        QMessageBox::Yes | QMessageBox::No);
+
+                    if (continueReply == QMessageBox::No)
+                    {
+                        return; // 取消关闭项目
+                    }
+                }
+            }
+            else if (reply == QMessageBox::Cancel)
+            {
+                return; // 取消关闭项目
+            }
+        }
+
+        // 重置未保存内容标志
+        m_hasUnsavedChanges = false;
+
         // 关闭数据库连接
         DatabaseManager::instance()->closeDatabase();
         m_currentDbPath.clear();

@@ -13,7 +13,7 @@
 #include "pin/pinvalueedit.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1)
+    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -806,6 +806,36 @@ void MainWindow::updateWindowSizeInfo()
 // 拦截关闭事件，保存窗口状态
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    // 如果有未保存的内容，提示用户保存
+    if (m_hasUnsavedChanges)
+    {
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            this,
+            "保存修改",
+            "当前有未保存的内容，是否保存？",
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+        if (reply == QMessageBox::Yes)
+        {
+            // 保存内容
+            saveVectorTableData();
+
+            // 如果保存后仍有未保存内容（可能保存失败），则取消关闭
+            if (m_hasUnsavedChanges)
+            {
+                event->ignore();
+                return;
+            }
+        }
+        else if (reply == QMessageBox::Cancel)
+        {
+            // 用户取消关闭
+            event->ignore();
+            return;
+        }
+        // 如果是No，则不保存直接关闭，继续执行
+    }
+
     saveWindowState();
     QMainWindow::closeEvent(event);
 }
