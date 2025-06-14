@@ -268,6 +268,7 @@ void MainWindow::updateWaveformView()
     QVector<double> mainLineData(rowCount + 1);
     QVector<double> fillA_top(rowCount + 1), fillA_bottom(rowCount + 1);
     QVector<double> fillB_top(rowCount + 1), fillB_bottom(rowCount + 1);
+    double xOffset = 0.0; // 新增：用于存储波形图的X轴偏移量
 
     // 2.4 循环填充数据容器（只填充，不绘制）
     for (int i = 0; i < rowCount; ++i)
@@ -526,9 +527,21 @@ void MainWindow::updateWaveformView()
         t1rLabel->setPadding(QMargins(2, 2, 2, 2));
         t1rLabel->setPen(boundaryPen);
         t1rLabel->setBrush(QBrush(QColor(255, 255, 255, 180)));
+
+        // [新增] 如果T1R区域被绘制，则设置X轴偏移量
+        xOffset = t1rRatio;
     } else {
         qWarning() << "updateWaveformView - T1R比例无效或超出范围:" << t1rRatio 
                    << "(T1R=" << t1r << "ns, 周期=" << period << "ns)";
+    }
+
+    // [新增] 应用X轴偏移量到主波形数据
+    if (xOffset > 0.0)
+    {
+        for (int i = 0; i < xData.size(); ++i)
+        {
+            xData[i] += xOffset;
+        }
     }
 
     // 3.2 绘制主线条层
@@ -550,8 +563,8 @@ void MainWindow::updateWaveformView()
             box->setProperty("isVBox", true);
             box->setPen(QPen(Qt::red, 2.5));
             box->setBrush(Qt::NoBrush);
-            box->topLeft->setCoords(i, Y_HIGH_TOP);
-            box->bottomRight->setCoords(i + 1, Y_LOW_BOTTOM);
+            box->topLeft->setCoords(i + xOffset, Y_HIGH_TOP);
+            box->bottomRight->setCoords(i + 1 + xOffset, Y_LOW_BOTTOM);
         }
 
         // 绘制 'X' 状态的灰色中线覆盖层
@@ -562,8 +575,8 @@ void MainWindow::updateWaveformView()
             line->setProperty("isXLine", true);
             line->setPen(QPen(Qt::gray, 2.5));
             double y = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-            line->start->setCoords(i, y);
-            line->end->setCoords(i + 1, y);
+            line->start->setCoords(i + xOffset, y);
+            line->end->setCoords(i + 1 + xOffset, y);
         }
 
         // 绘制 '->X' 的灰色过渡线覆盖层
@@ -601,10 +614,10 @@ void MainWindow::updateWaveformView()
                     transitionLine->setLayer("overlay");
                     transitionLine->setProperty("isXTransition", true);
                     transitionLine->setPen(QPen(Qt::gray, 2.5));
-                    transitionLine->start->setCoords(i, previousY);
+                    transitionLine->start->setCoords(i + xOffset, previousY);
 
                     double currentY = (previousState == 'V') ? Y_LOW_BOTTOM : (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
-                    transitionLine->end->setCoords(i, currentY);
+                    transitionLine->end->setCoords(i + xOffset, currentY);
                 }
             }
         }
@@ -612,7 +625,7 @@ void MainWindow::updateWaveformView()
 
     // 3.4 最终绘图设置
     double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10; // 保持之前的缩放级别
-    m_waveformPlot->xAxis->setRange(0, xMax);
+    m_waveformPlot->xAxis->setRange(0, xMax + xOffset);
     m_waveformPlot->yAxis->setRange(-2.0, 22.0);
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
