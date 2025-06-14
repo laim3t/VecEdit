@@ -15,6 +15,7 @@
 #include <QSqlError>
 #include <QHeaderView>
 #include <QFileInfo>
+#include <QTimer>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -73,8 +74,31 @@ bool MainWindow::showTimeSetDialog(bool isNewTable)
     {
         qDebug() << "MainWindow::showTimeSetDialog - 用户确认TimeSet设置";
 
+        // 强制刷新数据库连接，确保没有缓存问题
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if(db.isOpen()) {
+            qDebug() << "MainWindow::showTimeSetDialog - 刷新数据库缓存";
+            db.transaction();
+            db.commit();
+        }
+
         // 刷新侧边导航栏
         refreshSidebarNavigator();
+        
+        // 如果波形图可见，更新波形图以反映T1R和周期的变化
+        if (m_isWaveformVisible && m_waveformPlot)
+        {
+            qDebug() << "MainWindow::showTimeSetDialog - 更新波形图以反映TimeSet设置变更";
+            
+            // 短暂延迟以确保数据库变更已经完成
+            QTimer::singleShot(100, this, [this]() {
+                qDebug() << "MainWindow::showTimeSetDialog - 延迟更新波形图";
+                updateWaveformView();
+            });
+            
+            // 同时也立即更新一次
+            updateWaveformView();
+        }
 
         return true;
     }

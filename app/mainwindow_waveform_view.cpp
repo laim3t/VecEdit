@@ -2,6 +2,14 @@
 //  波形图视图相关实现：mainwindow_waveform_view.cpp
 // ==========================================================
 
+#include <QDebug>
+#include <QMenu>
+#include <QAction>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QJsonDocument>
+#include <QJsonArray>
+
 void MainWindow::setupWaveformView()
 {
     // 创建波形图停靠窗口
@@ -148,7 +156,11 @@ void MainWindow::updateWaveformView()
         {
             if (item->property("isVBox").toBool() ||
                 item->property("isXLine").toBool() ||
-                item->property("isXTransition").toBool())
+                item->property("isXTransition").toBool() ||
+                item->property("isT1RLine").toBool() ||      // 添加T1R线清理
+                item->property("isT1RLabel").toBool() ||     // 添加T1R标签清理
+                item->property("isSelectionHighlight").toBool() ||
+                item->property("isHexValueLabel").toBool())
             {
                 m_waveformPlot->removeItem(item);
             }
@@ -342,6 +354,182 @@ void MainWindow::updateWaveformView()
     fillB_bottom_g->setData(xData, fillB_bottom);
     fillB_top_g->setLineStyle(QCPGraph::lsStepLeft);
     fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
+
+    // 新增: 添加T1R蓝色交叉区域
+    // 获取当前表的ID和第一行的TimeSet信息
+    int firstRowTimeSetId = getTimeSetIdForRow(currentTableId, 0);  // 获取第一行的TimeSet ID
+    qDebug() << "updateWaveformView - 当前表ID:" << currentTableId << ", 第一行TimeSet ID:" << firstRowTimeSetId;
+    
+    // 如果没有获取到有效的TimeSet ID，尝试其他方法获取
+    if (firstRowTimeSetId <= 0) {
+        qDebug() << "updateWaveformView - 尝试直接从数据库查询当前表的TimeSet ID";
+        
+        // 直接查询当前表的第一行数据中的TimeSet ID
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (db.isOpen()) {
+            // 先获取TimeSet列的位置
+            QSqlQuery colQuery(db);
+            colQuery.prepare("SELECT column_order FROM VectorTableColumnConfiguration "
+                           "WHERE master_record_id = ? AND column_type = 'TIMESET_ID' LIMIT 1");
+            colQuery.addBindValue(currentTableId);
+            
+            if (colQuery.exec() && colQuery.next()) {
+                int timeSetColOrder = colQuery.value(0).toInt();
+                
+                // 然后获取第一行的TimeSet值
+                QSqlQuery rowQuery(db);
+                rowQuery.prepare("SELECT data_json FROM vector_data WHERE table_id = ? ORDER BY row_index LIMIT 1");
+                rowQuery.addBindValue(currentTableId);
+                
+                if (rowQuery.exec() && rowQuery.next()) {
+                    QString dataJson = rowQuery.value(0).toString();
+                    QJsonDocument doc = QJsonDocument::fromJson(dataJson.toUtf8());
+                    if (doc.isArray()) {
+                        QJsonArray array = doc.array();
+                        if (timeSetColOrder < array.size()) {
+                            firstRowTimeSetId = array.at(timeSetColOrder).toInt();
+                            qDebug() << "updateWaveformView - 直接从数据库获取到TimeSet ID:" << firstRowTimeSetId;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 如果仍然没有获取到TimeSet ID，尝试获取任何可用的TimeSet
+    if (firstRowTimeSetId <= 0) {
+        qDebug() << "updateWaveformView - 尝试获取任何可用的TimeSet ID";
+        
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (db.isOpen()) {
+            QSqlQuery anyTSQuery(db);
+            if (anyTSQuery.exec("SELECT id FROM timeset_list LIMIT 1") && anyTSQuery.next()) {
+                firstRowTimeSetId = anyTSQuery.value(0).toInt();
+                qDebug() << "updateWaveformView - 获取到任意可用的TimeSet ID:" << firstRowTimeSetId;
+            }
+        }
+    }
+    
+    // 获取选中管脚的ID
+    QString pinNameStr = m_waveformPinSelector->currentText();
+    int pinId = getPinIdByName(pinNameStr);
+    qDebug() << "updateWaveformView - 当前选中管脚:" << pinNameStr << ", ID:" << pinId;
+    
+    // 获取T1R和周期值 - 使用数据库直接查询以确保获取最新值
+    double t1r = 250.0; // 默认值
+    double period = 1000.0; // 默认值
+    double t1rRatio = 0.25; // 默认比例
+    
+    if (firstRowTimeSetId > 0) {
+        // 强制刷新数据库连接，确保没有缓存问题
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (!db.isOpen()) {
+            qWarning() << "updateWaveformView - 数据库未连接，无法获取TimeSet数据";
+        } else {
+            qDebug() << "updateWaveformView - 数据库已连接，准备查询TimeSet数据";
+        }
+        
+        // 直接从数据库查询周期值
+        QSqlQuery periodQuery(db);
+        periodQuery.prepare("SELECT period FROM timeset_list WHERE id = ?");
+        periodQuery.addBindValue(firstRowTimeSetId);
+        
+        if (periodQuery.exec()) {
+            if (periodQuery.next()) {
+                period = periodQuery.value(0).toDouble();
+                qDebug() << "updateWaveformView - 直接查询到的周期值:" << period << "ns";
+            } else {
+                qWarning() << "updateWaveformView - 未找到TimeSet ID为" << firstRowTimeSetId << "的周期值记录";
+            }
+        } else {
+            qWarning() << "updateWaveformView - 查询周期值失败: " << periodQuery.lastError().text();
+        }
+        
+        // 直接从数据库查询T1R值
+        QSqlQuery t1rQuery(db);
+        t1rQuery.prepare("SELECT T1R FROM timeset_settings WHERE timeset_id = ? AND pin_id = ?");
+        t1rQuery.addBindValue(firstRowTimeSetId);
+        t1rQuery.addBindValue(pinId);
+        
+        qDebug() << "updateWaveformView - 执行T1R查询: timeSetId=" << firstRowTimeSetId << ", pinId=" << pinId;
+        
+        if (t1rQuery.exec()) {
+            if (t1rQuery.next()) {
+                t1r = t1rQuery.value(0).toDouble();
+                qDebug() << "updateWaveformView - 直接查询到的T1R值:" << t1r << "ns";
+            } else {
+                qWarning() << "updateWaveformView - 未找到TimeSet ID为" << firstRowTimeSetId 
+                         << "且Pin ID为" << pinId << "的T1R值记录";
+                
+                // 如果没有找到特定管脚的T1R值，尝试查找任何该TimeSet的T1R值
+                QSqlQuery anyPinQuery(db);
+                anyPinQuery.prepare("SELECT T1R, pin_id FROM timeset_settings WHERE timeset_id = ? LIMIT 1");
+                anyPinQuery.addBindValue(firstRowTimeSetId);
+                
+                if (anyPinQuery.exec() && anyPinQuery.next()) {
+                    t1r = anyPinQuery.value(0).toDouble();
+                    int foundPinId = anyPinQuery.value(1).toInt();
+                    qDebug() << "updateWaveformView - 找到其他管脚(ID:" << foundPinId << ")的T1R值:" << t1r << "ns";
+                } else {
+                    qWarning() << "updateWaveformView - 未找到任何管脚的T1R值，使用默认值250ns";
+                }
+            }
+        } else {
+            qWarning() << "updateWaveformView - 查询T1R值失败: " << t1rQuery.lastError().text();
+        }
+        
+        // 计算比例并输出日志
+        t1rRatio = t1r / period;
+        qDebug() << "updateWaveformView - 计算得到的T1R比例:" << t1rRatio 
+                 << "(T1R=" << t1r << "ns, 周期=" << period << "ns)";
+    }
+    
+    // 创建开头的T1R蓝色交叉填充区域
+    if (t1rRatio > 0 && t1rRatio < 1.0) { // 确保比例有效
+        qDebug() << "updateWaveformView - 开始绘制T1R区域，比例:" << t1rRatio << ", T1R=" << t1r << "ns";
+        
+        // 创建垂直填充的两个图形
+        QCPGraph *t1rFill_bottom = m_waveformPlot->addGraph();
+        QCPGraph *t1rFill_top = m_waveformPlot->addGraph();
+        
+        // 设置比T1R区域的数据点
+        QVector<double> t1rX(2), t1rBottom(2), t1rTop(2);
+        t1rX[0] = 0.0;
+        t1rX[1] = t1rRatio; // 使用T1R比例作为宽度
+        t1rBottom[0] = t1rBottom[1] = Y_LOW_BOTTOM;
+        t1rTop[0] = t1rTop[1] = Y_HIGH_TOP;
+        
+        // 应用蓝色交叉填充样式
+        QBrush t1rBrush(QColor(0, 120, 255, 120), Qt::DiagCrossPattern); // 稍深一点的蓝色
+        t1rFill_top->setPen(Qt::NoPen);
+        t1rFill_bottom->setPen(Qt::NoPen);
+        t1rFill_top->setBrush(t1rBrush);
+        t1rFill_top->setChannelFillGraph(t1rFill_bottom);
+        t1rFill_top->setData(t1rX, t1rTop);
+        t1rFill_bottom->setData(t1rX, t1rBottom);
+        
+        // 添加垂直边界线
+        QPen boundaryPen(QColor(0, 0, 150), 1.0, Qt::DotLine);
+        QCPItemLine *t1rLine = new QCPItemLine(m_waveformPlot);
+        t1rLine->setProperty("isT1RLine", true); // 用于以后识别和清除
+        t1rLine->setPen(boundaryPen);
+        t1rLine->start->setCoords(t1rRatio, Y_LOW_BOTTOM);
+        t1rLine->end->setCoords(t1rRatio, Y_HIGH_TOP);
+        
+        // 添加标签
+        QCPItemText *t1rLabel = new QCPItemText(m_waveformPlot);
+        t1rLabel->setProperty("isT1RLabel", true); // 用于以后识别和清除
+        t1rLabel->setText(QString("T1R\n%1ns").arg(t1r));
+        t1rLabel->setPositionAlignment(Qt::AlignRight|Qt::AlignBottom);
+        t1rLabel->position->setCoords(t1rRatio, Y_HIGH_TOP);
+        t1rLabel->setFont(QFont("sans", 8));
+        t1rLabel->setPadding(QMargins(2, 2, 2, 2));
+        t1rLabel->setPen(boundaryPen);
+        t1rLabel->setBrush(QBrush(QColor(255, 255, 255, 180)));
+    } else {
+        qWarning() << "updateWaveformView - T1R比例无效或超出范围:" << t1rRatio 
+                   << "(T1R=" << t1r << "ns, 周期=" << period << "ns)";
+    }
 
     // 3.2 绘制主线条层
     QCPGraph *line_g = m_waveformPlot->addGraph();

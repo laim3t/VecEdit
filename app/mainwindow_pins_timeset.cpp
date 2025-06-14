@@ -15,6 +15,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QTimer>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -519,6 +520,32 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount));
         qDebug() << "填充TimeSet - 操作成功完成";
+
+        // 刷新向量表数据
+        refreshVectorTableData();
+        
+        // 更新波形图以反映TimeSet变更
+        if (m_isWaveformVisible && m_waveformPlot)
+        {
+            qDebug() << "MainWindow::fillTimeSetForVectorTable - 更新波形图以反映TimeSet变更";
+            
+            // 强制刷新数据库连接，确保没有缓存问题
+            QSqlDatabase refreshDb = DatabaseManager::instance()->database();
+            if(refreshDb.isOpen()) {
+                qDebug() << "MainWindow::fillTimeSetForVectorTable - 刷新数据库缓存";
+                refreshDb.transaction();
+                refreshDb.commit();
+            }
+            
+            // 短暂延迟以确保数据库变更已经完成
+            QTimer::singleShot(100, this, [this]() {
+                qDebug() << "MainWindow::fillTimeSetForVectorTable - 延迟更新波形图";
+                updateWaveformView();
+            });
+            
+            // 同时也立即更新一次
+            updateWaveformView();
+        }
     }
     catch (const std::exception &e)
     {
@@ -1210,6 +1237,32 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 替换为 %2，共更新了 %3 行数据").arg(fromTimeSetName).arg(toTimeSetName).arg(updatedRowCount));
         qDebug() << "替换TimeSet - 操作成功完成，共更新" << updatedRowCount << "行数据";
+
+        // 刷新表格数据，显示更新后的值
+        refreshVectorTableData();
+        
+        // 更新波形图以反映TimeSet变更
+        if (m_isWaveformVisible && m_waveformPlot)
+        {
+            qDebug() << "MainWindow::replaceTimeSetForVectorTable - 更新波形图以反映TimeSet变更";
+            
+            // 强制刷新数据库连接，确保没有缓存问题
+            QSqlDatabase refreshDb = DatabaseManager::instance()->database();
+            if(refreshDb.isOpen()) {
+                qDebug() << "MainWindow::replaceTimeSetForVectorTable - 刷新数据库缓存";
+                refreshDb.transaction();
+                refreshDb.commit();
+            }
+            
+            // 短暂延迟以确保数据库变更已经完成
+            QTimer::singleShot(100, this, [this]() {
+                qDebug() << "MainWindow::replaceTimeSetForVectorTable - 延迟更新波形图";
+                updateWaveformView();
+            });
+            
+            // 同时也立即更新一次
+            updateWaveformView();
+        }
     }
     catch (const std::exception &e)
     {

@@ -247,6 +247,11 @@ private:
 
     // 新增：重新加载并刷新指定的向量表视图
     void reloadAndRefreshVectorTable(int tableId);
+    
+    // TimeSet相关辅助方法
+    int getTimeSetIdForRow(int tableId, int rowIndex);
+    bool getTimeSetT1RAndPeriod(int timeSetId, int pinId, double &t1r, double &period);
+    int getPinIdByName(const QString &pinName);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
