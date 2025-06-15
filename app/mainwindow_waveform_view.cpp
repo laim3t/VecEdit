@@ -86,7 +86,13 @@ void MainWindow::setupWaveformView()
     m_waveformPlot->xAxis->setNumberFormat("f");  // 使用固定点表示法
     m_waveformPlot->xAxis->setNumberPrecision(0); // 不显示小数位
 
+    // 设置交互：允许拖拽和缩放
     m_waveformPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    m_waveformPlot->axisRect()->setRangeDrag(Qt::Horizontal);
+    m_waveformPlot->axisRect()->setRangeZoomAxes(m_waveformPlot->xAxis, nullptr);
+
+    // 设置图例
+    m_waveformPlot->legend->setVisible(true);
     m_waveformPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
     waveformLayout->addWidget(m_waveformPlot);
