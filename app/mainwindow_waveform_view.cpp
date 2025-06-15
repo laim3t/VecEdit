@@ -774,8 +774,8 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setLayer("selection"); // 将高亮矩形放到顶层
     highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset - 0.02, m_waveformPlot->yAxis->range().upper);
-    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 0.98, m_waveformPlot->yAxis->range().lower);
+    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset, m_waveformPlot->yAxis->range().upper);
+    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 1.0, m_waveformPlot->yAxis->range().lower);
     highlightRect->setPen(QPen(Qt::blue, 1));
     highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
 
@@ -955,7 +955,7 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
         int width = m_waveformPlot->xAxis->coordToPixel(highlightRect->bottomRight->coords().x()) - x;
         int height = m_waveformPlot->yAxis->coordToPixel(highlightRect->bottomRight->coords().y()) - y;
         
-        // 微调编辑框使其居中
+        // 微调编辑框使其居中，使用整数尺寸避免小数问题
         m_waveformValueEditor->setGeometry(x, y + height / 2 - m_waveformValueEditor->height() / 2, width, m_waveformValueEditor->height());
         m_waveformValueEditor->setVisible(true);
         m_waveformValueEditor->setFocus();
