@@ -160,7 +160,9 @@ void MainWindow::updateWaveformView()
                 item->property("isT1RLine").toBool() ||      // 添加T1R线清理
                 item->property("isT1RLabel").toBool() ||     // 添加T1R标签清理
                 item->property("isSelectionHighlight").toBool() ||
-                item->property("isHexValueLabel").toBool())
+                item->property("isHexValueLabel").toBool() ||
+                item->property("isR0Line").toBool() ||       // 添加R0线清理
+                item->property("isRZLine").toBool())         // 添加RZ线清理
             {
                 m_waveformPlot->removeItem(item);
             }
@@ -554,11 +556,26 @@ void MainWindow::updateWaveformView()
     m_currentXOffset = xOffset;
 
     // 3.2 绘制主线条层
+    int waveId = 1; // 默认NRZ
+    double t1f = 750.0; // 默认T1F值
+    
+    // 获取波形类型信息
+    if (firstRowTimeSetId > 0 && pinId > 0)
+    {
+        getWaveTypeAndT1F(firstRowTimeSetId, pinId, waveId, t1f);
+    }
+    
+    // 如果是R0或RZ类型，我们就不绘制主线条，而由专门的函数来绘制
     QCPGraph *line_g = m_waveformPlot->addGraph();
     line_g->setPen(QPen(Qt::red, 2.5));
     line_g->setBrush(Qt::NoBrush);
-    line_g->setData(xData, mainLineData);
-    line_g->setLineStyle(QCPGraph::lsStepLeft);
+    
+    // 只有当不是R0/RZ波形类型时，才使用原始数据
+    if (waveId != 2 && waveId != 3) // 不是RZ(2)和R0(3)
+    {
+        line_g->setData(xData, mainLineData);
+        line_g->setLineStyle(QCPGraph::lsStepLeft);
+    }
 
     // 3.3 绘制独立的样式Item和覆盖层
     for (int i = 0; i < rowCount; ++i)
@@ -632,14 +649,30 @@ void MainWindow::updateWaveformView()
         }
     }
 
-    // 3.4 最终绘图设置
+    // 3.4 应用波形类型特效
+    // 清空点集合以准备下一次绘制
+    m_r0Points.clear();
+    m_rzPoints.clear();
+    
+    // 应用波形类型 (R0, RZ等)
+    if (firstRowTimeSetId > 0 && pinId > 0)
+    {
+        qDebug() << "updateWaveformView - 应用波形模式效果，timeSetId=" << firstRowTimeSetId << ", pinId=" << pinId;
+        // 应用波形模式效果
+        applyWaveformPattern(firstRowTimeSetId, pinId, xData, mainLineData, t1rRatio, period);
+        
+        // 绘制波形特效
+        drawWaveformPatterns();
+    }
+
+    // 3.5 最终绘图设置
     double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10; // 保持之前的缩放级别
     m_waveformPlot->xAxis->setRange(0, xMax + xOffset);
     m_waveformPlot->yAxis->setRange(-2.0, 22.0);
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
 
-    // 3.5 重绘
+    // 3.6 重绘
     m_waveformPlot->replot();
 }
 

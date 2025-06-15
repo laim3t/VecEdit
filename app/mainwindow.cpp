@@ -32,3 +32,4 @@
 #include "mainwindow_vector_fill.cpp"
 #include "mainwindow_waveform_view.cpp"
 #include "mainwindow_waveform_timeset.cpp"
+#include "mainwindow_waveform_types.cpp"
