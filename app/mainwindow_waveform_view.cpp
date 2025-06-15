@@ -165,6 +165,8 @@ void MainWindow::updateWaveformView()
                 item->property("isXTransition").toBool() ||
                 item->property("isT1RLine").toBool() ||      // 添加T1R线清理
                 item->property("isT1RLabel").toBool() ||     // 添加T1R标签清理
+                item->property("isT1RMiddleLine").toBool() || // 添加T1R中间线清理
+                item->property("isT1RTransition").toBool() || // 添加T1R过渡线清理
                 item->property("isSelectionHighlight").toBool() ||
                 item->property("isHexValueLabel").toBool() ||
                 item->property("isR0Line").toBool() ||       // 添加R0线清理
@@ -518,6 +520,15 @@ void MainWindow::updateWaveformView()
         t1rFill_top->setData(t1rX, t1rTop);
         t1rFill_bottom->setData(t1rX, t1rBottom);
         
+        // 添加灰色中间线 (如图绿色箭头所示)
+        double middleY = (Y_HIGH_TOP + Y_LOW_BOTTOM) / 2.0; // 中间Y坐标
+        QPen middleLinePen(Qt::gray, 2.0);
+        QCPItemLine *middleLine = new QCPItemLine(m_waveformPlot);
+        middleLine->setProperty("isT1RMiddleLine", true); // 用于以后识别和清除
+        middleLine->setPen(middleLinePen);
+        middleLine->start->setCoords(0.0, middleY);
+        middleLine->end->setCoords(t1rRatio, middleY);
+        
         // 添加垂直边界线
         QPen boundaryPen(QColor(0, 0, 150), 1.0, Qt::DotLine);
         QCPItemLine *t1rLine = new QCPItemLine(m_waveformPlot);
@@ -539,6 +550,39 @@ void MainWindow::updateWaveformView()
 
         // [新增] 如果T1R区域被绘制，则设置X轴偏移量
         xOffset = t1rRatio;
+        
+        // 添加T1R区域与后续波形的竖线过渡
+        // 获取第一个数据点的Y坐标
+        // 重用之前已定义的middleY变量
+        double firstWaveY = Y_LOW_BOTTOM; // 默认值，低电平
+        
+        if (rowCount > 0) {
+            QChar firstPointState = allRows[0][pinColumnIndex].toString().at(0);
+            switch (firstPointState.toLatin1()) {
+                case '1':
+                case 'H':
+                    firstWaveY = Y_HIGH_TOP;
+                    break;
+                case '0':
+                case 'L':
+                    firstWaveY = Y_LOW_BOTTOM;
+                    break;
+                case 'M':
+                case 'X':
+                    firstWaveY = (Y_MID_TOP + Y_MID_BOTTOM) / 2.0;
+                    break;
+                default:
+                    firstWaveY = Y_LOW_BOTTOM;
+                    break;
+            }
+        }
+        
+        // 创建从中间线到第一个波形点的竖线过渡
+        QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
+        transitionLine->setProperty("isT1RTransition", true); // 用于以后识别和清除
+        transitionLine->setPen(QPen(Qt::gray, 2.0));
+        transitionLine->start->setCoords(t1rRatio, middleY);
+        transitionLine->end->setCoords(t1rRatio, firstWaveY);
     } else {
         qWarning() << "updateWaveformView - T1R比例无效或超出范围:" << t1rRatio 
                    << "(T1R=" << t1r << "ns, 周期=" << period << "ns)";
