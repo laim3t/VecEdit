@@ -104,12 +104,13 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
     const double Y_HIGH_TOP = 20.0; // 高电平值
     const double Y_LOW_BOTTOM = 0.0; // 低电平值
     
-    // 检查是否存在R0或RZ波形类型
-    if (waveId == 2 || waveId == 3) // RZ(2) 或 R0(3)
+    // 检查是否存在特殊波形类型 (RZ, R0, SBC)
+    if (waveId == 2 || waveId == 3 || waveId == 4) // RZ(2) 或 R0(3) 或 SBC(4)
     {
         // 清空原有数据点，确保完全重新绘制
         m_r0Points.clear();
         m_rzPoints.clear();
+        m_sbcPoints.clear();
         
         // 完全重置波形数据 - 我们将手动绘制所有线段
         // 将所有的原始数据点设为不可见
@@ -141,11 +142,49 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
                 {
                     m_rzPoints.append(t1fPoint);
                 }
+                else if (waveId == 4) // SBC
+                {
+                    // 对于SBC，我们需要保存周期起始的电平状态 (1=高/0=低)
+                    // 这是基于原始波形数据决定的
+                    bool isHigh = false;
+                    if (i < mainLineData.size() && !qIsNaN(mainLineData[i]))
+                    {
+                        isHigh = (mainLineData[i] > 10.0); // 假设10.0是高低电平的分界线
+                    }
+                    else
+                    {
+                        // 如果是第一个周期，默认从低电平开始
+                        // 如果不是第一个周期，则使用上一个周期T1F后的电平状态
+                        if (i > 0 && !m_sbcPoints.isEmpty())
+                        {
+                            // 如果前一个周期存在，获取它的T1F后电平状态并翻转
+                            // SBC在T1F点会翻转电平，所以下一个周期起始电平是T1F后的状态
+                            isHigh = !m_sbcPoints.last().third;
+                        }
+                    }
+                    
+                    // 创建三元组：周期起始索引，T1F X位置，以及T1F后电平状态(反转后的)
+                    SbcWavePoint sbcPoint;
+                    sbcPoint.first = i;                // 区间起点
+                    sbcPoint.second = t1fXPos;         // T1F点的X坐标
+                    sbcPoint.third = !isHigh;          // T1F后的电平状态(反转后的)
+                    sbcPoint.fourth = isHigh;          // 周期起始的电平状态
+                    
+                    m_sbcPoints.append(sbcPoint);
+                }
             }
         }
         
-        qDebug() << "applyWaveformPattern - 生成的波形点数: " 
-                 << (waveId == 3 ? m_r0Points.size() : m_rzPoints.size());
+        // 输出调试信息
+        QString pointCountMsg;
+        if (waveId == 3)
+            pointCountMsg = QString("R0波形点数: %1").arg(m_r0Points.size());
+        else if (waveId == 2)
+            pointCountMsg = QString("RZ波形点数: %1").arg(m_rzPoints.size());
+        else if (waveId == 4)
+            pointCountMsg = QString("SBC波形点数: %1").arg(m_sbcPoints.size());
+            
+        qDebug() << "applyWaveformPattern - 生成的" << pointCountMsg;
     }
 }
 
@@ -290,7 +329,83 @@ void MainWindow::drawWaveformPatterns()
         }
     }
     
+    // === 完整重绘SBC波形 ===
+    if (!m_sbcPoints.isEmpty())
+    {
+        QPen wavePen(Qt::red, 2.5);
+        qDebug() << "drawWaveformPatterns - 绘制SBC波形点：" << m_sbcPoints.size() << "个";
+        
+        // 首先绘制第一个点的初始垂直线(如果是第一个点)
+        if (!m_sbcPoints.isEmpty() && m_sbcPoints.first().first == 0)
+        {
+            double startX = m_currentXOffset; // 第一个点的X坐标
+            bool startHigh = m_sbcPoints.first().fourth; // 第一个周期起始电平
+            
+            if (startHigh) // 如果默认从高电平开始，也需要起始垂直线
+            {
+                QCPItemLine *firstVertLine = new QCPItemLine(m_waveformPlot);
+                firstVertLine->setProperty("isSBCLine", true);
+                firstVertLine->setPen(wavePen);
+                firstVertLine->start->setCoords(startX, Y_LOW_BOTTOM); // 默认从低电平过渡
+                firstVertLine->end->setCoords(startX, Y_HIGH_TOP);     // 到高电平
+            }
+        }
+        
+        // 按周期顺序完整绘制SBC波形
+        for (int i = 0; i < m_sbcPoints.size(); ++i)
+        {
+            int segmentStart = m_sbcPoints[i].first;
+            double t1fX = m_sbcPoints[i].second;
+            bool startHigh = m_sbcPoints[i].fourth;      // 周期起始电平
+            bool t1fHigh = m_sbcPoints[i].third;        // T1F后电平(已反转)
+            
+            double segmentStartX = segmentStart + m_currentXOffset;
+            double segmentEndX = (segmentStart + 1.0) + m_currentXOffset;
+            
+            qDebug() << "  SBC周期 " << i << ": 起点=" << segmentStartX << ", T1F=" << t1fX 
+                     << ", 终点=" << segmentEndX << ", 起始电平=" << startHigh << ", T1F后电平=" << t1fHigh;
+            
+            // 1. 从周期起点到T1F点的水平线(根据起始电平)
+            QCPItemLine *initialLine = new QCPItemLine(m_waveformPlot);
+            initialLine->setProperty("isSBCLine", true);
+            initialLine->setPen(wavePen);
+            initialLine->start->setCoords(segmentStartX, startHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+            initialLine->end->setCoords(t1fX, startHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+            
+            // 2. 在T1F点创建一条垂直线，表示电平反转
+            QCPItemLine *t1fVertLine = new QCPItemLine(m_waveformPlot);
+            t1fVertLine->setProperty("isSBCLine", true);
+            t1fVertLine->setPen(wavePen);
+            t1fVertLine->start->setCoords(t1fX, startHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM); // 从起始电平
+            t1fVertLine->end->setCoords(t1fX, t1fHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);     // 到反转后电平
+            
+            // 3. 在T1F点后添加一条水平线，直到周期结束点
+            QCPItemLine *endLine = new QCPItemLine(m_waveformPlot);
+            endLine->setProperty("isSBCLine", true);
+            endLine->setPen(wavePen);
+            endLine->start->setCoords(t1fX, t1fHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+            endLine->end->setCoords(segmentEndX, t1fHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+            
+            // 4. 如果不是最后一个周期，绘制周期结束的垂直线
+            if (i < m_sbcPoints.size() - 1)
+            {
+                bool nextStartHigh = m_sbcPoints[i+1].fourth; // 下一个周期的起始电平
+                
+                // 如果下一个周期与当前周期相邻且电平不同，绘制垂直过渡线
+                if (segmentStart + 1 == m_sbcPoints[i+1].first && t1fHigh != nextStartHigh)
+                {
+                    QCPItemLine *endVertLine = new QCPItemLine(m_waveformPlot);
+                    endVertLine->setProperty("isSBCLine", true);
+                    endVertLine->setPen(wavePen);
+                    endVertLine->start->setCoords(segmentEndX, t1fHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+                    endVertLine->end->setCoords(segmentEndX, nextStartHigh ? Y_HIGH_TOP : Y_LOW_BOTTOM);
+                }
+            }
+        }
+    }
+    
     // 清空临时存储的点
     m_r0Points.clear();
     m_rzPoints.clear();
+    m_sbcPoints.clear();
 } 

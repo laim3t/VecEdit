@@ -162,7 +162,8 @@ void MainWindow::updateWaveformView()
                 item->property("isSelectionHighlight").toBool() ||
                 item->property("isHexValueLabel").toBool() ||
                 item->property("isR0Line").toBool() ||       // 添加R0线清理
-                item->property("isRZLine").toBool())         // 添加RZ线清理
+                item->property("isRZLine").toBool() ||       // 添加RZ线清理
+                item->property("isSBCLine").toBool())        // 添加SBC线清理
             {
                 m_waveformPlot->removeItem(item);
             }
@@ -565,13 +566,13 @@ void MainWindow::updateWaveformView()
         getWaveTypeAndT1F(firstRowTimeSetId, pinId, waveId, t1f);
     }
     
-    // 如果是R0或RZ类型，我们就不绘制主线条，而由专门的函数来绘制
+    // 如果是特殊波形类型，我们就不绘制主线条，而由专门的函数来绘制
     QCPGraph *line_g = m_waveformPlot->addGraph();
     line_g->setPen(QPen(Qt::red, 2.5));
     line_g->setBrush(Qt::NoBrush);
     
-    // 只有当不是R0/RZ波形类型时，才使用原始数据
-    if (waveId != 2 && waveId != 3) // 不是RZ(2)和R0(3)
+    // 只有当不是特殊波形类型时，才使用原始数据
+    if (waveId != 2 && waveId != 3 && waveId != 4) // 不是RZ(2)、R0(3)和SBC(4)
     {
         line_g->setData(xData, mainLineData);
         line_g->setLineStyle(QCPGraph::lsStepLeft);
