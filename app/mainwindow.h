@@ -352,14 +352,6 @@ private:
     int m_selectedWaveformPoint = -1;
     double m_currentXOffset = 0.0;  // [新增] 当前波形图的X轴偏移量
     
-    // SBC波形点结构（需要保存额外的电平信息）
-    struct SbcWavePoint {
-        int first;      // 区间索引
-        double second;  // T1F点位置
-        bool third;     // T1F点后的电平状态
-        bool fourth;    // 周期起始的电平状态
-    };
-    
     // R0波形点结构 (需要保存原始电平信息)
     struct R0WavePoint {
         int cycleIndex;      // 区间索引
@@ -374,6 +366,13 @@ private:
         bool isOne;          // 原始数据是否为'1'
     };
 
+    // SBC波形点结构 (需要保存原始电平信息)
+    struct SbcWavePoint {
+        int cycleIndex;      // 区间索引
+        double t1fXPos;      // T1F点位置
+        bool isOne;          // 原始数据是否为'1'
+    };
+
     // 波形图类型相关
     bool getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double &t1f);
     QString getWaveTypeName(int waveId);
@@ -381,7 +380,7 @@ private:
     void drawWaveformPatterns();
     QList<R0WavePoint> m_r0Points;         // 存储R0点信息
     QList<RZWavePoint> m_rzPoints;         // 存储RZ点信息
-    QList<SbcWavePoint> m_sbcPoints;       // 存储SBC点信息(区间索引, T1F位置, T1F后电平, 起始电平)
+    QList<SbcWavePoint> m_sbcPoints;       // 存储SBC点信息
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
