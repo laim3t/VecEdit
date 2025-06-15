@@ -91,8 +91,8 @@ void MainWindow::setupWaveformView()
     m_waveformPlot->axisRect()->setRangeDrag(Qt::Horizontal);
     m_waveformPlot->axisRect()->setRangeZoomAxes(m_waveformPlot->xAxis, nullptr);
 
-    // 设置图例
-    m_waveformPlot->legend->setVisible(true);
+    // 设置图例（隐藏）
+    m_waveformPlot->legend->setVisible(false);
     m_waveformPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_waveformPlot, &QWidget::customContextMenuRequested, this, &MainWindow::onWaveformContextMenuRequested);
     waveformLayout->addWidget(m_waveformPlot);
@@ -537,16 +537,7 @@ void MainWindow::updateWaveformView()
         t1rLine->start->setCoords(t1rRatio, Y_LOW_BOTTOM);
         t1rLine->end->setCoords(t1rRatio, Y_HIGH_TOP);
         
-        // 添加标签
-        QCPItemText *t1rLabel = new QCPItemText(m_waveformPlot);
-        t1rLabel->setProperty("isT1RLabel", true); // 用于以后识别和清除
-        t1rLabel->setText(QString("T1R\n%1ns").arg(t1r));
-        t1rLabel->setPositionAlignment(Qt::AlignRight|Qt::AlignBottom);
-        t1rLabel->position->setCoords(t1rRatio, Y_HIGH_TOP);
-        t1rLabel->setFont(QFont("sans", 8));
-        t1rLabel->setPadding(QMargins(2, 2, 2, 2));
-        t1rLabel->setPen(boundaryPen);
-        t1rLabel->setBrush(QBrush(QColor(255, 255, 255, 180)));
+        // T1R标签已移除
 
         // [新增] 如果T1R区域被绘制，则设置X轴偏移量
         xOffset = t1rRatio;
