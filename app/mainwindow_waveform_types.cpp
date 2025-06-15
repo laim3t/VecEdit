@@ -112,6 +112,15 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
         m_rzPoints.clear();
         m_sbcPoints.clear();
         
+        // 为R0波形捕获原始电平状态
+        QVector<bool> r0OriginalStates;
+        if (waveId == 3) {
+            for (int i = 0; i < mainLineData.size(); ++i) {
+                // 判断原始电平是高(1)还是低(0)，阈值设为10.0
+                r0OriginalStates.append(!qIsNaN(mainLineData[i]) && mainLineData[i] > 10.0);
+            }
+        }
+
         // 完全重置波形数据 - 我们将手动绘制所有线段
         // 将所有的原始数据点设为不可见
         for (int i = 0; i < mainLineData.size(); ++i)
@@ -126,20 +135,22 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
             double t1fXPos = xData[i] + t1fRatio;
             
             // 如果是有效的周期点
-            if (t1fXPos < xData[i+1]) 
+            if (t1fXPos < xData[i+1])
             {
-                // 标记需要在T1F点添加新的波形处理
-                QPair<int, double> t1fPoint;
-                t1fPoint.first = i;        // 区间起点
-                t1fPoint.second = t1fXPos; // T1F点的X坐标
-                
                 // 添加到要处理的点列表
                 if (waveId == 3) // R0
                 {
-                    m_r0Points.append(t1fPoint);
+                    R0WavePoint r0Point;
+                    r0Point.cycleIndex = i;
+                    r0Point.t1fXPos = t1fXPos;
+                    r0Point.isOne = (i < r0OriginalStates.size()) ? r0OriginalStates[i] : false;
+                    m_r0Points.append(r0Point);
                 }
                 else if (waveId == 2) // RZ
                 {
+                    QPair<int, double> t1fPoint;
+                    t1fPoint.first = i;        // 区间起点
+                    t1fPoint.second = t1fXPos; // T1F点的X坐标
                     m_rzPoints.append(t1fPoint);
                 }
                 else if (waveId == 4) // SBC
@@ -201,63 +212,68 @@ void MainWindow::drawWaveformPatterns()
     if (!m_r0Points.isEmpty())
     {
         QPen wavePen(Qt::red, 2.5);
-        qDebug() << "drawWaveformPatterns - 绘制R0波形点：" << m_r0Points.size() << "个";
-        
-        // 首先绘制第一个点的初始垂直线(如果是第一个点)
-        if (!m_r0Points.isEmpty() && m_r0Points.first().first == 0)
-        {
-            double startX = m_currentXOffset; // 第一个点的X坐标
-            QCPItemLine *firstVertLine = new QCPItemLine(m_waveformPlot);
-            firstVertLine->setProperty("isR0Line", true);
-            firstVertLine->setPen(wavePen);
-            firstVertLine->start->setCoords(startX, Y_HIGH_TOP);  // 默认从高电平开始
-            firstVertLine->end->setCoords(startX, Y_LOW_BOTTOM);  // 垂直线下拉到低电平
-        }
-        
+        qDebug() << "drawWaveformPatterns - 绘制R0波形点：" << m_r0Points.size() << "个 (已修正逻辑)";
+
         // 按周期顺序完整绘制R0波形
         for (int i = 0; i < m_r0Points.size(); ++i)
         {
-            int segmentStart = m_r0Points[i].first;
-            double t1fX = m_r0Points[i].second;
-            double segmentStartX = segmentStart + m_currentXOffset;
-            double segmentEndX = (segmentStart + 1.0) + m_currentXOffset;
-            
-            qDebug() << "  R0周期 " << i << ": 起点=" << segmentStartX << ", T1F=" << t1fX << ", 终点=" << segmentEndX;
-            
-            // 1. 从周期起点到T1F点的水平低电平线
-            QCPItemLine *initialLowLine = new QCPItemLine(m_waveformPlot);
-            initialLowLine->setProperty("isR0Line", true);
-            initialLowLine->setPen(wavePen);
-            initialLowLine->start->setCoords(segmentStartX, Y_LOW_BOTTOM);
-            initialLowLine->end->setCoords(t1fX, Y_LOW_BOTTOM);
-            
-            // 2. 在T1F点创建一条垂直线，表示检测点状态变化(从低到高)
-            QCPItemLine *t1fVertLine = new QCPItemLine(m_waveformPlot);
-            t1fVertLine->setProperty("isR0Line", true);
-            t1fVertLine->setPen(wavePen);
-            t1fVertLine->start->setCoords(t1fX, Y_LOW_BOTTOM);
-            t1fVertLine->end->setCoords(t1fX, Y_HIGH_TOP);
-            
-            // 3. 在T1F点后添加一条水平高电平线，直到周期结束点
-            QCPItemLine *highLine = new QCPItemLine(m_waveformPlot);
-            highLine->setProperty("isR0Line", true);
-            highLine->setPen(wavePen);
-            highLine->start->setCoords(t1fX, Y_HIGH_TOP);
-            highLine->end->setCoords(segmentEndX, Y_HIGH_TOP);
-            
-            // 4. 如果不是最后一个周期，绘制周期结束的垂直线
+            const auto& point = m_r0Points[i];
+            double segmentStartX = point.cycleIndex + m_currentXOffset;
+            double segmentEndX = (point.cycleIndex + 1.0) + m_currentXOffset;
+            double t1fX = point.t1fXPos;
+
+            qDebug() << "  R0周期 " << point.cycleIndex << ": 原始值=" << (point.isOne ? "1" : "0");
+
+            if (point.isOne)
+            {
+                // 原始值为'1', 整个周期保持高电平
+                QCPItemLine *highLine = new QCPItemLine(m_waveformPlot);
+                highLine->setProperty("isR0Line", true);
+                highLine->setPen(wavePen);
+                highLine->start->setCoords(segmentStartX, Y_HIGH_TOP);
+                highLine->end->setCoords(segmentEndX, Y_HIGH_TOP);
+            }
+            else
+            {
+                // 原始值为'0', 执行"归1"操作
+                // 1. 从周期起点到T1F点的水平低电平线
+                QCPItemLine *initialLowLine = new QCPItemLine(m_waveformPlot);
+                initialLowLine->setProperty("isR0Line", true);
+                initialLowLine->setPen(wavePen);
+                initialLowLine->start->setCoords(segmentStartX, Y_LOW_BOTTOM);
+                initialLowLine->end->setCoords(t1fX, Y_LOW_BOTTOM);
+
+                // 2. 在T1F点创建一条垂直线 (低 -> 高)
+                QCPItemLine *t1fVertLine = new QCPItemLine(m_waveformPlot);
+                t1fVertLine->setProperty("isR0Line", true);
+                t1fVertLine->setPen(wavePen);
+                t1fVertLine->start->setCoords(t1fX, Y_LOW_BOTTOM);
+                t1fVertLine->end->setCoords(t1fX, Y_HIGH_TOP);
+
+                // 3. 从T1F点到周期结束的水平高电平线
+                QCPItemLine *highLine = new QCPItemLine(m_waveformPlot);
+                highLine->setProperty("isR0Line", true);
+                highLine->setPen(wavePen);
+                highLine->start->setCoords(t1fX, Y_HIGH_TOP);
+                highLine->end->setCoords(segmentEndX, Y_HIGH_TOP);
+            }
+
+            // 绘制周期之间的过渡垂直线
             if (i < m_r0Points.size() - 1)
             {
-                double nextStartX = (m_r0Points[i+1].first) + m_currentXOffset;
-                
-                // 如果下一个周期与当前周期相邻，绘制垂直过渡线
-                if (segmentStart + 1 == m_r0Points[i+1].first)
+                const auto& nextPoint = m_r0Points[i+1];
+                // 仅在两个连续的周期之间绘制
+                if (point.cycleIndex + 1 == nextPoint.cycleIndex)
                 {
-                    QCPItemLine *endVertLine = new QCPItemLine(m_waveformPlot);
-                    endVertLine->setProperty("isR0Line", true);
-                    endVertLine->setPen(wavePen);
-                    endVertLine->start->setCoords(segmentEndX, Y_HIGH_TOP);
-                    endVertLine->end->setCoords(segmentEndX, Y_LOW_BOTTOM);
+                    // 当前R0周期结束时总是高电平。如果下一个周期从低电平开始（即输入为0），则绘制垂直下降沿
+                    if (!nextPoint.isOne)
+                    {
+                        QCPItemLine *endVertLine = new QCPItemLine(m_waveformPlot);
+                        endVertLine->setProperty("isR0Line", true);
+                        endVertLine->setPen(wavePen);
+                        endVertLine->start->setCoords(segmentEndX, Y_HIGH_TOP);
+                        endVertLine->end->setCoords(segmentEndX, Y_LOW_BOTTOM);
+                    }
                 }
             }
         }

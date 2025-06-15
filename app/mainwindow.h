@@ -360,12 +360,19 @@ private:
         bool fourth;    // 周期起始的电平状态
     };
     
+    // R0波形点结构 (需要保存原始电平信息)
+    struct R0WavePoint {
+        int cycleIndex;      // 区间索引
+        double t1fXPos;      // T1F点位置
+        bool isOne;          // 原始数据是否为'1'
+    };
+
     // 波形图类型相关
     bool getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double &t1f);
     QString getWaveTypeName(int waveId);
     void applyWaveformPattern(int timeSetId, int pinId, QVector<double> &xData, QVector<double> &mainLineData, double t1rRatio, double period);
     void drawWaveformPatterns();
-    QList<QPair<int, double>> m_r0Points;  // 存储R0点信息(区间索引, T1F位置)
+    QList<R0WavePoint> m_r0Points;         // 存储R0点信息
     QList<QPair<int, double>> m_rzPoints;  // 存储RZ点信息(区间索引, T1F位置)
     QList<SbcWavePoint> m_sbcPoints;       // 存储SBC点信息(区间索引, T1F位置, T1F后电平, 起始电平)
 
