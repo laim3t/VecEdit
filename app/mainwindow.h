@@ -355,6 +355,8 @@ private:
     bool m_isWaveformVisible = false;
     int m_selectedWaveformPoint = -1;
     double m_currentXOffset = 0.0;  // [新增] 当前波形图的X轴偏移量
+    int m_editingRow = -1;          // 波形图编辑行
+    int m_editingPinColumn = -1;    // 波形图编辑管脚列
     
     // R0波形点结构 (需要保存原始电平信息)
     struct R0WavePoint {
@@ -400,8 +402,6 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
-    int m_editingRow = -1;
-    int m_editingPinColumn = -1;
 };
 
 #endif // MAINWINDOW_H

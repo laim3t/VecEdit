@@ -423,55 +423,43 @@ void MainWindow::updateWaveformView()
     }
     
     // 为波形图设置X偏移量
-    double xOffset = 0.0; // T1R区域宽度将作为X偏移
-    
-    // 绘制T1R区域（仅绘制一次，所有管脚共用）
-    if (firstRowTimeSetId > 0) {
-        // 获取当前选择的管脚的T1R值作为参考
-        QString pinNameStr = m_waveformPinSelector->currentText();
-        int pinId = getPinIdByName(pinNameStr);
-        double t1r = 250.0; // 默认值
-        
-        QSqlDatabase db = DatabaseManager::instance()->database();
-        if (db.isOpen()) {
-            QSqlQuery t1rQuery(db);
-            t1rQuery.prepare("SELECT T1R FROM timeset_settings WHERE timeset_id = ? AND pin_id = ?");
-            t1rQuery.addBindValue(firstRowTimeSetId);
-            t1rQuery.addBindValue(pinId);
-            
-            if (t1rQuery.exec() && t1rQuery.next()) {
-                t1r = t1rQuery.value(0).toDouble();
-            } else {
-                // 尝试获取任何管脚的T1R值
-                QSqlQuery anyPinQuery(db);
-                anyPinQuery.prepare("SELECT T1R FROM timeset_settings WHERE timeset_id = ? LIMIT 1");
-                anyPinQuery.addBindValue(firstRowTimeSetId);
-                
-                if (anyPinQuery.exec() && anyPinQuery.next()) {
-                    t1r = anyPinQuery.value(0).toDouble();
-                }
-            }
-        }
-        
-        // 计算T1R比例
-        t1rRatio = t1r / period;
-        if (t1rRatio > 0 && t1rRatio < 1.0) {
-            xOffset = t1rRatio;
-        }
-    }
+    m_currentXOffset = 0.0; // 偏移量不再使用，始终为0
 
     // =======================================================================
     // 阶段 4: 为每个管脚绘制波形
     // =======================================================================
     
     // 记录当前X偏移量供其他函数使用
-    m_currentXOffset = xOffset;
+    m_currentXOffset = 0.0;
     for (int pinIndex = 0; pinIndex < pinCount; ++pinIndex)
     {
         QString pinName = pinColumns[pinIndex].first;
         int pinColumnIndex = pinColumns[pinIndex].second;
         int pinId = getPinIdByName(pinName);
         
+        // --- 为当前管脚获取其独立的T1R值 ---
+        double pin_t1rRatio = 0.0;
+        if (firstRowTimeSetId > 0)
+        {
+            double t1r = 0.0;
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            if (db.isOpen())
+            {
+                QSqlQuery t1rQuery(db);
+                t1rQuery.prepare("SELECT T1R FROM timeset_settings WHERE timeset_id = ? AND pin_id = ?");
+                t1rQuery.addBindValue(firstRowTimeSetId);
+                t1rQuery.addBindValue(pinId);
+                if (t1rQuery.exec() && t1rQuery.next())
+                {
+                    t1r = t1rQuery.value(0).toDouble();
+                }
+            }
+            if (period > 0)
+            {
+                pin_t1rRatio = t1r / period;
+            }
+        }
+
         // 计算当前管脚的Y轴位置
         double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP); // 当前管脚的基准Y坐标
         double pinHighY = pinBaseY + PIN_HEIGHT; // 高电平Y坐标
@@ -487,7 +475,7 @@ void MainWindow::updateWaveformView()
         // 循环填充数据容器
         for (int i = 0; i < rowCount; ++i)
         {
-            xData[i] = i + xOffset;
+            xData[i] = i; // 不再使用全局偏移量
             QChar state = allRows[i][pinColumnIndex].toString().at(0);
 
             // 初始化
@@ -533,7 +521,7 @@ void MainWindow::updateWaveformView()
         // 为lsStepLeft扩展最后一个数据点
         if (rowCount > 0)
         {
-            xData[rowCount] = rowCount + xOffset;
+            xData[rowCount] = rowCount; // 不再使用全局偏移量
             mainLineData[rowCount] = mainLineData[rowCount - 1];
             fillA_top[rowCount] = fillA_top[rowCount - 1];
             fillA_bottom[rowCount] = fillA_bottom[rowCount - 1];
@@ -545,7 +533,7 @@ void MainWindow::updateWaveformView()
         // 为每个管脚应用其对应的波形模式
         if (firstRowTimeSetId > 0) {
             // 应用波形模式（NRZ, RZ, R0, SBC）
-            applyWaveformPattern(firstRowTimeSetId, pinId, xData, mainLineData, t1rRatio, period);
+            applyWaveformPattern(firstRowTimeSetId, pinId, xData, mainLineData, pin_t1rRatio, period);
         }
 
         // 绘制背景填充层
@@ -580,8 +568,8 @@ void MainWindow::updateWaveformView()
         fillB_top_g->setLineStyle(QCPGraph::lsStepLeft);
         fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
 
-        // 绘制T1R区域（为每个管脚绘制）
-        if (t1rRatio > 0 && t1rRatio < 1.0) {
+        // 绘制T1R区域（为每个管脚独立绘制）
+        if (pin_t1rRatio > 0 && pin_t1rRatio < 1.0) {
             // 创建垂直填充的两个图形
             QCPGraph *t1rFill_bottom = m_waveformPlot->addGraph();
             QCPGraph *t1rFill_top = m_waveformPlot->addGraph();
@@ -592,7 +580,7 @@ void MainWindow::updateWaveformView()
             // 设置T1R区域的数据点
             QVector<double> t1rX(2), t1rBottom(2), t1rTop(2);
             t1rX[0] = 0.0;
-            t1rX[1] = t1rRatio;
+            t1rX[1] = pin_t1rRatio;
             t1rBottom[0] = t1rBottom[1] = pinLowY;
             t1rTop[0] = t1rTop[1] = pinHighY;
             
@@ -611,7 +599,7 @@ void MainWindow::updateWaveformView()
             middleLine->setProperty("isT1RMiddleLine", true);
             middleLine->setPen(middleLinePen);
             middleLine->start->setCoords(0.0, pinMidY);
-            middleLine->end->setCoords(t1rRatio, pinMidY);
+            middleLine->end->setCoords(pin_t1rRatio, pinMidY);
             
             // 添加T1R区域与后续波形的竖线过渡
             double firstWaveY = pinLowY; // 默认值，低电平
@@ -641,8 +629,8 @@ void MainWindow::updateWaveformView()
             QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
             transitionLine->setProperty("isT1RTransition", true);
             transitionLine->setPen(QPen(Qt::gray, 1.0));
-            transitionLine->start->setCoords(t1rRatio, pinMidY);
-            transitionLine->end->setCoords(t1rRatio, firstWaveY);
+            transitionLine->start->setCoords(pin_t1rRatio, pinMidY);
+            transitionLine->end->setCoords(pin_t1rRatio, firstWaveY);
         }
 
         // 绘制主波形线
@@ -681,8 +669,8 @@ void MainWindow::updateWaveformView()
                 box->setProperty("isVBox", true);
                 box->setPen(QPen(pinColor, 2.0));
                 box->setBrush(Qt::NoBrush);
-                box->topLeft->setCoords(i + xOffset, pinHighY);
-                box->bottomRight->setCoords(i + 1 + xOffset, pinLowY);
+                box->topLeft->setCoords(i, pinHighY);
+                box->bottomRight->setCoords(i + 1, pinLowY);
             }
 
             // 绘制 'X' 状态的灰色中线覆盖层
@@ -691,8 +679,8 @@ void MainWindow::updateWaveformView()
                 line->setLayer("overlay");
                 line->setProperty("isXLine", true);
                 line->setPen(QPen(Qt::gray, 1.5));
-                line->start->setCoords(i + xOffset, pinMidY);
-                line->end->setCoords(i + 1 + xOffset, pinMidY);
+                line->start->setCoords(i, pinMidY);
+                line->end->setCoords(i + 1, pinMidY);
             }
 
             // 绘制 '->X' 的灰色过渡线覆盖层
@@ -723,8 +711,8 @@ void MainWindow::updateWaveformView()
                         transitionLine->setLayer("overlay");
                         transitionLine->setProperty("isXTransition", true);
                         transitionLine->setPen(QPen(Qt::gray, 1.5));
-                        transitionLine->start->setCoords(i + xOffset, previousY);
-                        transitionLine->end->setCoords(i + xOffset, pinMidY);
+                        transitionLine->start->setCoords(i, previousY);
+                        transitionLine->end->setCoords(i, pinMidY);
                     }
                 }
             }
@@ -743,23 +731,13 @@ void MainWindow::updateWaveformView()
         pinLabel->setPadding(QMargins(2, 1, 2, 1));
     }
 
-    // 绘制全局T1R边界线
-    if (t1rRatio > 0 && t1rRatio < 1.0) {
-        QPen boundaryPen(QColor(0, 0, 150), 1.0, Qt::DotLine);
-        QCPItemLine *t1rLine = new QCPItemLine(m_waveformPlot);
-        t1rLine->setProperty("isT1RLine", true);
-        t1rLine->setPen(boundaryPen);
-        t1rLine->start->setCoords(t1rRatio, -PIN_GAP);
-        t1rLine->end->setCoords(t1rRatio, totalYRange);
-    }
-
     // =======================================================================
     // 阶段 5: 最终绘图设置
     // =======================================================================
 
     // 计算适当的X轴范围
     double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10;
-    m_waveformPlot->xAxis->setRange(0, xMax + xOffset);
+    m_waveformPlot->xAxis->setRange(0, xMax);
     
     // 隐藏Y轴刻度
     m_waveformPlot->yAxis->setTickLabels(false);
@@ -1076,6 +1054,10 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
     if (pinColumnIndex < 0) return;
     
+    // 保存编辑上下文
+    m_editingRow = rowIndex;
+    m_editingPinColumn = pinColumnIndex;
+    
     // 2. 获取当前值
     QString currentValue;
     if (rowIndex < m_vectorTableWidget->rowCount()) {
@@ -1155,8 +1137,29 @@ void MainWindow::onWaveformValueEdited()
 
     // 4. 更新波形图 (onTableCellChanged 也会更新，但为确保立即反馈，可以手动调用)
     updateWaveformView();
+    
+    // 重新计算 pinIndex 以保持高亮
+    QList<QPair<QString, int>> pinColumns;
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+        if (headerItem) {
+            int currentTableId = m_vectorTableSelector->currentData().toInt();
+            QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+            if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
+                pinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
+            }
+        }
+    }
+    int pinIndex = -1;
+    for(int i = 0; i < pinColumns.size(); ++i) {
+        if (pinColumns[i].second == m_editingPinColumn) {
+            pinIndex = i;
+            break;
+        }
+    }
+
     // 确保更新后高亮仍然在
-    highlightWaveformPoint(m_editingRow);
+    highlightWaveformPoint(m_editingRow, pinIndex);
 
     // 5. 重置编辑状态
     m_editingRow = -1;
