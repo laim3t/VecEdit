@@ -195,7 +195,7 @@ private slots:
     void onShowAllPinsChanged(int state);
     void onWaveformContextMenuRequested(const QPoint &pos);
     void setupWaveformClickHandling();
-    void highlightWaveformPoint(int rowIndex);
+    void highlightWaveformPoint(int rowIndex, int pinIndex = -1);
     void jumpToWaveformPoint(int rowIndex, const QString &pinName);
     void saveCurrentTableData(); // 保存当前页表格数据，用于页面切换时
     void onWaveformDoubleClicked(QMouseEvent *event);

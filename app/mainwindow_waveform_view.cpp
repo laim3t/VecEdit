@@ -785,21 +785,22 @@ void MainWindow::updateWaveformView()
 
 void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 {
-    if (!m_waveformPlot || m_waveformPlot->graphCount() == 0 || !m_vectorTableWidget)
+    if (!m_waveformPlot)
         return;
 
-    // Convert widget coordinates to plot coordinates to find the row index
+    // 获取点击位置对应的行索引
     double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
-    // 在计算行索引时，减去偏移量
     int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
+    if (rowIndex < 0) return;
 
-    // 验证行索引是否有效
-    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
-    if (rowIndex < 0 || rowIndex >= totalRows)
-        return;
+    // 获取点击位置对应的管脚索引
+    double y = m_waveformPlot->yAxis->pixelToCoord(pos.y());
+    const double PIN_HEIGHT = 25.0;
+    const double PIN_GAP = 10.0;
+    int pinIndex = static_cast<int>(floor(y / (PIN_HEIGHT + PIN_GAP)));
 
     // 更新选中点并高亮显示
-    highlightWaveformPoint(rowIndex);
+    highlightWaveformPoint(rowIndex, pinIndex);
 
     QMenu contextMenu(this);
     QAction *jumpAction = contextMenu.addAction(tr("跳转至向量表"));
@@ -850,7 +851,7 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 }
 
 // 高亮显示波形图中的指定点
-void MainWindow::highlightWaveformPoint(int rowIndex)
+void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
 {
     if (!m_waveformPlot || rowIndex < 0)
         return;
@@ -870,28 +871,69 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
         }
     }
 
-    // 创建一个矩形用于高亮选中的点
-    QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
-    highlightRect->setLayer("selection"); // 将高亮矩形放到顶层
-    highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset, m_waveformPlot->yAxis->range().upper + 1); // 略高于Y轴范围上限
-    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 1.0, m_waveformPlot->yAxis->range().lower - 1); // 略低于Y轴范围下限
-    highlightRect->setPen(QPen(Qt::blue, 1));
-    highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
-
-    // 创建并显示十六进制值标签
-    // 1. 获取列索引
-    QString pinName = m_waveformPinSelector->currentData().toString();
-    int pinColumnIndex = -1;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    // 获取当前显示的管脚列表，以验证pinIndex
+    QList<QPair<QString, int>> displayedPinColumns;
+    if (m_vectorTableWidget)
     {
-        if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName)
+        QList<QPair<QString, int>> allPinColumns;
+        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
-            pinColumnIndex = col;
-            break;
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            if (headerItem)
+            {
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    allPinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
+                }
+            }
+        }
+
+        if (m_showAllPins)
+        {
+            displayedPinColumns = allPinColumns;
+        }
+        else if (m_waveformPinSelector->count() > 0)
+        {
+            QString selectedPinName = m_waveformPinSelector->currentText();
+            for (const auto &pin : allPinColumns)
+            {
+                if (pin.first == selectedPinName)
+                {
+                    displayedPinColumns.append(pin);
+                    break;
+                }
+            }
         }
     }
 
+    if (pinIndex < 0 || pinIndex >= displayedPinColumns.size())
+    {
+        m_waveformPlot->replot();
+        return; // 点击位置无效，不在任何管脚上
+    }
+
+    // 计算特定管脚的Y轴边界
+    const double PIN_HEIGHT = 25.0;
+    const double PIN_GAP = 10.0;
+    double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP);
+    double pinHighY = pinBaseY + PIN_HEIGHT;
+    double pinLowY = pinBaseY;
+
+    // 创建一个只高亮特定管脚的矩形
+    QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
+    highlightRect->setLayer("selection");
+    highlightRect->setProperty("isSelectionHighlight", true);
+    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset, pinHighY);
+    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 1.0, pinLowY);
+    highlightRect->setPen(QPen(Qt::blue, 1));
+    highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
+
+    // 获取对应管脚的列索引
+    int pinColumnIndex = displayedPinColumns[pinIndex].second;
+
+    // 创建并显示十六进制值标签
     if (pinColumnIndex >= 0)
     {
         // 计算行应该在哪个页面
@@ -901,62 +943,38 @@ void MainWindow::highlightWaveformPoint(int rowIndex)
         // 如果需要，切换到正确的页面
         if (pageForRow != m_currentPage)
         {
-            // 保存旧页面数据
             saveCurrentTableData();
-
-            // 更新页码
             m_currentPage = pageForRow;
-
-            // 更新分页信息UI
             updatePaginationInfo();
-
-            // 加载新页面
             int tableId = m_vectorTableSelector->currentData().toInt();
             VectorDataHandler::instance().loadVectorTablePageData(
                 tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
         }
 
-        // 确保行索引有效
         if (rowInPage < m_vectorTableWidget->rowCount())
         {
-            // 获取单元格内容
             QTableWidgetItem *item = m_vectorTableWidget->item(rowInPage, pinColumnIndex);
             if (item)
             {
                 QString cellValue = item->text();
                 bool ok;
                 int intValue = cellValue.toInt(&ok);
-                QString hexValue;
+                QString hexValue = ok ? "0x" + QString::number(intValue, 16) : cellValue;
 
-                // 转换为十六进制
-                if (ok)
-                {
-                    hexValue = "0x" + QString::number(intValue, 16);
-                }
-                else
-                {
-                    // 对于非数字，可以根据需要进行映射
-                    hexValue = cellValue;
-                }
-
-                // 创建文本标签
                 QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
-                hexLabel->setLayer("selection"); // 将标签放到顶层
+                hexLabel->setLayer("selection");
                 hexLabel->setProperty("isHexValueLabel", true);
                 hexLabel->setText(hexValue);
                 hexLabel->setFont(QFont("sans-serif", 10));
                 hexLabel->setColor(Qt::black);
-
-                // 设置背景
                 hexLabel->setBrush(QBrush(QColor(240, 240, 240, 200)));
                 hexLabel->setPen(QPen(Qt::gray));
                 hexLabel->setPadding(QMargins(5, 2, 5, 2));
 
-                // 设置标签位置
-                double yPos = (m_waveformPlot->yAxis->range().upper + m_waveformPlot->yAxis->range().lower) / 2.0;
-                hexLabel->position->setCoords(rowIndex + m_currentXOffset + 0.5, yPos);
+                // 将标签定位在管脚波形的垂直中心
+                double pinMidY = (pinHighY + pinLowY) / 2.0;
+                hexLabel->position->setCoords(rowIndex + m_currentXOffset + 0.5, pinMidY);
 
-                // 高亮表格中的对应单元格
                 m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
                 m_vectorTableWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
             }
@@ -979,14 +997,21 @@ void MainWindow::setupWaveformClickHandling()
         if (event->button() == Qt::LeftButton) {
             // 获取点击位置对应的数据点索引
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
+            double y = m_waveformPlot->yAxis->pixelToCoord(event->pos().y());
+            
             // 在计算行索引时考虑偏移量
             int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
             
+            // 计算管脚索引
+            const double PIN_HEIGHT = 25.0;
+            const double PIN_GAP = 10.0;
+            int pinIndex = static_cast<int>(floor(y / (PIN_HEIGHT + PIN_GAP)));
+
             // 检查索引是否有效（只响应正坐标）
             int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
             if (rowIndex >= 0 && rowIndex < totalRows) {
                 // 高亮显示选中的点
-                highlightWaveformPoint(rowIndex);
+                highlightWaveformPoint(rowIndex, pinIndex);
             }
         } });
 
@@ -1028,54 +1053,33 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
         }
     }
     
+    int pinColumnIndex = -1;
+    QString pinName;
+
     // 检查点击的管脚索引是否有效
-    if (pinIndexByY < 0 || pinIndexByY >= pinColumns.size()) {
-        // 如果Y坐标不在任何管脚范围内，使用当前选择的管脚
-        QString pinName = m_waveformPinSelector->currentData().toString();
-        int pinColumnIndex = -1;
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
-            if (m_vectorTableWidget->horizontalHeaderItem(col) && m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
-                pinColumnIndex = col;
-                break;
-            }
-        }
-        if (pinColumnIndex < 0) return;
+    if (pinIndexByY >= 0 && pinIndexByY < pinColumns.size()) {
+        // 如果Y坐标在有效范围内，则使用点击的管脚
+        pinName = pinColumns[pinIndexByY].first;
+        pinColumnIndex = pinColumns[pinIndexByY].second;
+        m_waveformPinSelector->setCurrentText(pinName);
     } else {
-        // 否则使用点击位置对应的管脚
-        m_waveformPinSelector->setCurrentText(pinColumns[pinIndexByY].first);
-        // 设置当前管脚的列索引
-        int pinColumnIndex = pinColumns[pinIndexByY].second;
-    }
-    
-    int pinColumnIndex = (pinIndexByY >= 0 && pinIndexByY < pinColumns.size()) 
-        ? pinColumns[pinIndexByY].second 
-        : -1;
-    
-    if (pinColumnIndex < 0) {
-        // 如果没有找到列索引，尝试使用选择器的值
-        QString pinName = m_waveformPinSelector->currentData().toString();
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
-            if (m_vectorTableWidget->horizontalHeaderItem(col) && 
-                m_vectorTableWidget->horizontalHeaderItem(col)->text() == pinName) {
-                pinColumnIndex = col;
+        // 否则，回退到使用当前下拉框中选择的管脚
+        pinName = m_waveformPinSelector->currentText();
+        QString pinFullName = m_waveformPinSelector->currentData().toString();
+        for (const auto &pin : pinColumns) {
+            if (pin.first == pinName) {
+                pinColumnIndex = pin.second;
                 break;
             }
         }
-        if (pinColumnIndex < 0) return;
     }
 
-    // 2. 准备编辑器
-    // 保存编辑上下文
-    m_editingRow = rowIndex;
-    m_editingPinColumn = pinColumnIndex;
-
-    // 计算行在当前页的索引
-    int rowInPage = rowIndex % m_pageSize;
-
-    // 获取当前值
-    QString currentValue = "0";
-    if (rowInPage < m_vectorTableWidget->rowCount()) {
-        QTableWidgetItem *cell = m_vectorTableWidget->item(rowInPage, pinColumnIndex);
+    if (pinColumnIndex < 0) return;
+    
+    // 2. 获取当前值
+    QString currentValue;
+    if (rowIndex < m_vectorTableWidget->rowCount()) {
+        QTableWidgetItem *cell = m_vectorTableWidget->item(rowIndex, pinColumnIndex);
         if (cell) {
             currentValue = cell->text();
         }
