@@ -107,11 +107,6 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
     // 检查是否存在特殊波形类型 (RZ, R0, SBC)
     if (waveId == 2 || waveId == 3 || waveId == 4) // RZ(2) 或 R0(3) 或 SBC(4)
     {
-        // 清空原有数据点，确保完全重新绘制
-        m_r0Points.clear();
-        m_rzPoints.clear();
-        m_sbcPoints.clear();
-        
         // 为R0/RZ/SBC波形捕获原始电平状态
         QVector<bool> originalStates;
         
