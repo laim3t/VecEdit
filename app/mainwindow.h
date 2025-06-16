@@ -192,6 +192,7 @@ private slots:
     void updateWaveformView();
     void toggleWaveformView(bool show);
     void onWaveformPinSelectionChanged(int index);
+    void onShowAllPinsChanged(int state);
     void onWaveformContextMenuRequested(const QPoint &pos);
     void setupWaveformClickHandling();
     void highlightWaveformPoint(int rowIndex);
@@ -252,6 +253,7 @@ private:
     int getTimeSetIdForRow(int tableId, int rowIndex);
     bool getTimeSetT1RAndPeriod(int timeSetId, int pinId, double &t1r, double &period);
     int getPinIdByName(const QString &pinName);
+    QString getPinNameById(int pinId);
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
@@ -347,6 +349,8 @@ private:
     QWidget *m_waveformContainer = nullptr;
     QCustomPlot *m_waveformPlot = nullptr;
     QComboBox *m_waveformPinSelector = nullptr;
+    QCheckBox *m_showAllPinsCheckBox = nullptr;
+    bool m_showAllPins = false; // 是否显示所有管脚
     QAction *m_toggleWaveformAction;
     bool m_isWaveformVisible = false;
     int m_selectedWaveformPoint = -1;
@@ -357,6 +361,10 @@ private:
         int cycleIndex;      // 区间索引
         double t1fXPos;      // T1F点位置
         bool isOne;          // 原始数据是否为'1'
+        double highY;        // 高电平Y坐标
+        double lowY;         // 低电平Y坐标
+        int pinId;           // 管脚ID
+        QString pinName;     // 管脚名称
     };
 
     // RZ波形点结构 (需要保存原始电平信息)
@@ -364,6 +372,10 @@ private:
         int cycleIndex;      // 区间索引
         double t1fXPos;      // T1F点位置
         bool isOne;          // 原始数据是否为'1'
+        double highY;        // 高电平Y坐标
+        double lowY;         // 低电平Y坐标
+        int pinId;           // 管脚ID
+        QString pinName;     // 管脚名称
     };
 
     // SBC波形点结构 (需要保存原始电平信息)
@@ -371,6 +383,10 @@ private:
         int cycleIndex;      // 区间索引
         double t1fXPos;      // T1F点位置
         bool isOne;          // 原始数据是否为'1'
+        double highY;        // 高电平Y坐标
+        double lowY;         // 低电平Y坐标
+        int pinId;           // 管脚ID
+        QString pinName;     // 管脚名称
     };
 
     // 波形图类型相关
