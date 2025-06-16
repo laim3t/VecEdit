@@ -367,6 +367,7 @@ private:
         double lowY;         // 低电平Y坐标
         int pinId;           // 管脚ID
         QString pinName;     // 管脚名称
+        double t1rRatio;     // T1R比例
     };
 
     // RZ波形点结构 (需要保存原始电平信息)
@@ -378,6 +379,7 @@ private:
         double lowY;         // 低电平Y坐标
         int pinId;           // 管脚ID
         QString pinName;     // 管脚名称
+        double t1rRatio;     // T1R比例
     };
 
     // SBC波形点结构 (需要保存原始电平信息)
@@ -389,12 +391,13 @@ private:
         double lowY;         // 低电平Y坐标
         int pinId;           // 管脚ID
         QString pinName;     // 管脚名称
+        double t1rRatio;     // T1R比例
     };
 
     // 波形图类型相关
     bool getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double &t1f);
     QString getWaveTypeName(int waveId);
-    void applyWaveformPattern(int timeSetId, int pinId, QVector<double> &xData, QVector<double> &mainLineData, double t1rRatio, double period);
+    void applyWaveformPattern(int timeSetId, int pinId, const QVector<double> &xData, QVector<double> &yData, double t1rRatio, double period);
     void drawWaveformPatterns();
     QList<R0WavePoint> m_r0Points;         // 存储R0点信息
     QList<RZWavePoint> m_rzPoints;         // 存储RZ点信息

@@ -75,7 +75,7 @@ QString MainWindow::getWaveTypeName(int waveId)
 
 // 应用R0和RZ波形效果
 void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
-                                       QVector<double> &xData, QVector<double> &mainLineData,
+                                       const QVector<double> &xData, QVector<double> &yData,
                                        double t1rRatio, double period)
 {
     // 获取波形类型和T1F值
@@ -116,18 +116,18 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
         // 从mainLineData中找出高低电平的Y坐标值
         // 注意：我们需要确保highY是最大值，lowY是最小值
         bool foundValidY = false;
-        for (int i = 0; i < mainLineData.size(); ++i) {
-            if (!qIsNaN(mainLineData[i])) {
+        for (int i = 0; i < yData.size(); ++i) {
+            if (!qIsNaN(yData[i])) {
                 if (!foundValidY) {
-                    highY = mainLineData[i];
-                    lowY = mainLineData[i];
+                    highY = yData[i];
+                    lowY = yData[i];
                     foundValidY = true;
                 } else {
-                    if (mainLineData[i] > highY) {
-                        highY = mainLineData[i];
+                    if (yData[i] > highY) {
+                        highY = yData[i];
                     }
-                    if (mainLineData[i] < lowY) {
-                        lowY = mainLineData[i];
+                    if (yData[i] < lowY) {
+                        lowY = yData[i];
                     }
                 }
             }
@@ -153,19 +153,19 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
         
         // 捕获原始电平状态
         if (waveId == 3 || waveId == 2 || waveId == 4) {
-            for (int i = 0; i < mainLineData.size(); ++i) {
+            for (int i = 0; i < yData.size(); ++i) {
                 // 判断原始电平是高(1)还是低(0)
                 // 使用中点作为阈值
                 double midY = (highY + lowY) / 2.0;
-                originalStates.append(!qIsNaN(mainLineData[i]) && mainLineData[i] > midY);
+                originalStates.append(!qIsNaN(yData[i]) && yData[i] > midY);
             }
         }
 
         // 完全重置波形数据 - 我们将手动绘制所有线段
         // 将所有的原始数据点设为不可见
-        for (int i = 0; i < mainLineData.size(); ++i)
+        for (int i = 0; i < yData.size(); ++i)
         {
-            mainLineData[i] = qQNaN();
+            yData[i] = qQNaN();
         }
         
         // 生成每个周期的波形点
@@ -188,6 +188,7 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
                     r0Point.lowY = lowY;
                     r0Point.pinId = pinId;
                     r0Point.pinName = getPinNameById(pinId);
+                    r0Point.t1rRatio = t1rRatio; // 保存当前管脚的T1R比例
                     m_r0Points.append(r0Point);
                 }
                 else if (waveId == 2) // RZ
@@ -200,6 +201,7 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
                     rzPoint.lowY = lowY;
                     rzPoint.pinId = pinId;
                     rzPoint.pinName = getPinNameById(pinId);
+                    rzPoint.t1rRatio = t1rRatio; // 保存当前管脚的T1R比例
                     m_rzPoints.append(rzPoint);
                 }
                 else if (waveId == 4) // SBC
@@ -212,6 +214,7 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
                     sbcPoint.lowY = lowY;
                     sbcPoint.pinId = pinId;
                     sbcPoint.pinName = getPinNameById(pinId);
+                    sbcPoint.t1rRatio = t1rRatio; // 保存当前管脚的T1R比例
                     m_sbcPoints.append(sbcPoint);
                 }
             }
@@ -264,8 +267,8 @@ void MainWindow::drawWaveformPatterns()
             for (int i = 0; i < pinPoints.size(); ++i)
             {
                 const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + m_currentXOffset;
-                double segmentEndX = (point.cycleIndex + 1.0) + m_currentXOffset;
+                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
                 double lowY = point.lowY;
@@ -357,8 +360,8 @@ void MainWindow::drawWaveformPatterns()
             for (int i = 0; i < pinPoints.size(); ++i)
             {
                 const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + m_currentXOffset;
-                double segmentEndX = (point.cycleIndex + 1.0) + m_currentXOffset;
+                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
                 double lowY = point.lowY;
@@ -449,8 +452,8 @@ void MainWindow::drawWaveformPatterns()
             for (int i = 0; i < pinPoints.size(); ++i)
             {
                 const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + m_currentXOffset;
-                double segmentEndX = (point.cycleIndex + 1.0) + m_currentXOffset;
+                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
                 double lowY = point.lowY;
