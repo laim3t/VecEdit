@@ -59,7 +59,7 @@ void MainWindow::setupWaveformView()
     toolbarLayout->addWidget(m_waveformPinSelector);
     connect(m_waveformPinSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onWaveformPinSelectionChanged);
-            
+
     // 添加"全部"勾选框
     m_showAllPinsCheckBox = new QCheckBox(tr("全部"), toolbarWidget);
     connect(m_showAllPinsCheckBox, &QCheckBox::stateChanged, this, &MainWindow::onShowAllPinsChanged);
@@ -163,10 +163,10 @@ void MainWindow::onShowAllPinsChanged(int state)
 {
     // 更新显示所有管脚的标志
     m_showAllPins = (state == Qt::Checked);
-    
+
     // 根据勾选状态启用或禁用管脚选择器
     m_waveformPinSelector->setEnabled(!m_showAllPins);
-    
+
     // 更新波形图
     updateWaveformView();
 }
@@ -181,12 +181,12 @@ void MainWindow::updateWaveformView()
     // 阶段 1: 清理画布
     // =======================================================================
     m_waveformPlot->clearGraphs();
-    
+
     // 清理特殊波形点集合
     m_r0Points.clear();
     m_rzPoints.clear();
     m_sbcPoints.clear();
-    
+
     // 清除上次绘制的所有自定义Item
     for (int i = m_waveformPlot->itemCount() - 1; i >= 0; --i)
     {
@@ -195,16 +195,16 @@ void MainWindow::updateWaveformView()
             if (item->property("isVBox").toBool() ||
                 item->property("isXLine").toBool() ||
                 item->property("isXTransition").toBool() ||
-                item->property("isT1RLine").toBool() ||      // 添加T1R线清理
-                item->property("isT1RLabel").toBool() ||     // 添加T1R标签清理
+                item->property("isT1RLine").toBool() ||       // 添加T1R线清理
+                item->property("isT1RLabel").toBool() ||      // 添加T1R标签清理
                 item->property("isT1RMiddleLine").toBool() || // 添加T1R中间线清理
                 item->property("isT1RTransition").toBool() || // 添加T1R过渡线清理
                 item->property("isSelectionHighlight").toBool() ||
                 item->property("isHexValueLabel").toBool() ||
-                item->property("isR0Line").toBool() ||       // 添加R0线清理
-                item->property("isRZLine").toBool() ||       // 添加RZ线清理
-                item->property("isSBCLine").toBool() ||      // 添加SBC线清理
-                item->property("isPinLabel").toBool())        // 添加SBC线清理
+                item->property("isR0Line").toBool() ||  // 添加R0线清理
+                item->property("isRZLine").toBool() ||  // 添加RZ线清理
+                item->property("isSBCLine").toBool() || // 添加SBC线清理
+                item->property("isPinLabel").toBool())  // 添加SBC线清理
             {
                 m_waveformPlot->removeItem(item);
             }
@@ -227,7 +227,7 @@ void MainWindow::updateWaveformView()
 
     // 2.1 获取所有管脚信息
     QList<QPair<QString, int>> pinColumns; // 存储管脚名称和对应的列索引
-    
+
     if (m_waveformPinSelector->count() == 0 && m_vectorTableWidget)
     {
         // 清空现有的选择项
@@ -269,17 +269,17 @@ void MainWindow::updateWaveformView()
             }
         }
     }
-    
+
     // 根据"全部"勾选框状态，决定要显示的管脚
     if (!m_showAllPins && m_waveformPinSelector->count() > 0)
     {
         // 仅显示当前选择的单个管脚
         QString pinName = m_waveformPinSelector->currentText();
         QString pinFullName = m_waveformPinSelector->currentData().toString();
-        
+
         // 清空收集的管脚列表，只保留当前选中的管脚
         pinColumns.clear();
-        
+
         // 查找当前选中管脚的列索引
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
@@ -291,13 +291,13 @@ void MainWindow::updateWaveformView()
             }
         }
     }
-    
+
     if (pinColumns.isEmpty())
     {
         m_waveformPlot->replot();
         return;
     }
-    
+
     int currentTableId = m_vectorTableSelector->currentData().toInt();
     bool ok = false;
     QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
@@ -330,18 +330,18 @@ void MainWindow::updateWaveformView()
             }
         }
     }
-    
+
     int rowCount = allRows.count();
     int pinCount = pinColumns.size();
 
     // 2.2 为每个管脚计算Y轴位置
-    const double PIN_HEIGHT = 25.0; // 每个管脚波形的高度
-    const double PIN_GAP = 10.0;    // 管脚之间的间隔
+    const double PIN_HEIGHT = 25.0;  // 每个管脚波形的高度
+    const double PIN_GAP = 10.0;     // 管脚之间的间隔
     const double WAVE_HEIGHT = 20.0; // 单个波形的实际高度(高-低电平差)
-    
+
     // 计算总的Y轴范围
     double totalYRange = pinCount * (PIN_HEIGHT + PIN_GAP);
-    
+
     // 设置新的Y轴范围
     m_waveformPlot->yAxis->setRange(-PIN_GAP, totalYRange);
 
@@ -350,36 +350,42 @@ void MainWindow::updateWaveformView()
     // =======================================================================
 
     // 获取当前表的ID和第一行的TimeSet信息
-    int firstRowTimeSetId = getTimeSetIdForRow(currentTableId, 0);  // 获取第一行的TimeSet ID
+    int firstRowTimeSetId = getTimeSetIdForRow(currentTableId, 0); // 获取第一行的TimeSet ID
     qDebug() << "updateWaveformView - 当前表ID:" << currentTableId << ", 第一行TimeSet ID:" << firstRowTimeSetId;
-    
+
     // 如果没有获取到有效的TimeSet ID，尝试其他方法获取
-    if (firstRowTimeSetId <= 0) {
+    if (firstRowTimeSetId <= 0)
+    {
         qDebug() << "updateWaveformView - 尝试直接从数据库查询当前表的TimeSet ID";
-        
+
         // 直接查询当前表的第一行数据中的TimeSet ID
         QSqlDatabase db = DatabaseManager::instance()->database();
-        if (db.isOpen()) {
+        if (db.isOpen())
+        {
             // 先获取TimeSet列的位置
             QSqlQuery colQuery(db);
             colQuery.prepare("SELECT column_order FROM VectorTableColumnConfiguration "
-                           "WHERE master_record_id = ? AND column_type = 'TIMESET_ID' LIMIT 1");
+                             "WHERE master_record_id = ? AND column_type = 'TIMESET_ID' LIMIT 1");
             colQuery.addBindValue(currentTableId);
-            
-            if (colQuery.exec() && colQuery.next()) {
+
+            if (colQuery.exec() && colQuery.next())
+            {
                 int timeSetColOrder = colQuery.value(0).toInt();
-                
+
                 // 然后获取第一行的TimeSet值
                 QSqlQuery rowQuery(db);
                 rowQuery.prepare("SELECT data_json FROM vector_data WHERE table_id = ? ORDER BY row_index LIMIT 1");
                 rowQuery.addBindValue(currentTableId);
-                
-                if (rowQuery.exec() && rowQuery.next()) {
+
+                if (rowQuery.exec() && rowQuery.next())
+                {
                     QString dataJson = rowQuery.value(0).toString();
                     QJsonDocument doc = QJsonDocument::fromJson(dataJson.toUtf8());
-                    if (doc.isArray()) {
+                    if (doc.isArray())
+                    {
                         QJsonArray array = doc.array();
-                        if (timeSetColOrder < array.size()) {
+                        if (timeSetColOrder < array.size())
+                        {
                             firstRowTimeSetId = array.at(timeSetColOrder).toInt();
                             qDebug() << "updateWaveformView - 直接从数据库获取到TimeSet ID:" << firstRowTimeSetId;
                         }
@@ -388,47 +394,53 @@ void MainWindow::updateWaveformView()
             }
         }
     }
-    
+
     // 如果仍然没有获取到TimeSet ID，尝试获取任何可用的TimeSet
-    if (firstRowTimeSetId <= 0) {
+    if (firstRowTimeSetId <= 0)
+    {
         qDebug() << "updateWaveformView - 尝试获取任何可用的TimeSet ID";
-        
+
         QSqlDatabase db = DatabaseManager::instance()->database();
-        if (db.isOpen()) {
+        if (db.isOpen())
+        {
             QSqlQuery anyTSQuery(db);
-            if (anyTSQuery.exec("SELECT id FROM timeset_list LIMIT 1") && anyTSQuery.next()) {
+            if (anyTSQuery.exec("SELECT id FROM timeset_list LIMIT 1") && anyTSQuery.next())
+            {
                 firstRowTimeSetId = anyTSQuery.value(0).toInt();
                 qDebug() << "updateWaveformView - 获取到任意可用的TimeSet ID:" << firstRowTimeSetId;
             }
         }
     }
-    
+
     // 获取周期信息
-    double period = 1000.0; // 默认周期值
-    double t1rRatio = 0.25; // 默认比例
-    
+    m_currentPeriod = 1000.0; // 默认周期值
+    double t1rRatio = 0.25;   // 默认比例
+
     // 从数据库获取周期值
-    if (firstRowTimeSetId > 0) {
+    if (firstRowTimeSetId > 0)
+    {
         QSqlDatabase db = DatabaseManager::instance()->database();
-        if (db.isOpen()) {
+        if (db.isOpen())
+        {
             QSqlQuery periodQuery(db);
             periodQuery.prepare("SELECT period FROM timeset_list WHERE id = ?");
             periodQuery.addBindValue(firstRowTimeSetId);
-            
-            if (periodQuery.exec() && periodQuery.next()) {
-                period = periodQuery.value(0).toDouble();
-                qDebug() << "updateWaveformView - 直接查询到的周期值:" << period << "ns";
+
+            if (periodQuery.exec() && periodQuery.next())
+            {
+                m_currentPeriod = periodQuery.value(0).toDouble();
+                qDebug() << "updateWaveformView - 直接查询到的周期值:" << m_currentPeriod << "ns";
             }
         }
     }
-    
+
     // =======================================================================
     // 阶段 3.5: 预计算所有管脚的T1R并找到最大值，用于对齐
     // =======================================================================
     double max_t1rRatio = 0.0;
-    QMap<int, double> pin_t1r_ratios; // 缓存每个管脚的T1R比例
+    m_pinT1rRatios.clear(); // 清空缓存
 
-    if (firstRowTimeSetId > 0 && period > 0)
+    if (firstRowTimeSetId > 0 && m_currentPeriod > 0)
     {
         QSqlDatabase db = DatabaseManager::instance()->database();
         if (db.isOpen())
@@ -436,7 +448,8 @@ void MainWindow::updateWaveformView()
             for (int pinIndex = 0; pinIndex < pinCount; ++pinIndex)
             {
                 int pinId = getPinIdByName(pinColumns[pinIndex].first);
-                if(pinId <= 0) continue;
+                if (pinId <= 0)
+                    continue;
 
                 double t1r = 0.0;
                 QSqlQuery t1rQuery(db);
@@ -448,8 +461,8 @@ void MainWindow::updateWaveformView()
                 {
                     t1r = t1rQuery.value(0).toDouble();
                 }
-                double ratio = t1r / period;
-                pin_t1r_ratios[pinId] = ratio;
+                double ratio = t1r / m_currentPeriod;
+                m_pinT1rRatios[pinId] = ratio; // 缓存每个管脚的T1R比例
                 if (ratio > max_t1rRatio)
                 {
                     max_t1rRatio = ratio;
@@ -462,7 +475,7 @@ void MainWindow::updateWaveformView()
     // =======================================================================
     // 阶段 4: 为每个管脚绘制波形
     // =======================================================================
-    
+
     // 记录当前X偏移量供其他函数使用
     // m_currentXOffset = 0.0;
     for (int pinIndex = 0; pinIndex < pinCount; ++pinIndex)
@@ -470,16 +483,16 @@ void MainWindow::updateWaveformView()
         QString pinName = pinColumns[pinIndex].first;
         int pinColumnIndex = pinColumns[pinIndex].second;
         int pinId = getPinIdByName(pinName);
-        
+
         // --- 从缓存中获取当前管脚的T1R比例 ---
-        double pin_t1rRatio = pin_t1r_ratios.value(pinId, 0.0);
-        
+        double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+
         // 计算当前管脚的Y轴位置
         double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP); // 当前管脚的基准Y坐标
-        double pinHighY = pinBaseY + PIN_HEIGHT; // 高电平Y坐标
-        double pinLowY = pinBaseY; // 低电平Y坐标
-        double pinMidY = (pinHighY + pinLowY) / 2.0; // 中间电平Y坐标
-        
+        double pinHighY = pinBaseY + PIN_HEIGHT;             // 高电平Y坐标
+        double pinLowY = pinBaseY;                           // 低电平Y坐标
+        double pinMidY = (pinHighY + pinLowY) / 2.0;         // 中间电平Y坐标
+
         // 准备数据容器
         QVector<double> xData(rowCount + 1);
         QVector<double> mainLineData(rowCount + 1);
@@ -542,12 +555,13 @@ void MainWindow::updateWaveformView()
             fillB_top[rowCount] = fillB_top[rowCount - 1];
             fillB_bottom[rowCount] = fillB_bottom[rowCount - 1];
         }
-        
+
         // 应用特殊波形类型 (NRZ, RZ, R0, SBC)
         // 为每个管脚应用其对应的波形模式
-        if (firstRowTimeSetId > 0) {
+        if (firstRowTimeSetId > 0)
+        {
             // 应用波形模式（NRZ, RZ, R0, SBC）
-            applyWaveformPattern(firstRowTimeSetId, pinId, xData, mainLineData, pin_t1rRatio, period);
+            applyWaveformPattern(firstRowTimeSetId, pinId, xData, mainLineData, pin_t1rRatio, m_currentPeriod);
         }
 
         // 绘制背景填充层
@@ -583,21 +597,22 @@ void MainWindow::updateWaveformView()
         fillB_bottom_g->setLineStyle(QCPGraph::lsStepLeft);
 
         // 绘制T1R区域（为每个管脚独立绘制）
-        if (pin_t1rRatio > 0 && pin_t1rRatio < 1.0) {
+        if (pin_t1rRatio > 0 && pin_t1rRatio < 1.0)
+        {
             // 创建垂直填充的两个图形
             QCPGraph *t1rFill_bottom = m_waveformPlot->addGraph();
             QCPGraph *t1rFill_top = m_waveformPlot->addGraph();
-            
+
             t1rFill_bottom->setName(QString());
             t1rFill_top->setName(QString());
-            
+
             // 设置T1R区域的数据点
             QVector<double> t1rX(2), t1rBottom(2), t1rTop(2);
-            t1rX[0] = 0.0; // T1R区域从X=0开始
+            t1rX[0] = 0.0;          // T1R区域从X=0开始
             t1rX[1] = pin_t1rRatio; // T1R区域结束于pin_t1rRatio处
             t1rBottom[0] = t1rBottom[1] = pinLowY;
             t1rTop[0] = t1rTop[1] = pinHighY;
-            
+
             // 应用蓝色交叉填充样式
             QBrush t1rBrush(QColor(0, 120, 255, 120), Qt::DiagCrossPattern);
             t1rFill_top->setPen(Qt::NoPen);
@@ -606,39 +621,41 @@ void MainWindow::updateWaveformView()
             t1rFill_top->setChannelFillGraph(t1rFill_bottom);
             t1rFill_top->setData(t1rX, t1rTop);
             t1rFill_bottom->setData(t1rX, t1rBottom);
-            
+
             // 添加灰色中间线
             QPen middleLinePen(Qt::gray, 1.0);
             QCPItemLine *middleLine = new QCPItemLine(m_waveformPlot);
             middleLine->setProperty("isT1RMiddleLine", true);
             middleLine->setPen(middleLinePen);
-            middleLine->start->setCoords(0.0, pinMidY); // 从X=0开始
+            middleLine->start->setCoords(0.0, pinMidY);        // 从X=0开始
             middleLine->end->setCoords(pin_t1rRatio, pinMidY); // 到pin_t1rRatio结束
-            
+
             // 添加T1R区域与后续波形的竖线过渡
             double firstWaveY = pinLowY; // 默认值，低电平
-            
-            if (rowCount > 0) {
+
+            if (rowCount > 0)
+            {
                 QChar firstPointState = allRows[0][pinColumnIndex].toString().at(0);
-                switch (firstPointState.toLatin1()) {
-                    case '1':
-                    case 'H':
-                        firstWaveY = pinHighY;
-                        break;
-                    case '0':
-                    case 'L':
-                        firstWaveY = pinLowY;
-                        break;
-                    case 'M':
-                    case 'X':
-                        firstWaveY = pinMidY;
-                        break;
-                    default:
-                        firstWaveY = pinLowY;
-                        break;
+                switch (firstPointState.toLatin1())
+                {
+                case '1':
+                case 'H':
+                    firstWaveY = pinHighY;
+                    break;
+                case '0':
+                case 'L':
+                    firstWaveY = pinLowY;
+                    break;
+                case 'M':
+                case 'X':
+                    firstWaveY = pinMidY;
+                    break;
+                default:
+                    firstWaveY = pinLowY;
+                    break;
                 }
             }
-            
+
             // 创建从中间线到第一个波形点的竖线过渡
             QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
             transitionLine->setProperty("isT1RTransition", true);
@@ -651,10 +668,11 @@ void MainWindow::updateWaveformView()
         QCPGraph *line_g = m_waveformPlot->addGraph();
         // 为每个管脚设置不同颜色，使用HSV色彩空间均匀分布颜色
         QColor pinColor;
-        if (pinCount <= 10) {
+        if (pinCount <= 10)
+        {
             // 少于10个管脚时使用预设颜色
             QList<QColor> presetColors = {
-                Qt::red, Qt::blue, Qt::green, Qt::magenta, Qt::cyan, 
+                Qt::red, Qt::blue, Qt::green, Qt::magenta, Qt::cyan,
                 QColor(255, 128, 0), // 橙色
                 QColor(128, 0, 255), // 紫色
                 QColor(0, 128, 128), // 青绿色
@@ -662,11 +680,13 @@ void MainWindow::updateWaveformView()
                 QColor(255, 0, 128)  // 粉红色
             };
             pinColor = presetColors[pinIndex % presetColors.size()];
-        } else {
+        }
+        else
+        {
             // 更多管脚时使用HSV均匀分布
             pinColor = QColor::fromHsv(pinIndex * 360 / pinCount, 255, 255);
         }
-        
+
         line_g->setPen(QPen(pinColor, 2.0));
         line_g->setBrush(Qt::NoBrush);
         line_g->setName(pinName); // 设置图例显示的管脚名称
@@ -674,11 +694,13 @@ void MainWindow::updateWaveformView()
         line_g->setLineStyle(QCPGraph::lsStepLeft);
 
         // 绘制独立的样式Item和覆盖层
-        for (int i = 0; i < rowCount; ++i) {
+        for (int i = 0; i < rowCount; ++i)
+        {
             QChar state = allRows[i][pinColumnIndex].toString().at(0);
 
             // 绘制 'V' 状态的红色方框
-            if (state == 'V') {
+            if (state == 'V')
+            {
                 QCPItemRect *box = new QCPItemRect(m_waveformPlot);
                 box->setProperty("isVBox", true);
                 box->setPen(QPen(pinColor, 2.0));
@@ -688,7 +710,8 @@ void MainWindow::updateWaveformView()
             }
 
             // 绘制 'X' 状态的灰色中线覆盖层
-            if (state == 'X') {
+            if (state == 'X')
+            {
                 QCPItemLine *line = new QCPItemLine(m_waveformPlot);
                 line->setLayer("overlay");
                 line->setProperty("isXLine", true);
@@ -698,14 +721,20 @@ void MainWindow::updateWaveformView()
             }
 
             // 绘制 '->X' 的灰色过渡线覆盖层
-            if (i > 0) {
+            if (i > 0)
+            {
                 QChar previousState = allRows[i - 1][pinColumnIndex].toString().at(0);
-                if (state == 'X') {
+                if (state == 'X')
+                {
                     double previousY = qQNaN();
-                    if (previousState == 'V') {
+                    if (previousState == 'V')
+                    {
                         previousY = pinHighY;
-                    } else {
-                        switch (previousState.toLatin1()) {
+                    }
+                    else
+                    {
+                        switch (previousState.toLatin1())
+                        {
                         case '1':
                         case 'H':
                             previousY = pinHighY;
@@ -720,7 +749,8 @@ void MainWindow::updateWaveformView()
                         }
                     }
 
-                    if (!qIsNaN(previousY)) {
+                    if (!qIsNaN(previousY))
+                    {
                         QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
                         transitionLine->setLayer("overlay");
                         transitionLine->setProperty("isXTransition", true);
@@ -731,11 +761,11 @@ void MainWindow::updateWaveformView()
                 }
             }
         }
-        
+
         // 添加管脚标签
         QCPItemText *pinLabel = new QCPItemText(m_waveformPlot);
         pinLabel->setProperty("isPinLabel", true);
-        pinLabel->setPositionAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+        pinLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         pinLabel->setTextAlignment(Qt::AlignLeft);
         pinLabel->position->setCoords(-0.5, pinMidY);
         pinLabel->setText(pinName);
@@ -752,16 +782,17 @@ void MainWindow::updateWaveformView()
     // 计算适当的X轴范围
     double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10;
     m_waveformPlot->xAxis->setRange(-0.5, xMax + max_t1rRatio); // 调整X轴范围，确保从-0.5开始以显示管脚标签
-    
+
     // 隐藏Y轴刻度
     m_waveformPlot->yAxis->setTickLabels(false);
     m_waveformPlot->yAxis->setSubTicks(false);
 
     // 设置图例位置
-    m_waveformPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignTop|Qt::AlignRight);
-    
+    m_waveformPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignTop | Qt::AlignRight);
+
     // 如果管脚数量超过8个，可能需要设置较小的图例字体
-    if (pinCount > 8) {
+    if (pinCount > 8)
+    {
         m_waveformPlot->legend->setFont(QFont("Arial", 7));
     }
 
@@ -783,7 +814,8 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
     // 获取点击位置对应的行索引
     double key = m_waveformPlot->xAxis->pixelToCoord(pos.x());
     int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
-    if (rowIndex < 0) return;
+    if (rowIndex < 0)
+        return;
 
     // 获取点击位置对应的管脚索引
     double y = m_waveformPlot->yAxis->pixelToCoord(pos.y());
@@ -906,6 +938,11 @@ void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
         return; // 点击位置无效，不在任何管脚上
     }
 
+    // [FIX] 获取当前管脚的T1R偏移量，而不是使用全局最大偏移
+    QString pinName = displayedPinColumns[pinIndex].first;
+    int pinId = getPinIdByName(pinName);
+    double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+
     // 计算特定管脚的Y轴边界
     const double PIN_HEIGHT = 25.0;
     const double PIN_GAP = 10.0;
@@ -917,8 +954,8 @@ void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setLayer("selection");
     highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex + m_currentXOffset, pinHighY);
-    highlightRect->bottomRight->setCoords(rowIndex + m_currentXOffset + 1.0, pinLowY);
+    highlightRect->topLeft->setCoords(rowIndex + pin_t1rRatio, pinHighY);
+    highlightRect->bottomRight->setCoords(rowIndex + pin_t1rRatio + 1.0, pinLowY);
     highlightRect->setPen(QPen(Qt::blue, 1));
     highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
 
@@ -965,7 +1002,7 @@ void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
 
                 // 将标签定位在管脚波形的垂直中心
                 double pinMidY = (pinHighY + pinLowY) / 2.0;
-                hexLabel->position->setCoords(rowIndex + m_currentXOffset + 0.5, pinMidY);
+                hexLabel->position->setCoords(rowIndex + pin_t1rRatio + 0.5, pinMidY);
 
                 m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
                 m_vectorTableWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
@@ -991,14 +1028,41 @@ void MainWindow::setupWaveformClickHandling()
             double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
             double y = m_waveformPlot->yAxis->pixelToCoord(event->pos().y());
             
-            // 在计算行索引时考虑偏移量
-            int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
-            
             // 计算管脚索引
             const double PIN_HEIGHT = 25.0;
             const double PIN_GAP = 10.0;
             int pinIndex = static_cast<int>(floor(y / (PIN_HEIGHT + PIN_GAP)));
 
+            // [FIX] 根据点击的管脚获取其专属的T1R偏移量
+            double pin_t1rRatio = 0.0;
+            QList<QPair<QString, int>> allPinColumns;
+            if (m_vectorTableWidget) {
+                 for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+                    auto headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                    if (headerItem) {
+                        int currentTableId = m_vectorTableSelector->currentData().toInt();
+                        auto columns = getCurrentColumnConfiguration(currentTableId);
+                        if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
+                            allPinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
+                        }
+                    }
+                }
+            }
+
+            if (m_showAllPins) {
+                if (pinIndex >= 0 && pinIndex < allPinColumns.size()) {
+                    int pinId = getPinIdByName(allPinColumns[pinIndex].first);
+                    pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+                }
+            } else if (m_waveformPinSelector->count() > 0) {
+                // 单管脚模式下，使用当前选中管脚的T1R
+                int pinId = getPinIdByName(m_waveformPinSelector->currentText());
+                pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+            }
+
+            // 在计算行索引时考虑该管脚的特定偏移量
+            int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
+            
             // 检查索引是否有效（只响应正坐标）
             int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
             if (rowIndex >= 0 && rowIndex < totalRows) {
@@ -1013,95 +1077,132 @@ void MainWindow::setupWaveformClickHandling()
 
 void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 {
-    if (!m_waveformPlot || !m_vectorTableWidget || !m_waveformValueEditor) return;
+    if (!m_waveformPlot || !m_vectorTableWidget || !m_waveformValueEditor)
+        return;
 
     // 1. 获取点击位置对应的行列信息
     double key = m_waveformPlot->xAxis->pixelToCoord(event->pos().x());
     double value = m_waveformPlot->yAxis->pixelToCoord(event->pos().y());
-    
-    // 在计算行索引时考虑偏移量
-    int rowIndex = static_cast<int>(floor(key - m_currentXOffset));
-
-    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
-    if (rowIndex < 0 || rowIndex >= totalRows) return;
 
     // 判断点击了哪个管脚，根据Y坐标
     const double PIN_HEIGHT = 25.0;
     const double PIN_GAP = 10.0;
     int pinIndexByY = static_cast<int>(floor(value / (PIN_HEIGHT + PIN_GAP)));
-    
+
     // 获取所有PIN_STATE_ID类型的列
     QList<QPair<QString, int>> pinColumns;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
-        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-        if (headerItem) {
-            QString headerText = headerItem->text();
-            int currentTableId = m_vectorTableSelector->currentData().toInt();
-            QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-            if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
-                QString displayName = headerText.split('\n').first();
-                pinColumns.append(qMakePair(displayName, col));
+    if (m_vectorTableWidget)
+    {
+        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        {
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            if (headerItem)
+            {
+                QString headerText = headerItem->text();
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    QString displayName = headerText.split('\n').first();
+                    pinColumns.append(qMakePair(displayName, col));
+                }
             }
         }
     }
-    
+
+    // [FIX] 根据点击的管脚获取其专属的T1R偏移量
+    double pin_t1rRatio = 0.0;
+    if (m_showAllPins)
+    {
+        if (pinIndexByY >= 0 && pinIndexByY < pinColumns.size())
+        {
+            int pinId = getPinIdByName(pinColumns[pinIndexByY].first);
+            pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+        }
+    }
+    else if (m_waveformPinSelector->count() > 0)
+    {
+        // 单管脚模式下，使用当前选中管脚的T1R
+        int pinId = getPinIdByName(m_waveformPinSelector->currentText());
+        pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+    }
+
+    // 在计算行索引时考虑该管脚的特定偏移量
+    int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
+
+    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    if (rowIndex < 0 || rowIndex >= totalRows)
+        return;
+
     int pinColumnIndex = -1;
     QString pinName;
 
     // 检查点击的管脚索引是否有效
-    if (pinIndexByY >= 0 && pinIndexByY < pinColumns.size()) {
+    if (pinIndexByY >= 0 && pinIndexByY < pinColumns.size())
+    {
         // 如果Y坐标在有效范围内，则使用点击的管脚
         pinName = pinColumns[pinIndexByY].first;
         pinColumnIndex = pinColumns[pinIndexByY].second;
         m_waveformPinSelector->setCurrentText(pinName);
-    } else {
+    }
+    else
+    {
         // 否则，回退到使用当前下拉框中选择的管脚
         pinName = m_waveformPinSelector->currentText();
         QString pinFullName = m_waveformPinSelector->currentData().toString();
-        for (const auto &pin : pinColumns) {
-            if (pin.first == pinName) {
+        for (const auto &pin : pinColumns)
+        {
+            if (pin.first == pinName)
+            {
                 pinColumnIndex = pin.second;
                 break;
             }
         }
     }
 
-    if (pinColumnIndex < 0) return;
-    
+    if (pinColumnIndex < 0)
+        return;
+
     // 保存编辑上下文
     m_editingRow = rowIndex;
     m_editingPinColumn = pinColumnIndex;
-    
+
     // 2. 获取当前值
     QString currentValue;
-    if (rowIndex < m_vectorTableWidget->rowCount()) {
+    if (rowIndex < m_vectorTableWidget->rowCount())
+    {
         QTableWidgetItem *cell = m_vectorTableWidget->item(rowIndex, pinColumnIndex);
-        if (cell) {
+        if (cell)
+        {
             currentValue = cell->text();
         }
     }
-    
+
     m_waveformValueEditor->setText(currentValue);
 
     // 3. 定位并显示编辑器
     // 获取高亮矩形的位置来定位编辑器
     QCPItemRect *highlightRect = nullptr;
-    for (int i = 0; i < m_waveformPlot->itemCount(); ++i) {
-        if (auto item = m_waveformPlot->item(i)) {
-            if (item->property("isSelectionHighlight").toBool()) {
-                highlightRect = qobject_cast<QCPItemRect*>(item);
+    for (int i = 0; i < m_waveformPlot->itemCount(); ++i)
+    {
+        if (auto item = m_waveformPlot->item(i))
+        {
+            if (item->property("isSelectionHighlight").toBool())
+            {
+                highlightRect = qobject_cast<QCPItemRect *>(item);
                 break;
             }
         }
     }
 
-    if(highlightRect) {
+    if (highlightRect)
+    {
         // 将 plot 坐标转换为 widget 像素坐标
         int x = m_waveformPlot->xAxis->coordToPixel(highlightRect->topLeft->coords().x());
         int y = m_waveformPlot->yAxis->coordToPixel(highlightRect->topLeft->coords().y());
         int width = m_waveformPlot->xAxis->coordToPixel(highlightRect->bottomRight->coords().x()) - x;
         int height = m_waveformPlot->yAxis->coordToPixel(highlightRect->bottomRight->coords().y()) - y;
-        
+
         // 微调编辑框使其居中，使用整数尺寸避免小数问题
         m_waveformValueEditor->setGeometry(x, y + height / 2 - m_waveformValueEditor->height() / 2, width, m_waveformValueEditor->height());
         m_waveformValueEditor->setVisible(true);
@@ -1112,8 +1213,10 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
 void MainWindow::onWaveformValueEdited()
 {
-    if (!m_waveformValueEditor || m_editingRow < 0 || m_editingPinColumn < 0 || !m_vectorTableWidget) {
-        if(m_waveformValueEditor) m_waveformValueEditor->setVisible(false);
+    if (!m_waveformValueEditor || m_editingRow < 0 || m_editingPinColumn < 0 || !m_vectorTableWidget)
+    {
+        if (m_waveformValueEditor)
+            m_waveformValueEditor->setVisible(false);
         return;
     }
 
@@ -1122,11 +1225,12 @@ void MainWindow::onWaveformValueEdited()
 
     // 2. 获取新值
     QString newValue = m_waveformValueEditor->text().toUpper(); // 自动转为大写
-    
+
     // 验证新值是否有效
     const QString validChars = "01LHXSVM";
-    if (newValue.isEmpty() || !validChars.contains(newValue.at(0))) {
-         // 如果无效，则不更新，直接隐藏编辑器
+    if (newValue.isEmpty() || !validChars.contains(newValue.at(0)))
+    {
+        // 如果无效，则不更新，直接隐藏编辑器
         m_editingRow = -1;
         m_editingPinColumn = -1;
         return;
@@ -1134,15 +1238,20 @@ void MainWindow::onWaveformValueEdited()
 
     // 3. 更新表格
     int rowInPage = m_editingRow % m_pageSize;
-    if (rowInPage < m_vectorTableWidget->rowCount()) {
+    if (rowInPage < m_vectorTableWidget->rowCount())
+    {
         QTableWidgetItem *cell = m_vectorTableWidget->item(rowInPage, m_editingPinColumn);
-        if (cell) {
+        if (cell)
+        {
             // 检查值是否真的改变了
-            if (cell->text() != newValue) {
+            if (cell->text() != newValue)
+            {
                 cell->setText(newValue);
                 // onTableCellChanged 会被自动触发，处理数据保存
             }
-        } else {
+        }
+        else
+        {
             // 如果单元格不存在，创建一个新的
             QTableWidgetItem *newItem = new QTableWidgetItem(newValue);
             m_vectorTableWidget->setItem(rowInPage, m_editingPinColumn, newItem);
@@ -1151,22 +1260,27 @@ void MainWindow::onWaveformValueEdited()
 
     // 4. 更新波形图 (onTableCellChanged 也会更新，但为确保立即反馈，可以手动调用)
     updateWaveformView();
-    
+
     // 重新计算 pinIndex 以保持高亮
     QList<QPair<QString, int>> pinColumns;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    {
         QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-        if (headerItem) {
+        if (headerItem)
+        {
             int currentTableId = m_vectorTableSelector->currentData().toInt();
             QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-            if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
+            if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
                 pinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
             }
         }
     }
     int pinIndex = -1;
-    for(int i = 0; i < pinColumns.size(); ++i) {
-        if (pinColumns[i].second == m_editingPinColumn) {
+    for (int i = 0; i < pinColumns.size(); ++i)
+    {
+        if (pinColumns[i].second == m_editingPinColumn)
+        {
             pinIndex = i;
             break;
         }
@@ -1183,30 +1297,36 @@ void MainWindow::onWaveformValueEdited()
 // 根据管脚ID获取管脚名称
 QString MainWindow::getPinNameById(int pinId)
 {
-    if (pinId <= 0) {
+    if (pinId <= 0)
+    {
         return QString();
     }
-    
+
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         qWarning() << "getPinNameById - 数据库连接失败";
         return QString();
     }
-    
+
     QSqlQuery query(db);
     query.prepare("SELECT name FROM pin_list WHERE id = ?");
     query.addBindValue(pinId);
-    
-    if (!query.exec()) {
+
+    if (!query.exec())
+    {
         qWarning() << "getPinNameById - 查询失败: " << query.lastError().text();
         return QString();
     }
-    
-    if (query.next()) {
+
+    if (query.next())
+    {
         QString pinName = query.value(0).toString();
         qDebug() << "getPinNameById - 管脚ID:" << pinId << " 名称:" << pinName;
         return pinName;
-    } else {
+    }
+    else
+    {
         qWarning() << "getPinNameById - 未找到管脚ID:" << pinId;
         return QString();
     }

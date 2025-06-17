@@ -76,7 +76,8 @@ bool MainWindow::showTimeSetDialog(bool isNewTable)
 
         // 强制刷新数据库连接，确保没有缓存问题
         QSqlDatabase db = DatabaseManager::instance()->database();
-        if(db.isOpen()) {
+        if (db.isOpen())
+        {
             qDebug() << "MainWindow::showTimeSetDialog - 刷新数据库缓存";
             db.transaction();
             db.commit();
@@ -84,18 +85,18 @@ bool MainWindow::showTimeSetDialog(bool isNewTable)
 
         // 刷新侧边导航栏
         refreshSidebarNavigator();
-        
+
         // 如果波形图可见，更新波形图以反映T1R和周期的变化
         if (m_isWaveformVisible && m_waveformPlot)
         {
             qDebug() << "MainWindow::showTimeSetDialog - 更新波形图以反映TimeSet设置变更";
-            
+
             // 短暂延迟以确保数据库变更已经完成
-            QTimer::singleShot(100, this, [this]() {
+            QTimer::singleShot(100, this, [this]()
+                               {
                 qDebug() << "MainWindow::showTimeSetDialog - 延迟更新波形图";
-                updateWaveformView();
-            });
-            
+                updateWaveformView(); });
+
             // 同时也立即更新一次
             updateWaveformView();
         }
@@ -1225,15 +1226,18 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
     // 确保rowIndex在可见范围内
     if (m_waveformPlot)
     {
+        // 考虑m_currentXOffset，计算实际的X坐标
+        double adjustedRowIndex = rowIndex + m_currentXOffset;
+
         double currentMin = m_waveformPlot->xAxis->range().lower;
         double currentMax = m_waveformPlot->xAxis->range().upper;
         double rangeSize = currentMax - currentMin;
 
         // 如果点不在当前可见范围内，调整范围
-        if (rowIndex < currentMin || rowIndex > currentMax)
+        if (adjustedRowIndex < currentMin || adjustedRowIndex > currentMax)
         {
-            // 计算新的范围，使rowIndex在中间
-            double newMin = qMax(0.0, rowIndex - rangeSize / 2);
+            // 计算新的范围，使调整后的rowIndex在中间
+            double newMin = qMax(0.0, adjustedRowIndex - rangeSize / 2);
             double newMax = newMin + rangeSize;
 
             // 确保不超过数据范围

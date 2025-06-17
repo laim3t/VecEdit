@@ -248,7 +248,7 @@ private:
 
     // 新增：重新加载并刷新指定的向量表视图
     void reloadAndRefreshVectorTable(int tableId);
-    
+
     // TimeSet相关辅助方法
     int getTimeSetIdForRow(int tableId, int rowIndex);
     bool getTimeSetT1RAndPeriod(int timeSetId, int pinId, double &t1r, double &period);
@@ -354,44 +354,49 @@ private:
     QAction *m_toggleWaveformAction;
     bool m_isWaveformVisible = false;
     int m_selectedWaveformPoint = -1;
-    double m_currentXOffset = 0.0;  // [新增] 当前波形图的X轴偏移量
-    int m_editingRow = -1;          // 波形图编辑行
-    int m_editingPinColumn = -1;    // 波形图编辑管脚列
-    
+    double m_currentXOffset = 0.0; // [DEPRECATED] To be replaced by pin-specific ratios
+    double m_currentPeriod;
+    QMap<int, double> m_pinT1rRatios;
+    int m_editingRow = -1;       // 波形图编辑行
+    int m_editingPinColumn = -1; // 波形图编辑管脚列
+
     // R0波形点结构 (需要保存原始电平信息)
-    struct R0WavePoint {
-        int cycleIndex;      // 区间索引
-        double t1fXPos;      // T1F点位置
-        bool isOne;          // 原始数据是否为'1'
-        double highY;        // 高电平Y坐标
-        double lowY;         // 低电平Y坐标
-        int pinId;           // 管脚ID
-        QString pinName;     // 管脚名称
-        double t1rRatio;     // T1R比例
+    struct R0WavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
     };
 
     // RZ波形点结构 (需要保存原始电平信息)
-    struct RZWavePoint {
-        int cycleIndex;      // 区间索引
-        double t1fXPos;      // T1F点位置
-        bool isOne;          // 原始数据是否为'1'
-        double highY;        // 高电平Y坐标
-        double lowY;         // 低电平Y坐标
-        int pinId;           // 管脚ID
-        QString pinName;     // 管脚名称
-        double t1rRatio;     // T1R比例
+    struct RZWavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
     };
 
     // SBC波形点结构 (需要保存原始电平信息)
-    struct SbcWavePoint {
-        int cycleIndex;      // 区间索引
-        double t1fXPos;      // T1F点位置
-        bool isOne;          // 原始数据是否为'1'
-        double highY;        // 高电平Y坐标
-        double lowY;         // 低电平Y坐标
-        int pinId;           // 管脚ID
-        QString pinName;     // 管脚名称
-        double t1rRatio;     // T1R比例
+    struct SbcWavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
     };
 
     // 波形图类型相关
@@ -399,9 +404,9 @@ private:
     QString getWaveTypeName(int waveId);
     void applyWaveformPattern(int timeSetId, int pinId, const QVector<double> &xData, QVector<double> &yData, double t1rRatio, double period);
     void drawWaveformPatterns();
-    QList<R0WavePoint> m_r0Points;         // 存储R0点信息
-    QList<RZWavePoint> m_rzPoints;         // 存储RZ点信息
-    QList<SbcWavePoint> m_sbcPoints;       // 存储SBC点信息
+    QList<R0WavePoint> m_r0Points;   // 存储R0点信息
+    QList<RZWavePoint> m_rzPoints;   // 存储RZ点信息
+    QList<SbcWavePoint> m_sbcPoints; // 存储SBC点信息
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;

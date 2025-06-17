@@ -13,7 +13,7 @@
 bool MainWindow::getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double &t1f)
 {
     // 初始化返回值
-    waveId = 1; // 默认为NRZ (ID=1)
+    waveId = 1;  // 默认为NRZ (ID=1)
     t1f = 750.0; // 默认T1F值
 
     // 检查参数有效性
@@ -47,7 +47,7 @@ bool MainWindow::getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double
     {
         waveId = query.value(0).toInt();
         t1f = query.value(1).toDouble();
-        qDebug() << "getWaveTypeAndT1F - TimeSet:" << timeSetId << " Pin:" << pinId 
+        qDebug() << "getWaveTypeAndT1F - TimeSet:" << timeSetId << " Pin:" << pinId
                  << " Wave ID:" << waveId << " T1F:" << t1f;
         return true;
     }
@@ -66,8 +66,7 @@ QString MainWindow::getWaveTypeName(int waveId)
         {1, "NRZ"},
         {2, "RZ"},
         {3, "R0"},
-        {4, "SBC"}
-    };
+        {4, "SBC"}};
 
     // 返回波形类型名称
     return waveTypes.value(waveId, "Unknown");
@@ -75,85 +74,95 @@ QString MainWindow::getWaveTypeName(int waveId)
 
 // 应用R0和RZ波形效果
 void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
-                                       const QVector<double> &xData, QVector<double> &yData,
-                                       double t1rRatio, double period)
+                                      const QVector<double> &xData, QVector<double> &yData,
+                                      double t1rRatio, double period)
 {
     // 获取波形类型和T1F值
-    int waveId = 1; // 默认NRZ
+    int waveId = 1;     // 默认NRZ
     double t1f = 750.0; // 默认T1F值
-    
+
     if (!getWaveTypeAndT1F(timeSetId, pinId, waveId, t1f))
     {
         qDebug() << "applyWaveformPattern - 获取波形类型失败，使用默认值 Wave ID:" << waveId;
     }
-    
+
     // 计算T1F作为周期的比例
     double t1fRatio = t1f / period;
     QString waveTypeName = getWaveTypeName(waveId);
-    
+
     qDebug() << "applyWaveformPattern - 应用波形类型:" << waveTypeName << "(ID:" << waveId << ")"
              << " T1F比例:" << t1fRatio << " (T1F=" << t1f << "ns, 周期=" << period << "ns)";
-    
+
     // 如果是默认的NRZ类型，无需特殊处理，直接返回
     if (waveId == 1) // NRZ
     {
         return;
     }
-    
+
     // 定义高低电平值
-    const double Y_HIGH_TOP = 20.0; // 高电平值
+    const double Y_HIGH_TOP = 20.0;  // 高电平值
     const double Y_LOW_BOTTOM = 0.0; // 低电平值
-    
+
     // 检查是否存在特殊波形类型 (RZ, R0, SBC)
     if (waveId == 2 || waveId == 3 || waveId == 4) // RZ(2) 或 R0(3) 或 SBC(4)
     {
         // 为R0/RZ/SBC波形捕获原始电平状态
         QVector<bool> originalStates;
-        
+
         // 计算管脚的高低电平Y坐标
         double highY = 0.0, lowY = 0.0;
-        
+
         // 从mainLineData中找出高低电平的Y坐标值
         // 注意：我们需要确保highY是最大值，lowY是最小值
         bool foundValidY = false;
-        for (int i = 0; i < yData.size(); ++i) {
-            if (!qIsNaN(yData[i])) {
-                if (!foundValidY) {
+        for (int i = 0; i < yData.size(); ++i)
+        {
+            if (!qIsNaN(yData[i]))
+            {
+                if (!foundValidY)
+                {
                     highY = yData[i];
                     lowY = yData[i];
                     foundValidY = true;
-                } else {
-                    if (yData[i] > highY) {
+                }
+                else
+                {
+                    if (yData[i] > highY)
+                    {
                         highY = yData[i];
                     }
-                    if (yData[i] < lowY) {
+                    if (yData[i] < lowY)
+                    {
                         lowY = yData[i];
                     }
                 }
             }
         }
-        
+
         // 如果没有找到有效的Y坐标，使用默认值
-        if (!foundValidY) {
+        if (!foundValidY)
+        {
             // 使用绝对默认值
             // 注意：这里确保lowY是底部值，highY是顶部值
             const int pinIndex = (pinId - 1) % 10; // 获取管脚索引，限制在0-9
-            const double PIN_HEIGHT = 25.0; // 每个管脚波形的高度
-            const double PIN_GAP = 10.0;    // 管脚之间的间隔
-            
+            const double PIN_HEIGHT = 25.0;        // 每个管脚波形的高度
+            const double PIN_GAP = 10.0;           // 管脚之间的间隔
+
             // 计算当前管脚的Y轴位置
             double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP); // 当前管脚的基准Y坐标
-            highY = pinBaseY + PIN_HEIGHT; // 高电平Y坐标
-            lowY = pinBaseY; // 低电平Y坐标
-            
-            qDebug() << "applyWaveformPattern - 使用默认Y坐标 - 管脚ID:" << pinId 
+            highY = pinBaseY + PIN_HEIGHT;                       // 高电平Y坐标
+            lowY = pinBaseY;                                     // 低电平Y坐标
+
+            qDebug() << "applyWaveformPattern - 使用默认Y坐标 - 管脚ID:" << pinId
                      << " 名称:" << getPinNameById(pinId)
                      << " 高电平Y:" << highY << " 低电平Y:" << lowY;
         }
-        
+
         // 捕获原始电平状态
-        if (waveId == 3 || waveId == 2 || waveId == 4) {
-            for (int i = 0; i < yData.size(); ++i) {
+        if (waveId == 3 || waveId == 2 || waveId == 4)
+        {
+            for (int i = 0; i < yData.size(); ++i)
+            {
                 // 判断原始电平是高(1)还是低(0)
                 // 使用中点作为阈值
                 double midY = (highY + lowY) / 2.0;
@@ -167,15 +176,15 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
         {
             yData[i] = qQNaN();
         }
-        
+
         // 生成每个周期的波形点
         for (int i = 0; i < xData.size() - 1; i++) // 最后一个点是为了扩展而添加的，不处理
         {
             // 创建一个新的数据点在T1F位置
             double t1fXPos = xData[i] + t1fRatio;
-            
+
             // 如果是有效的周期点
-            if (t1fXPos < xData[i+1])
+            if (t1fXPos < xData[i + 1])
             {
                 // 添加到要处理的点列表
                 if (waveId == 3) // R0
@@ -219,7 +228,7 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
                 }
             }
         }
-        
+
         // 输出调试信息
         QString pointCountMsg;
         if (waveId == 3)
@@ -228,7 +237,7 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
             pointCountMsg = QString("RZ波形点数: %1").arg(m_rzPoints.size());
         else if (waveId == 4)
             pointCountMsg = QString("SBC波形点数: %1").arg(m_sbcPoints.size());
-            
+
         qDebug() << "applyWaveformPattern - 生成的" << pointCountMsg;
     }
 }
@@ -236,38 +245,42 @@ void MainWindow::applyWaveformPattern(int timeSetId, int pinId,
 // 绘制R0和RZ波形效果
 void MainWindow::drawWaveformPatterns()
 {
-    if (!m_waveformPlot) return;
-    
+    if (!m_waveformPlot)
+        return;
+
     // === 完整重绘R0波形 ===
     if (!m_r0Points.isEmpty())
     {
         // 按管脚ID对波形点进行分组
         QMap<int, QList<R0WavePoint>> pointsByPin;
-        for (const auto& point : m_r0Points) {
+        for (const auto &point : m_r0Points)
+        {
             pointsByPin[point.pinId].append(point);
         }
-        
+
         QPen wavePen(Qt::red, 2.5);
-        qDebug() << "drawWaveformPatterns - 绘制R0波形点：" << m_r0Points.size() 
+        qDebug() << "drawWaveformPatterns - 绘制R0波形点：" << m_r0Points.size()
                  << "个，分布在" << pointsByPin.size() << "个管脚上 (已修正逻辑)";
 
         // 为每个管脚分别绘制波形
         QMapIterator<int, QList<R0WavePoint>> it(pointsByPin);
-        while (it.hasNext()) {
+        while (it.hasNext())
+        {
             it.next();
             int pinId = it.key();
-            const QList<R0WavePoint>& pinPoints = it.value();
-            
-            if (pinPoints.isEmpty()) continue;
-            
-            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName 
+            const QList<R0WavePoint> &pinPoints = it.value();
+
+            if (pinPoints.isEmpty())
+                continue;
+
+            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName
                      << " 波形点数:" << pinPoints.size();
-            
+
             // 按周期顺序完整绘制该管脚的R0波形
             for (int i = 0; i < pinPoints.size(); ++i)
             {
-                const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                const auto &point = pinPoints[i];
+                double segmentStartX = point.cycleIndex + point.t1rRatio;       // 使用管脚特定的T1R比例
                 double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
@@ -312,7 +325,7 @@ void MainWindow::drawWaveformPatterns()
                 // 绘制周期之间的过渡垂直线
                 if (i < pinPoints.size() - 1)
                 {
-                    const auto& nextPoint = pinPoints[i+1];
+                    const auto &nextPoint = pinPoints[i + 1];
                     // 仅在两个连续的周期之间绘制
                     if (point.cycleIndex + 1 == nextPoint.cycleIndex)
                     {
@@ -330,37 +343,40 @@ void MainWindow::drawWaveformPatterns()
             }
         }
     }
-    
+
     // === 完整重绘RZ波形 ===
     if (!m_rzPoints.isEmpty())
     {
         // 按管脚ID对波形点进行分组
         QMap<int, QList<RZWavePoint>> pointsByPin;
-        for (const auto& point : m_rzPoints) {
+        for (const auto &point : m_rzPoints)
+        {
             pointsByPin[point.pinId].append(point);
         }
-        
+
         QPen wavePen(Qt::red, 2.5);
-        qDebug() << "drawWaveformPatterns - 绘制RZ波形点：" << m_rzPoints.size() 
+        qDebug() << "drawWaveformPatterns - 绘制RZ波形点：" << m_rzPoints.size()
                  << "个，分布在" << pointsByPin.size() << "个管脚上 (已修正逻辑)";
 
         // 为每个管脚分别绘制波形
         QMapIterator<int, QList<RZWavePoint>> it(pointsByPin);
-        while (it.hasNext()) {
+        while (it.hasNext())
+        {
             it.next();
             int pinId = it.key();
-            const QList<RZWavePoint>& pinPoints = it.value();
-            
-            if (pinPoints.isEmpty()) continue;
-            
-            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName 
+            const QList<RZWavePoint> &pinPoints = it.value();
+
+            if (pinPoints.isEmpty())
+                continue;
+
+            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName
                      << " 波形点数:" << pinPoints.size();
-            
+
             // 按周期顺序完整绘制该管脚的RZ波形
             for (int i = 0; i < pinPoints.size(); ++i)
             {
-                const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                const auto &point = pinPoints[i];
+                double segmentStartX = point.cycleIndex + point.t1rRatio;       // 使用管脚特定的T1R比例
                 double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
@@ -405,7 +421,7 @@ void MainWindow::drawWaveformPatterns()
                 // 绘制周期之间的过渡垂直线
                 if (i < pinPoints.size() - 1)
                 {
-                    const auto& nextPoint = pinPoints[i+1];
+                    const auto &nextPoint = pinPoints[i + 1];
                     if (point.cycleIndex + 1 == nextPoint.cycleIndex)
                     {
                         // 当前RZ周期结束时总是低电平。如果下一个周期从高电平开始（即输入为1），则绘制垂直上升沿
@@ -422,37 +438,40 @@ void MainWindow::drawWaveformPatterns()
             }
         }
     }
-    
+
     // === 完整重绘SBC波形 ===
     if (!m_sbcPoints.isEmpty())
     {
         // 按管脚ID对波形点进行分组
         QMap<int, QList<SbcWavePoint>> pointsByPin;
-        for (const auto& point : m_sbcPoints) {
+        for (const auto &point : m_sbcPoints)
+        {
             pointsByPin[point.pinId].append(point);
         }
-        
+
         QPen wavePen(Qt::red, 2.5);
-        qDebug() << "drawWaveformPatterns - 绘制SBC波形点：" << m_sbcPoints.size() 
+        qDebug() << "drawWaveformPatterns - 绘制SBC波形点：" << m_sbcPoints.size()
                  << "个，分布在" << pointsByPin.size() << "个管脚上 (已修正逻辑)";
 
         // 为每个管脚分别绘制波形
         QMapIterator<int, QList<SbcWavePoint>> it(pointsByPin);
-        while (it.hasNext()) {
+        while (it.hasNext())
+        {
             it.next();
             int pinId = it.key();
-            const QList<SbcWavePoint>& pinPoints = it.value();
-            
-            if (pinPoints.isEmpty()) continue;
-            
-            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName 
+            const QList<SbcWavePoint> &pinPoints = it.value();
+
+            if (pinPoints.isEmpty())
+                continue;
+
+            qDebug() << "  绘制管脚ID:" << pinId << " 名称:" << pinPoints.first().pinName
                      << " 波形点数:" << pinPoints.size();
-            
+
             // 按周期顺序完整绘制该管脚的SBC波形
             for (int i = 0; i < pinPoints.size(); ++i)
             {
-                const auto& point = pinPoints[i];
-                double segmentStartX = point.cycleIndex + point.t1rRatio; // 使用管脚特定的T1R比例
+                const auto &point = pinPoints[i];
+                double segmentStartX = point.cycleIndex + point.t1rRatio;       // 使用管脚特定的T1R比例
                 double segmentEndX = (point.cycleIndex + 1.0) + point.t1rRatio; // 使用管脚特定的T1R比例
                 double t1fX = point.t1fXPos;
                 double highY = point.highY;
@@ -504,7 +523,7 @@ void MainWindow::drawWaveformPatterns()
                 // 绘制周期之间的过渡垂直线
                 if (i < pinPoints.size() - 1)
                 {
-                    const auto& nextPoint = pinPoints[i+1];
+                    const auto &nextPoint = pinPoints[i + 1];
                     if (point.cycleIndex + 1 == nextPoint.cycleIndex)
                     {
                         double currentCycleEndY = point.isOne ? lowY : highY;
@@ -512,18 +531,18 @@ void MainWindow::drawWaveformPatterns()
 
                         if (currentCycleEndY != nextCycleStartY)
                         {
-                             QCPItemLine *endVertLine = new QCPItemLine(m_waveformPlot);
-                             endVertLine->setProperty("isSBCLine", true);
-                             endVertLine->setPen(wavePen);
-                             endVertLine->start->setCoords(segmentEndX, currentCycleEndY);
-                             endVertLine->end->setCoords(segmentEndX, nextCycleStartY);
+                            QCPItemLine *endVertLine = new QCPItemLine(m_waveformPlot);
+                            endVertLine->setProperty("isSBCLine", true);
+                            endVertLine->setPen(wavePen);
+                            endVertLine->start->setCoords(segmentEndX, currentCycleEndY);
+                            endVertLine->end->setCoords(segmentEndX, nextCycleStartY);
                         }
                     }
                 }
             }
         }
     }
-    
+
     // 清空临时存储的点
     m_r0Points.clear();
     m_rzPoints.clear();
