@@ -513,36 +513,55 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             throw std::runtime_error(errorText.toStdString());
         }
 
-        // 重新加载表格数据
-        onVectorTableSelectionChanged(currentIndex);
-        qDebug() << "填充TimeSet - 已重新加载表格数据";
+        // 注意：不要在这里调用onVectorTableSelectionChanged，因为它会重置页码
+        qDebug() << "填充TimeSet - 准备重新加载表格数据，将保留当前页码:" << m_currentPage;
 
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount));
         qDebug() << "填充TimeSet - 操作成功完成";
 
-        // 刷新向量表数据
-        refreshVectorTableData();
-        
+        // 保存当前页码并仅刷新当前页数据，不改变页码状态
+        int currentIndex = m_vectorTabWidget->currentIndex();
+        if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
+        {
+            int tableId = m_tabToTableId[currentIndex];
+
+            // 清除当前表的数据缓存，但不改变页码
+            VectorDataHandler::instance().clearTableDataCache(tableId);
+
+            // 直接加载当前页数据，而不是调用refreshVectorTableData
+            qDebug() << "填充TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
+            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+
+            // 更新分页信息显示
+            updatePaginationInfo();
+        }
+        else
+        {
+            qWarning() << "填充TimeSet - 无法获取当前向量表ID，回退到使用refreshVectorTableData()";
+            refreshVectorTableData();
+        }
+
         // 更新波形图以反映TimeSet变更
         if (m_isWaveformVisible && m_waveformPlot)
         {
             qDebug() << "MainWindow::fillTimeSetForVectorTable - 更新波形图以反映TimeSet变更";
-            
+
             // 强制刷新数据库连接，确保没有缓存问题
             QSqlDatabase refreshDb = DatabaseManager::instance()->database();
-            if(refreshDb.isOpen()) {
+            if (refreshDb.isOpen())
+            {
                 qDebug() << "MainWindow::fillTimeSetForVectorTable - 刷新数据库缓存";
                 refreshDb.transaction();
                 refreshDb.commit();
             }
-            
+
             // 短暂延迟以确保数据库变更已经完成
-            QTimer::singleShot(100, this, [this]() {
+            QTimer::singleShot(100, this, [this]()
+                               {
                 qDebug() << "MainWindow::fillTimeSetForVectorTable - 延迟更新波形图";
-                updateWaveformView();
-            });
-            
+                updateWaveformView(); });
+
             // 同时也立即更新一次
             updateWaveformView();
         }
@@ -1230,36 +1249,55 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             throw std::runtime_error(errorText.toStdString());
         }
 
-        // 重新加载表格数据
-        onVectorTableSelectionChanged(currentIndex);
-        qDebug() << "替换TimeSet - 已重新加载表格数据";
+        // 注意：不要在这里调用onVectorTableSelectionChanged，因为它会重置页码
+        qDebug() << "替换TimeSet - 准备重新加载表格数据，将保留当前页码:" << m_currentPage;
 
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 替换为 %2，共更新了 %3 行数据").arg(fromTimeSetName).arg(toTimeSetName).arg(updatedRowCount));
         qDebug() << "替换TimeSet - 操作成功完成，共更新" << updatedRowCount << "行数据";
 
-        // 刷新表格数据，显示更新后的值
-        refreshVectorTableData();
-        
+        // 保存当前页码并仅刷新当前页数据，不改变页码状态
+        int currentIndex = m_vectorTabWidget->currentIndex();
+        if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
+        {
+            int tableId = m_tabToTableId[currentIndex];
+
+            // 清除当前表的数据缓存，但不改变页码
+            VectorDataHandler::instance().clearTableDataCache(tableId);
+
+            // 直接加载当前页数据，而不是调用refreshVectorTableData
+            qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
+            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+
+            // 更新分页信息显示
+            updatePaginationInfo();
+        }
+        else
+        {
+            qWarning() << "替换TimeSet - 无法获取当前向量表ID，回退到使用refreshVectorTableData()";
+            refreshVectorTableData();
+        }
+
         // 更新波形图以反映TimeSet变更
         if (m_isWaveformVisible && m_waveformPlot)
         {
             qDebug() << "MainWindow::replaceTimeSetForVectorTable - 更新波形图以反映TimeSet变更";
-            
+
             // 强制刷新数据库连接，确保没有缓存问题
             QSqlDatabase refreshDb = DatabaseManager::instance()->database();
-            if(refreshDb.isOpen()) {
+            if (refreshDb.isOpen())
+            {
                 qDebug() << "MainWindow::replaceTimeSetForVectorTable - 刷新数据库缓存";
                 refreshDb.transaction();
                 refreshDb.commit();
             }
-            
+
             // 短暂延迟以确保数据库变更已经完成
-            QTimer::singleShot(100, this, [this]() {
+            QTimer::singleShot(100, this, [this]()
+                               {
                 qDebug() << "MainWindow::replaceTimeSetForVectorTable - 延迟更新波形图";
-                updateWaveformView();
-            });
-            
+                updateWaveformView(); });
+
             // 同时也立即更新一次
             updateWaveformView();
         }
