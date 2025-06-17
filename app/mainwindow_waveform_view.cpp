@@ -177,6 +177,15 @@ void MainWindow::updateWaveformView()
     if (!m_waveformPinSelector || !m_waveformPlot)
         return;
 
+    // 保存当前的X轴范围（缩放状态）
+    double savedXMin = m_waveformPlot->xAxis->range().lower;
+    double savedXMax = m_waveformPlot->xAxis->range().upper;
+
+    // 检查是否存在自定义缩放 - 通过比较范围与默认范围是否不同
+    bool isDefaultRange = (savedXMin == -0.5 || qFuzzyCompare(savedXMin, -0.5)) &&
+                          (savedXMax <= 40 || qFuzzyCompare(savedXMax, 40));
+    bool hasCustomRange = !isDefaultRange;
+
     // =======================================================================
     // 阶段 1: 清理画布
     // =======================================================================
@@ -781,7 +790,18 @@ void MainWindow::updateWaveformView()
 
     // 计算适当的X轴范围
     double xMax = rowCount > 0 ? qMin(rowCount, 40) : 10;
-    m_waveformPlot->xAxis->setRange(-0.5, xMax + max_t1rRatio); // 调整X轴范围，确保从-0.5开始以显示管脚标签
+
+    // 设置初始X轴范围
+    if (!hasCustomRange)
+    {
+        // 如果没有自定义缩放，则使用默认范围
+        m_waveformPlot->xAxis->setRange(-0.5, xMax + max_t1rRatio); // 调整X轴范围，确保从-0.5开始以显示管脚标签
+    }
+    else
+    {
+        // 如果有自定义缩放，则恢复之前保存的范围
+        m_waveformPlot->xAxis->setRange(savedXMin, savedXMax);
+    }
 
     // 隐藏Y轴刻度
     m_waveformPlot->yAxis->setTickLabels(false);
