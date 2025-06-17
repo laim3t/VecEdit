@@ -145,6 +145,9 @@ void MainWindow::saveVectorTableData()
 
         // 不再重新加载当前页数据，保留用户的编辑状态
         qDebug() << funcName << " - 保存操作完成，保留用户当前的界面编辑状态";
+
+        // 保存成功后刷新侧边栏，确保所有标签同步
+        refreshSidebarNavigator();
     }
     else
     {
@@ -192,6 +195,9 @@ void MainWindow::addRowToCurrentVectorTable()
     {
         // 刷新表格显示
         onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+        // 刷新侧边栏导航树，确保Label同步
+        refreshSidebarNavigator();
     }
 }
 
@@ -264,6 +270,9 @@ void MainWindow::deleteSelectedVectorRows()
 
         // 刷新表格
         onVectorTableSelectionChanged(currentIndex);
+
+        // 刷新侧边栏导航树，确保Label同步
+        refreshSidebarNavigator();
     }
     else
     {
@@ -388,6 +397,9 @@ void MainWindow::deleteVectorRowsInRange()
 
             // 刷新表格
             onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+            // 刷新侧边栏导航树，确保Label同步
+            refreshSidebarNavigator();
 
             qDebug() << "MainWindow::deleteVectorRowsInRange - 成功删除指定范围内的行";
         }

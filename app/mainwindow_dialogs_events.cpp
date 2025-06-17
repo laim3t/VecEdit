@@ -334,7 +334,34 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
 void MainWindow::onTableCellChanged(int row, int column)
 {
     qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
+
+    // 获取当前表的列配置信息
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        onTableRowModified(row);
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(tableId);
+
+    // 检查是否是Label列发生变化
+    bool isLabelColumn = false;
+    if (column < columns.size() && columns[column].name.toLower() == "label")
+    {
+        isLabelColumn = true;
+    }
+
+    // 标记行为已修改
     onTableRowModified(row);
+
+    // 如果是Label列变化，刷新侧边栏导航树
+    if (isLabelColumn)
+    {
+        qDebug() << "MainWindow::onTableCellChanged - Label列变化，刷新侧边栏";
+        refreshSidebarNavigator();
+    }
 }
 
 // 处理表格行修改
@@ -831,8 +858,56 @@ void MainWindow::refreshSidebarNavigator()
 
     if (labelRoot)
     {
-        // 获取所有向量表
+        // 创建一个集合存储所有唯一的标签
         QSet<QString> uniqueLabels;
+        qDebug() << "MainWindow::refreshSidebarNavigator - 开始收集标签数据";
+
+        // 1. 首先从当前打开的向量表中读取标签数据(这样可以立刻获取到最新修改，无需等待保存)
+        if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 0)
+        {
+            // 获取当前表的列配置
+            int tabIndex = m_vectorTabWidget->currentIndex();
+            if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
+            {
+                int currentTableId = m_tabToTableId[tabIndex];
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+
+                // 查找Label列的索引
+                int labelColumnIndex = -1;
+                for (int i = 0; i < columns.size() && i < m_vectorTableWidget->columnCount(); i++)
+                {
+                    if (columns[i].name.toLower() == "label" && columns[i].is_visible)
+                    {
+                        // 找到表格中对应的列索引
+                        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                        if (headerItem && headerItem->text().toLower() == "label")
+                        {
+                            labelColumnIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                // 如果找到了Label列，读取当前表格中的所有值
+                if (labelColumnIndex >= 0)
+                {
+                    qDebug() << "MainWindow::refreshSidebarNavigator - 从当前表格读取Label数据，列索引:" << labelColumnIndex;
+
+                    // 从当前UI表格中收集标签
+                    for (int row = 0; row < m_vectorTableWidget->rowCount(); row++)
+                    {
+                        QTableWidgetItem *item = m_vectorTableWidget->item(row, labelColumnIndex);
+                        if (item && !item->text().isEmpty())
+                        {
+                            uniqueLabels.insert(item->text());
+                            qDebug() << "  - 从UI表格收集标签:" << item->text();
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. 从所有表的二进制文件中读取Label数据（包括当前表的所有页）
         QSqlQuery tablesQuery(db);
         tablesQuery.exec("SELECT id FROM vector_tables");
 
@@ -861,44 +936,62 @@ void MainWindow::refreshSidebarNavigator()
 
                 if (labelColumnIndex >= 0)
                 {
-                    // 从二进制文件中读取Label数据
-                    QString errorMsg;
-                    QString binFilePath = "";
+                    // 使用VectorDataHandler::getAllVectorRows读取所有行数据 - 此方法能读取所有页的数据
+                    bool ok = false;
+                    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
 
-                    // 使用SQL查询获取二进制文件路径，而不是调用私有方法
-                    QSqlQuery getBinFileQuery(db);
-                    getBinFileQuery.prepare("SELECT binary_file FROM vector_tables WHERE id = ?");
-                    getBinFileQuery.addBindValue(tableId);
-
-                    if (getBinFileQuery.exec() && getBinFileQuery.next())
+                    if (ok && !allRows.isEmpty())
                     {
-                        QString binFileName = getBinFileQuery.value(0).toString();
-                        // 获取数据库文件路径
-                        QFileInfo dbFileInfo(db.databaseName());
-                        QString dbDir = dbFileInfo.absolutePath();
-                        QString dbName = dbFileInfo.baseName();
-                        // 构造二进制文件目录路径
-                        QString binDirName = dbName + "_vbindata";
-                        QDir binDir(QDir(dbDir).absoluteFilePath(binDirName));
-                        // 构造完整的二进制文件路径
-                        binFilePath = binDir.absoluteFilePath(binFileName);
-                    }
+                        qDebug() << "MainWindow::refreshSidebarNavigator - 使用getAllVectorRows从表ID:" << tableId
+                                 << "成功读取" << allRows.size() << "行数据";
 
-                    if (!binFilePath.isEmpty())
-                    {
-                        QList<Vector::RowData> rowData;
-                        if (Persistence::BinaryFileHelper::readAllRowsFromBinary(binFilePath, columns, schemaVersion, rowData))
+                        // 从所有行数据中收集标签
+                        for (const auto &row : allRows)
                         {
-                            for (const auto &row : rowData)
+                            if (labelColumnIndex < row.size())
                             {
-                                if (labelColumnIndex < row.size())
+                                QString label = row[labelColumnIndex].toString();
+                                if (!label.isEmpty())
                                 {
-                                    QString label = row[labelColumnIndex].toString();
-                                    if (!label.isEmpty())
+                                    uniqueLabels.insert(label);
+                                    qDebug() << "  - 从表" << tableId << "收集到标签:" << label;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        qWarning() << "MainWindow::refreshSidebarNavigator - 无法使用getAllVectorRows读取表ID:" << tableId;
+
+                        // 备用方法：直接从二进制文件读取
+                        QString errorMsg;
+                        QString binFilePath = VectorDataHandler::instance().resolveBinaryFilePath(tableId, errorMsg);
+
+                        if (!binFilePath.isEmpty())
+                        {
+                            QList<Vector::RowData> rowData;
+                            if (Persistence::BinaryFileHelper::readAllRowsFromBinary(binFilePath, columns, schemaVersion, rowData))
+                            {
+                                qDebug() << "MainWindow::refreshSidebarNavigator - 备用方法：从二进制文件读取标签，表ID:" << tableId
+                                         << "，找到行数:" << rowData.size();
+
+                                // 从二进制文件中收集标签
+                                for (const auto &row : rowData)
+                                {
+                                    if (labelColumnIndex < row.size())
                                     {
-                                        uniqueLabels.insert(label);
+                                        QString label = row[labelColumnIndex].toString();
+                                        if (!label.isEmpty())
+                                        {
+                                            uniqueLabels.insert(label);
+                                            qDebug() << "  - 从二进制文件收集标签:" << label;
+                                        }
                                     }
                                 }
+                            }
+                            else
+                            {
+                                qWarning() << "MainWindow::refreshSidebarNavigator - 无法从二进制文件读取数据:" << binFilePath;
                             }
                         }
                     }
@@ -906,14 +999,16 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
 
-        // 添加唯一标签
+        // 添加唯一标签到侧边栏
         QList<QString> sortedLabels;
-        // 将QSet中的元素转换为QList - 使用正确的方式从QSet获取元素
+        // 将QSet中的元素转换为QList
         for (const QString &label : uniqueLabels)
         {
             sortedLabels.append(label);
         }
         std::sort(sortedLabels.begin(), sortedLabels.end());
+
+        qDebug() << "MainWindow::refreshSidebarNavigator - 总共收集到" << uniqueLabels.size() << "个唯一标签";
 
         for (const QString &label : sortedLabels)
         {
