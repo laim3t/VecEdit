@@ -96,8 +96,8 @@ void MainWindow::setupWaveformView()
     m_waveformPlot->axisRect()->setRangeDrag(Qt::Horizontal);
     m_waveformPlot->axisRect()->setRangeZoomAxes(m_waveformPlot->xAxis, nullptr);
 
-    // 设置图例（启用）
-    m_waveformPlot->legend->setVisible(true);
+    // 设置图例（禁用）
+    m_waveformPlot->legend->setVisible(false);
     m_waveformPlot->legend->setFont(QFont("Helvetica", 9));
     m_waveformPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 230)));
     m_waveformPlot->legend->setBorderPen(Qt::NoPen);
@@ -776,7 +776,7 @@ void MainWindow::updateWaveformView()
         pinLabel->setProperty("isPinLabel", true);
         pinLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         pinLabel->setTextAlignment(Qt::AlignLeft);
-        pinLabel->position->setCoords(-0.5, pinMidY);
+        pinLabel->position->setCoords(-0.3, pinMidY);
         pinLabel->setText(pinName);
         pinLabel->setFont(QFont("Arial", 8));
         pinLabel->setPen(QPen(pinColor));

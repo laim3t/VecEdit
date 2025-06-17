@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include <QMouseEvent>
+#include <QHBoxLayout>
+#include <QLabel>
 #include "database/databasemanager.h"
 #include "database/databaseviewdialog.h"
 #include "database/binaryfilehelper.h"
