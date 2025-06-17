@@ -88,6 +88,9 @@ private slots:
     // 加载并显示向量表
     void loadVectorTable();
 
+    // 打开指定ID的向量表
+    void openVectorTable(int tableId, const QString &tableName);
+
     // 选择向量表
     void onVectorTableSelectionChanged(int index);
 

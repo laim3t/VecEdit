@@ -702,3 +702,52 @@ void MainWindow::addVectorTableTab(int tableId, const QString &tableName)
     // 存储映射关系
     m_tabToTableId[index] = tableId;
 }
+
+// 打开指定ID的向量表
+void MainWindow::openVectorTable(int tableId, const QString &tableName)
+{
+    qDebug() << "MainWindow::openVectorTable - 打开向量表:" << tableName << "ID:" << tableId;
+
+    // 检查表是否已经打开
+    int existingTabIndex = -1;
+    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
+        if (it.value() == tableId) {
+            existingTabIndex = it.key();
+            break;
+        }
+    }
+
+    if (existingTabIndex >= 0 && existingTabIndex < m_vectorTabWidget->count())
+    {
+        // 表已经打开，切换到对应的Tab
+        qDebug() << "MainWindow::openVectorTable - 表已打开，切换到Tab索引:" << existingTabIndex;
+        m_vectorTabWidget->setCurrentIndex(existingTabIndex);
+        return;
+    }
+
+    // 表未打开，添加到下拉框和Tab
+    // 检查表是否已经在下拉框中
+    int comboIndex = m_vectorTableSelector->findData(tableId);
+    if (comboIndex < 0)
+    {
+        // 表不在下拉框中，添加它
+        qDebug() << "MainWindow::openVectorTable - 向下拉框添加表:" << tableName;
+        m_vectorTableSelector->addItem(tableName, tableId);
+        comboIndex = m_vectorTableSelector->count() - 1;
+    }
+
+    // 添加Tab页签
+    qDebug() << "MainWindow::openVectorTable - 添加Tab页签:" << tableName;
+    addVectorTableTab(tableId, tableName);
+
+    // 选中新添加的表
+    qDebug() << "MainWindow::openVectorTable - 选中表在下拉框中的索引:" << comboIndex;
+    m_vectorTableSelector->setCurrentIndex(comboIndex);
+
+    // 确保向量表窗口可见
+    if (m_welcomeWidget->isVisible())
+    {
+        m_welcomeWidget->setVisible(false);
+        m_vectorTableContainer->setVisible(true);
+    }
+}

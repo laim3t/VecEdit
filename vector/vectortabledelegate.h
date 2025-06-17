@@ -51,10 +51,16 @@ private:
 
     // 辅助函数：通过UI索引获取列信息
     Vector::ColumnInfo getColumnInfoByIndex(int tableId, int uiColumnIndex) const;
+    
+    // 辅助函数：获取表的列配置（新增）
+    QList<Vector::ColumnInfo> getColumnConfiguration(int tableId) const;
 
     // 辅助函数：获取向量表选择器指针
     QObject *getVectorTableSelectorPtr() const;
 
+    // 静态缓存（新增）
+    static QMap<int, QList<Vector::ColumnInfo>> s_tableColumnsCache;
+    
     // 缓存
     mutable QStringList m_instructionOptions;
     mutable QStringList m_timeSetOptions;

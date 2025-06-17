@@ -27,7 +27,7 @@ struct BinaryFileHeader
     uint32_t magic_number;         // Magic number to identify file type
     uint16_t file_format_version;  // Version of this header/file structure
     uint16_t data_schema_version;  // Version of the data schema within the file (links to DB schema_version)
-    uint64_t row_count_in_file;    // Number of data rows stored in this file
+    uint64_t row_count_in_file;    // Number of data rows stored in this file (实际应用限制在int范围内)
     uint32_t column_count_in_file; // Number of columns per row
     uint64_t timestamp_created;    // UTC timestamp of creation
     uint64_t timestamp_updated;    // UTC timestamp of last update

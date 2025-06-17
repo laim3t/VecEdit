@@ -28,6 +28,7 @@
 #include <QSet>
 #include <algorithm>
 #include <QCryptographicHash>
+#include <limits> // 添加 std::numeric_limits 支持
 
 namespace
 {
@@ -163,6 +164,25 @@ namespace
             // 后续的反序列化函数会根据fileVersion参数适配低版本数据
         }
         rows.clear();
+        
+        // 安全检查：行数是否过大
+        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000) {
+            qCritical() << funcName << " - 文件头中的行数过大: " << header.row_count_in_file 
+                       << ", 超出安全限制或int最大值. 将限制行数处理.";
+            // 这里直接返回错误，防止巨大数据导致内存分配失败
+            file.close();
+            return false;
+        }
+        
+        // 安全预分配内存以提高性能
+        try {
+            rows.reserve(static_cast<int>(header.row_count_in_file));
+        } catch (const std::bad_alloc&) {
+            qCritical() << funcName << " - 内存分配失败，无法为" << header.row_count_in_file << "行数据分配内存";
+            file.close();
+            return false;
+        }
+        
         for (quint64 i = 0; i < header.row_count_in_file; ++i)
         {
             QByteArray rowBytes;
@@ -178,7 +198,22 @@ namespace
                 qWarning() << funcName << " - 行长度读取失败, 行:" << i;
                 return false;
             }
+            
+            // 添加对行大小的安全检查
+            const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
+            if (rowLen > MAX_REASONABLE_ROW_SIZE) 
+            {
+                qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen 
+                           << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏或格式错误.";
+                return false;
+            }
+            
+            try {
             rowBytes.resize(rowLen);
+            } catch (const std::bad_alloc&) {
+                qCritical() << funcName << " - 内存分配失败，无法为行" << i << "分配" << rowLen << "字节的内存";
+                return false;
+            }
             if (file.read(rowBytes.data(), rowLen) != rowLen)
             {
                 qWarning() << funcName << " - 行数据读取失败, 行:" << i;
@@ -3178,6 +3213,28 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             tableWidget->setUpdatesEnabled(true);
             return false;
         }
+        
+        // 对跳过的行大小也进行检查
+        const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
+        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE) 
+        {
+            qCritical() << funcName << " - 跳过行时检测到异常大的行大小:" << rowBlockSize 
+                       << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏.";
+            
+            // 将大小重置为合理值，防止seek操作超过文件边界
+            rowBlockSize = qMin(rowBlockSize, static_cast<quint32>(file.bytesAvailable()));
+            
+            if (rowBlockSize == 0) {
+                qWarning() << funcName << " - 文件中没有更多可用数据，无法继续跳过行";
+                file.close();
+                tableWidget->setRowCount(0);
+                tableWidget->blockSignals(false);
+                tableWidget->verticalHeader()->setUpdatesEnabled(true);
+                tableWidget->horizontalHeader()->setUpdatesEnabled(true);
+                tableWidget->setUpdatesEnabled(true);
+                return false;
+            }
+        }
 
         // 跳过这一行的数据
         if (!file.seek(file.pos() + rowBlockSize))
@@ -3212,10 +3269,56 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             qWarning() << funcName << " - 读取块大小失败，行:" << (startRow + i);
             break;
         }
+        
+        // 添加对行大小的安全检查
+        const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
+        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE) 
+        {
+            qCritical() << funcName << " - 检测到异常大的行大小:" << rowBlockSize 
+                       << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i) << ". 可能是文件损坏.";
+                       
+            // 创建一个空行，允许继续处理其他行
+            Vector::RowData emptyRow;
+            for (int j = 0; j < allColumns.size(); ++j) {
+                emptyRow.append(QVariant());
+            }
+            pageRows.append(emptyRow);
+            
+            // 尝试跳过这个巨大的数据块，如果可能的话
+            if (file.bytesAvailable() >= rowBlockSize) {
+                file.skip(rowBlockSize);
+            } else {
+                // 如果无法跳过，则中断处理
+                qWarning() << funcName << " - 无法跳过大型数据块，中断处理";
+                break;
+            }
+            
+            continue; // 跳过后面的处理，进入下一行
+        }
 
         // 读取这一行的数据
         QByteArray rowDataBlock;
+        try {
         rowDataBlock.resize(rowBlockSize);
+        } catch (const std::bad_alloc&) {
+            qCritical() << funcName << " - 内存分配失败，无法为行" << (startRow + i) << "分配" << rowBlockSize << "字节的内存";
+            
+            // 创建一个空行并继续
+            Vector::RowData emptyRow;
+            for (int j = 0; j < allColumns.size(); ++j) {
+                emptyRow.append(QVariant());
+            }
+            pageRows.append(emptyRow);
+            
+            // 尝试跳过这个无法分配内存的数据块
+            if (file.bytesAvailable() >= rowBlockSize) {
+                file.skip(rowBlockSize);
+            } else {
+                break;
+            }
+            
+            continue;
+        }
         qint64 bytesRead = in.readRawData(rowDataBlock.data(), rowBlockSize);
 
         if (bytesRead != rowBlockSize)
