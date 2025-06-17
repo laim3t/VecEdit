@@ -907,14 +907,21 @@ void MainWindow::refreshSidebarNavigator()
 
     if (labelRoot)
     {
-        // 创建一个集合存储所有唯一的标签
-        QSet<QString> uniqueLabels;
-        qDebug() << "MainWindow::refreshSidebarNavigator - 开始收集标签数据";
+        // 创建一个结构来存储标签及其在向量表中的位置信息
+        struct LabelInfo
+        {
+            QString name; // 标签名称
+            int tableId;  // 所属表ID
+            int rowIndex; // 在表中的行索引
+        };
 
-        // 1. 首先从当前打开的向量表中读取标签数据(这样可以立刻获取到最新修改，无需等待保存)
+        // 用于存储所有标签信息的列表
+        QList<LabelInfo> labelInfoList;
+
+        // 1. 优先从当前打开的表格中收集未保存的标签数据
         if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 0)
         {
-            // 获取当前表的列配置
+            // 获取当前表的信息
             int tabIndex = m_vectorTabWidget->currentIndex();
             if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
             {
@@ -937,32 +944,96 @@ void MainWindow::refreshSidebarNavigator()
                     }
                 }
 
-                // 如果找到了Label列，读取当前表格中的所有值
+                // 如果找到了Label列，收集当前表格中的标签（包括未保存的修改）
                 if (labelColumnIndex >= 0)
                 {
-                    qDebug() << "MainWindow::refreshSidebarNavigator - 从当前表格读取Label数据，列索引:" << labelColumnIndex;
+                    qDebug() << "MainWindow::refreshSidebarNavigator - 从当前表格UI收集未保存的标签数据，列索引:" << labelColumnIndex;
 
-                    // 从当前UI表格中收集标签
+                    // 用于记录当前表格中已经收集的标签
+                    QSet<QString> currentTableLabels;
+
+                    // 从UI表格中收集标签（当前页的数据，包括未保存的修改）
                     for (int row = 0; row < m_vectorTableWidget->rowCount(); row++)
                     {
                         QTableWidgetItem *item = m_vectorTableWidget->item(row, labelColumnIndex);
                         if (item && !item->text().isEmpty())
                         {
-                            uniqueLabels.insert(item->text());
-                            qDebug() << "  - 从UI表格收集标签:" << item->text();
+                            // 计算全局行索引
+                            int globalRowIndex = m_currentPage * m_pageSize + row;
+
+                            LabelInfo info;
+                            info.name = item->text();
+                            info.tableId = currentTableId;
+                            info.rowIndex = globalRowIndex;
+
+                            labelInfoList.append(info);
+                            currentTableLabels.insert(item->text());
+
+                            qDebug() << "  - 从UI表格收集标签:" << item->text() << "，行索引:" << globalRowIndex;
+                        }
+                    }
+
+                    // 获取当前表的所有行数据（包括其他页的数据）
+                    bool ok = false;
+                    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+
+                    if (ok && !allRows.isEmpty())
+                    {
+                        qDebug() << "MainWindow::refreshSidebarNavigator - 从二进制文件补充当前表的其他页标签数据";
+
+                        // 从其他页的数据中收集标签（避免与当前页的标签重复）
+                        for (int rowIdx = 0; rowIdx < allRows.size(); rowIdx++)
+                        {
+                            // 跳过当前页中的行
+                            int pageStart = m_currentPage * m_pageSize;
+                            int pageEnd = pageStart + m_pageSize - 1;
+                            if (rowIdx >= pageStart && rowIdx <= pageEnd)
+                                continue;
+
+                            if (labelColumnIndex < allRows[rowIdx].size())
+                            {
+                                QString label = allRows[rowIdx][labelColumnIndex].toString();
+                                if (!label.isEmpty() && !currentTableLabels.contains(label))
+                                {
+                                    LabelInfo info;
+                                    info.name = label;
+                                    info.tableId = currentTableId;
+                                    info.rowIndex = rowIdx;
+
+                                    labelInfoList.append(info);
+                                    currentTableLabels.insert(label);
+
+                                    qDebug() << "  - 从二进制文件补充当前表的标签:" << label << "，行索引:" << rowIdx;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 2. 从所有表的二进制文件中读取Label数据（包括当前表的所有页）
+        // 2. 从其他表中收集标签信息
         QSqlQuery tablesQuery(db);
         tablesQuery.exec("SELECT id FROM vector_tables");
+
+        // 获取当前表ID（用于跳过当前表，避免重复收集）
+        int currentTableId = -1;
+        int tabIndex = m_vectorTabWidget->currentIndex();
+        if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
+        {
+            currentTableId = m_tabToTableId[tabIndex];
+        }
 
         while (tablesQuery.next())
         {
             int tableId = tablesQuery.value(0).toInt();
+
+            // 跳过当前打开的表（已经在上面收集过了）
+            if (tableId == currentTableId)
+            {
+                qDebug() << "MainWindow::refreshSidebarNavigator - 跳过当前表ID:" << tableId << "，避免重复收集";
+                continue;
+            }
 
             // 从每个表获取Label列信息和二进制文件
             QString binFileName;
@@ -985,7 +1056,7 @@ void MainWindow::refreshSidebarNavigator()
 
                 if (labelColumnIndex >= 0)
                 {
-                    // 使用VectorDataHandler::getAllVectorRows读取所有行数据 - 此方法能读取所有页的数据
+                    // 使用VectorDataHandler::getAllVectorRows读取所有行数据
                     bool ok = false;
                     QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
 
@@ -995,52 +1066,22 @@ void MainWindow::refreshSidebarNavigator()
                                  << "成功读取" << allRows.size() << "行数据";
 
                         // 从所有行数据中收集标签
-                        for (const auto &row : allRows)
+                        for (int rowIdx = 0; rowIdx < allRows.size(); rowIdx++)
                         {
-                            if (labelColumnIndex < row.size())
+                            if (labelColumnIndex < allRows[rowIdx].size())
                             {
-                                QString label = row[labelColumnIndex].toString();
+                                QString label = allRows[rowIdx][labelColumnIndex].toString();
                                 if (!label.isEmpty())
                                 {
-                                    uniqueLabels.insert(label);
-                                    qDebug() << "  - 从表" << tableId << "收集到标签:" << label;
+                                    // 收集标签名称及其位置信息
+                                    LabelInfo info;
+                                    info.name = label;
+                                    info.tableId = tableId;
+                                    info.rowIndex = rowIdx;
+
+                                    labelInfoList.append(info);
+                                    qDebug() << "  - 从表" << tableId << "行" << rowIdx << "收集到标签:" << label;
                                 }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        qWarning() << "MainWindow::refreshSidebarNavigator - 无法使用getAllVectorRows读取表ID:" << tableId;
-
-                        // 备用方法：直接从二进制文件读取
-                        QString errorMsg;
-                        QString binFilePath = VectorDataHandler::instance().resolveBinaryFilePath(tableId, errorMsg);
-
-                        if (!binFilePath.isEmpty())
-                        {
-                            QList<Vector::RowData> rowData;
-                            if (Persistence::BinaryFileHelper::readAllRowsFromBinary(binFilePath, columns, schemaVersion, rowData))
-                            {
-                                qDebug() << "MainWindow::refreshSidebarNavigator - 备用方法：从二进制文件读取标签，表ID:" << tableId
-                                         << "，找到行数:" << rowData.size();
-
-                                // 从二进制文件中收集标签
-                                for (const auto &row : rowData)
-                                {
-                                    if (labelColumnIndex < row.size())
-                                    {
-                                        QString label = row[labelColumnIndex].toString();
-                                        if (!label.isEmpty())
-                                        {
-                                            uniqueLabels.insert(label);
-                                            qDebug() << "  - 从二进制文件收集标签:" << label;
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                qWarning() << "MainWindow::refreshSidebarNavigator - 无法从二进制文件读取数据:" << binFilePath;
                             }
                         }
                     }
@@ -1048,27 +1089,36 @@ void MainWindow::refreshSidebarNavigator()
             }
         }
 
-        // 添加唯一标签到侧边栏
-        QList<QString> sortedLabels;
-        // 将QSet中的元素转换为QList
-        for (const QString &label : uniqueLabels)
+        // 按照表ID和行索引排序标签
+        std::sort(labelInfoList.begin(), labelInfoList.end(),
+                  [](const LabelInfo &a, const LabelInfo &b)
+                  {
+                      if (a.tableId != b.tableId)
+                          return a.tableId < b.tableId;
+                      return a.rowIndex < b.rowIndex;
+                  });
+
+        qDebug() << "MainWindow::refreshSidebarNavigator - 总共收集到" << labelInfoList.size() << "个标签（按行顺序排序）";
+
+        // 添加排序后的标签到侧边栏
+        QSet<QString> addedLabels; // 用于跟踪已添加的标签（避免重复）
+        for (const LabelInfo &info : labelInfoList)
         {
-            sortedLabels.append(label);
-        }
-        std::sort(sortedLabels.begin(), sortedLabels.end());
-
-        qDebug() << "MainWindow::refreshSidebarNavigator - 总共收集到" << uniqueLabels.size() << "个唯一标签";
-
-        for (const QString &label : sortedLabels)
-        {
-            QTreeWidgetItem *labelItem = new QTreeWidgetItem(labelRoot);
-            labelItem->setText(0, label);
-            labelItem->setData(0, Qt::UserRole, label);
-
-            // 恢复选中状态
-            if (selectedItems.contains("labels") && selectedItems["labels"] == label)
+            // 只添加尚未添加的标签（保持唯一性）
+            if (!addedLabels.contains(info.name))
             {
-                labelItem->setSelected(true);
+                QTreeWidgetItem *labelItem = new QTreeWidgetItem(labelRoot);
+                labelItem->setText(0, info.name);
+                labelItem->setData(0, Qt::UserRole, info.name);
+
+                // 恢复选中状态
+                if (selectedItems.contains("labels") && selectedItems["labels"] == info.name)
+                {
+                    labelItem->setSelected(true);
+                }
+
+                // 标记为已添加
+                addedLabels.insert(info.name);
             }
         }
     }
