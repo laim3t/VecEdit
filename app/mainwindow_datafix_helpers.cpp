@@ -723,3 +723,75 @@ static QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowDa
 
     return newDataList;
 }
+
+/**
+ * @brief 检查Label值是否在整个表中重复
+ *
+ * @param tableId 向量表ID
+ * @param labelValue 要检查的Label值
+ * @param currentRow 当前行索引（在整个表中的实际索引，不是页内索引）
+ * @param duplicateRow [输出] 如果找到重复值，设置为重复行的索引
+ * @return bool 如果Label重复返回true，否则返回false
+ */
+bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int currentRow, int &duplicateRow)
+{
+    const QString funcName = "MainWindow::isLabelDuplicate";
+    qDebug() << funcName << " - 检查Label值:" << labelValue << "在表ID:" << tableId << "中是否重复";
+
+    if (labelValue.isEmpty())
+    {
+        qDebug() << funcName << " - Label值为空，不检查重复";
+        return false;
+    }
+
+    // 获取表的所有行数据
+    bool ok = false;
+    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+
+    if (!ok)
+    {
+        qWarning() << funcName << " - 无法获取表格所有行数据";
+        return false;
+    }
+
+    // 获取表的列配置
+    QList<Vector::ColumnInfo> columns = VectorDataHandler::instance().getAllColumnInfo(tableId);
+
+    // 查找Label列的索引
+    int labelColumnIndex = -1;
+    for (int i = 0; i < columns.size(); ++i)
+    {
+        if (columns[i].name.toLower() == "label")
+        {
+            labelColumnIndex = i;
+            break;
+        }
+    }
+
+    if (labelColumnIndex == -1)
+    {
+        qWarning() << funcName << " - 找不到Label列";
+        return false;
+    }
+
+    // 遍历所有行检查是否有重复的Label值
+    for (int i = 0; i < allRows.size(); ++i)
+    {
+        if (i != currentRow) // 跳过当前行
+        {
+            if (labelColumnIndex < allRows[i].size())
+            {
+                QString rowLabelValue = allRows[i][labelColumnIndex].toString().trimmed();
+                if (rowLabelValue == labelValue)
+                {
+                    duplicateRow = i;
+                    qDebug() << funcName << " - 发现重复的Label值:" << labelValue << "在行:" << i;
+                    return true;
+                }
+            }
+        }
+    }
+
+    qDebug() << funcName << " - 未发现重复的Label值";
+    return false;
+}

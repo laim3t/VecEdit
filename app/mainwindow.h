@@ -228,28 +228,31 @@ private:
     // 恢复窗口状态
     void restoreWindowState();
 
-    // 为新创建的向量表添加默认列配置
+    // 辅助函数：添加默认列配置
     bool addDefaultColumnConfigurations(int tableId);
 
-    // 修复没有列配置的现有向量表
+    // 辅助函数：修复没有列配置的表
     bool fixExistingTableWithoutColumns(int tableId);
 
-    // 检查和修复所有向量表的列配置
+    // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();
 
-    // 更新分页信息显示
+    // 辅助函数：更新分页信息
     void updatePaginationInfo();
 
-    // 辅助方法：从数据库加载向量表元数据
+    // 辅助函数：加载向量表元数据
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount);
 
-    // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
+    // 辅助函数：更新二进制文件头中的列数
     void updateBinaryHeaderColumnCount(int tableId);
 
-    // 新增：重新加载并刷新指定的向量表视图
+    // 辅助函数：重新加载并刷新向量表
     void reloadAndRefreshVectorTable(int tableId);
 
-    // TimeSet相关辅助方法
+    // 辅助函数：检查Label值是否重复
+    bool isLabelDuplicate(int tableId, const QString &labelValue, int currentRow, int &duplicateRow);
+
+    // 辅助函数：获取特定行的TimeSet ID
     int getTimeSetIdForRow(int tableId, int rowIndex);
     bool getTimeSetT1RAndPeriod(int timeSetId, int pinId, double &t1r, double &period);
     int getPinIdByName(const QString &pinName);

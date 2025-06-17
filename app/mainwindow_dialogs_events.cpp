@@ -348,9 +348,58 @@ void MainWindow::onTableCellChanged(int row, int column)
 
     // 检查是否是Label列发生变化
     bool isLabelColumn = false;
+    int labelColumnIndex = -1;
     if (column < columns.size() && columns[column].name.toLower() == "label")
     {
         isLabelColumn = true;
+        labelColumnIndex = column;
+    }
+
+    // 如果是Label列发生变化，检查是否有重复值
+    if (isLabelColumn && m_vectorTableWidget)
+    {
+        QTableWidgetItem *currentItem = m_vectorTableWidget->item(row, column);
+        if (currentItem)
+        {
+            QString newLabel = currentItem->text().trimmed();
+            if (!newLabel.isEmpty())
+            {
+                // 计算当前行在整个表中的实际索引（考虑分页）
+                int actualRowIndex = m_currentPage * m_pageSize + row;
+
+                // 检查Label值是否重复
+                int duplicateRow = -1;
+                if (isLabelDuplicate(tableId, newLabel, actualRowIndex, duplicateRow))
+                {
+                    // 阻止表格信号，避免递归触发
+                    m_vectorTableWidget->blockSignals(true);
+
+                    // 将单元格值恢复为空
+                    currentItem->setText("");
+
+                    // 重新启用表格信号
+                    m_vectorTableWidget->blockSignals(false);
+
+                    // 计算重复行在哪一页以及页内索引
+                    int duplicatePage = duplicateRow / m_pageSize + 1;      // 显示给用户的页码从1开始
+                    int duplicateRowInPage = duplicateRow % m_pageSize + 1; // 显示给用户的行号从1开始
+
+                    // 弹出警告对话框
+                    QMessageBox::warning(this,
+                                         "标签重复",
+                                         QString("标签 '%1' 已经存在于第 %2 页第 %3 行，请使用不同的标签值。")
+                                             .arg(newLabel)
+                                             .arg(duplicatePage)
+                                             .arg(duplicateRowInPage));
+
+                    // 让单元格保持编辑状态
+                    m_vectorTableWidget->editItem(currentItem);
+
+                    // 由于恢复了值，不需要标记为已修改
+                    return;
+                }
+            }
+        }
     }
 
     // 标记行为已修改
