@@ -14,7 +14,7 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
-      m_vectorTableModel(nullptr), m_isUsingNewTableModel(false)
+      m_vectorTableModel(nullptr)
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -50,12 +50,18 @@ MainWindow::MainWindow(QWidget *parent)
     // 初始化菜单状态
     updateMenuState();
 
-    // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
+    // 连接窗口大小变化信号，当窗口大小改变时，更新列宽度
     connect(this, &MainWindow::windowResized, [this]()
             {
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 6) {
-            qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
-            TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+        if (m_vectorTableView && m_vectorTableView->isVisible() && m_vectorTableView->model()) {
+            qDebug() << "MainWindow - 窗口大小改变，调整列宽度";
+            for (int col = 0; col < m_vectorTableView->model()->columnCount(); ++col) {
+                // 自动调整列宽，考虑表头和内容
+                m_vectorTableView->resizeColumnToContents(col);
+                // 设置最小列宽
+                int width = m_vectorTableView->columnWidth(col);
+                m_vectorTableView->setColumnWidth(col, qMax(width, 80));
+            }
         } });
 }
 
@@ -229,51 +235,10 @@ void MainWindow::setupMenu()
     QAction *toggleWaveformAction = m_waveformDock->toggleViewAction();
     toggleWaveformAction->setText(tr("显示波形图面板(&W)"));
     docksMenu->addAction(toggleWaveformAction);
-    
-    // 分割线
-    viewMenu->addSeparator();
-    
-    // 添加表格模式切换选项
-    QAction *toggleTableModeAction = viewMenu->addAction(tr("使用优化表格模型(&T)"));
-    toggleTableModeAction->setCheckable(true);
-    toggleTableModeAction->setChecked(m_isUsingNewTableModel);
-    connect(toggleTableModeAction, &QAction::toggled, [this](bool checked) {
-        qDebug() << "MainWindow - 表格模式切换:" << (checked ? "新表格模型" : "传统表格控件");
-        
-        // 保存当前选择的表ID
-        int currentTableId = -1;
-        if (m_vectorTableSelector->currentIndex() >= 0) {
-            currentTableId = m_vectorTableSelector->currentData().toInt();
-        }
-        
-        // 更改表格模式
-        m_isUsingNewTableModel = checked;
-        
-        // 同步视图状态
-        syncViewWithTableModel();
-        
-        // 如果有打开的表格，重新加载
-        if (currentTableId > 0 && m_vectorTableSelector->currentIndex() >= 0) {
-            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-            
-            if (checked) {
-                QMessageBox::information(this, "表格模式已切换", 
-                    "已切换到优化的表格模型 (VectorTableModel)。\n\n"
-                    "此模式下表格可以处理数百万行数据而不会导致内存溢出或UI卡顿。\n"
-                    "性能优化来自于按需加载策略和行缓存机制。");
-            } else {
-                QMessageBox::information(this, "表格模式已切换", 
-                    "已切换到传统表格控件 (QTableWidget)。\n\n"
-                    "注意：此模式下大型表格可能会出现性能问题。");
-            }
-        }
-    });
 }
 
 void MainWindow::setupVectorTableUI()
 {
-    qDebug() << "MainWindow::setupVectorTableUI() - 初始化向量表UI";
-
     // 创建向量表容器
     m_vectorTableContainer = new QWidget(this);
     QVBoxLayout *containerLayout = new QVBoxLayout(m_vectorTableContainer);
@@ -416,18 +381,7 @@ void MainWindow::setupVectorTableUI()
     // 将工具栏添加到容器布局的顶部
     containerLayout->addWidget(toolBar);
 
-    // 初始化两种表格显示方式
-    // 1. 创建传统QTableWidget表格
-    m_vectorTableWidget = new QTableWidget(this);
-    m_vectorTableWidget->setAlternatingRowColors(true);
-    m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
-    m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
-    m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
-    m_vectorTableWidget->verticalHeader()->setVisible(true);
-
-    // 2. 创建新的QTableView表格视图
+    // 创建QTableView表格视图
     m_vectorTableView = new QTableView(this);
     m_vectorTableView->setAlternatingRowColors(true);
     m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -436,39 +390,24 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
     m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableView->verticalHeader()->setVisible(true);
-    m_vectorTableView->setVisible(false); // 初始隐藏，待功能完成后逐步替换
     
     // 初始化表格模型
     m_vectorTableModel = new Vector::VectorTableModel(this);
-    m_isUsingNewTableModel = false; // 默认使用旧模式
     
     // 设置表格右键菜单和信号/槽连接
-    m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
+    m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_vectorTableView, &QTableView::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
 
-    // 监听单元格变更事件
-    connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
-
     // 单元格点击时更新向量列属性栏
-    connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
-
-    // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
-    connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
-            {
-        QWidget *widget = m_vectorTableWidget->cellWidget(row, column);
-        if (PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(widget)) {
-            connect(pinEdit, &PinValueLineEdit::textChanged, [this, row]() {
-                onTableRowModified(row);
-            });
-        } });
+    connect(m_vectorTableView, &QTableView::clicked, this, &MainWindow::updateVectorColumnProperties);
 
     // 添加选择变更事件处理，更新16进制值
-    connect(m_vectorTableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
+    connect(m_vectorTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             [this](const QItemSelection &selected, const QItemSelection &deselected)
             {
                 // 获取当前选中的列
-                QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+                QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
                 if (selectedIndexes.isEmpty())
                     return;
 
@@ -524,7 +463,7 @@ void MainWindow::setupVectorTableUI()
 
     // 创建项委托，处理单元格编辑
     m_itemDelegate = new VectorTableItemDelegate(this);
-    m_vectorTableWidget->setItemDelegate(m_itemDelegate);
+    m_vectorTableView->setItemDelegate(m_itemDelegate);
 
     // 创建分页控件
     m_paginationWidget = new QWidget(this);
@@ -532,81 +471,71 @@ void MainWindow::setupVectorTableUI()
     paginationLayout->setContentsMargins(5, 5, 5, 5);
 
     // 上一页按钮
-    m_prevPageButton = new QPushButton(tr("上一页"), this);
-    m_prevPageButton->setFixedWidth(80);
+    m_prevPageButton = new QPushButton(tr("上一页"), m_paginationWidget);
+    m_prevPageButton->setMaximumWidth(100);
     connect(m_prevPageButton, &QPushButton::clicked, this, &MainWindow::loadPrevPage);
     paginationLayout->addWidget(m_prevPageButton);
 
     // 页码信息标签
-    m_pageInfoLabel = new QLabel(tr("第 0/0 页，共 0 行"), this);
+    m_pageInfoLabel = new QLabel(m_paginationWidget);
+    m_pageInfoLabel->setAlignment(Qt::AlignCenter);
     paginationLayout->addWidget(m_pageInfoLabel);
 
     // 下一页按钮
-    m_nextPageButton = new QPushButton(tr("下一页"), this);
-    m_nextPageButton->setFixedWidth(80);
+    m_nextPageButton = new QPushButton(tr("下一页"), m_paginationWidget);
+    m_nextPageButton->setMaximumWidth(100);
     connect(m_nextPageButton, &QPushButton::clicked, this, &MainWindow::loadNextPage);
     paginationLayout->addWidget(m_nextPageButton);
 
-    // 每页行数选择
-    QLabel *pageSizeLabel = new QLabel(tr("每页行数:"), this);
+    // 页码跳转
+    QLabel *jumpLabel = new QLabel(tr("跳转到:"), m_paginationWidget);
+    paginationLayout->addWidget(jumpLabel);
+
+    m_pageJumper = new QSpinBox(m_paginationWidget);
+    m_pageJumper->setMinimum(1);
+    m_pageJumper->setMaximum(9999);
+    paginationLayout->addWidget(m_pageJumper);
+
+    m_jumpButton = new QPushButton(tr("跳转"), m_paginationWidget);
+    m_jumpButton->setMaximumWidth(60);
+    connect(m_jumpButton, &QPushButton::clicked, [this]() {
+        jumpToPage(m_pageJumper->value() - 1); // 传入的页码要减1，因为内部是从0开始计算的
+    });
+    paginationLayout->addWidget(m_jumpButton);
+
+    // 每页行数选择器
+    QLabel *pageSizeLabel = new QLabel(tr("每页显示:"), m_paginationWidget);
     paginationLayout->addWidget(pageSizeLabel);
 
-    m_pageSizeSelector = new QComboBox(this);
+    m_pageSizeSelector = new QComboBox(m_paginationWidget);
+    m_pageSizeSelector->addItem("50", 50);
     m_pageSizeSelector->addItem("100", 100);
+    m_pageSizeSelector->addItem("200", 200);
     m_pageSizeSelector->addItem("500", 500);
     m_pageSizeSelector->addItem("1000", 1000);
-    m_pageSizeSelector->addItem("5000", 5000);
-    m_pageSizeSelector->setCurrentIndex(0);
-    connect(m_pageSizeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            [this](int index)
-            {
-                int newPageSize = m_pageSizeSelector->itemData(index).toInt();
-                this->changePageSize(newPageSize);
+    m_pageSizeSelector->setCurrentIndex(1); // 默认选择100行
+    connect(m_pageSizeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            [this](int index) {
+                changePageSize(m_pageSizeSelector->currentData().toInt());
             });
     paginationLayout->addWidget(m_pageSizeSelector);
 
-    // 页码跳转
-    QLabel *jumpLabel = new QLabel(tr("跳转到:"), this);
-    paginationLayout->addWidget(jumpLabel);
-
-    m_pageJumper = new QSpinBox(this);
-    m_pageJumper->setMinimum(1);
-    m_pageJumper->setMaximum(1);
-    m_pageJumper->setFixedWidth(60);
-    paginationLayout->addWidget(m_pageJumper);
-
-    m_jumpButton = new QPushButton(tr("确定"), this);
-    m_jumpButton->setFixedWidth(50);
-    connect(m_jumpButton, &QPushButton::clicked, [this]()
-            {
-        int pageNum = m_pageJumper->value() - 1; // 转换为0-based索引
-        this->jumpToPage(pageNum); });
-    paginationLayout->addWidget(m_jumpButton);
-
-    // 添加伸缩项
-    paginationLayout->addStretch();
-
-    // 初始化分页相关变量
+    // 设置分页参数默认值
     m_currentPage = 0;
-    m_pageSize = 100; // 默认每页100行
+    m_pageSize = m_pageSizeSelector->currentData().toInt();
     m_totalPages = 0;
     m_totalRows = 0;
+    m_pagingEnabled = true;
 
-    // 创建Tab栏
+    // 将分页控件添加到容器布局
+    containerLayout->addWidget(m_paginationWidget);
+
+    // 创建Tab页签控件
     setupTabBar();
-
-    // 将布局添加到容器
-    containerLayout->addWidget(m_vectorTableWidget);
-    containerLayout->addWidget(m_vectorTableView);  // 添加新的表格视图控件
-    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
 
-    // 将容器添加到主布局
-    QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
-    if (mainLayout)
-    {
-        mainLayout->addWidget(m_vectorTableContainer);
-    }
+    // 设置Tab页签以占据主要空间
+    containerLayout->setStretchFactor(m_vectorTabWidget, 1);
 }
 
 void MainWindow::setupTabBar()
@@ -822,17 +751,17 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         }
 
         // 确保向量表容器适应新窗口尺寸
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible())
+        if (m_vectorTableView && m_vectorTableView->isVisible())
         {
             qDebug() << "MainWindow::resizeEvent - 调整向量表大小以适应窗口";
 
             // 刷新表格布局
-            m_vectorTableWidget->updateGeometry();
+            m_vectorTableView->updateGeometry();
 
             // 如果表格有列，调整列宽
-            if (m_vectorTableWidget->columnCount() > 6)
+            if (m_vectorTableView->columnCount() > 6)
             {
-                TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+                TableStyleManager::setPinColumnWidths(m_vectorTableView);
             }
         }
 
@@ -1319,31 +1248,5 @@ void MainWindow::setupVectorTableView()
                 updateWaveformView();
             }
         });
-    }
-}
-
-// 实现syncViewWithTableModel函数
-void MainWindow::syncViewWithTableModel()
-{
-    qDebug() << "MainWindow::syncViewWithTableModel() - 同步视图状态，当前模式:" 
-             << (m_isUsingNewTableModel ? "优化表格模型" : "传统表格控件");
-
-    // 根据当前模式隐藏/显示相应的表格控件
-    if (m_isUsingNewTableModel)
-    {
-        // 使用新的表格模型
-        m_vectorTableWidget->setVisible(false);
-        m_vectorTableView->setVisible(true);
-        
-        // 确保委托被正确设置
-        if (m_itemDelegate && m_vectorTableView) {
-            m_vectorTableView->setItemDelegate(m_itemDelegate);
-        }
-    }
-    else
-    {
-        // 使用传统表格控件
-        m_vectorTableView->setVisible(false);
-        m_vectorTableWidget->setVisible(true);
     }
 }

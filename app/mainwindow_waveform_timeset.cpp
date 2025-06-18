@@ -50,8 +50,8 @@ int MainWindow::getTimeSetIdForRow(int tableId, int rowIndex)
     QString timesetColumnName = columnsQuery.value(1).toString();
     int timesetColumnOrder = columnsQuery.value(2).toInt();
     
-    // 如果使用新表格模型
-    if (m_isUsingNewTableModel && m_vectorTableModel)
+    // 使用表格模型获取数据
+    if (m_vectorTableModel)
     {
         // 使用模型方式获取数据
         QModelIndex index = m_vectorTableModel->index(rowIndex, timesetColumnOrder);
@@ -73,11 +73,9 @@ int MainWindow::getTimeSetIdForRow(int tableId, int rowIndex)
         {
             qWarning() << "getTimeSetIdForRow - 模型索引无效";
         }
-        
-        // 获取失败时尝试从数据库获取
     }
     
-    // 使用传统方式或模型方式失败后的备选方案：从数据库直接查询
+    // 模型方式失败后的备选方案：从数据库直接查询
     
     // 获取指定行的数据
     bool ok = false;
