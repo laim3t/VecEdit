@@ -79,6 +79,29 @@ namespace Vector
         QVariant headerData(int section, Qt::Orientation orientation,
                             int role = Qt::DisplayRole) const override;
 
+        /**
+         * @brief 设置单元格数据 - 实现单元格编辑功能
+         * 
+         * 本方法处理用户对单元格的编辑操作，确保数据有效性，
+         * 并将修改持久化到后端存储。
+         *
+         * @param index 要修改的单元格索引
+         * @param value 新的单元格数据
+         * @param role 数据角色
+         * @return 成功修改返回true，否则返回false
+         */
+        bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+        
+        /**
+         * @brief 获取单元格标志 - 决定单元格的交互属性
+         * 
+         * 根据列的类型和属性，决定单元格是否可编辑、可选择等。
+         *
+         * @param index 单元格索引
+         * @return 单元格标志组合
+         */
+        Qt::ItemFlags flags(const QModelIndex &index) const override;
+
         // ---- 数据源设置接口 ----
 
         /**
@@ -133,6 +156,28 @@ namespace Vector
         mutable int m_cacheHits;               // 缓存命中计数(用于统计)
         mutable int m_cacheMisses;             // 缓存未命中计数
         const int MAX_CACHE_SIZE = 1000;       // 最大缓存行数
+
+        /**
+         * @brief 验证单元格数据是否有效
+         * 
+         * 根据列的类型和属性，验证用户输入的数据是否合法。
+         *
+         * @param column 列索引
+         * @param value 输入的数据值
+         * @return 有效返回true，无效返回false
+         */
+        bool validateCellData(int column, const QVariant &value) const;
+        
+        /**
+         * @brief 更新缓存中的行数据
+         * 
+         * 当单元格数据发生变化时，更新内存缓存。
+         *
+         * @param rowIndex 行索引
+         * @param colIndex 列索引
+         * @param value 新的数据值
+         */
+        void updateRowCache(int rowIndex, int colIndex, const QVariant &value);
 
         /**
          * @brief 加载表的元数据

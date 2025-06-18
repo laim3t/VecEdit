@@ -284,12 +284,16 @@ void MainWindow::setupVectorTableUI()
     QToolBar *toolBar = new QToolBar("向量表工具栏", m_vectorTableContainer);
     toolBar->setMovable(false);
     toolBar->setFloatable(false);
+    toolBar->setIconSize(QSize(24, 24));
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
     // 添加表格选择器
     QLabel *tableLabel = new QLabel(tr("当前向量表: "), toolBar);
     toolBar->addWidget(tableLabel);
 
+    // 向量表选择器
     m_vectorTableSelector = new QComboBox(toolBar);
+    m_vectorTableSelector->setObjectName("m_vectorTableSelector"); // 设置对象名
     m_vectorTableSelector->setMinimumWidth(250);
     toolBar->addWidget(m_vectorTableSelector);
 
@@ -1294,22 +1298,51 @@ void MainWindow::setupVectorTableView()
     connect(m_vectorTableView, &QTableView::clicked, [this](const QModelIndex &index) {
         updateVectorColumnProperties(index.row(), index.column());
     });
+    
+    // 设置项委托，处理单元格编辑
+    if (m_itemDelegate) {
+        m_vectorTableView->setItemDelegate(m_itemDelegate);
+    }
+    
+    // 连接数据更改信号 - 这个关键的连接在模型数据变化时更新UI和标记未保存状态
+    if (m_vectorTableModel) {
+        connect(m_vectorTableModel, &QAbstractItemModel::dataChanged,
+                [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) {
+            // 设置未保存标志
+            m_hasUnsavedChanges = true;
+            
+            // 更新窗口标题以显示未保存状态
+            updateWindowTitle(m_currentDbPath);
+            
+            // 如果波形图可见，更新波形图显示
+            if (m_isWaveformVisible) {
+                updateWaveformView();
+            }
+        });
+    }
 }
 
-// 同步视图和模型
+// 实现syncViewWithTableModel函数
 void MainWindow::syncViewWithTableModel()
 {
-    qDebug() << "MainWindow::syncViewWithTableModel() - 同步视图和模型状态";
-    
+    qDebug() << "MainWindow::syncViewWithTableModel() - 同步视图状态，当前模式:" 
+             << (m_isUsingNewTableModel ? "优化表格模型" : "传统表格控件");
+
+    // 根据当前模式隐藏/显示相应的表格控件
     if (m_isUsingNewTableModel)
     {
-        // 显示新表格视图，隐藏旧表格
-        m_vectorTableView->setVisible(true);
+        // 使用新的表格模型
         m_vectorTableWidget->setVisible(false);
+        m_vectorTableView->setVisible(true);
+        
+        // 确保委托被正确设置
+        if (m_itemDelegate && m_vectorTableView) {
+            m_vectorTableView->setItemDelegate(m_itemDelegate);
+        }
     }
     else
     {
-        // 显示旧表格，隐藏新表格视图
+        // 使用传统表格控件
         m_vectorTableView->setVisible(false);
         m_vectorTableWidget->setVisible(true);
     }

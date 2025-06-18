@@ -97,6 +97,20 @@ public:
     bool isRowModified(int tableId, int rowIndex);
 
     /**
+     * @brief 更新单元格数据
+     *
+     * 更新指定表格中指定单元格的数据，并持久化到二进制文件中。
+     * 这个方法是专为VectorTableModel设计的，支持高效的单点更新操作。
+     *
+     * @param tableId 向量表ID
+     * @param rowIndex 行索引（从0开始）
+     * @param columnIndex 列索引（从0开始）
+     * @param value 新的数据值
+     * @return bool 成功返回true，失败返回false
+     */
+    bool updateCellData(int tableId, int rowIndex, int columnIndex, const QVariant &value);
+
+    /**
      * @brief 按需获取单行数据
      *
      * 从二进制文件中读取指定行的数据，而不需要加载整个文件。

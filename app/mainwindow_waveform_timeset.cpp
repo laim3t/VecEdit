@@ -10,6 +10,9 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 // 获取向量表当前行的TimeSet ID
 int MainWindow::getTimeSetIdForRow(int tableId, int rowIndex)
@@ -27,65 +30,103 @@ int MainWindow::getTimeSetIdForRow(int tableId, int rowIndex)
     
     // 首先获取当前表的列信息
     QSqlQuery columnsQuery(db);
-    columnsQuery.prepare("SELECT id, column_name, column_order, column_type "
-                       "FROM VectorTableColumnConfiguration "
-                       "WHERE master_record_id = ? AND column_type = ? ORDER BY column_order");
+    columnsQuery.prepare("SELECT id, name, column_order FROM VectorTableColumnConfiguration "
+                         "WHERE master_record_id = ? AND column_type = 'TIMESET_ID' LIMIT 1");
     columnsQuery.addBindValue(tableId);
-    columnsQuery.addBindValue(static_cast<int>(Vector::ColumnDataType::TIMESET_ID));
     
     if (!columnsQuery.exec())
     {
-        qWarning() << "getTimeSetIdForRow - 获取TimeSet列失败: " << columnsQuery.lastError().text();
+        qWarning() << "getTimeSetIdForRow - 查询列信息失败:" << columnsQuery.lastError().text();
         return defaultTimeSetId;
     }
     
-    // 如果没有TimeSet列，返回默认值
     if (!columnsQuery.next())
     {
         qWarning() << "getTimeSetIdForRow - 未找到TimeSet列";
         return defaultTimeSetId;
     }
     
-    // 获取TimeSet列的ID和序号
-    int timeSetColId = columnsQuery.value(0).toInt();
-    int timeSetColOrder = columnsQuery.value(2).toInt();
+    // 获取TimeSet列的位置和名称
+    QString timesetColumnName = columnsQuery.value(1).toString();
+    int timesetColumnOrder = columnsQuery.value(2).toInt();
     
-    // 现在获取该行的TimeSet值
-    QSqlQuery dataQuery(db);
+    // 如果使用新表格模型
+    if (m_isUsingNewTableModel && m_vectorTableModel)
+    {
+        // 使用模型方式获取数据
+        QModelIndex index = m_vectorTableModel->index(rowIndex, timesetColumnOrder);
+        if (index.isValid())
+        {
+            QVariant value = m_vectorTableModel->data(index);
+            if (value.isValid() && !value.isNull())
+            {
+                bool ok = false;
+                int timesetId = value.toInt(&ok);
+                if (ok && timesetId > 0)
+                {
+                    qDebug() << "getTimeSetIdForRow - 从模型获取TimeSet ID成功:" << timesetId;
+                    return timesetId;
+                }
+            }
+        }
+        else
+        {
+            qWarning() << "getTimeSetIdForRow - 模型索引无效";
+        }
+        
+        // 获取失败时尝试从数据库获取
+    }
     
-    // 获取所有行数据
+    // 使用传统方式或模型方式失败后的备选方案：从数据库直接查询
+    
+    // 获取指定行的数据
     bool ok = false;
     QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
     
     if (!ok || allRows.isEmpty() || rowIndex >= allRows.size())
     {
-        qWarning() << "getTimeSetIdForRow - 读取行数据失败或索引超出范围, 行索引:" << rowIndex << ", 总行数:" << allRows.size();
+        qWarning() << "getTimeSetIdForRow - 获取行数据失败";
         return defaultTimeSetId;
     }
     
-    // 获取指定行的数据
-    Vector::RowData rowData = allRows[rowIndex];
-    
-    // 从行数据中获取TimeSet ID
-    if (timeSetColOrder < rowData.size())
+    // 获取指定行的TimeSet ID
+    if (timesetColumnOrder < allRows[rowIndex].size())
     {
-        QVariant timesetValue = rowData[timeSetColOrder];
-        bool convOk = false;
-        int timesetId = timesetValue.toInt(&convOk);
-        
-        if (convOk)
+        QVariant value = allRows[rowIndex][timesetColumnOrder];
+        if (value.isValid() && !value.isNull())
         {
-            return timesetId;
-        }
-        else
-        {
-            qWarning() << "getTimeSetIdForRow - 无法将TimeSet值转换为整数:" << timesetValue;
+            bool ok = false;
+            int timesetId = value.toInt(&ok);
+            if (ok && timesetId > 0)
+            {
+                return timesetId;
+            }
         }
     }
-    else
+    
+    // 如果上述方法都失败，尝试从数据库直接查询该行数据
+    QSqlQuery rowQuery(db);
+    rowQuery.prepare("SELECT data_json FROM vector_data WHERE table_id = ? AND row_index = ?");
+    rowQuery.addBindValue(tableId);
+    rowQuery.addBindValue(rowIndex);
+    
+    if (rowQuery.exec() && rowQuery.next())
     {
-        qWarning() << "getTimeSetIdForRow - TimeSet列序号超出范围:" 
-                   << timeSetColOrder << ", 行数据大小:" << rowData.size();
+        QString dataJson = rowQuery.value(0).toString();
+        QJsonDocument doc = QJsonDocument::fromJson(dataJson.toUtf8());
+        
+        if (doc.isArray())
+        {
+            QJsonArray array = doc.array();
+            if (timesetColumnOrder < array.size())
+            {
+                int timesetId = array.at(timesetColumnOrder).toInt();
+                if (timesetId > 0)
+                {
+                    return timesetId;
+                }
+            }
+        }
     }
     
     return defaultTimeSetId;

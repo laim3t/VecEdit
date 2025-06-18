@@ -210,6 +210,9 @@ private slots:
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
     void updateWindowTitle(const QString &dbPath = QString());
 
+    // 波形图交互和编辑
+    void addHighlightForPin(int rowIndex, int pinIndex, const QList<QPair<QString, int>> &pinColumns, const Vector::RowData &rowData);
+
 private:
     void setupUI();
     void setupMenu();

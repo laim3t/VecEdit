@@ -400,6 +400,13 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
 // 处理表格单元格变更
 void MainWindow::onTableCellChanged(int row, int column)
 {
+    // 在使用新表格模型模式下，单元格编辑由Model/View架构处理，不需要这里的处理逻辑
+    if (m_isUsingNewTableModel)
+    {
+        qDebug() << "MainWindow::onTableCellChanged - 使用优化表格模型模式，跳过传统处理逻辑";
+        return;
+    }
+    
     qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
 
     // 获取当前表的列配置信息
@@ -483,11 +490,13 @@ void MainWindow::onTableCellChanged(int row, int column)
 // 处理表格行修改
 void MainWindow::onTableRowModified(int row)
 {
+    const QString funcName = "MainWindow::onTableRowModified";
+    
     // 获取当前选中的向量表ID
     int tabIndex = m_vectorTabWidget->currentIndex();
     if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
     {
-        qWarning() << "MainWindow::onTableRowModified - 没有选中有效的向量表";
+        qWarning() << funcName << " - 没有选中有效的向量表";
         return;
     }
 
@@ -495,14 +504,32 @@ void MainWindow::onTableRowModified(int row)
 
     // 计算实际数据库中的行索引（考虑分页）
     int actualRowIndex = m_currentPage * m_pageSize + row;
-    qDebug() << "MainWindow::onTableRowModified - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
+    qDebug() << funcName << " - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
 
-    // 标记行为已修改
-    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
-
-    // 更新修改标志和窗口标题
+    // 更新修改标志和窗口标题 - 这部分在所有模式下都需要
     m_hasUnsavedChanges = true;
     updateWindowTitle(m_currentDbPath);
+
+    // 如果使用新的表格模型，不需要标记修改行，因为数据修改已经通过模型的setData保存
+    if (m_isUsingNewTableModel)
+    {
+        qDebug() << funcName << " - 使用优化表格模型模式，不需要标记修改行";
+        
+        // 如果波形图可见，则更新它
+        if (m_isWaveformVisible)
+        {
+            updateWaveformView();
+            // 确保修改后高亮仍然在正确的位置
+            if (m_selectedWaveformPoint >= 0)
+            {
+                highlightWaveformPoint(m_selectedWaveformPoint);
+            }
+        }
+        return;
+    }
+
+    // 传统模式：标记行为已修改
+    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
 
     // 如果波形图可见，则更新它
     if (m_isWaveformVisible)

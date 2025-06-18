@@ -35,7 +35,25 @@ void MainWindow::saveVectorTableData()
 
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
+    
+    // 如果使用新的表格模型，数据已经实时保存
+    if (m_isUsingNewTableModel && m_vectorTableModel) 
+    {
+        qDebug() << funcName << " - 使用优化表格模型模式，数据已经实时保存";
+        
+        // 清除修改标志
+        m_hasUnsavedChanges = false;
+        
+        // 更新窗口标题
+        updateWindowTitle(m_currentDbPath);
+        
+        // 显示消息
+        statusBar()->showMessage("数据已保存");
+        
+        return;
+    }
 
+    // 以下代码只在传统模式下执行
     // Ensure m_vectorTableWidget is the correct one associated with the current tab/selection
     QWidget *currentTabWidget = m_vectorTabWidget->currentWidget();
     QTableWidget *targetTableWidget = nullptr;
@@ -136,7 +154,6 @@ void MainWindow::saveVectorTableData()
             m_hasUnsavedChanges = false;
 
             // 清除所有修改行的标记
-            int tableId = m_vectorTableSelector->currentData().toInt();
             VectorDataHandler::instance().clearModifiedRows(tableId);
 
             // 更新窗口标题
@@ -591,14 +608,28 @@ void MainWindow::saveCurrentTableData()
     qDebug() << funcName << " - 开始保存当前页面数据";
 
     // 获取当前选择的向量表
-    if (m_vectorTableSelector->currentIndex() < 0 || !m_vectorTableWidget)
+    if (m_vectorTableSelector->currentIndex() < 0)
     {
-        qDebug() << funcName << " - 无当前表或表格控件，不进行保存";
+        qDebug() << funcName << " - 无当前表，不进行保存";
         return;
     }
 
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
+    
+    // 如果使用新的表格模型，数据已经实时保存
+    if (m_isUsingNewTableModel && m_vectorTableModel) 
+    {
+        qDebug() << funcName << " - 使用优化表格模型模式，数据已经实时保存，无需额外保存";
+        return;
+    }
+    
+    // 传统模式：需要使用vectorTableWidget
+    if (!m_vectorTableWidget)
+    {
+        qDebug() << funcName << " - 无表格控件，不进行保存";
+        return;
+    }
 
     // 保存结果变量
     QString errorMessage;
@@ -631,7 +662,12 @@ bool MainWindow::hasUnsavedChanges() const
     {
         return false;
     }
-
+    
+    // 直接返回内部标记，这个标记在新旧模式下都会被正确维护
+    return m_hasUnsavedChanges;
+    
+    /* 
+    // 下面是原有代码，保留作为参考
     // 获取当前选中的向量表ID
     int tableId = -1;
     int currentIdx = m_vectorTableSelector->currentIndex();
@@ -647,4 +683,5 @@ bool MainWindow::hasUnsavedChanges() const
     // 检查VectorDataHandler中是否有该表的修改行
     // 任何一行被修改，就表示有未保存的内容
     return VectorDataHandler::instance().isRowModified(tableId, -1);
+    */
 }

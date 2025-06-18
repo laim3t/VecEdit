@@ -1,4 +1,5 @@
 #include "vectortablemodel.h"
+#include "vectordatahandler.h"
 #include "../database/databasemanager.h"
 #include "../common/logger.h"
 
@@ -10,6 +11,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QCoreApplication>
+#include <QApplication>
+#include <QElapsedTimer>
 
 namespace Vector
 {
@@ -626,6 +629,231 @@ namespace Vector
         m_columnCount = 0;
         m_columns.clear();
         m_binaryFilePath.clear();
+    }
+
+    Qt::ItemFlags VectorTableModel::flags(const QModelIndex &index) const
+    {
+        if (!index.isValid() || m_tableId < 0 || m_columns.isEmpty())
+        {
+            return Qt::NoItemFlags;
+        }
+
+        // 基础标志：可启用、可选择
+        Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+
+        int column = index.column();
+        if (column < 0 || column >= m_columnCount)
+        {
+            return flags; // 返回基础标志
+        }
+
+        // 根据列类型确定是否可编辑
+        if (column < m_columns.size())
+        {
+            const ColumnInfo &colInfo = m_columns.at(column);
+
+            // 特殊列处理：（这些列通常需要特殊控件或特殊逻辑）
+            // 对于测试阶段，我们先让大多数类型都可编辑
+            switch (colInfo.type)
+            {
+            case ColumnDataType::TEXT:               // 普通文本允许编辑
+            case ColumnDataType::PIN_STATE_ID:       // 管脚状态允许编辑
+            case ColumnDataType::INSTRUCTION_ID:     // 指令ID允许编辑
+            case ColumnDataType::TIMESET_ID:         // TimeSet ID允许编辑
+            case ColumnDataType::INTEGER:            // 整数允许编辑
+            case ColumnDataType::REAL:               // 实数允许编辑
+            case ColumnDataType::BOOLEAN:            // 布尔值允许编辑
+                flags |= Qt::ItemIsEditable;
+                break;
+
+            case ColumnDataType::JSON_PROPERTIES:    // JSON属性暂不支持直接编辑
+            default:
+                // 保持为不可编辑
+                break;
+            }
+        }
+
+        return flags;
+    }
+
+    bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
+    {
+        // 只处理编辑角色
+        if (role != Qt::EditRole)
+        {
+            return false;
+        }
+
+        // 验证索引有效性
+        if (!index.isValid() || m_tableId < 0)
+        {
+            qWarning() << "VectorTableModel::setData - 索引无效或表ID无效";
+            return false;
+        }
+
+        int row = index.row();
+        int column = index.column();
+
+        // 范围检查
+        if (row < 0 || row >= m_rowCount || column < 0 || column >= m_columnCount)
+        {
+            qWarning() << "VectorTableModel::setData - 行或列超出范围，行: " << row 
+                       << ", 列: " << column << ", 最大行: " << m_rowCount 
+                       << ", 最大列: " << m_columnCount;
+            return false;
+        }
+
+        // 验证数据有效性
+        if (!validateCellData(column, value))
+        {
+            qWarning() << "VectorTableModel::setData - 数据验证失败，列: " << column 
+                       << ", 值: " << value;
+            return false;
+        }
+
+        // 检查值是否真的发生了变化
+        QVariant oldValue = data(index, Qt::DisplayRole);
+        if (oldValue == value)
+        {
+            // 值未变化，不需要更新
+            return true;
+        }
+
+        QElapsedTimer timer;
+        timer.start();
+
+                 // 尝试更新数据到后端存储
+        bool success = VectorDataHandler::instance().updateCellData(m_tableId, row, column, value);
+        
+        if (success)
+        {
+            // 更新成功，更新本地缓存
+            updateRowCache(row, column, value);
+
+            // 发出数据变更信号，通知视图更新UI
+            emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+            
+            qDebug() << "VectorTableModel::setData - 成功更新数据，表ID: " << m_tableId 
+                     << ", 行: " << row << ", 列: " << column << ", 耗时: " << timer.elapsed() << "毫秒";
+            return true;
+        }
+        else
+        {
+            qWarning() << "VectorTableModel::setData - 更新数据失败，表ID: " << m_tableId 
+                       << ", 行: " << row << ", 列: " << column;
+            return false;
+        }
+    }
+
+    bool VectorTableModel::validateCellData(int column, const QVariant &value) const
+    {
+        // 确保列索引有效
+        if (column < 0 || column >= m_columns.size())
+        {
+            qWarning() << "VectorTableModel::validateCellData - 列索引无效: " << column;
+            return false;
+        }
+
+        // 获取列信息
+        const ColumnInfo &colInfo = m_columns.at(column);
+
+        // 根据列类型进行验证
+        switch (colInfo.type)
+        {
+        case ColumnDataType::TEXT:
+            // 文本类型：几乎任何内容都是有效的
+            return true;
+
+        case ColumnDataType::INTEGER:
+        {
+            // 整数类型：确保可以转换为整数
+            bool ok;
+            value.toInt(&ok);
+            return ok;
+        }
+
+        case ColumnDataType::REAL:
+        {
+            // 实数类型：确保可以转换为浮点数
+            bool ok;
+            value.toDouble(&ok);
+            return ok;
+        }
+
+        case ColumnDataType::INSTRUCTION_ID:
+        {
+            // 指令ID：确保是有效的整数或预设值
+            bool ok;
+            int instructionId = value.toInt(&ok);
+            return ok && instructionId >= 0; // 假设指令ID必须是非负整数
+        }
+
+        case ColumnDataType::TIMESET_ID:
+        {
+            // TimeSet ID：确保是有效的整数或预设值
+            bool ok;
+            int timesetId = value.toInt(&ok);
+            return ok && timesetId >= 0; // 假设TimeSet ID必须是非负整数
+        }
+
+        case ColumnDataType::PIN_STATE_ID:
+        {
+            // 管脚状态：确保是有效的状态值 (常见值为 "0", "1", "L", "H", "X", "Z" 等)
+            QString pinState = value.toString().trimmed().toUpper();
+            return pinState.isEmpty() || // 允许空值
+                   pinState == "0" || pinState == "1" || // 数字状态
+                   pinState == "L" || pinState == "H" || // 低/高状态
+                   pinState == "X" || pinState == "Z" || // 不定/高阻状态
+                   pinState == "N" || pinState == "P"; // 可能的其他有效状态
+        }
+
+        case ColumnDataType::BOOLEAN:
+        {
+            // 布尔值：确保可以转换为布尔值
+            if (value.type() == QVariant::Bool)
+                return true;
+
+            QString str = value.toString().trimmed().toLower();
+            return str == "true" || str == "false" || str == "1" || str == "0" || 
+                   str == "yes" || str == "no" || str == "y" || str == "n";
+        }
+
+        case ColumnDataType::JSON_PROPERTIES:
+            // JSON属性：暂不支持通过常规方式编辑
+            return false;
+
+        default:
+            qWarning() << "VectorTableModel::validateCellData - 未知的列类型: " << static_cast<int>(colInfo.type);
+            return false;
+        }
+    }
+
+    void VectorTableModel::updateRowCache(int rowIndex, int colIndex, const QVariant &value)
+    {
+        // 检查缓存中是否已有该行数据
+        if (m_rowCache.contains(rowIndex))
+        {
+            // 确保列索引有效
+            if (colIndex < m_rowCache[rowIndex].size())
+            {
+                // 更新缓存中的值
+                m_rowCache[rowIndex][colIndex] = value;
+                qDebug() << "VectorTableModel::updateRowCache - 更新缓存，行: " << rowIndex 
+                         << ", 列: " << colIndex << ", 新值: " << value;
+            }
+            else
+            {
+                qWarning() << "VectorTableModel::updateRowCache - 列索引超出缓存数据范围，行: " 
+                           << rowIndex << ", 列: " << colIndex << ", 缓存列数: " 
+                           << m_rowCache[rowIndex].size();
+            }
+        }
+        else
+        {
+            // 行不在缓存中，不进行任何操作
+            // 下次访问时会从文件中重新加载，自然包含更新后的数据
+            qDebug() << "VectorTableModel::updateRowCache - 行不在缓存中，行: " << rowIndex;
+        }
     }
 
 } // namespace Vector

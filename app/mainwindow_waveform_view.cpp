@@ -236,44 +236,78 @@ void MainWindow::updateWaveformView()
 
     // 2.1 获取所有管脚信息
     QList<QPair<QString, int>> pinColumns; // 存储管脚名称和对应的列索引
-
-    if (m_waveformPinSelector->count() == 0 && m_vectorTableWidget)
+    int currentTableId = m_vectorTableSelector->currentData().toInt();
+    QList<Vector::ColumnInfo> columns;
+    
+    // 根据使用的模式获取表格列配置
+    if (m_isUsingNewTableModel && m_vectorTableModel)
     {
-        // 清空现有的选择项
-        m_waveformPinSelector->clear();
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        columns = getCurrentColumnConfiguration(currentTableId);
+        
+        // 从数据模型收集所有管脚信息
+        for (int col = 0; col < columns.size(); ++col)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem)
+            if (columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
             {
-                QString headerText = headerItem->text();
-                int currentTableId = m_vectorTableSelector->currentData().toInt();
-                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                QString displayName = columns[col].name;
+                pinColumns.append(qMakePair(displayName, col));
+                
+                // 确保下拉选择器中有此管脚
+                bool found = false;
+                for (int i = 0; i < m_waveformPinSelector->count(); ++i)
                 {
-                    QString displayName = headerText.split('\n').first();
-                    m_waveformPinSelector->addItem(displayName, headerText);
-                    // 同时收集所有管脚信息
-                    pinColumns.append(qMakePair(displayName, col));
+                    if (m_waveformPinSelector->itemText(i) == displayName)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found)
+                {
+                    m_waveformPinSelector->addItem(displayName, displayName);
                 }
             }
         }
     }
-    else
+    else if (m_vectorTableWidget)
     {
-        // 如果选择器已经有项目，收集所有管脚信息
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        if (m_waveformPinSelector->count() == 0)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem)
+            // 清空现有的选择项
+            m_waveformPinSelector->clear();
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
             {
-                QString headerText = headerItem->text();
-                int currentTableId = m_vectorTableSelector->currentData().toInt();
-                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem)
                 {
-                    QString displayName = headerText.split('\n').first();
-                    pinColumns.append(qMakePair(displayName, col));
+                    QString headerText = headerItem->text();
+                    columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        m_waveformPinSelector->addItem(displayName, headerText);
+                        // 同时收集所有管脚信息
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
+                }
+            }
+        }
+        else
+        {
+            // 如果选择器已经有项目，收集所有管脚信息
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+            {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem)
+                {
+                    QString headerText = headerItem->text();
+                    columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
                 }
             }
         }
@@ -290,13 +324,29 @@ void MainWindow::updateWaveformView()
         pinColumns.clear();
 
         // 查找当前选中管脚的列索引
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        if (m_isUsingNewTableModel && m_vectorTableModel)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem && headerItem->text() == pinFullName)
+            for (int col = 0; col < columns.size(); ++col)
             {
-                pinColumns.append(qMakePair(pinName, col));
-                break;
+                if (columns[col].name == pinName && 
+                    columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    pinColumns.append(qMakePair(pinName, col));
+                    qDebug() << "updateWaveformView - 在新表格模型中找到管脚" << pinName << "列索引为" << col;
+                    break;
+                }
+            }
+        } 
+        else if (m_vectorTableWidget)
+        {
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+            {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem && headerItem->text() == pinFullName)
+                {
+                    pinColumns.append(qMakePair(pinName, col));
+                    break;
+                }
             }
         }
     }
@@ -307,40 +357,62 @@ void MainWindow::updateWaveformView()
         return;
     }
 
-    int currentTableId = m_vectorTableSelector->currentData().toInt();
-    bool ok = false;
-    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
-    if (!ok)
+    // 获取表格数据 - 根据不同的模式
+    int rowCount = 0;
+    QList<Vector::RowData> allRows; // 存储所有行数据
+    bool needUpdateCache = false; // 是否需要从UI更新缓存
+    
+    if (m_isUsingNewTableModel && m_vectorTableModel)
     {
-        qWarning() << "updateWaveformView - Failed to get all vector rows.";
-        m_waveformPlot->replot();
-        return;
+        // 使用优化模型时，直接从模型获取行数
+        rowCount = m_vectorTableModel->rowCount();
+        // 注意：这里不会一次性加载所有数据，而是后续按需加载
+        needUpdateCache = false;
     }
-
-    // [新增] 使用当前页面中已修改的、最新的数据"覆盖"从数据处理器获取的基础数据
-    if (m_vectorTableWidget)
+    else
     {
-        int firstRowOfPage = m_currentPage * m_pageSize;
-        for (int pinIndex = 0; pinIndex < pinColumns.size(); ++pinIndex)
+        // 传统模式：一次性加载所有数据
+        bool ok = false;
+        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        if (!ok)
         {
-            int pinColumnIndex = pinColumns[pinIndex].second;
-            for (int i = 0; i < m_vectorTableWidget->rowCount(); ++i)
+            qWarning() << "updateWaveformView - Failed to get all vector rows.";
+            m_waveformPlot->replot();
+            return;
+        }
+        rowCount = allRows.count();
+        
+        // [新增] 使用当前页面中已修改的、最新的数据"覆盖"从数据处理器获取的基础数据
+        if (m_vectorTableWidget)
+        {
+            int firstRowOfPage = m_currentPage * m_pageSize;
+            for (int pinIndex = 0; pinIndex < pinColumns.size(); ++pinIndex)
             {
-                int actualRowIndex = firstRowOfPage + i;
-                if (actualRowIndex < allRows.count())
+                int pinColumnIndex = pinColumns[pinIndex].second;
+                for (int i = 0; i < m_vectorTableWidget->rowCount(); ++i)
                 {
-                    QTableWidgetItem *item = m_vectorTableWidget->item(i, pinColumnIndex);
-                    if (item)
+                    int actualRowIndex = firstRowOfPage + i;
+                    if (actualRowIndex < allRows.count())
                     {
-                        // 使用表格当前的值更新 allRows 对应位置的值
-                        allRows[actualRowIndex][pinColumnIndex] = item->text();
+                        QTableWidgetItem *item = m_vectorTableWidget->item(i, pinColumnIndex);
+                        if (item)
+                        {
+                            // 使用表格当前的值更新 allRows 对应位置的值
+                            allRows[actualRowIndex][pinColumnIndex] = item->text();
+                        }
                     }
                 }
             }
         }
     }
 
-    int rowCount = allRows.count();
+    if (rowCount <= 0)
+    {
+        qWarning() << "updateWaveformView - No rows found.";
+        m_waveformPlot->replot();
+        return;
+    }
+
     int pinCount = pinColumns.size();
 
     // 2.2 为每个管脚计算Y轴位置
@@ -381,22 +453,36 @@ void MainWindow::updateWaveformView()
             {
                 int timeSetColOrder = colQuery.value(0).toInt();
 
-                // 然后获取第一行的TimeSet值
-                QSqlQuery rowQuery(db);
-                rowQuery.prepare("SELECT data_json FROM vector_data WHERE table_id = ? ORDER BY row_index LIMIT 1");
-                rowQuery.addBindValue(currentTableId);
-
-                if (rowQuery.exec() && rowQuery.next())
+                if (m_isUsingNewTableModel && m_vectorTableModel && m_vectorTableModel->rowCount() > 0)
                 {
-                    QString dataJson = rowQuery.value(0).toString();
-                    QJsonDocument doc = QJsonDocument::fromJson(dataJson.toUtf8());
-                    if (doc.isArray())
+                    // 从模型中获取数据
+                    QModelIndex index = m_vectorTableModel->index(0, timeSetColOrder);
+                    QVariant value = m_vectorTableModel->data(index);
+                    if (value.isValid())
                     {
-                        QJsonArray array = doc.array();
-                        if (timeSetColOrder < array.size())
+                        firstRowTimeSetId = value.toInt();
+                        qDebug() << "updateWaveformView - 从模型获取到TimeSet ID:" << firstRowTimeSetId;
+                    }
+                }
+                else
+                {
+                    // 传统方式：从数据库获取
+                    QSqlQuery rowQuery(db);
+                    rowQuery.prepare("SELECT data_json FROM vector_data WHERE table_id = ? ORDER BY row_index LIMIT 1");
+                    rowQuery.addBindValue(currentTableId);
+
+                    if (rowQuery.exec() && rowQuery.next())
+                    {
+                        QString dataJson = rowQuery.value(0).toString();
+                        QJsonDocument doc = QJsonDocument::fromJson(dataJson.toUtf8());
+                        if (doc.isArray())
                         {
-                            firstRowTimeSetId = array.at(timeSetColOrder).toInt();
-                            qDebug() << "updateWaveformView - 直接从数据库获取到TimeSet ID:" << firstRowTimeSetId;
+                            QJsonArray array = doc.array();
+                            if (timeSetColOrder < array.size())
+                            {
+                                firstRowTimeSetId = array.at(timeSetColOrder).toInt();
+                                qDebug() << "updateWaveformView - 直接从数据库获取到TimeSet ID:" << firstRowTimeSetId;
+                            }
                         }
                     }
                 }
@@ -512,7 +598,31 @@ void MainWindow::updateWaveformView()
         for (int i = 0; i < rowCount; ++i)
         {
             xData[i] = i + pin_t1rRatio; // 使用当前管脚的T1R比例作为偏移量
-            QChar state = allRows[i][pinColumnIndex].toString().at(0);
+            
+            // 根据不同模式获取单元格数据
+            QString cellValue;
+            if (m_isUsingNewTableModel && m_vectorTableModel)
+            {
+                // 从模型获取数据
+                QModelIndex index = m_vectorTableModel->index(i, pinColumnIndex);
+                if (index.isValid())
+                {
+                    cellValue = m_vectorTableModel->data(index).toString();
+                    // 打印调试信息，帮助诊断
+                    if (i < 5) // 只打印前几行以避免日志过多
+                    {
+                        qDebug() << "波形数据 - 行:" << i << ", 管脚:" << pinName 
+                                 << ", 列:" << pinColumnIndex << ", 值:" << cellValue;
+                    }
+                }
+            }
+            else
+            {
+                // 从预加载数据获取
+                cellValue = allRows[i][pinColumnIndex].toString();
+            }
+            
+            QChar state = cellValue.isEmpty() ? 'L' : cellValue.at(0); // 默认为L（低电平）
 
             // 初始化
             mainLineData[i] = qQNaN();
@@ -644,7 +754,20 @@ void MainWindow::updateWaveformView()
 
             if (rowCount > 0)
             {
-                QChar firstPointState = allRows[0][pinColumnIndex].toString().at(0);
+                QString firstCellValue;
+                if (m_isUsingNewTableModel && m_vectorTableModel)
+                {
+                    // 从模型获取第一个单元格数据
+                    QModelIndex index = m_vectorTableModel->index(0, pinColumnIndex);
+                    firstCellValue = m_vectorTableModel->data(index).toString();
+                }
+                else
+                {
+                    // 从预加载数据获取
+                    firstCellValue = allRows[0][pinColumnIndex].toString();
+                }
+                
+                QChar firstPointState = firstCellValue.isEmpty() ? 'L' : firstCellValue.at(0);
                 switch (firstPointState.toLatin1())
                 {
                 case '1':
@@ -668,7 +791,7 @@ void MainWindow::updateWaveformView()
             // 创建从中间线到第一个波形点的竖线过渡
             QCPItemLine *transitionLine = new QCPItemLine(m_waveformPlot);
             transitionLine->setProperty("isT1RTransition", true);
-            transitionLine->setPen(QPen(Qt::gray, 1.0));
+            transitionLine->setPen(QPen(Qt::gray, 1.5));
             transitionLine->start->setCoords(pin_t1rRatio, pinMidY); // 从pin_t1rRatio位置开始
             transitionLine->end->setCoords(pin_t1rRatio, firstWaveY);
         }
@@ -705,7 +828,20 @@ void MainWindow::updateWaveformView()
         // 绘制独立的样式Item和覆盖层
         for (int i = 0; i < rowCount; ++i)
         {
-            QChar state = allRows[i][pinColumnIndex].toString().at(0);
+            // 获取单元格状态
+            QString cellValue;
+            if (m_isUsingNewTableModel && m_vectorTableModel)
+            {
+                // 从模型获取数据
+                QModelIndex index = m_vectorTableModel->index(i, pinColumnIndex);
+                cellValue = m_vectorTableModel->data(index).toString();
+            }
+            else
+            {
+                // 从预加载数据获取
+                cellValue = allRows[i][pinColumnIndex].toString();
+            }
+            QChar state = cellValue.isEmpty() ? 'L' : cellValue.at(0);
 
             // 绘制 'V' 状态的红色方框
             if (state == 'V')
@@ -732,7 +868,19 @@ void MainWindow::updateWaveformView()
             // 绘制 '->X' 的灰色过渡线覆盖层
             if (i > 0)
             {
-                QChar previousState = allRows[i - 1][pinColumnIndex].toString().at(0);
+                QString prevCellValue;
+                if (m_isUsingNewTableModel && m_vectorTableModel)
+                {
+                    QModelIndex prevIndex = m_vectorTableModel->index(i - 1, pinColumnIndex);
+                    prevCellValue = m_vectorTableModel->data(prevIndex).toString();
+                }
+                else
+                {
+                    prevCellValue = allRows[i - 1][pinColumnIndex].toString();
+                }
+                
+                QChar previousState = prevCellValue.isEmpty() ? 'L' : prevCellValue.at(0);
+                
                 if (state == 'X')
                 {
                     double previousY = qQNaN();
@@ -897,141 +1045,208 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 // 高亮显示波形图中的指定点
 void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
 {
-    if (!m_waveformPlot || rowIndex < 0)
+    if (!m_waveformPlot)
         return;
 
-    // 保存选中的点
     m_selectedWaveformPoint = rowIndex;
 
-    // 移除所有已有的选中标记和文本标签
+    // 清除之前的高亮项
     for (int i = m_waveformPlot->itemCount() - 1; i >= 0; i--)
     {
         if (auto item = m_waveformPlot->item(i))
         {
-            if (item->property("isSelectionHighlight").toBool() || item->property("isHexValueLabel").toBool())
+            if (item->property("isSelectionHighlight").toBool() || 
+                item->property("isHexValueLabel").toBool())
             {
-                m_waveformPlot->removeItem(i);
+                m_waveformPlot->removeItem(item);
             }
         }
     }
 
-    // 获取当前显示的管脚列表，以验证pinIndex
-    QList<QPair<QString, int>> displayedPinColumns;
-    if (m_vectorTableWidget)
+    if (rowIndex < 0)
     {
-        QList<QPair<QString, int>> allPinColumns;
+        m_waveformPlot->replot();
+        return;
+    }
+
+    int currentTableId = m_vectorTableSelector->currentData().toInt();
+    bool ok = false;
+    QList<Vector::RowData> allRows;  // 只在传统模式下填充
+    
+    if (!m_isUsingNewTableModel)
+    {
+        // 传统模式：加载所有行数据
+        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        if (!ok || allRows.isEmpty() || rowIndex >= allRows.count())
+        {
+            qWarning() << "highlightWaveformPoint - 无法获取行数据或行索引超出范围";
+            return;
+        }
+    }
+    else if (m_vectorTableModel)
+    {
+        // 模型模式：检查行索引是否有效
+        if (rowIndex >= m_vectorTableModel->rowCount())
+        {
+            qWarning() << "highlightWaveformPoint - 行索引超出模型行数范围";
+            return;
+        }
+    }
+    else
+    {
+        qWarning() << "highlightWaveformPoint - 无效的模型或模式";
+        return;
+    }
+
+    // 获取要高亮的行
+    Vector::RowData rowData;
+    if (m_isUsingNewTableModel && m_vectorTableModel)
+    {
+        // 从模型获取行数据
+        for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
+        {
+            QModelIndex index = m_vectorTableModel->index(rowIndex, col);
+            rowData.append(m_vectorTableModel->data(index));
+        }
+    }
+    else
+    {
+        // 从预加载的数据获取
+        rowData = allRows[rowIndex];
+    }
+
+    // 获取所有管脚信息
+    QList<QPair<QString, int>> pinColumns;
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+    
+    if (m_isUsingNewTableModel && m_vectorTableModel)
+    {
+        // 模型模式：从列配置获取PIN_STATE列
+        for (int col = 0; col < columns.size(); ++col)
+        {
+            if (columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
+                pinColumns.append(qMakePair(columns[col].name, col));
+            }
+        }
+    }
+    else if (m_vectorTableWidget)
+    {
+        // 传统模式：从表格表头获取PIN_STATE列
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
             QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
             if (headerItem)
             {
-                int currentTableId = m_vectorTableSelector->currentData().toInt();
-                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                QString headerText = headerItem->text();
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
-                    allPinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
-                }
-            }
-        }
-
-        if (m_showAllPins)
-        {
-            displayedPinColumns = allPinColumns;
-        }
-        else if (m_waveformPinSelector->count() > 0)
-        {
-            QString selectedPinName = m_waveformPinSelector->currentText();
-            for (const auto &pin : allPinColumns)
-            {
-                if (pin.first == selectedPinName)
-                {
-                    displayedPinColumns.append(pin);
-                    break;
+                    QString displayName = headerText.split('\n').first();
+                    pinColumns.append(qMakePair(displayName, col));
                 }
             }
         }
     }
 
-    if (pinIndex < 0 || pinIndex >= displayedPinColumns.size())
+    // 如果没有指定特定的管脚，高亮所有管脚
+    if (pinIndex < 0 || pinIndex >= pinColumns.size())
     {
-        m_waveformPlot->replot();
-        return; // 点击位置无效，不在任何管脚上
+        for (int i = 0; i < pinColumns.size(); ++i)
+        {
+            addHighlightForPin(rowIndex, i, pinColumns, rowData);
+        }
     }
-
-    // [FIX] 获取当前管脚的T1R偏移量，而不是使用全局最大偏移
-    QString pinName = displayedPinColumns[pinIndex].first;
-    int pinId = getPinIdByName(pinName);
-    double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
-
-    // 计算特定管脚的Y轴边界
-    const double PIN_HEIGHT = 25.0;
-    const double PIN_GAP = 10.0;
-    double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP);
-    double pinHighY = pinBaseY + PIN_HEIGHT;
-    double pinLowY = pinBaseY;
-
-    // 创建一个只高亮特定管脚的矩形
-    QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
-    highlightRect->setLayer("selection");
-    highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex + pin_t1rRatio, pinHighY);
-    highlightRect->bottomRight->setCoords(rowIndex + pin_t1rRatio + 1.0, pinLowY);
-    highlightRect->setPen(QPen(Qt::blue, 1));
-    highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
-
-    // 获取对应管脚的列索引
-    int pinColumnIndex = displayedPinColumns[pinIndex].second;
-
-    // 创建并显示十六进制值标签
-    if (pinColumnIndex >= 0)
+    else
     {
-        // 计算行应该在哪个页面
-        int pageForRow = rowIndex / m_pageSize;
-        int rowInPage = rowIndex % m_pageSize;
-
-        // 如果需要，切换到正确的页面
-        if (pageForRow != m_currentPage)
-        {
-            saveCurrentTableData();
-            m_currentPage = pageForRow;
-            updatePaginationInfo();
-            int tableId = m_vectorTableSelector->currentData().toInt();
-            VectorDataHandler::instance().loadVectorTablePageData(
-                tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-        }
-
-        if (rowInPage < m_vectorTableWidget->rowCount())
-        {
-            QTableWidgetItem *item = m_vectorTableWidget->item(rowInPage, pinColumnIndex);
-            if (item)
-            {
-                QString cellValue = item->text();
-                bool ok;
-                int intValue = cellValue.toInt(&ok);
-                QString hexValue = ok ? "0x" + QString::number(intValue, 16) : cellValue;
-
-                QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
-                hexLabel->setLayer("selection");
-                hexLabel->setProperty("isHexValueLabel", true);
-                hexLabel->setText(hexValue);
-                hexLabel->setFont(QFont("sans-serif", 10));
-                hexLabel->setColor(Qt::black);
-                hexLabel->setBrush(QBrush(QColor(240, 240, 240, 200)));
-                hexLabel->setPen(QPen(Qt::gray));
-                hexLabel->setPadding(QMargins(5, 2, 5, 2));
-
-                // 将标签定位在管脚波形的垂直中心
-                double pinMidY = (pinHighY + pinLowY) / 2.0;
-                hexLabel->position->setCoords(rowIndex + pin_t1rRatio + 0.5, pinMidY);
-
-                m_vectorTableWidget->setCurrentCell(rowInPage, pinColumnIndex);
-                m_vectorTableWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
-            }
-        }
+        // 只高亮指定的管脚
+        addHighlightForPin(rowIndex, pinIndex, pinColumns, rowData);
     }
 
     // 重绘波形图
     m_waveformPlot->replot();
+}
+
+// 添加高亮效果
+void MainWindow::addHighlightForPin(int rowIndex, int pinIndex, const QList<QPair<QString, int>> &pinColumns, const Vector::RowData &rowData)
+{
+    if (pinIndex < 0 || pinIndex >= pinColumns.size() || !m_waveformPlot)
+        return;
+
+    // 获取管脚列信息
+    QString pinName = pinColumns[pinIndex].first;
+    int pinColumnIndex = pinColumns[pinIndex].second;
+
+    // 检查列索引是否合法
+    if (pinColumnIndex < 0 || pinColumnIndex >= rowData.size())
+    {
+        qWarning() << "addHighlightForPin - 列索引超出范围:" << pinColumnIndex << ", 行数据大小:" << rowData.size();
+        return;
+    }
+
+    // 获取管脚ID
+    int pinId = getPinIdByName(pinName);
+    double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+
+    // --- 从缓存中获取当前管脚的T1R比例 ---
+    const double PIN_HEIGHT = 25.0;  // 每个管脚波形的高度
+    const double PIN_GAP = 10.0;     // 管脚之间的间隔
+
+    // 计算当前管脚的Y轴位置
+    double pinBaseY = pinIndex * (PIN_HEIGHT + PIN_GAP); // 当前管脚的基准Y坐标
+    double pinHighY = pinBaseY + PIN_HEIGHT;             // 高电平Y坐标
+    double pinLowY = pinBaseY;                           // 低电平Y坐标
+    double pinMidY = (pinHighY + pinLowY) / 2.0;         // 中间电平Y坐标
+
+    // 获取该点的状态
+    QVariant cellData = rowData[pinColumnIndex];
+    QString cellStr = cellData.toString();
+    QChar state = cellStr.isEmpty() ? 'L' : cellStr.at(0);
+
+    // 确定高亮点的Y坐标（根据其状态）
+    double highlightY = pinLowY; // 默认为低电平
+    switch (state.toLatin1())
+    {
+    case '1':
+    case 'H':
+        highlightY = pinHighY;
+        break;
+    case '0':
+    case 'L':
+        highlightY = pinLowY;
+        break;
+    case 'M':
+    case 'X':
+        highlightY = pinMidY;
+        break;
+    }
+
+    // 创建高亮点
+    QCPItemEllipse *highlight = new QCPItemEllipse(m_waveformPlot);
+    highlight->setProperty("isSelectionHighlight", true);
+    highlight->setPen(QPen(Qt::red, 1.5));
+    highlight->setBrush(QBrush(QColor(255, 0, 0, 70)));
+
+    // 设置选中点的坐标
+    double xCoord = rowIndex + pin_t1rRatio;
+    double ellipseSize = 0.4; // 高亮点大小
+    highlight->topLeft->setCoords(xCoord - ellipseSize / 2, highlightY + ellipseSize / 2);
+    highlight->bottomRight->setCoords(xCoord + ellipseSize / 2, highlightY - ellipseSize / 2);
+
+    // 添加16进制值标签
+    if (cellStr.length() >= 2)
+    {
+        QString hexValue = cellStr.mid(1);
+        if (!hexValue.isEmpty())
+        {
+            QCPItemText *hexLabel = new QCPItemText(m_waveformPlot);
+            hexLabel->setProperty("isHexValueLabel", true);
+            hexLabel->setPositionAlignment(Qt::AlignBottom | Qt::AlignHCenter);
+            hexLabel->position->setCoords(xCoord, highlightY + ellipseSize);
+            hexLabel->setText("0x" + hexValue);
+            hexLabel->setFont(QFont("Arial", 8));
+            hexLabel->setPen(QPen(Qt::black));
+        }
+    }
 }
 
 // 添加鼠标点击事件处理
@@ -1233,85 +1448,143 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
 void MainWindow::onWaveformValueEdited()
 {
-    if (!m_waveformValueEditor || m_editingRow < 0 || m_editingPinColumn < 0 || !m_vectorTableWidget)
+    if (!m_waveformPlot || !m_waveformValueEditor || !m_vectorTableWidget)
+        return;
+
+    // 获取编辑器中的值
+    QString newValue = m_waveformValueEditor->text().trimmed();
+    m_waveformValueEditor->hide();
+
+    if (newValue.isEmpty())
+        return;
+
+    // 确保值转换为大写
+    newValue = newValue.toUpper();
+
+    // 验证输入值 - 只接受有效的PIN_STATE值
+    QChar firstChar = newValue.at(0);
+    if (!QString("01LHMXSV").contains(firstChar))
     {
-        if (m_waveformValueEditor)
-            m_waveformValueEditor->setVisible(false);
+        qWarning() << "onWaveformValueEdited - 无效的波形值:" << newValue;
+        QMessageBox::warning(this, tr("无效输入"), tr("请输入有效的引脚状态值: 0, 1, L, H, M, X, S, V"));
         return;
     }
 
-    // 1. 隐藏编辑器
-    m_waveformValueEditor->setVisible(false);
-
-    // 2. 获取新值
-    QString newValue = m_waveformValueEditor->text().toUpper(); // 自动转为大写
-
-    // 验证新值是否有效
-    const QString validChars = "01LHXSVM";
-    if (newValue.isEmpty() || !validChars.contains(newValue.at(0)))
-    {
-        // 如果无效，则不更新，直接隐藏编辑器
-        m_editingRow = -1;
-        m_editingPinColumn = -1;
+    // 如果点未选中，无法编辑
+    if (m_selectedWaveformPoint < 0)
         return;
-    }
 
-    // 3. 更新表格
-    int rowInPage = m_editingRow % m_pageSize;
-    if (rowInPage < m_vectorTableWidget->rowCount())
+    // 获取当前选中的点的行索引
+    int rowIndex = m_selectedWaveformPoint;
+    qDebug() << "onWaveformValueEdited - 编辑行" << rowIndex << "的值为" << newValue;
+
+    // 获取表格中首个选中的管脚列
+    int pinColumnIndex = -1;
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
     {
-        QTableWidgetItem *cell = m_vectorTableWidget->item(rowInPage, m_editingPinColumn);
-        if (cell)
+        if (m_vectorTableWidget->horizontalHeaderItem(col))
         {
-            // 检查值是否真的改变了
-            if (cell->text() != newValue)
+            QString headerText = m_vectorTableWidget->horizontalHeaderItem(col)->text();
+            QString pinName = m_waveformPinSelector->currentText();
+
+            // 检查列是否是当前选中的管脚
+            if (headerText.startsWith(pinName + "\n") || headerText == pinName)
             {
-                cell->setText(newValue);
-                // onTableCellChanged 会被自动触发，处理数据保存
+                pinColumnIndex = col;
+                break;
             }
+        }
+    }
+
+    if (pinColumnIndex < 0)
+    {
+        qWarning() << "onWaveformValueEdited - 未找到匹配的管脚列";
+        return;
+    }
+
+    // 计算当前页码的实际行索引（考虑分页）
+    int actualRowIndex = rowIndex;
+
+    // 更新数据表格中的对应单元格
+    int tableRow = actualRowIndex - (m_currentPage * m_pageSize);
+    if (tableRow >= 0 && tableRow < m_vectorTableWidget->rowCount())
+    {
+        // 更新当前可见页面中的表格单元格
+        if (m_isUsingNewTableModel && m_vectorTableModel)
+        {
+            // 使用模型API更新数据
+            QModelIndex cellIndex = m_vectorTableModel->index(actualRowIndex, pinColumnIndex);
+            m_vectorTableModel->setData(cellIndex, newValue, Qt::EditRole);
         }
         else
         {
-            // 如果单元格不存在，创建一个新的
-            QTableWidgetItem *newItem = new QTableWidgetItem(newValue);
-            m_vectorTableWidget->setItem(rowInPage, m_editingPinColumn, newItem);
+            // 传统表格更新
+            QTableWidgetItem *item = m_vectorTableWidget->item(tableRow, pinColumnIndex);
+            if (item)
+            {
+                item->setText(newValue);
+            }
+            else
+            {
+                item = new QTableWidgetItem(newValue);
+                m_vectorTableWidget->setItem(tableRow, pinColumnIndex, item);
+            }
+            
+            // 记录行已修改，以便后续保存
+            onTableRowModified(tableRow);
         }
     }
-
-    // 4. 更新波形图 (onTableCellChanged 也会更新，但为确保立即反馈，可以手动调用)
-    updateWaveformView();
-
-    // 重新计算 pinIndex 以保持高亮
-    QList<QPair<QString, int>> pinColumns;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    else
     {
-        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-        if (headerItem)
+        // 行不在当前可见范围内，需要直接更新二进制文件
+        qDebug() << "onWaveformValueEdited - 行不在当前页范围内，将直接更新数据源";
+        
+        // 获取当前表ID
+        int currentTableId = m_vectorTableSelector->currentData().toInt();
+        
+        if (m_isUsingNewTableModel && m_vectorTableModel)
         {
-            int currentTableId = m_vectorTableSelector->currentData().toInt();
-            QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-            if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+            // 模型方式不需要特殊处理不可见行
+            QModelIndex cellIndex = m_vectorTableModel->index(actualRowIndex, pinColumnIndex);
+            m_vectorTableModel->setData(cellIndex, newValue, Qt::EditRole);
+        }
+        else
+        {
+            // 获取该行的数据
+            Vector::RowData rowData;
+            if (VectorDataHandler::instance().fetchRowData(currentTableId, actualRowIndex, rowData))
             {
-                pinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
+                // 直接使用pinColumnIndex作为列索引，这是之前已经获取的管脚列索引
+                if (pinColumnIndex >= 0)
+                {
+                    // 更新数据
+                    if (!VectorDataHandler::instance().updateCellData(currentTableId, actualRowIndex, pinColumnIndex, newValue))
+                    {
+                        QMessageBox::warning(this, tr("更新失败"), tr("无法更新波形数据"));
+                        return;
+                    }
+                    
+                    // 注意：不需要更新UI，因为这行不在可见范围内
+                }
+                else
+                {
+                    qWarning() << "onWaveformValueEdited - 无效的列索引";
+                    return;
+                }
+            }
+            else
+            {
+                qWarning() << "onWaveformValueEdited - 获取行数据失败";
+                return;
             }
         }
     }
-    int pinIndex = -1;
-    for (int i = 0; i < pinColumns.size(); ++i)
-    {
-        if (pinColumns[i].second == m_editingPinColumn)
-        {
-            pinIndex = i;
-            break;
-        }
-    }
 
-    // 确保更新后高亮仍然在
-    highlightWaveformPoint(m_editingRow, pinIndex);
+    // 刷新波形图
+    updateWaveformView();
 
-    // 5. 重置编辑状态
-    m_editingRow = -1;
-    m_editingPinColumn = -1;
+    // 重新高亮选中的点
+    highlightWaveformPoint(rowIndex, -1);
 }
 
 // 根据管脚ID获取管脚名称

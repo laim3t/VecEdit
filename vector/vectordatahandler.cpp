@@ -4560,3 +4560,92 @@ QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok
     ok = true;
     return rows;
 }
+
+bool VectorDataHandler::updateCellData(int tableId, int rowIndex, int columnIndex, const QVariant &value)
+{
+    const QString funcName = "VectorDataHandler::updateCellData";
+    qDebug() << funcName << " - 开始更新单元格数据，表ID: " << tableId
+             << ", 行: " << rowIndex << ", 列: " << columnIndex << ", 值: " << value;
+    
+    // 1. 获取表的元数据和列信息
+    QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
+    if (columns.isEmpty())
+    {
+        qWarning() << funcName << " - 无法获取表的列信息，表ID: " << tableId;
+        return false;
+    }
+
+    // 验证列索引有效性
+    if (columnIndex < 0 || columnIndex >= columns.size())
+    {
+        qWarning() << funcName << " - 列索引无效，列索引: " << columnIndex << ", 列数: " << columns.size();
+        return false;
+    }
+
+    // 2. 获取二进制文件路径
+    QString errorMsg;
+    QString binFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (binFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - 无法获取二进制文件路径，错误: " << errorMsg;
+        return false;
+    }
+
+    // 3. 获取表的schema版本
+    int schemaVersion = getSchemaVersion(tableId);
+    if (schemaVersion <= 0)
+    {
+        qWarning() << funcName << " - 无法获取表的schema版本，表ID: " << tableId;
+        return false;
+    }
+
+    // 4. 获取要修改的行数据
+    Vector::RowData rowData;
+    if (!fetchRowData(tableId, rowIndex, rowData))
+    {
+        qWarning() << funcName << " - 无法获取行数据，表ID: " << tableId << ", 行: " << rowIndex;
+        return false;
+    }
+
+    // 5. 验证行数据有效性
+    if (rowData.isEmpty() || columnIndex >= rowData.size())
+    {
+        qWarning() << funcName << " - 行数据无效或列索引超出范围，列索引: " << columnIndex 
+                   << ", 行数据大小: " << rowData.size();
+        return false;
+    }
+
+    // 6. 更新行数据
+    rowData[columnIndex] = value;
+
+    // 7. 创建仅包含被修改行的映射
+    QMap<int, Vector::RowData> modifiedRows;
+    modifiedRows[rowIndex] = rowData;
+
+    // 8. 使用BinaryFileHelper更新二进制文件
+    bool success = Persistence::BinaryFileHelper::robustUpdateRowsInBinary(
+        binFilePath, columns, schemaVersion, modifiedRows);
+
+    if (success)
+    {
+        // 9. 标记行已被修改
+        markRowAsModified(tableId, rowIndex);
+        
+        // 10. 更新内存缓存（如果有的话）
+        if (m_tableDataCache.contains(tableId) && m_tableDataCache[tableId].size() > rowIndex)
+        {
+            m_tableDataCache[tableId][rowIndex] = rowData;
+            qDebug() << funcName << " - 更新缓存成功，表ID: " << tableId << ", 行: " << rowIndex;
+        }
+        
+        qDebug() << funcName << " - 成功更新单元格数据，表ID: " << tableId
+                 << ", 行: " << rowIndex << ", 列: " << columnIndex;
+        return true;
+    }
+    else
+    {
+        qWarning() << funcName << " - 更新二进制文件失败，表ID: " << tableId
+                  << ", 行: " << rowIndex << ", 列: " << columnIndex;
+        return false;
+    }
+}
