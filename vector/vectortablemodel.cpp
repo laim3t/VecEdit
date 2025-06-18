@@ -9,6 +9,7 @@
 #include <QUuid>
 #include <QDebug>
 #include <QDir>
+#include <QCoreApplication>
 
 namespace Vector
 {
@@ -202,16 +203,38 @@ namespace Vector
             m_rowCount = 1000; // 默认值，实际应该从二进制文件头读取
             m_schemaVersion = 1;
 
-            // 查找二进制文件
+            // 获取二进制文件路径
             QString dbPath = DatabaseManager::instance()->database().databaseName();
             QFileInfo dbInfo(dbPath);
             QString dbDir = dbInfo.absolutePath();
 
-            // 尝试几个可能的目录位置
+            // 尝试几个可能的位置
             QStringList possibleDirs;
-            possibleDirs << dbDir
-                         << dbDir + "/TEST3211_vbindata"
+            possibleDirs << dbDir // 数据库所在目录
+                         << dbDir + "/TEST3211_vbindata" 
                          << dbDir + "/../tests/database/TEST3211_vbindata";
+            
+            // 添加额外的可能路径（基于数据库文件所在的实际路径）
+            QString dbFileName = dbInfo.fileName();
+            QString dbBaseName = dbInfo.baseName();
+            
+            // 添加以数据库名称命名的子目录
+            possibleDirs << dbDir + "/" + dbBaseName + "_vbindata";
+            
+            // 添加项目目录和父目录的可能位置
+            QString appDir = QCoreApplication::applicationDirPath();
+            possibleDirs << appDir + "/database";
+            possibleDirs << appDir + "/../database";
+            possibleDirs << appDir + "/tests/database";
+            possibleDirs << appDir + "/../tests/database";
+            
+            // 日志输出当前数据库路径和我们尝试查找的文件
+            qDebug() << "VectorTableModel::loadTableMetadata - 数据库路径: " << dbPath;
+            qDebug() << "VectorTableModel::loadTableMetadata - 尝试寻找二进制文件: " << binFileName;
+            qDebug() << "VectorTableModel::loadTableMetadata - 将在以下目录中查找:";
+            foreach (const QString &dir, possibleDirs) {
+                qDebug() << " - " << dir;
+            }
 
             bool found = false;
             for (const QString &dir : possibleDirs)
@@ -221,7 +244,26 @@ namespace Vector
                 {
                     m_binaryFilePath = path;
                     found = true;
+                    qDebug() << "VectorTableModel::loadTableMetadata - 找到二进制文件: " << path;
                     break;
+                }
+            }
+
+            if (!found)
+            {
+                // 尝试直接使用相对路径（相对于数据库文件）和绝对路径
+                if (QFile::exists(binFileName)) {
+                    m_binaryFilePath = QFileInfo(binFileName).absoluteFilePath();
+                    found = true;
+                    qDebug() << "VectorTableModel::loadTableMetadata - 使用直接文件名找到二进制文件: " << m_binaryFilePath;
+                } else {
+                    // 尝试使用数据库目录作为基准的相对路径
+                    QString relativePath = QDir(dbDir).absoluteFilePath(binFileName);
+                    if (QFile::exists(relativePath)) {
+                        m_binaryFilePath = relativePath;
+                        found = true;
+                        qDebug() << "VectorTableModel::loadTableMetadata - 使用相对路径找到二进制文件: " << m_binaryFilePath;
+                    }
                 }
             }
 
@@ -245,9 +287,31 @@ namespace Vector
 
             // 尝试几个可能的位置
             QStringList possibleDirs;
-            possibleDirs << dbDir
-                         << dbDir + "/TEST3211_vbindata"
+            possibleDirs << dbDir // 数据库所在目录
+                         << dbDir + "/TEST3211_vbindata" 
                          << dbDir + "/../tests/database/TEST3211_vbindata";
+            
+            // 添加额外的可能路径（基于数据库文件所在的实际路径）
+            QString dbFileName = dbInfo.fileName();
+            QString dbBaseName = dbInfo.baseName();
+            
+            // 添加以数据库名称命名的子目录
+            possibleDirs << dbDir + "/" + dbBaseName + "_vbindata";
+            
+            // 添加项目目录和父目录的可能位置
+            QString appDir = QCoreApplication::applicationDirPath();
+            possibleDirs << appDir + "/database";
+            possibleDirs << appDir + "/../database";
+            possibleDirs << appDir + "/tests/database";
+            possibleDirs << appDir + "/../tests/database";
+            
+            // 日志输出当前数据库路径和我们尝试查找的文件
+            qDebug() << "VectorTableModel::loadTableMetadata - 数据库路径: " << dbPath;
+            qDebug() << "VectorTableModel::loadTableMetadata - 尝试寻找二进制文件: " << binFileName;
+            qDebug() << "VectorTableModel::loadTableMetadata - 将在以下目录中查找:";
+            foreach (const QString &dir, possibleDirs) {
+                qDebug() << " - " << dir;
+            }
 
             bool found = false;
             for (const QString &dir : possibleDirs)
@@ -257,7 +321,26 @@ namespace Vector
                 {
                     m_binaryFilePath = path;
                     found = true;
+                    qDebug() << "VectorTableModel::loadTableMetadata - 找到二进制文件: " << path;
                     break;
+                }
+            }
+
+            if (!found)
+            {
+                // 尝试直接使用相对路径（相对于数据库文件）和绝对路径
+                if (QFile::exists(binFileName)) {
+                    m_binaryFilePath = QFileInfo(binFileName).absoluteFilePath();
+                    found = true;
+                    qDebug() << "VectorTableModel::loadTableMetadata - 使用直接文件名找到二进制文件: " << m_binaryFilePath;
+                } else {
+                    // 尝试使用数据库目录作为基准的相对路径
+                    QString relativePath = QDir(dbDir).absoluteFilePath(binFileName);
+                    if (QFile::exists(relativePath)) {
+                        m_binaryFilePath = relativePath;
+                        found = true;
+                        qDebug() << "VectorTableModel::loadTableMetadata - 使用相对路径找到二进制文件: " << m_binaryFilePath;
+                    }
                 }
             }
 

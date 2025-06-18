@@ -7,6 +7,7 @@
 #include <QInputDialog>
 #include <QDir>
 #include <QTableWidget>
+#include <QTableView>
 #include <QComboBox>
 #include <QPushButton>
 #include <QToolButton>
@@ -28,6 +29,7 @@
 #include <stdexcept>
 #include "../vector/vector_data_types.h"
 #include "../vector/vectordatahandler.h"
+#include "../vector/vectortablemodel.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
@@ -271,11 +273,12 @@ private:
     QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
-    QTableWidget *m_vectorTableWidget;
-    QComboBox *m_vectorTableSelector;
-    QWidget *m_centralWidget;
+    QTableView *m_vectorTableView;        // 向量表视图
+    QTableWidget *m_vectorTableWidget;    // 旧向量表组件
+    QComboBox *m_vectorTableSelector;     // 向量表选择器
+    QWidget *m_centralWidget;             // 中央部件
     QWidget *m_welcomeWidget;
-    QWidget *m_vectorTableContainer;
+    QWidget *m_vectorTableContainer;      // 向量表容器
     QAction *m_fillVectorAction;
     QAction *m_fillTimeSetAction;
     QAction *m_replaceTimeSetAction;
@@ -290,13 +293,13 @@ private:
     QAction *m_addGroupAction;    // 添加管脚分组按钮
 
     // 分页相关UI组件
-    QWidget *m_paginationWidget;   // 分页控件容器
-    QPushButton *m_prevPageButton; // 上一页按钮
-    QPushButton *m_nextPageButton; // 下一页按钮
-    QLabel *m_pageInfoLabel;       // 页码信息标签
-    QComboBox *m_pageSizeSelector; // 每页行数选择器
-    QSpinBox *m_pageJumper;        // 页码跳转输入框
-    QPushButton *m_jumpButton;     // 跳转按钮
+    QWidget *m_paginationWidget;          // 分页控件
+    QPushButton *m_prevPageButton;        // 上一页按钮
+    QPushButton *m_nextPageButton;        // 下一页按钮
+    QLabel *m_pageInfoLabel;              // 页码信息标签
+    QSpinBox *m_pageJumper;               // 页码跳转
+    QPushButton *m_jumpButton;            // 跳转按钮
+    QComboBox *m_pageSizeSelector;        // 每页行数选择
 
     // 分页相关数据
     int m_currentPage;    // 当前页码（从0开始）
@@ -312,7 +315,7 @@ private:
     bool hasUnsavedChanges() const;
 
     // Tab页签组件
-    QTabWidget *m_vectorTabWidget;
+    QTabWidget *m_vectorTabWidget;        // 向量表Tab控件
     bool m_isUpdatingUI; // 防止UI更新循环的标志
 
     // 自定义代理
@@ -416,6 +419,16 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
+
+    // 添加新的VectorTableModel成员
+    Vector::VectorTableModel *m_vectorTableModel; // 向量表数据模型
+
+    // 添加表格模型状态控制变量
+    bool m_isUsingNewTableModel;          // 是否使用新的表格模型
+
+    // 新增辅助方法，用于过渡期管理
+    void setupVectorTableView();          // 设置新表格视图
+    void syncViewWithTableModel();        // 同步视图和模型
 };
 
 #endif // MAINWINDOW_H

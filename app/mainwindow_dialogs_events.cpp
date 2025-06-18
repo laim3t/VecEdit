@@ -16,6 +16,8 @@
 #include <QHeaderView>
 #include <QFileInfo>
 #include <QTimer>
+#include <QDir>
+#include <QFile>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -170,53 +172,118 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 更新分页信息显示
     updatePaginationInfo();
 
-    // 使用分页方式加载数据
-    qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
-    bool loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-    qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
-             << "，表ID:" << tableId
-             << "，列数:" << m_vectorTableWidget->columnCount();
-
-    if (loadSuccess)
-    {
-        qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
-
-        // 更新波形图视图
-        if (m_isWaveformVisible && m_waveformPlot)
-        {
-            updateWaveformView();
+    // 根据当前模式选择加载表格数据的方式
+    bool loadSuccess = false;
+    
+    if (m_isUsingNewTableModel) {
+        // 使用新的表格模型加载数据
+        qDebug() << funcName << " - 使用VectorTableModel加载表格数据，表ID:" << tableId;
+        
+        // 确保模型已创建
+        if (!m_vectorTableModel) {
+            qDebug() << funcName << " - 创建新的VectorTableModel实例";
+            m_vectorTableModel = new Vector::VectorTableModel(this);
         }
-
-        // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
-        if (m_vectorTableWidget->columnCount() < 6)
-        {
-            qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
-                       << "），可能缺少标准列。尝试修复...";
-            fixExistingTableWithoutColumns(tableId);
-            // 重新加载表格（使用分页）
-            loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-            qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
-                     << "，列数:" << m_vectorTableWidget->columnCount();
+        
+        // 设置模型数据源
+        if (m_vectorTableModel->setTable(tableId)) {
+            // 将模型设置给表格视图
+            m_vectorTableView->setModel(m_vectorTableModel);
+            
+            // 设置列宽度
+            for (int i = 0; i < m_vectorTableModel->columnCount(); ++i) {
+                m_vectorTableView->setColumnWidth(i, 100); // 默认列宽
+            }
+            
+            qDebug() << funcName << " - VectorTableModel加载成功，列数:" 
+                     << m_vectorTableModel->columnCount() 
+                     << "，总行数:" << m_vectorTableModel->totalRows();
+            loadSuccess = true;
+            
+            // 确保正确的表格视图可见
+            syncViewWithTableModel();
+        } else {
+            // 获取数据库中的二进制文件名，用于诊断问题
+            QString binFileName;
+            QList<Vector::ColumnInfo> columns;
+            int schemaVersion = 0;
+            int rowCount = 0;
+            
+            if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount)) {
+                qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId 
+                           << "，二进制文件名:" << binFileName;
+                
+                // 检查文件是否存在于数据库所在目录
+                QString dbPath = DatabaseManager::instance()->database().databaseName();
+                QFileInfo dbInfo(dbPath);
+                QString dbDir = dbInfo.absolutePath();
+                QString expectedPath = QDir(dbDir).filePath(binFileName);
+                
+                if (!QFile::exists(expectedPath)) {
+                    qWarning() << funcName << " - 二进制文件不存在于数据库目录: " << expectedPath;
+                    QMessageBox::warning(this, tr("数据文件错误"), 
+                                         tr("找不到向量表数据文件: %1\n\n请确保二进制数据文件位于正确位置。").arg(binFileName));
+                }
+            } else {
+                qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId << "，无法获取元数据";
+            }
+            
+            loadSuccess = false;
         }
+    } else {
+        // 使用传统方式加载数据
+        qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
+        loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
+                << "，表ID:" << tableId
+                << "，列数:" << m_vectorTableWidget->columnCount();
 
-        // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-        TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
+        if (loadSuccess) {
+            qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
 
-        // 输出每一列的标题，用于调试
-        QStringList columnHeaders;
-        for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
-        {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-            QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-            columnHeaders << headerText;
+            // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
+            if (m_vectorTableWidget->columnCount() < 6) {
+                qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
+                        << "），可能缺少标准列。尝试修复...";
+                fixExistingTableWithoutColumns(tableId);
+                // 重新加载表格（使用分页）
+                loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
+                        << "，列数:" << m_vectorTableWidget->columnCount();
+            }
+
+            // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
+            TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
+
+            // 输出每一列的标题，用于调试
+            QStringList columnHeaders;
+            for (int i = 0; i < m_vectorTableWidget->columnCount(); i++) {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
+                QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
+                columnHeaders << headerText;
+            }
+            qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
+            
+            // 确保正确的表格视图可见
+            syncViewWithTableModel();
         }
-        qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
-
-        statusBar()->showMessage(QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableWidget->columnCount()));
     }
-    else
-    {
-        qWarning() << funcName << " - 表格加载失败，表ID:" << tableId;
+
+    // 更新波形图视图（无论使用哪种模式）
+    if (loadSuccess && m_isWaveformVisible && m_waveformPlot) {
+        updateWaveformView();
+    }
+
+    // 更新状态栏消息
+    if (loadSuccess) {
+        int columnCount = m_isUsingNewTableModel ? 
+                          m_vectorTableModel->columnCount() : 
+                          m_vectorTableWidget->columnCount();
+                          
+        statusBar()->showMessage(
+            QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(columnCount)
+        );
+    } else {
         statusBar()->showMessage("加载向量表失败");
     }
 
