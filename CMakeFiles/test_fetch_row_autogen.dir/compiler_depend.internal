@@ -137,12 +137,16 @@ C:/VecEdit/test_fetch_row_autogen/timestamp
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qmatrix.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpaintdevice.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpalette.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qpen.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixelformat.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixmap.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpolygon.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qregion.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgb.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgba64.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextcursor.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextformat.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextoption.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtgui-config.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtguiglobal.h
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h
@@ -157,6 +161,7 @@ C:/VecEdit/test_fetch_row_autogen/timestamp
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlquery.h
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsql-config.h
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsqlglobal.h
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h
@@ -165,6 +170,7 @@ C:/VecEdit/test_fetch_row_autogen/timestamp
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qrubberband.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h
@@ -539,6 +545,8 @@ C:/VecEdit/test_fetch_row_autogen/timestamp
  C:/VecEdit/database/databasemanager.cpp
  C:/VecEdit/database/databasemanager.h
  C:/VecEdit/database/databasemanager_migrator.cpp
+ C:/VecEdit/pin/pinvalueedit.cpp
+ C:/VecEdit/pin/pinvalueedit.h
  C:/VecEdit/resources/qt/icons.qrc
  C:/VecEdit/test_fetch_row_autogen/moc_predefs.h
  C:/VecEdit/tests/test_fetch_row.cpp

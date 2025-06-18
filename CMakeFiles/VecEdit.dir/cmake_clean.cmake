@@ -68,6 +68,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj"
   "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj.d"
+  "CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj"
+  "CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj.d"
   "CMakeFiles/VecEdit.dir/version.rc.obj"
   "VecEdit.exe"
   "VecEdit.exe.manifest"

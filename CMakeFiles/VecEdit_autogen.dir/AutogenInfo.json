@@ -260,6 +260,12 @@
 			"MU",
 			"EFITGCF6GF/moc_vectortabledelegate.cpp",
 			null
+		],
+		[
+			"C:/VecEdit/vector/vectortablemodel.h",
+			"MU",
+			"EFITGCF6GF/moc_vectortablemodel.cpp",
+			null
 		]
 	],
 	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
@@ -363,7 +369,8 @@
 		[ "C:/VecEdit/vector/fillvectordialog.cpp", "MU", null ],
 		[ "C:/VecEdit/vector/vectordatahandler.cpp", "MU", null ],
 		[ "C:/VecEdit/vector/vectordatamanager.cpp", "MU", null ],
-		[ "C:/VecEdit/vector/vectortabledelegate.cpp", "MU", null ]
+		[ "C:/VecEdit/vector/vectortabledelegate.cpp", "MU", null ],
+		[ "C:/VecEdit/vector/vectortablemodel.cpp", "MU", null ]
 	],
 	"UIC_OPTIONS" : [],
 	"UIC_SEARCH_PATHS" : [],

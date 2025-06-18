@@ -1,5 +1,6 @@
 C:/VecEdit/CMakeFiles/VecEdit.dir
 C:/VecEdit/CMakeFiles/test_fetch_row.dir
+C:/VecEdit/CMakeFiles/test_vector_model.dir
 C:/VecEdit/CMakeFiles/package.dir
 C:/VecEdit/CMakeFiles/package_source.dir
 C:/VecEdit/CMakeFiles/edit_cache.dir
@@ -12,3 +13,5 @@ C:/VecEdit/CMakeFiles/VecEdit_autogen_timestamp_deps.dir
 C:/VecEdit/CMakeFiles/VecEdit_autogen.dir
 C:/VecEdit/CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir
 C:/VecEdit/CMakeFiles/test_fetch_row_autogen.dir
+C:/VecEdit/CMakeFiles/test_vector_model_autogen_timestamp_deps.dir
+C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir

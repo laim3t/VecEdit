@@ -106,6 +106,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/VecEdit_autogen.dir/AutogenInfo.json"
   "CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Info.json"
   "CMakeFiles/test_fetch_row_autogen.dir/AutogenInfo.json"
+  "CMakeFiles/test_vector_model_autogen.dir/AutogenInfo.json"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
@@ -113,8 +114,11 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/VecEdit.dir/DependInfo.cmake"
   "CMakeFiles/test_fetch_row.dir/DependInfo.cmake"
+  "CMakeFiles/test_vector_model.dir/DependInfo.cmake"
   "CMakeFiles/VecEdit_autogen_timestamp_deps.dir/DependInfo.cmake"
   "CMakeFiles/VecEdit_autogen.dir/DependInfo.cmake"
   "CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/DependInfo.cmake"
   "CMakeFiles/test_fetch_row_autogen.dir/DependInfo.cmake"
+  "CMakeFiles/test_vector_model_autogen_timestamp_deps.dir/DependInfo.cmake"
+  "CMakeFiles/test_vector_model_autogen.dir/DependInfo.cmake"
   )

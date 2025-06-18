@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     qDebug() << "测试参数：表ID=" << tableId << ", 行索引=" << rowIndex << ", 行数=" << count;
 
     // 初始化数据库连接
-    QString dbPath = "VecEdit.db"; // 指定数据库路径，假设在当前目录
+    QString dbPath = "tests/database/TEST3211.db"; // 使用提供的测试数据库
     if (!DatabaseManager::instance()->openExistingDatabase(dbPath))
     {
         qCritical() << "无法打开数据库！测试失败。错误:" << DatabaseManager::instance()->lastError();

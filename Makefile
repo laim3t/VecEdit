@@ -207,6 +207,19 @@ test_fetch_row/fast:
 .PHONY : test_fetch_row/fast
 
 #=============================================================================
+# Target rules for targets named test_vector_model
+
+# Build rule for target.
+test_vector_model: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_vector_model
+.PHONY : test_vector_model
+
+# fast build rule for target.
+test_vector_model/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/build
+.PHONY : test_vector_model/fast
+
+#=============================================================================
 # Target rules for targets named VecEdit_autogen_timestamp_deps
 
 # Build rule for target.
@@ -257,6 +270,32 @@ test_fetch_row_autogen: cmake_check_build_system
 test_fetch_row_autogen/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen.dir\build.make CMakeFiles/test_fetch_row_autogen.dir/build
 .PHONY : test_fetch_row_autogen/fast
+
+#=============================================================================
+# Target rules for targets named test_vector_model_autogen_timestamp_deps
+
+# Build rule for target.
+test_vector_model_autogen_timestamp_deps: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_vector_model_autogen_timestamp_deps
+.PHONY : test_vector_model_autogen_timestamp_deps
+
+# fast build rule for target.
+test_vector_model_autogen_timestamp_deps/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model_autogen_timestamp_deps.dir\build.make CMakeFiles/test_vector_model_autogen_timestamp_deps.dir/build
+.PHONY : test_vector_model_autogen_timestamp_deps/fast
+
+#=============================================================================
+# Target rules for targets named test_vector_model_autogen
+
+# Build rule for target.
+test_vector_model_autogen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_vector_model_autogen
+.PHONY : test_vector_model_autogen
+
+# fast build rule for target.
+test_vector_model_autogen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model_autogen.dir\build.make CMakeFiles/test_vector_model_autogen.dir/build
+.PHONY : test_vector_model_autogen/fast
 
 VecEdit_autogen/BUURKL3RHA/qrc_icons.obj: VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj
 .PHONY : VecEdit_autogen/BUURKL3RHA/qrc_icons.obj
@@ -400,6 +439,7 @@ common/logger.obj: common/logger.cpp.obj
 common/logger.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/logger.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/common/logger.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/common/logger.cpp.obj
 .PHONY : common/logger.cpp.obj
 
 common/logger.i: common/logger.cpp.i
@@ -409,6 +449,7 @@ common/logger.i: common/logger.cpp.i
 common/logger.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/logger.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/common/logger.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/common/logger.cpp.i
 .PHONY : common/logger.cpp.i
 
 common/logger.s: common/logger.cpp.s
@@ -418,6 +459,7 @@ common/logger.s: common/logger.cpp.s
 common/logger.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/common/logger.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/common/logger.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/common/logger.cpp.s
 .PHONY : common/logger.cpp.s
 
 common/qcustomplot.obj: common/qcustomplot.cpp.obj
@@ -499,6 +541,7 @@ database/binaryfilehelper.obj: database/binaryfilehelper.cpp.obj
 database/binaryfilehelper.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/binaryfilehelper.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj
 .PHONY : database/binaryfilehelper.cpp.obj
 
 database/binaryfilehelper.i: database/binaryfilehelper.cpp.i
@@ -508,6 +551,7 @@ database/binaryfilehelper.i: database/binaryfilehelper.cpp.i
 database/binaryfilehelper.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/binaryfilehelper.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.i
 .PHONY : database/binaryfilehelper.cpp.i
 
 database/binaryfilehelper.s: database/binaryfilehelper.cpp.s
@@ -517,6 +561,7 @@ database/binaryfilehelper.s: database/binaryfilehelper.cpp.s
 database/binaryfilehelper.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/binaryfilehelper.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.s
 .PHONY : database/binaryfilehelper.cpp.s
 
 database/databasemanager.obj: database/databasemanager.cpp.obj
@@ -526,6 +571,7 @@ database/databasemanager.obj: database/databasemanager.cpp.obj
 database/databasemanager.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj
 .PHONY : database/databasemanager.cpp.obj
 
 database/databasemanager.i: database/databasemanager.cpp.i
@@ -535,6 +581,7 @@ database/databasemanager.i: database/databasemanager.cpp.i
 database/databasemanager.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.i
 .PHONY : database/databasemanager.cpp.i
 
 database/databasemanager.s: database/databasemanager.cpp.s
@@ -544,6 +591,7 @@ database/databasemanager.s: database/databasemanager.cpp.s
 database/databasemanager.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.s
 .PHONY : database/databasemanager.cpp.s
 
 database/databasemanager_migrator.obj: database/databasemanager_migrator.cpp.obj
@@ -553,6 +601,7 @@ database/databasemanager_migrator.obj: database/databasemanager_migrator.cpp.obj
 database/databasemanager_migrator.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager_migrator.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj
 .PHONY : database/databasemanager_migrator.cpp.obj
 
 database/databasemanager_migrator.i: database/databasemanager_migrator.cpp.i
@@ -562,6 +611,7 @@ database/databasemanager_migrator.i: database/databasemanager_migrator.cpp.i
 database/databasemanager_migrator.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager_migrator.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.i
 .PHONY : database/databasemanager_migrator.cpp.i
 
 database/databasemanager_migrator.s: database/databasemanager_migrator.cpp.s
@@ -571,6 +621,7 @@ database/databasemanager_migrator.s: database/databasemanager_migrator.cpp.s
 database/databasemanager_migrator.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/database/databasemanager_migrator.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.s
 .PHONY : database/databasemanager_migrator.cpp.s
 
 database/databaseviewdialog.obj: database/databaseviewdialog.cpp.obj
@@ -724,6 +775,7 @@ pin/pinvalueedit.obj: pin/pinvalueedit.cpp.obj
 pin/pinvalueedit.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/pin/pinvalueedit.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.obj
 .PHONY : pin/pinvalueedit.cpp.obj
 
 pin/pinvalueedit.i: pin/pinvalueedit.cpp.i
@@ -733,6 +785,7 @@ pin/pinvalueedit.i: pin/pinvalueedit.cpp.i
 pin/pinvalueedit.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/pin/pinvalueedit.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.i
 .PHONY : pin/pinvalueedit.cpp.i
 
 pin/pinvalueedit.s: pin/pinvalueedit.cpp.s
@@ -742,6 +795,7 @@ pin/pinvalueedit.s: pin/pinvalueedit.cpp.s
 pin/pinvalueedit.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/pin/pinvalueedit.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.s
 .PHONY : pin/pinvalueedit.cpp.s
 
 pin/vectorpinsettingsdialog.obj: pin/vectorpinsettingsdialog.cpp.obj
@@ -792,6 +846,30 @@ test_fetch_row_autogen/mocs_compilation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/test_fetch_row_autogen/mocs_compilation.cpp.s
 .PHONY : test_fetch_row_autogen/mocs_compilation.cpp.s
 
+test_vector_model_autogen/mocs_compilation.obj: test_vector_model_autogen/mocs_compilation.cpp.obj
+.PHONY : test_vector_model_autogen/mocs_compilation.obj
+
+# target to build an object file
+test_vector_model_autogen/mocs_compilation.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.obj
+.PHONY : test_vector_model_autogen/mocs_compilation.cpp.obj
+
+test_vector_model_autogen/mocs_compilation.i: test_vector_model_autogen/mocs_compilation.cpp.i
+.PHONY : test_vector_model_autogen/mocs_compilation.i
+
+# target to preprocess a source file
+test_vector_model_autogen/mocs_compilation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.i
+.PHONY : test_vector_model_autogen/mocs_compilation.cpp.i
+
+test_vector_model_autogen/mocs_compilation.s: test_vector_model_autogen/mocs_compilation.cpp.s
+.PHONY : test_vector_model_autogen/mocs_compilation.s
+
+# target to generate assembly for a file
+test_vector_model_autogen/mocs_compilation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.s
+.PHONY : test_vector_model_autogen/mocs_compilation.cpp.s
+
 tests/test_fetch_row.obj: tests/test_fetch_row.cpp.obj
 .PHONY : tests/test_fetch_row.obj
 
@@ -815,6 +893,30 @@ tests/test_fetch_row.s: tests/test_fetch_row.cpp.s
 tests/test_fetch_row.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/tests/test_fetch_row.cpp.s
 .PHONY : tests/test_fetch_row.cpp.s
+
+tests/test_vector_model.obj: tests/test_vector_model.cpp.obj
+.PHONY : tests/test_vector_model.obj
+
+# target to build an object file
+tests/test_vector_model.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.obj
+.PHONY : tests/test_vector_model.cpp.obj
+
+tests/test_vector_model.i: tests/test_vector_model.cpp.i
+.PHONY : tests/test_vector_model.i
+
+# target to preprocess a source file
+tests/test_vector_model.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.i
+.PHONY : tests/test_vector_model.cpp.i
+
+tests/test_vector_model.s: tests/test_vector_model.cpp.s
+.PHONY : tests/test_vector_model.s
+
+# target to generate assembly for a file
+tests/test_vector_model.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.s
+.PHONY : tests/test_vector_model.cpp.s
 
 timeset/filltimesetdialog.obj: timeset/filltimesetdialog.cpp.obj
 .PHONY : timeset/filltimesetdialog.obj
@@ -1039,6 +1141,7 @@ vector/vectordatahandler.obj: vector/vectordatahandler.cpp.obj
 vector/vectordatahandler.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/vector/vectordatahandler.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj
 .PHONY : vector/vectordatahandler.cpp.obj
 
 vector/vectordatahandler.i: vector/vectordatahandler.cpp.i
@@ -1048,6 +1151,7 @@ vector/vectordatahandler.i: vector/vectordatahandler.cpp.i
 vector/vectordatahandler.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/vector/vectordatahandler.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.i
 .PHONY : vector/vectordatahandler.cpp.i
 
 vector/vectordatahandler.s: vector/vectordatahandler.cpp.s
@@ -1057,6 +1161,7 @@ vector/vectordatahandler.s: vector/vectordatahandler.cpp.s
 vector/vectordatahandler.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/vector/vectordatahandler.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.s
 .PHONY : vector/vectordatahandler.cpp.s
 
 vector/vectordatamanager.obj: vector/vectordatamanager.cpp.obj
@@ -1083,6 +1188,30 @@ vector/vectordatamanager.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.s
 .PHONY : vector/vectordatamanager.cpp.s
 
+vector/vectormodeltest.obj: vector/vectormodeltest.cpp.obj
+.PHONY : vector/vectormodeltest.obj
+
+# target to build an object file
+vector/vectormodeltest.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj
+.PHONY : vector/vectormodeltest.cpp.obj
+
+vector/vectormodeltest.i: vector/vectormodeltest.cpp.i
+.PHONY : vector/vectormodeltest.i
+
+# target to preprocess a source file
+vector/vectormodeltest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.i
+.PHONY : vector/vectormodeltest.cpp.i
+
+vector/vectormodeltest.s: vector/vectormodeltest.cpp.s
+.PHONY : vector/vectormodeltest.s
+
+# target to generate assembly for a file
+vector/vectormodeltest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.s
+.PHONY : vector/vectormodeltest.cpp.s
+
 vector/vectortabledelegate.obj: vector/vectortabledelegate.cpp.obj
 .PHONY : vector/vectortabledelegate.obj
 
@@ -1106,6 +1235,33 @@ vector/vectortabledelegate.s: vector/vectortabledelegate.cpp.s
 vector/vectortabledelegate.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.s
 .PHONY : vector/vectortabledelegate.cpp.s
+
+vector/vectortablemodel.obj: vector/vectortablemodel.cpp.obj
+.PHONY : vector/vectortablemodel.obj
+
+# target to build an object file
+vector/vectortablemodel.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj
+.PHONY : vector/vectortablemodel.cpp.obj
+
+vector/vectortablemodel.i: vector/vectortablemodel.cpp.i
+.PHONY : vector/vectortablemodel.i
+
+# target to preprocess a source file
+vector/vectortablemodel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.i
+.PHONY : vector/vectortablemodel.cpp.i
+
+vector/vectortablemodel.s: vector/vectortablemodel.cpp.s
+.PHONY : vector/vectortablemodel.s
+
+# target to generate assembly for a file
+vector/vectortablemodel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_vector_model.dir\build.make CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.s
+.PHONY : vector/vectortablemodel.cpp.s
 
 version.obj: version.rc.obj
 .PHONY : version.obj
@@ -1133,8 +1289,11 @@ help:
 	@echo ... VecEdit_autogen_timestamp_deps
 	@echo ... test_fetch_row_autogen
 	@echo ... test_fetch_row_autogen_timestamp_deps
+	@echo ... test_vector_model_autogen
+	@echo ... test_vector_model_autogen_timestamp_deps
 	@echo ... VecEdit
 	@echo ... test_fetch_row
+	@echo ... test_vector_model
 	@echo ... VecEdit_autogen/BUURKL3RHA/qrc_icons.obj
 	@echo ... VecEdit_autogen/BUURKL3RHA/qrc_icons.i
 	@echo ... VecEdit_autogen/BUURKL3RHA/qrc_icons.s
@@ -1201,9 +1360,15 @@ help:
 	@echo ... test_fetch_row_autogen/mocs_compilation.obj
 	@echo ... test_fetch_row_autogen/mocs_compilation.i
 	@echo ... test_fetch_row_autogen/mocs_compilation.s
+	@echo ... test_vector_model_autogen/mocs_compilation.obj
+	@echo ... test_vector_model_autogen/mocs_compilation.i
+	@echo ... test_vector_model_autogen/mocs_compilation.s
 	@echo ... tests/test_fetch_row.obj
 	@echo ... tests/test_fetch_row.i
 	@echo ... tests/test_fetch_row.s
+	@echo ... tests/test_vector_model.obj
+	@echo ... tests/test_vector_model.i
+	@echo ... tests/test_vector_model.s
 	@echo ... timeset/filltimesetdialog.obj
 	@echo ... timeset/filltimesetdialog.i
 	@echo ... timeset/filltimesetdialog.s
@@ -1237,9 +1402,15 @@ help:
 	@echo ... vector/vectordatamanager.obj
 	@echo ... vector/vectordatamanager.i
 	@echo ... vector/vectordatamanager.s
+	@echo ... vector/vectormodeltest.obj
+	@echo ... vector/vectormodeltest.i
+	@echo ... vector/vectormodeltest.s
 	@echo ... vector/vectortabledelegate.obj
 	@echo ... vector/vectortabledelegate.i
 	@echo ... vector/vectortabledelegate.s
+	@echo ... vector/vectortablemodel.obj
+	@echo ... vector/vectortablemodel.i
+	@echo ... vector/vectortablemodel.s
 	@echo ... version.obj
 .PHONY : help
 

@@ -136,12 +136,16 @@ test_fetch_row_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qmatrix.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qpaintdevice.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qpalette.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpen.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixelformat.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixmap.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qpolygon.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qregion.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgb.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgba64.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextcursor.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextformat.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextoption.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qtgui-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qtguiglobal.h \
   C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h \
@@ -156,6 +160,7 @@ test_fetch_row_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlquery.h \
   C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsql-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsqlglobal.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h \
@@ -164,6 +169,7 @@ test_fetch_row_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qrubberband.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h \
   C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h \
@@ -538,6 +544,8 @@ test_fetch_row_autogen/timestamp: C:/Program\ Files\ (x86)/CMake/bin/cmake.exe \
   database/databasemanager.cpp \
   database/databasemanager.h \
   database/databasemanager_migrator.cpp \
+  pin/pinvalueedit.cpp \
+  pin/pinvalueedit.h \
   resources/qt/icons.qrc \
   test_fetch_row_autogen/moc_predefs.h \
   tests/test_fetch_row.cpp \
@@ -567,6 +575,8 @@ C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cm
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/CMakeParseArguments.cmake:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake:
+
+C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/unknwnbase.h:
 
@@ -654,11 +664,11 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5Core/Qt5CoreConfigVersion.cmake:
 
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric:
+
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Templates/CPackConfig.cmake.in:
 
 C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5PrintSupport/Qt5PrintSupportConfigVersion.cmake:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric:
 
 C:/Program\ Files\ (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX-ABI.cmake:
 
@@ -741,6 +751,8 @@ C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h:
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/backward/auto_ptr.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qalgorithms.h:
+
+pin/pinvalueedit.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainertools_impl.h:
 
@@ -1018,6 +1030,10 @@ C:/Qt/5.15.2/mingw81_32/include/QtGui/qpalette.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winnetwk.h:
 
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/string_conversions.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtGui/qpen.h:
+
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/exception:
 
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixelformat.h:
@@ -1026,17 +1042,23 @@ C:/Qt/5.15.2/mingw81_32/include/QtGui/qregion.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgb.h:
 
+C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextcursor.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextformat.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextoption.h:
+
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qtgui-config.h:
 
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winerror.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qtguiglobal.h:
 
-C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h:
+C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/stdlib.h:
 
-C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h:
+C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h:
 
 C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h:
 
@@ -1077,6 +1099,8 @@ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h:
 C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/synchapi.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/std_function.h:
+
+C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/c++0x_warning.h:
 
@@ -1522,9 +1546,9 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/invoke.h
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_algobase.h:
 
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/ios_base.h:
-
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/stdexcept:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/ios_base.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/list.tcc:
 
@@ -1550,9 +1574,9 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_iter
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_iterator_base_types.h:
 
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_map.h:
-
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/streambuf:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_map.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_pair.h:
 
@@ -1563,8 +1587,6 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/uniform_
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/vector.tcc:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cstdint:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ostream:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cstdlib:
 
@@ -1577,8 +1599,6 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/concurren
 vector/vector_data_types.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/numeric_traits.h:
-
-C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/string_conversions.h:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/functional:
 
@@ -1595,6 +1615,8 @@ C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/i686-w64-ming
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/list:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/optional:
+
+C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ostream:
 
 C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/string:
 
@@ -1629,6 +1651,8 @@ database/binaryfilehelper.h:
 database/databasemanager.h:
 
 database/databasemanager_migrator.cpp:
+
+pin/pinvalueedit.cpp:
 
 test_fetch_row_autogen/moc_predefs.h:
 
