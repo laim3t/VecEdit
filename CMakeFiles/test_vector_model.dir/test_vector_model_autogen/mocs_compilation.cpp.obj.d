@@ -502,38 +502,17 @@ CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.
  C:/Qt/5.15.2/mingw81_32/include/QtCore/quuid.h \
  C:\VecEdit\test_vector_model_autogen\EFITGCF6GF/moc_vectormodeltest.cpp \
  C:/VecEdit/vector/vectormodeltest.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlabel.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QComboBox \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcombobox.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qpushbutton.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qboxlayout.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayout.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayoutitem.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qboxlayout.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgridlayout.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QGroupBox \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgroupbox.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QSpinBox \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qspinbox.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QElapsedTimer \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qelapsedtimer.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/QStandardItemModel \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qstandarditemmodel.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QSortFilterProxyModel \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qsortfilterproxymodel.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractproxymodel.h \
  C:\VecEdit\test_vector_model_autogen\EFITGCF6GF/moc_vectortablemodel.cpp \
  C:/VecEdit/vector/vectortablemodel.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QAbstractTableModel \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QColor \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h \
+ C:/VecEdit/vector/vector_data_types.h \
+ C:/VecEdit/database/binaryfilehelper.h \
+ C:/VecEdit/common/binary_file_format.h \
+ C:/VecEdit/common/binary_field_lengths.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QIODevice \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qbytearray.h

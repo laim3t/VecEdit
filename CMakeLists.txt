@@ -66,6 +66,8 @@ set(PROJECT_SOURCES
         vector/deleterangevectordialog.cpp
         vector/fillvectordialog.h
         vector/fillvectordialog.cpp
+        vector/vectortablemodel.h
+        vector/vectortablemodel.cpp
         common/dialogmanager.h
         common/dialogmanager.cpp
         common/tablestylemanager.h
@@ -195,6 +197,55 @@ target_include_directories(test_fetch_row PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
 )
 
+# 添加模型/视图测试工具
+set(TEST_VECTOR_MODEL_SOURCES
+    tests/test_vector_model.cpp
+    vector/vectortablemodel.cpp
+    vector/vectortablemodel.h
+    vector/vectormodeltest.cpp
+    vector/vectormodeltest.h
+    database/databasemanager.cpp
+    database/databasemanager.h
+    database/databasemanager_migrator.cpp
+    database/binaryfilehelper.cpp
+    database/binaryfilehelper.h
+    vector/vectordatahandler.cpp
+    vector/vectordatahandler.h
+    vector/vector_data_types.h
+    common/logger.cpp
+    common/logger.h
+    common/binary_file_format.h
+    common/binary_field_lengths.h
+    common/utils/pathutils.h
+    pin/pinvalueedit.cpp
+    pin/pinvalueedit.h
+)
+
+add_executable(test_vector_model
+    ${TEST_VECTOR_MODEL_SOURCES}
+)
+
+# 链接测试工具需要的库
+target_link_libraries(test_vector_model PRIVATE
+    Qt5::Widgets
+    Qt5::Sql
+    Qt5::Concurrent
+    Qt5::PrintSupport
+)
+
+# 为测试工具添加包含目录
+target_include_directories(test_vector_model PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/database
+    ${CMAKE_CURRENT_SOURCE_DIR}/migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/pin
+    ${CMAKE_CURRENT_SOURCE_DIR}/timeset
+    ${CMAKE_CURRENT_SOURCE_DIR}/vector
+)
+
 # --- 安装与打包 ---
 include(GNUInstallDirs)
 
@@ -208,9 +259,13 @@ install(TARGETS VecEdit
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
 )
 
+# 为test_vector_model添加安装规则
+install(TARGETS test_vector_model
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
+)
+
 if(WIN32)
-    # 2. 【新流程】在"安装"阶段（而不是打包阶段）部署依赖项
-    #    这会把所有依赖项和 VecEdit.exe 一起复制到 CMAKE_INSTALL_PREFIX 目录
+    # 2. 在安装阶段部署Qt依赖项
     install(CODE "
         message(STATUS \"Deploying Qt dependencies to '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}'...\")
         execute_process(
@@ -218,6 +273,17 @@ if(WIN32)
                 --no-translations
                 --no-compiler-runtime
                 \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/VecEdit.exe\"
+        )
+    " COMPONENT Runtime)
+    
+    # 为test_vector_model部署Qt依赖项
+    install(CODE "
+        message(STATUS \"Deploying Qt dependencies for test_vector_model to '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}'...\")
+        execute_process(
+            COMMAND \"${WINDEPLOYQT_EXECUTABLE}\"
+                --no-translations
+                --no-compiler-runtime
+                \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/test_vector_model.exe\"
         )
     " COMPONENT Runtime)
 

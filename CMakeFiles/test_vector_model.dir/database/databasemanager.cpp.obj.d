@@ -276,8 +276,6 @@ CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonvalue.h \
@@ -292,6 +290,8 @@ CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFileInfo \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfileinfo.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcoreapplication.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcoreevent.h \

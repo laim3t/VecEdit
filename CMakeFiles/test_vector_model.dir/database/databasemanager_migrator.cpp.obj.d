@@ -276,8 +276,6 @@ CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
  C:\VecEdit\database\binaryfilehelper.h \
  C:/VecEdit/common/binary_file_format.h \
  C:/VecEdit/common/binary_field_lengths.h \
@@ -304,5 +302,7 @@ CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/quuid.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDataStream \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatastream.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h

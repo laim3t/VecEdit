@@ -238,29 +238,31 @@ CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: \
  C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pthread_time.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/parse_numbers.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/variant \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfile.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfiledevice.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QColor \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtguiglobal.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtgui-config.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgb.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgba64.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qshareddata.h \
- C:/VecEdit/vector/vector_data_types.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsqlglobal.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsql-config.h \
+ C:\VecEdit\vector\vector_data_types.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonvalue.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qshareddata.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcborvalue.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qcborcommon.h \
@@ -284,69 +286,21 @@ CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/quuid.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:\VecEdit\vector\vectordatahandler.h \
+ C:/VecEdit/database/binaryfilehelper.h \
+ C:/VecEdit/common/binary_file_format.h \
+ C:/VecEdit/common/binary_field_lengths.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QIODevice \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qbytearray.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qmap.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemview.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qwindowdefs.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qwindowdefs_win.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qmargins.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qpaintdevice.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qrect.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qsize.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qpoint.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qpalette.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qbrush.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qmatrix.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qpolygon.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qregion.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatastream.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qline.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qimage.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixelformat.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixmap.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qfont.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qfontmetrics.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qfontinfo.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qcursor.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qkeysequence.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h \
- C:/Qt/5.15.2/mingw81_32/include/QtGui/qicon.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabwidget.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qrubberband.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QMutex \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qmutex.h \
+ C:/VecEdit/vector/vector_data_types.h \
+ C:/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qatomic.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QSet \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
- C:/VecEdit/database/databasemanager.h \
- C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
- C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
- C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsqlglobal.h \
- C:/Qt/5.15.2/mingw81_32/include/QtSql/qtsql-config.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlquery.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
@@ -356,18 +310,145 @@ CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfileinfo.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qfile.h \
- C:/VecEdit/database/binaryfilehelper.h \
- C:/VecEdit/common/binary_file_format.h \
- C:/VecEdit/common/binary_field_lengths.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QIODevice \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qbytearray.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QMutex \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qmutex.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QElapsedTimer \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qelapsedtimer.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/QLocale \
- C:/Qt/5.15.2/mingw81_32/include/QtCore/qlocale.h
+ C:/VecEdit/common/logger.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QTextStream \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qtextstream.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/windows.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/sdkddkver.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/excpt.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/windef.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/minwindef.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winapifamily.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/specstrings.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/sal.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/driverspecs.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winnt.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw_unicode.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/apiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/intrin-impl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/basetsd.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/guiddef.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack4.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/poppack.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack4.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack2.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/poppack.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack2.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack8.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack8.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/ktmtypes.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/apisetcconv.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/minwinbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/bemapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/debugapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/errhandlingapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/fibersapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/fileapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/handleapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/heapapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/ioapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/interlockedapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/jobapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/libloaderapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/memoryapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/namedpipeapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/namespaceapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/processenv.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/processthreadsapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/processtopologyapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/profileapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/realtimeapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/securityappcontainer.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/securitybaseapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/synchapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/sysinfoapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/systemtopologyapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/threadpoolapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/threadpoollegacyapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/utilapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wow64apiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winerror.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/fltwinerror.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/timezoneapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wingdi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/pshpack1.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winuser.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/tvout.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winnls.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/datetimeapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/stringapiset.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wincon.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winver.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winreg.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/reason.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winnetwk.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wnnc.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/virtdisk.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/cderr.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/dde.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/ddeml.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/dlgs.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/lzexpand.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/mmsystem.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/nb30.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpc.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcdce.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcdcep.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcnsi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcnterr.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcasync.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/shellapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winperf.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winsock.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_bsd_types.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/inaddr.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_socket_types.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_fd_types.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_ip_types.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_ip_mreq1.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_wsadata.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_xmitfile.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/psdk_inc/_wsa_errnos.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wincrypt.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/bcrypt.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/ncrypt.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/dpapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winefs.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winscard.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wtypes.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcndr.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcnsip.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/rpcsal.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/ole2.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/objbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/combaseapi.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/wtypesbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/unknwnbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/objidlbase.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/cguid.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/objidl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/unknwn.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/urlmon.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleidl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/servprov.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/msxml.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oaidl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/propidl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/oleauto.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winioctl.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winsmcrd.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winspool.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/prsht.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/commdlg.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/stralign.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/sec_api/stralign_s.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/winsvc.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/mcx.h \
+ C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/imm.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QFileInfo \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qfileinfo.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QUuid \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/quuid.h

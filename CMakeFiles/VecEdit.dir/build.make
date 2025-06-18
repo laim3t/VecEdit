@@ -412,30 +412,13 @@ CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.s"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -S C:\VecEdit\vector\vectordatahandler.cpp -o CMakeFiles\VecEdit.dir\vector\vectordatahandler.cpp.s
 
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: vector/vectortablemodel.cpp
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -MD -MT CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj -MF CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.obj.d -o CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.obj -c C:\VecEdit\vector\vectortablemodel.cpp
-
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.i"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -E C:\VecEdit\vector\vectortablemodel.cpp > CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.i
-
-CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.s"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -S C:\VecEdit\vector\vectortablemodel.cpp -o CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.s
-
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: vector/deleterangevectordialog.cpp
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -MD -MT CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj -MF CMakeFiles\VecEdit.dir\vector\deleterangevectordialog.cpp.obj.d -o CMakeFiles\VecEdit.dir\vector\deleterangevectordialog.cpp.obj -c C:\VecEdit\vector\deleterangevectordialog.cpp
 
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.i: cmake_force
@@ -452,7 +435,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: vector/fillvectordialog.
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -MD -MT CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj -MF CMakeFiles\VecEdit.dir\vector\fillvectordialog.cpp.obj.d -o CMakeFiles\VecEdit.dir\vector\fillvectordialog.cpp.obj -c C:\VecEdit\vector\fillvectordialog.cpp
 
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.i: cmake_force
@@ -462,6 +445,23 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.i: cmake_force
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.s"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -S C:\VecEdit\vector\fillvectordialog.cpp -o CMakeFiles\VecEdit.dir\vector\fillvectordialog.cpp.s
+
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: vector/vectortablemodel.cpp
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/VecEdit.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -MD -MT CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj -MF CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.obj.d -o CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.obj -c C:\VecEdit\vector\vectortablemodel.cpp
+
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.i"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -E C:\VecEdit\vector\vectortablemodel.cpp > CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.i
+
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.s"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -Winvalid-pch -include C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx -S C:\VecEdit\vector\vectortablemodel.cpp -o CMakeFiles\VecEdit.dir\vector\vectortablemodel.cpp.s
 
 CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: CMakeFiles/VecEdit.dir/flags.make
 CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: CMakeFiles/VecEdit.dir/includes_CXX.rsp
@@ -692,9 +692,9 @@ VecEdit_OBJECTS = \
 "CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj" \
 "CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj" \
 "CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj" \
-"CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj" \
 "CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj" \
 "CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj" \
+"CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj" \
 "CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj" \
@@ -731,9 +731,9 @@ VecEdit.exe: CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj
-VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj
+VecEdit.exe: CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj
 VecEdit.exe: CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj

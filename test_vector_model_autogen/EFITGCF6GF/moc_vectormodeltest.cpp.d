@@ -1,9 +1,8 @@
 C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecEdit/vector/vectormodeltest.h \
   C:/VecEdit/test_vector_model_autogen/moc_predefs.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/QElapsedTimer \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/QSortFilterProxyModel \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractproxymodel.h \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
+  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qalgorithms.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qarraydata.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qatomic.h \
@@ -16,23 +15,14 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qconfig.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainerfwd.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainertools_impl.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatastream.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qelapsedtimer.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qflags.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qgenericatomic.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobalstatic.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qhashfunctions.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qitemselectionmodel.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qiterator.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qline.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlocale.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qlogging.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qmap.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qmargins.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qmetatype.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qnamespace.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qnumeric.h \
@@ -41,19 +31,10 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qobjectdefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qobjectdefs_impl.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qpair.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qpoint.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qprocessordetection.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qrect.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qrefcount.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qregexp.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qregularexpression.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qscopedpointer.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qshareddata.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qsharedpointer.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qsharedpointer_impl.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qsize.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qsortfilterproxymodel.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qstringalgorithms.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qstringlist.h \
@@ -64,79 +45,9 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qsystemdetection.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qtcore-config.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qtypeinfo.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qvarlengtharray.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qvector.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qversiontagging.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/QStandardItemModel \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qbrush.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qcursor.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qfont.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qfontinfo.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qfontmetrics.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qicon.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qimage.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qkeysequence.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qmatrix.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpaintdevice.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpalette.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpen.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixelformat.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixmap.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpolygon.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qregion.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgb.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qrgba64.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qstandarditemmodel.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextcursor.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextformat.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtextoption.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtgui-config.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtguiglobal.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qtransform.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qvalidator.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qwindowdefs.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtGui/qwindowdefs_win.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QComboBox \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QGroupBox \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QSpinBox \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QVBoxLayout \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractbutton.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemdelegate.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractitemview.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractscrollarea.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractspinbox.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qboxlayout.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcombobox.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qframe.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgridlayout.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgroupbox.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlabel.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayout.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlayoutitem.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qpushbutton.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qrubberband.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qsizepolicy.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qslider.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qspinbox.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyle.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleoption.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabbar.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtabwidget.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgets-config.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
   C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw.h \
   C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw_mac.h \
   C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include/_mingw_off_t.h \
@@ -175,14 +86,11 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/algorithm \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/array \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/atomic \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/backward/auto_ptr.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/backward/binders.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/algorithmfwd.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/alloc_traits.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/allocated_ptr.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/allocator.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/atomic_base.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/atomic_lockfree_defines.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/basic_ios.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/basic_ios.tcc \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/basic_string.h \
@@ -220,9 +128,6 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/ptr_traits.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/range_access.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/refwrap.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/shared_ptr.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/shared_ptr_atomic.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/shared_ptr_base.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/std_abs.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/std_function.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_algo.h \
@@ -239,7 +144,6 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_multimap.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_numeric.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_pair.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_raw_storage_iter.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_relops.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_tempbuf.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stl_tree.h \
@@ -251,8 +155,6 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/string_view.tcc \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/stringfwd.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/uniform_int_dist.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/unique_ptr.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/uses_allocator.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/bits/vector.tcc \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cctype \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/clocale \
@@ -267,7 +169,6 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/aligned_buffer.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/alloc_traits.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/atomicity.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/concurrence.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/new_allocator.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/numeric_traits.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/ext/string_conversions.h \
@@ -291,7 +192,6 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/limits \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/list \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/map \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/memory \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/new \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/numeric \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/optional \
@@ -308,5 +208,4 @@ C:/VecEdit/test_vector_model_autogen/EFITGCF6GF/moc_vectormodeltest.cpp: C:/VecE
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/utility \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/vector \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
-  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h
+  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h

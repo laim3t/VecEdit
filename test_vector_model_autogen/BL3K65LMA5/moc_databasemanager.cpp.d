@@ -1,6 +1,5 @@
 C:/VecEdit/test_vector_model_autogen/BL3K65LMA5/moc_databasemanager.cpp: C:/VecEdit/database/databasemanager.h \
   C:/VecEdit/test_vector_model_autogen/moc_predefs.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDir \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
@@ -20,7 +19,6 @@ C:/VecEdit/test_vector_model_autogen/BL3K65LMA5/moc_databasemanager.cpp: C:/VecE
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainerfwd.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontainertools_impl.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qcontiguouscache.h \
-  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/qfile.h \

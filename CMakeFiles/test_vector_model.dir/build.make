@@ -108,26 +108,11 @@ CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.s"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\tests\test_vector_model.cpp -o CMakeFiles\test_vector_model.dir\tests\test_vector_model.cpp.s
 
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: vector/vectormodeltest.cpp
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj -MF CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.obj.d -o CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.obj -c C:\VecEdit\vector\vectormodeltest.cpp
-
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.i"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\VecEdit\vector\vectormodeltest.cpp > CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.i
-
-CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.s"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\vector\vectormodeltest.cpp -o CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.s
-
 CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
 CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
 CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: vector/vectortablemodel.cpp
 CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj -MF CMakeFiles\test_vector_model.dir\vector\vectortablemodel.cpp.obj.d -o CMakeFiles\test_vector_model.dir\vector\vectortablemodel.cpp.obj -c C:\VecEdit\vector\vectortablemodel.cpp
 
 CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.i: cmake_force
@@ -138,26 +123,26 @@ CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.s"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\vector\vectortablemodel.cpp -o CMakeFiles\test_vector_model.dir\vector\vectortablemodel.cpp.s
 
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: vector/vectordatahandler.cpp
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj -MF CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.obj.d -o CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.obj -c C:\VecEdit\vector\vectordatahandler.cpp
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: vector/vectormodeltest.cpp
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj -MF CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.obj.d -o CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.obj -c C:\VecEdit\vector\vectormodeltest.cpp
 
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.i"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\VecEdit\vector\vectordatahandler.cpp > CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.i
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.i"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\VecEdit\vector\vectormodeltest.cpp > CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.i
 
-CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.s"
-	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\vector\vectordatahandler.cpp -o CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.s
+CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.s"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\vector\vectormodeltest.cpp -o CMakeFiles\test_vector_model.dir\vector\vectormodeltest.cpp.s
 
 CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
 CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
 CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: database/databasemanager.cpp
 CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj -MF CMakeFiles\test_vector_model.dir\database\databasemanager.cpp.obj.d -o CMakeFiles\test_vector_model.dir\database\databasemanager.cpp.obj -c C:\VecEdit\database\databasemanager.cpp
 
 CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.i: cmake_force
@@ -172,7 +157,7 @@ CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: CMak
 CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
 CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: database/databasemanager_migrator.cpp
 CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj -MF CMakeFiles\test_vector_model.dir\database\databasemanager_migrator.cpp.obj.d -o CMakeFiles\test_vector_model.dir\database\databasemanager_migrator.cpp.obj -c C:\VecEdit\database\databasemanager_migrator.cpp
 
 CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.i: cmake_force
@@ -187,7 +172,7 @@ CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj: CMakeFiles/t
 CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
 CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj: database/binaryfilehelper.cpp
 CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj -MF CMakeFiles\test_vector_model.dir\database\binaryfilehelper.cpp.obj.d -o CMakeFiles\test_vector_model.dir\database\binaryfilehelper.cpp.obj -c C:\VecEdit\database\binaryfilehelper.cpp
 
 CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.i: cmake_force
@@ -197,6 +182,21 @@ CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.i: cmake_force
 CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.s"
 	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\database\binaryfilehelper.cpp -o CMakeFiles\test_vector_model.dir\database\binaryfilehelper.cpp.s
+
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: vector/vectordatahandler.cpp
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj: CMakeFiles/test_vector_model.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj -MF CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.obj.d -o CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.obj -c C:\VecEdit\vector\vectordatahandler.cpp
+
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.i"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\VecEdit\vector\vectordatahandler.cpp > CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.i
+
+CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.s"
+	C:\Qt\Tools\mingw810_32\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\VecEdit\vector\vectordatahandler.cpp -o CMakeFiles\test_vector_model.dir\vector\vectordatahandler.cpp.s
 
 CMakeFiles/test_vector_model.dir/common/logger.cpp.obj: CMakeFiles/test_vector_model.dir/flags.make
 CMakeFiles/test_vector_model.dir/common/logger.cpp.obj: CMakeFiles/test_vector_model.dir/includes_CXX.rsp
@@ -232,12 +232,12 @@ CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.s: cmake_force
 test_vector_model_OBJECTS = \
 "CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.obj" \
-"CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj" \
-"CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj" \
+"CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj" \
+"CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/common/logger.cpp.obj" \
 "CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.obj"
 
@@ -246,12 +246,12 @@ test_vector_model_EXTERNAL_OBJECTS =
 
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/test_vector_model_autogen/mocs_compilation.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/tests/test_vector_model.cpp.obj
-test_vector_model.exe: CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/vector/vectortablemodel.cpp.obj
-test_vector_model.exe: CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj
+test_vector_model.exe: CMakeFiles/test_vector_model.dir/vector/vectormodeltest.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/database/databasemanager.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/database/databasemanager_migrator.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/database/binaryfilehelper.cpp.obj
+test_vector_model.exe: CMakeFiles/test_vector_model.dir/vector/vectordatahandler.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/common/logger.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/pin/pinvalueedit.cpp.obj
 test_vector_model.exe: CMakeFiles/test_vector_model.dir/build.make

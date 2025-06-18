@@ -48,6 +48,16 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "C:/VecEdit/test_vector_model.exe")
+  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/test_vector_model.exe" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/test_vector_model.exe")
+    if(CMAKE_INSTALL_DO_STRIP)
+      execute_process(COMMAND "C:/Qt/Tools/mingw810_32/bin/strip.exe" "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/test_vector_model.exe")
+    endif()
+  endif()
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
   
         message(STATUS "Deploying Qt dependencies to 'C:/Program Files (x86)/VecEdit/bin'...")
         execute_process(
@@ -55,6 +65,18 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
                 --no-translations
                 --no-compiler-runtime
                 "C:/Program Files (x86)/VecEdit/bin/VecEdit.exe"
+        )
+    
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Runtime" OR NOT CMAKE_INSTALL_COMPONENT)
+  
+        message(STATUS "Deploying Qt dependencies for test_vector_model to 'C:/Program Files (x86)/VecEdit/bin'...")
+        execute_process(
+            COMMAND "C:/Qt/5.15.2/mingw81_32/bin/windeployqt.exe"
+                --no-translations
+                --no-compiler-runtime
+                "C:/Program Files (x86)/VecEdit/bin/test_vector_model.exe"
         )
     
 endif()

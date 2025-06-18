@@ -53,11 +53,11 @@ RC_FLAGS =
 
 # PCH options: CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
-
 # PCH options: CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
 # PCH options: CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+
+# PCH options: CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
 # PCH options: CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 

@@ -21,25 +21,25 @@
 QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-struct qt_meta_stringdata_VectorTableModel_t {
+struct qt_meta_stringdata_Vector__VectorTableModel_t {
     QByteArrayData data[1];
-    char stringdata0[17];
+    char stringdata0[25];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_VectorTableModel_t, stringdata0) + ofs \
+    qptrdiff(offsetof(qt_meta_stringdata_Vector__VectorTableModel_t, stringdata0) + ofs \
         - idx * sizeof(QByteArrayData)) \
     )
-static const qt_meta_stringdata_VectorTableModel_t qt_meta_stringdata_VectorTableModel = {
+static const qt_meta_stringdata_Vector__VectorTableModel_t qt_meta_stringdata_Vector__VectorTableModel = {
     {
-QT_MOC_LITERAL(0, 0, 16) // "VectorTableModel"
+QT_MOC_LITERAL(0, 0, 24) // "Vector::VectorTableModel"
 
     },
-    "VectorTableModel"
+    "Vector::VectorTableModel"
 };
 #undef QT_MOC_LITERAL
 
-static const uint qt_meta_data_VectorTableModel[] = {
+static const uint qt_meta_data_Vector__VectorTableModel[] = {
 
  // content:
        8,       // revision
@@ -55,7 +55,7 @@ static const uint qt_meta_data_VectorTableModel[] = {
        0        // eod
 };
 
-void VectorTableModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+void Vector::VectorTableModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
     Q_UNUSED(_o);
     Q_UNUSED(_id);
@@ -63,30 +63,30 @@ void VectorTableModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
     Q_UNUSED(_a);
 }
 
-QT_INIT_METAOBJECT const QMetaObject VectorTableModel::staticMetaObject = { {
+QT_INIT_METAOBJECT const QMetaObject Vector::VectorTableModel::staticMetaObject = { {
     QMetaObject::SuperData::link<QAbstractTableModel::staticMetaObject>(),
-    qt_meta_stringdata_VectorTableModel.data,
-    qt_meta_data_VectorTableModel,
+    qt_meta_stringdata_Vector__VectorTableModel.data,
+    qt_meta_data_Vector__VectorTableModel,
     qt_static_metacall,
     nullptr,
     nullptr
 } };
 
 
-const QMetaObject *VectorTableModel::metaObject() const
+const QMetaObject *Vector::VectorTableModel::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
 }
 
-void *VectorTableModel::qt_metacast(const char *_clname)
+void *Vector::VectorTableModel::qt_metacast(const char *_clname)
 {
     if (!_clname) return nullptr;
-    if (!strcmp(_clname, qt_meta_stringdata_VectorTableModel.stringdata0))
+    if (!strcmp(_clname, qt_meta_stringdata_Vector__VectorTableModel.stringdata0))
         return static_cast<void*>(this);
     return QAbstractTableModel::qt_metacast(_clname);
 }
 
-int VectorTableModel::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int Vector::VectorTableModel::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QAbstractTableModel::qt_metacall(_c, _id, _a);
     return _id;
