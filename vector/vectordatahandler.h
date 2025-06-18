@@ -97,6 +97,19 @@ public:
     bool isRowModified(int tableId, int rowIndex);
 
     /**
+     * @brief 按需获取单行数据
+     *
+     * 从二进制文件中读取指定行的数据，而不需要加载整个文件。
+     * 这是重构后的核心方法，支持大型文件的高效访问。
+     *
+     * @param tableId 向量表的ID
+     * @param rowIndex 行索引（从0开始）
+     * @param rowData 输出参数，存储获取到的行数据
+     * @return bool 成功返回true，失败返回false
+     */
+    bool fetchRowData(int tableId, int rowIndex, Vector::RowData &rowData);
+
+    /**
      * @brief 解析给定表ID的二进制文件的绝对路径
      *
      * @param tableId 向量表的ID

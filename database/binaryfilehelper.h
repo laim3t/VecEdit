@@ -187,6 +187,27 @@ namespace Persistence
                                          const QSet<int> &modifiedRows,
                                          bool preserveIndex = true);
 
+        /**
+         * @brief 从二进制文件中读取单行数据
+         *
+         * 此方法利用行偏移缓存机制，高效地读取指定行的数据，而不需要读取整个文件。
+         * 是针对大型文件按需读取优化的核心方法。
+         *
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息，用于反序列化
+         * @param schemaVersion 数据库中的schema版本
+         * @param rowIndex 要读取的行索引（0-based）
+         * @param rowData 输出参数，存储读取的行数据
+         * @param useCache 是否使用行偏移缓存（默认为true）
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool readRowFromBinary(const QString &binFilePath,
+                                      const QList<Vector::ColumnInfo> &columns,
+                                      int schemaVersion,
+                                      int rowIndex,
+                                      Vector::RowData &rowData,
+                                      bool useCache = true);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度

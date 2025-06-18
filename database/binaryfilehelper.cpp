@@ -469,7 +469,8 @@ namespace Persistence
                 {
                     qWarning() << funcName << " - 反序列化TEXT字段时长度无效或过大:" << textLength << ", 列名:" << col.name;
                     textLength = qMin(qMin(textLength, fieldLength - 4), TEXT_ABSOLUTE_MAX_LENGTH);
-                    if (textLength < 0) textLength = 0;
+                    if (textLength < 0)
+                        textLength = 0;
                 }
 
                 // 读取实际文本内容
@@ -528,7 +529,8 @@ namespace Persistence
                 {
                     qWarning() << funcName << " - 反序列化JSON字段时长度无效或过大:" << jsonLength;
                     jsonLength = qMin(qMin(jsonLength, JSON_PROPERTIES_MAX_LENGTH - 4), JSON_ABSOLUTE_MAX_LENGTH);
-                    if (jsonLength < 0) jsonLength = 0;
+                    if (jsonLength < 0)
+                        jsonLength = 0;
                 }
 
                 // 读取JSON字符串
@@ -660,16 +662,19 @@ namespace Persistence
         const int LOG_INTERVAL = 5000; // 每5000行记录一次日志
         const QDateTime startTime = QDateTime::currentDateTime();
 
-        quint64 actualRowsRead = 0;                               // Use quint64 to match header type
-        
+        quint64 actualRowsRead = 0; // Use quint64 to match header type
+
         // 添加安全检查来防止不合理的预分配内存
-        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000) {
-            qCritical() << funcName << "- 错误: 文件头声明的行数(" << header.row_count_in_file 
+        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000)
+        {
+            qCritical() << funcName << "- 错误: 文件头声明的行数(" << header.row_count_in_file
                         << ")过大，超过安全限制或int最大值. 将限制预分配.";
             // 使用安全的最大值来预分配，而不是全部分配
-            rows.reserve(qMin(10000000, static_cast<int>(qMin(static_cast<quint64>(std::numeric_limits<int>::max()), 
-                                                             header.row_count_in_file))));
-        } else {
+            rows.reserve(qMin(10000000, static_cast<int>(qMin(static_cast<quint64>(std::numeric_limits<int>::max()),
+                                                              header.row_count_in_file))));
+        }
+        else
+        {
             rows.reserve(static_cast<int>(header.row_count_in_file)); // QList uses int for size/reserve
         }
 
@@ -690,14 +695,14 @@ namespace Persistence
                 qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取行大小失败. 状态:" << in.status();
                 break;
             }
-            
+
             // 增加防护措施：检测不合理的行大小
             const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-            if (rowByteSize > MAX_REASONABLE_ROW_SIZE) 
+            if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
             {
-                qCritical() << funcName << "- 检测到异常大的行大小:" << rowByteSize 
-                           << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-                
+                qCritical() << funcName << "- 检测到异常大的行大小:" << rowByteSize
+                            << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
+
                 // 限制大小到合理范围
                 rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
                 qWarning() << funcName << "- 已将行大小调整为:" << rowByteSize << "字节，尝试继续读取";
@@ -740,13 +745,13 @@ namespace Persistence
                     qWarning() << funcName << "- 错误: 在重定向位置" << redirectPosition << "读取行大小失败. 状态:" << in.status();
                     break;
                 }
-                
+
                 // 对重定向位置也进行行大小检测
-                if (rowByteSize > MAX_REASONABLE_ROW_SIZE) 
+                if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
                 {
-                    qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize 
-                               << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-                    
+                    qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize
+                                << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
+
                     // 限制大小到合理范围
                     rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
                     qWarning() << funcName << "- 已将重定向位置的行大小调整为:" << rowByteSize << "字节，尝试继续读取";
@@ -2633,5 +2638,246 @@ namespace Persistence
         // 注意：此处不更新索引文件，因为更新单个行的索引文件成本较高
         // 下次读取时，如果发现内存缓存中有timestamp=0的行，
         // 将触发仅对这些行的重新扫描，而不是整个文件
+    }
+
+    bool BinaryFileHelper::readRowFromBinary(const QString &binFilePath,
+                                             const QList<Vector::ColumnInfo> &columns,
+                                             int schemaVersion,
+                                             int rowIndex,
+                                             Vector::RowData &rowData,
+                                             bool useCache)
+    {
+        const QString funcName = "BinaryFileHelper::readRowFromBinary";
+
+        // 清空输出参数
+        rowData.clear();
+
+        // 打开文件
+        QFile file(binFilePath);
+        if (!file.open(QIODevice::ReadOnly))
+        {
+            qWarning() << funcName << "- 错误: 无法打开文件:" << binFilePath << "错误信息:" << file.errorString();
+            return false;
+        }
+
+        // 读取文件头
+        BinaryFileHeader header;
+        if (!readBinaryHeader(&file, header))
+        {
+            qWarning() << funcName << "- 错误: 无法读取或验证二进制头信息.";
+            file.close();
+            return false;
+        }
+
+        // 检查行索引是否有效
+        if (rowIndex < 0 || static_cast<quint64>(rowIndex) >= header.row_count_in_file)
+        {
+            qWarning() << funcName << "- 错误: 行索引" << rowIndex << "超出范围 (0 - " << (header.row_count_in_file - 1) << ")";
+            file.close();
+            return false;
+        }
+
+        // --- 版本兼容性检查 ---
+        if (header.data_schema_version > schemaVersion)
+        {
+            qCritical() << funcName << "- 错误: 文件数据schema版本(" << header.data_schema_version
+                        << ")高于DB schema版本(" << schemaVersion << "). 无法加载.";
+            file.close();
+            return false;
+        }
+
+        // 检查是否应该使用缓存
+        if (useCache)
+        {
+            // 获取文件最后修改时间
+            QFileInfo fileInfo(binFilePath);
+            QDateTime fileLastModified = fileInfo.lastModified();
+
+            // 获取行偏移缓存
+            RowOffsetCache cache = getRowOffsetCache(binFilePath, fileLastModified);
+
+            // 如果缓存有效且包含目标行
+            if (!cache.isEmpty() && rowIndex < cache.size())
+            {
+                // 从缓存获取行的位置和大小信息
+                const RowPositionInfo &posInfo = cache.at(rowIndex);
+
+                // 跳转到行开始位置
+                if (!file.seek(posInfo.offset))
+                {
+                    qWarning() << funcName << "- 错误: 无法定位到行" << rowIndex << "的开始位置:" << posInfo.offset;
+                    file.close();
+                    return false;
+                }
+
+                QDataStream in(&file);
+                in.setByteOrder(QDataStream::LittleEndian);
+
+                // 读取行大小（虽然我们已经知道了，但我们仍需要读取，因为这是文件格式的一部分）
+                quint32 rowByteSize;
+                in >> rowByteSize;
+
+                if (in.status() != QDataStream::Ok)
+                {
+                    qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取行大小失败. 状态:" << in.status();
+                    file.close();
+                    return false;
+                }
+
+                // 检查是否是重定位标记 (0xFFFFFFFF)
+                if (rowByteSize == 0xFFFFFFFF)
+                {
+                    // 读取重定位位置
+                    qint64 redirectPosition;
+                    in >> redirectPosition;
+
+                    if (in.status() != QDataStream::Ok)
+                    {
+                        qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取重定向位置失败. 状态:" << in.status();
+                        file.close();
+                        return false;
+                    }
+
+                    // 跳转到重定位位置
+                    if (!file.seek(redirectPosition))
+                    {
+                        qWarning() << funcName << "- 错误: 无法跳转到重定位位置 " << redirectPosition;
+                        file.close();
+                        return false;
+                    }
+
+                    // 读取重定位位置的行大小
+                    in >> rowByteSize;
+
+                    if (in.status() != QDataStream::Ok)
+                    {
+                        qWarning() << funcName << "- 错误: 在重定向位置" << redirectPosition << "读取行大小失败. 状态:" << in.status();
+                        file.close();
+                        return false;
+                    }
+
+                    // 如果重定位位置又是一个重定位指针，这是错误的（避免循环引用）
+                    if (rowByteSize == 0xFFFFFFFF)
+                    {
+                        qWarning() << funcName << "- 错误：重定位指针指向另一个重定位指针，可能存在循环引用";
+                        file.close();
+                        return false;
+                    }
+                }
+
+                // 读取行数据
+                QByteArray rowBytes = file.read(rowByteSize);
+                if (rowBytes.size() != static_cast<int>(rowByteSize))
+                {
+                    qWarning() << funcName << "- 错误: 读取行数据失败. 预期:" << rowByteSize << "实际:" << rowBytes.size();
+                    file.close();
+                    return false;
+                }
+
+                // 反序列化行数据
+                bool success = deserializeRow(rowBytes, columns, header.data_schema_version, rowData);
+                file.close();
+                return success;
+            }
+        }
+
+        // 如果缓存不可用或无效，使用顺序扫描找到目标行
+        qDebug() << funcName << "- 未找到行" << rowIndex << "的缓存，将使用顺序扫描";
+
+        QDataStream in(&file);
+        in.setByteOrder(QDataStream::LittleEndian);
+
+        for (int i = 0; i < rowIndex; ++i)
+        {
+            // 读取行大小
+            quint32 rowByteSize;
+            in >> rowByteSize;
+
+            if (in.status() != QDataStream::Ok)
+            {
+                qWarning() << funcName << "- 错误: 在扫描过程中读取行" << i << "的大小失败. 状态:" << in.status();
+                file.close();
+                return false;
+            }
+
+            // 检查是否是重定位标记
+            if (rowByteSize == 0xFFFFFFFF)
+            {
+                // 读取重定位位置
+                qint64 redirectPosition;
+                in >> redirectPosition;
+
+                // 跳过重定位数据，继续按顺序读取下一行
+                // 在顺序扫描中，我们不需要跟随重定位指针，只需跳过它即可
+            }
+            else
+            {
+                // 跳过行数据
+                if (!file.seek(file.pos() + rowByteSize))
+                {
+                    qWarning() << funcName << "- 错误: 无法跳过行" << i << "的数据";
+                    file.close();
+                    return false;
+                }
+            }
+        }
+
+        // 现在我们位于目标行的位置，读取它
+        quint32 targetRowByteSize;
+        in >> targetRowByteSize;
+
+        if (in.status() != QDataStream::Ok)
+        {
+            qWarning() << funcName << "- 错误: 读取目标行" << rowIndex << "的大小失败. 状态:" << in.status();
+            file.close();
+            return false;
+        }
+
+        // 处理重定位标记
+        if (targetRowByteSize == 0xFFFFFFFF)
+        {
+            // 读取重定位位置
+            qint64 redirectPosition;
+            in >> redirectPosition;
+
+            if (in.status() != QDataStream::Ok)
+            {
+                qWarning() << funcName << "- 错误: 读取重定向位置失败. 状态:" << in.status();
+                file.close();
+                return false;
+            }
+
+            // 跳转到重定位位置
+            if (!file.seek(redirectPosition))
+            {
+                qWarning() << funcName << "- 错误: 无法跳转到重定位位置 " << redirectPosition;
+                file.close();
+                return false;
+            }
+
+            // 读取重定位位置的行大小
+            in >> targetRowByteSize;
+
+            if (in.status() != QDataStream::Ok || targetRowByteSize == 0xFFFFFFFF)
+            {
+                qWarning() << funcName << "- 错误: 在重定向位置读取行大小失败或检测到循环引用";
+                file.close();
+                return false;
+            }
+        }
+
+        // 读取行数据
+        QByteArray targetRowBytes = file.read(targetRowByteSize);
+        if (targetRowBytes.size() != static_cast<int>(targetRowByteSize))
+        {
+            qWarning() << funcName << "- 错误: 读取目标行数据失败. 预期:" << targetRowByteSize << "实际:" << targetRowBytes.size();
+            file.close();
+            return false;
+        }
+
+        // 反序列化行数据
+        bool success = deserializeRow(targetRowBytes, columns, header.data_schema_version, rowData);
+        file.close();
+        return success;
     }
 } // namespace Persistence

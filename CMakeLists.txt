@@ -150,6 +150,51 @@ target_include_directories(VecEdit PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
 )
 
+# 添加测试工具：单行数据获取性能测试
+set(TEST_FETCH_ROW_SOURCES
+    tests/test_fetch_row.cpp
+    database/databasemanager.cpp
+    database/databasemanager.h
+    database/databasemanager_migrator.cpp
+    database/binaryfilehelper.cpp
+    database/binaryfilehelper.h
+    vector/vectordatahandler.cpp
+    vector/vectordatahandler.h
+    vector/vector_data_types.h
+    common/logger.cpp
+    common/logger.h
+    common/binary_file_format.h
+    common/binary_field_lengths.h
+    common/utils/pathutils.h
+    pin/pinvalueedit.cpp
+    pin/pinvalueedit.h
+)
+
+add_executable(test_fetch_row
+    ${TEST_FETCH_ROW_SOURCES}
+)
+
+# 链接测试工具需要的库
+target_link_libraries(test_fetch_row PRIVATE
+    Qt5::Core
+    Qt5::Sql
+    Qt5::Concurrent
+    Qt5::PrintSupport  # 可能被一些组件需要
+)
+
+# 为测试工具添加包含目录
+target_include_directories(test_fetch_row PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/database
+    ${CMAKE_CURRENT_SOURCE_DIR}/migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/pin
+    ${CMAKE_CURRENT_SOURCE_DIR}/timeset
+    ${CMAKE_CURRENT_SOURCE_DIR}/vector
+)
+
 # --- 安装与打包 ---
 include(GNUInstallDirs)
 

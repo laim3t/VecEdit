@@ -63,10 +63,12 @@ CMAKE_BINARY_DIR = C:\VecEdit
 
 # The main recursive "all" target.
 all: CMakeFiles/VecEdit.dir/all
+all: CMakeFiles/test_fetch_row.dir/all
 .PHONY : all
 
 # The main recursive "codegen" target.
 codegen: CMakeFiles/VecEdit.dir/codegen
+codegen: CMakeFiles/test_fetch_row.dir/codegen
 .PHONY : codegen
 
 # The main recursive "preinstall" target.
@@ -75,8 +77,11 @@ preinstall:
 
 # The main recursive "clean" target.
 clean: CMakeFiles/VecEdit.dir/clean
+clean: CMakeFiles/test_fetch_row.dir/clean
 clean: CMakeFiles/VecEdit_autogen_timestamp_deps.dir/clean
 clean: CMakeFiles/VecEdit_autogen.dir/clean
+clean: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/clean
+clean: CMakeFiles/test_fetch_row_autogen.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -111,6 +116,39 @@ CMakeFiles/VecEdit.dir/codegen: CMakeFiles/VecEdit_autogen_timestamp_deps.dir/al
 CMakeFiles/VecEdit.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit.dir\build.make CMakeFiles/VecEdit.dir/clean
 .PHONY : CMakeFiles/VecEdit.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_fetch_row.dir
+
+# All Build rule for target.
+CMakeFiles/test_fetch_row.dir/all: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+CMakeFiles/test_fetch_row.dir/all: CMakeFiles/test_fetch_row_autogen.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num=39,40,41,42,43,44,45,46,47,48 "Built target test_fetch_row"
+.PHONY : CMakeFiles/test_fetch_row.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_fetch_row.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 11
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/test_fetch_row.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 0
+.PHONY : CMakeFiles/test_fetch_row.dir/rule
+
+# Convenience name for target.
+test_fetch_row: CMakeFiles/test_fetch_row.dir/rule
+.PHONY : test_fetch_row
+
+# codegen rule for target.
+CMakeFiles/test_fetch_row.dir/codegen: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num=39,40,41,42,43,44,45,46,47,48 "Finished codegen for target test_fetch_row"
+.PHONY : CMakeFiles/test_fetch_row.dir/codegen
+
+# clean rule for target.
+CMakeFiles/test_fetch_row.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row.dir\build.make CMakeFiles/test_fetch_row.dir/clean
+.PHONY : CMakeFiles/test_fetch_row.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/VecEdit_autogen_timestamp_deps.dir
@@ -175,6 +213,70 @@ CMakeFiles/VecEdit_autogen.dir/codegen: CMakeFiles/VecEdit_autogen_timestamp_dep
 CMakeFiles/VecEdit_autogen.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\VecEdit_autogen.dir\build.make CMakeFiles/VecEdit_autogen.dir/clean
 .PHONY : CMakeFiles/VecEdit_autogen.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir
+
+# All Build rule for target.
+CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen_timestamp_deps.dir\build.make CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen_timestamp_deps.dir\build.make CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num= "Built target test_fetch_row_autogen_timestamp_deps"
+.PHONY : CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 0
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 0
+.PHONY : CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/rule
+
+# Convenience name for target.
+test_fetch_row_autogen_timestamp_deps: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/rule
+.PHONY : test_fetch_row_autogen_timestamp_deps
+
+# codegen rule for target.
+CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen_timestamp_deps.dir\build.make CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num= "Finished codegen for target test_fetch_row_autogen_timestamp_deps"
+.PHONY : CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/codegen
+
+# clean rule for target.
+CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen_timestamp_deps.dir\build.make CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/clean
+.PHONY : CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_fetch_row_autogen.dir
+
+# All Build rule for target.
+CMakeFiles/test_fetch_row_autogen.dir/all: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen.dir\build.make CMakeFiles/test_fetch_row_autogen.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen.dir\build.make CMakeFiles/test_fetch_row_autogen.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num=49 "Built target test_fetch_row_autogen"
+.PHONY : CMakeFiles/test_fetch_row_autogen.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_fetch_row_autogen.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 1
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/test_fetch_row_autogen.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\VecEdit\CMakeFiles 0
+.PHONY : CMakeFiles/test_fetch_row_autogen.dir/rule
+
+# Convenience name for target.
+test_fetch_row_autogen: CMakeFiles/test_fetch_row_autogen.dir/rule
+.PHONY : test_fetch_row_autogen
+
+# codegen rule for target.
+CMakeFiles/test_fetch_row_autogen.dir/codegen: CMakeFiles/test_fetch_row_autogen_timestamp_deps.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen.dir\build.make CMakeFiles/test_fetch_row_autogen.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\VecEdit\CMakeFiles --progress-num=49 "Finished codegen for target test_fetch_row_autogen"
+.PHONY : CMakeFiles/test_fetch_row_autogen.dir/codegen
+
+# clean rule for target.
+CMakeFiles/test_fetch_row_autogen.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_fetch_row_autogen.dir\build.make CMakeFiles/test_fetch_row_autogen.dir/clean
+.PHONY : CMakeFiles/test_fetch_row_autogen.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.
