@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QDir>
+#include <QTableWidget>
 #include <QTableView>
 #include <QComboBox>
 #include <QPushButton>
@@ -46,7 +47,7 @@ public:
     ~MainWindow();
 
     // 辅助函数：添加向量行
-    void addVectorRow(QTableView *table, const QStringList &pinOptions, int rowIdx);
+    void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
 protected:
     // 处理窗口大小变化事件
@@ -276,6 +277,7 @@ private:
 
     // 向量表显示相关的UI组件
     QTableView *m_vectorTableView;        // 向量表视图
+    QTableWidget *m_vectorTableWidget;    // 旧向量表组件
     QComboBox *m_vectorTableSelector;     // 向量表选择器
     QWidget *m_centralWidget;             // 中央部件
     QWidget *m_welcomeWidget;
@@ -421,11 +423,15 @@ private:
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
 
-    // 向量表数据模型
+    // 添加新的VectorTableModel成员
     Vector::VectorTableModel *m_vectorTableModel; // 向量表数据模型
 
-    // 新增辅助方法
-    void setupVectorTableView();          // 设置表格视图
+    // 添加表格模型状态控制变量
+    bool m_isUsingNewTableModel;          // 是否使用新的表格模型
+
+    // 新增辅助方法，用于过渡期管理
+    void setupVectorTableView();          // 设置新表格视图
+    void syncViewWithTableModel();        // 同步视图和模型
 };
 
 #endif // MAINWINDOW_H
