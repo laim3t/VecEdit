@@ -12,6 +12,7 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
+#include <QtEndian>  // 添加用于字节序转换
 #include <limits> // 添加 std::numeric_limits 所需的头文件
 
 // 初始化静态成员
@@ -2158,15 +2159,19 @@ namespace Persistence
         {
             // 尝试从索引文件读取
             RowOffsetCache indexCache = loadRowOffsetIndex(binFilePath, fileLastModified);
+            
+            // 无论缓存是否为空，都将其存入内存缓存，这样下次不会重复尝试读取索引文件
             if (!indexCache.isEmpty())
             {
-                // 如果从索引文件读取成功，将其加入内存缓存
                 qDebug() << funcName << "- 从索引文件加载了行偏移数据，共" << indexCache.size() << "行";
-                s_fileRowOffsetCache[binFilePath] = indexCache;
-                return indexCache;
             }
-
-            return RowOffsetCache();
+            else
+            {
+                qDebug() << funcName << "- 索引文件加载失败或为空，存储空缓存以避免重复加载尝试";
+            }
+            
+            s_fileRowOffsetCache[binFilePath] = indexCache;
+            return indexCache;
         }
 
         // 获取缓存
@@ -2453,7 +2458,7 @@ namespace Persistence
 
                 // 预分配空间提高性能
                 cache.reserve(rowCount);
-                quint64 currentTimestamp = QDateTime::currentSecsSinceEpoch();
+                quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
 
                 // 批量读取数据以提高性能
                 for (quint32 i = 0; i < rowCount; i++)
@@ -2461,7 +2466,7 @@ namespace Persistence
                     RowPositionInfo pos;
                     in >> pos.offset;
                     in >> pos.dataSize;
-                    pos.timestamp = currentTimestamp;
+                    pos.timestamp = fileTimestamp;
 
                     if (in.status() != QDataStream::Ok)
                     {
@@ -2526,7 +2531,7 @@ namespace Persistence
 
             // 使用缓冲区批量读取以提高性能
             const int BATCH_SIZE = 10000;
-            quint64 currentTimestamp = QDateTime::currentSecsSinceEpoch();
+            quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
 
             // 批量读取数据以提高性能
             for (quint32 i = 0; i < rowCount; i += BATCH_SIZE)
@@ -2540,7 +2545,7 @@ namespace Persistence
                     RowPositionInfo pos;
                     in >> pos.offset;
                     in >> pos.dataSize;
-                    pos.timestamp = currentTimestamp;
+                    pos.timestamp = fileTimestamp;
 
                     if (in.status() != QDataStream::Ok)
                     {
@@ -2781,103 +2786,84 @@ namespace Persistence
             }
         }
 
-        // 如果缓存不可用或无效，使用顺序扫描找到目标行
-        qDebug() << funcName << "- 未找到行" << rowIndex << "的缓存，将使用顺序扫描";
+    // 如果缓存不可用或无效，则执行一次性完全扫描以构建缓存。
+    qDebug() << funcName << "- Cache for row" << rowIndex << "is missing or invalid. Performing full scan to build cache.";
 
-        QDataStream in(&file);
-        in.setByteOrder(QDataStream::LittleEndian);
-
-        for (int i = 0; i < rowIndex; ++i)
-        {
-            // 读取行大小
-            quint32 rowByteSize;
-            in >> rowByteSize;
-
-            if (in.status() != QDataStream::Ok)
-            {
-                qWarning() << funcName << "- 错误: 在扫描过程中读取行" << i << "的大小失败. 状态:" << in.status();
-                file.close();
-                return false;
-            }
-
-            // 检查是否是重定位标记
-            if (rowByteSize == 0xFFFFFFFF)
-            {
-                // 读取重定位位置
-                qint64 redirectPosition;
-                in >> redirectPosition;
-
-                // 跳过重定位数据，继续按顺序读取下一行
-                // 在顺序扫描中，我们不需要跟随重定位指针，只需跳过它即可
-            }
-            else
-            {
-                // 跳过行数据
-                if (!file.seek(file.pos() + rowByteSize))
-                {
-                    qWarning() << funcName << "- 错误: 无法跳过行" << i << "的数据";
-                    file.close();
-                    return false;
-                }
-            }
-        }
-
-        // 现在我们位于目标行的位置，读取它
-        quint32 targetRowByteSize;
-        in >> targetRowByteSize;
-
-        if (in.status() != QDataStream::Ok)
-        {
-            qWarning() << funcName << "- 错误: 读取目标行" << rowIndex << "的大小失败. 状态:" << in.status();
-            file.close();
-            return false;
-        }
-
-        // 处理重定位标记
-        if (targetRowByteSize == 0xFFFFFFFF)
-        {
-            // 读取重定位位置
-            qint64 redirectPosition;
-            in >> redirectPosition;
-
-            if (in.status() != QDataStream::Ok)
-            {
-                qWarning() << funcName << "- 错误: 读取重定向位置失败. 状态:" << in.status();
-                file.close();
-                return false;
-            }
-
-            // 跳转到重定位位置
-            if (!file.seek(redirectPosition))
-            {
-                qWarning() << funcName << "- 错误: 无法跳转到重定位位置 " << redirectPosition;
-                file.close();
-                return false;
-            }
-
-            // 读取重定位位置的行大小
-            in >> targetRowByteSize;
-
-            if (in.status() != QDataStream::Ok || targetRowByteSize == 0xFFFFFFFF)
-            {
-                qWarning() << funcName << "- 错误: 在重定向位置读取行大小失败或检测到循环引用";
-                file.close();
-                return false;
-            }
-        }
-
-        // 读取行数据
-        QByteArray targetRowBytes = file.read(targetRowByteSize);
-        if (targetRowBytes.size() != static_cast<int>(targetRowByteSize))
-        {
-            qWarning() << funcName << "- 错误: 读取目标行数据失败. 预期:" << targetRowByteSize << "实际:" << targetRowBytes.size();
-            file.close();
-            return false;
-        }
-
-        // 反序列化行数据
-        bool success = deserializeRow(targetRowBytes, columns, header.data_schema_version, rowData);
+    file.seek(0);
+    if (!readBinaryHeader(&file, header)) {
+        qWarning() << funcName << "- Full scan failed: Could not re-read file header.";
         file.close();
-        return success;
+        return false;
+    }
+
+    if (!file.seek(sizeof(BinaryFileHeader))) {
+        qWarning() << funcName << "- Full scan failed: Could not seek to data section start.";
+        file.close();
+        return false;
+    }
+
+    QFileInfo fileInfo(binFilePath);
+    const QDateTime fileLastModified = fileInfo.lastModified();
+    const quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
+    const qint64 fileSize = file.size();
+    RowOffsetCache newCache;
+    newCache.reserve(header.row_count_in_file);
+
+    bool buildSuccess = true;
+    for (quint32 i = 0; i < header.row_count_in_file; ++i) {
+        if (file.pos() >= fileSize) {
+            qWarning() << funcName << "- [FATAL] Full scan aborted: Reached end of file prematurely at row" << i << ". Expected" << header.row_count_in_file << ". File may be corrupt.";
+            buildSuccess = false;
+            break;
+        }
+
+        const qint64 rowStartOffset = file.pos();
+        
+        QByteArray sizeBytes = file.read(sizeof(quint32));
+        if (sizeBytes.size() != sizeof(quint32)) {
+            qWarning() << funcName << "- [FATAL] Full scan aborted: Could not read size for row" << i;
+            buildSuccess = false;
+            break;
+        }
+
+        const quint32 rowByteSize = qFromLittleEndian<quint32>(reinterpret_cast<const uchar*>(sizeBytes.constData()));
+
+        // --- FINAL ROBUSTNESS CHECK ---
+        const qint64 bytesToSkip = (rowByteSize == 0xFFFFFFFF) ? sizeof(qint64) : rowByteSize;
+        if (file.pos() + bytesToSkip > fileSize) {
+            qWarning() << funcName << "- [FATAL] Corrupt data detected at row" << i
+                       << ". Declared size" << rowByteSize << "(skip" << bytesToSkip << ")"
+                       << "would read past the end of the file (current_pos:" << file.pos()
+                       << ", file_size:" << fileSize << "). Aborting cache build.";
+            buildSuccess = false;
+            break;
+        }
+        // --- END OF CHECK ---
+
+        RowPositionInfo posInfo;
+        posInfo.offset = rowStartOffset;
+        posInfo.dataSize = rowByteSize;
+        posInfo.timestamp = fileTimestamp;
+        newCache.append(posInfo);
+
+        if (!file.seek(file.pos() + bytesToSkip)) {
+             qWarning() << funcName << "- [FATAL] Full scan aborted: Failed to seek past data for row" << i << ". The file is likely truncated.";
+             buildSuccess = false;
+             break;
+        }
+    }
+
+    if (buildSuccess && newCache.size() == header.row_count_in_file) {
+        qDebug() << funcName << "- Successfully built a complete row offset cache with" << newCache.size() << "entries. Saving and retrying.";
+        QMutexLocker locker(&s_cacheMutex);
+        s_fileRowOffsetCache[binFilePath] = newCache;
+        file.close();
+        // 递归调用是安全的，因为下一次调用会命中缓存
+        return readRowFromBinary(binFilePath, columns, schemaVersion, rowIndex, rowData, useCache);
+    } else {
+        qWarning() << funcName << "- Cache building failed due to data corruption or file errors. No cache will be saved.";
+        file.close();
+        return false;
+    }
     }
 } // namespace Persistence

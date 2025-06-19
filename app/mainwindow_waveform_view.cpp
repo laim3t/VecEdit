@@ -1290,7 +1290,7 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
 void MainWindow::onWaveformValueEdited()
 {
-    if (!m_waveformPlot || !m_waveformValueEditor || !m_vectorTableWidget)
+    if (!m_waveformPlot || !m_waveformValueEditor || !m_vectorTableView)
         return;
 
     // 获取编辑器中的值
@@ -1322,11 +1322,9 @@ void MainWindow::onWaveformValueEdited()
 
     // 获取表格中首个选中的管脚列
     int pinColumnIndex = -1;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
     {
-        if (m_vectorTableWidget->horizontalHeaderItem(col))
-        {
-            QString headerText = m_vectorTableWidget->horizontalHeaderItem(col)->text();
+        QString headerText = m_vectorTableModel->headerData(col, Qt::Horizontal).toString();
             QString pinName = m_waveformPinSelector->currentText();
 
             // 检查列是否是当前选中的管脚
@@ -1334,7 +1332,6 @@ void MainWindow::onWaveformValueEdited()
             {
                 pinColumnIndex = col;
                 break;
-            }
         }
     }
 
@@ -1349,7 +1346,7 @@ void MainWindow::onWaveformValueEdited()
 
     // 更新数据表格中的对应单元格
     int tableRow = actualRowIndex - (m_currentPage * m_pageSize);
-    if (tableRow >= 0 && tableRow < m_vectorTableWidget->rowCount())
+    if (tableRow >= 0 && tableRow < m_vectorTableModel->rowCount())
     {
         // 更新当前可见页面中的表格单元格
         // 使用模型API更新数据

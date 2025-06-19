@@ -67,8 +67,12 @@ bool DatabaseManager::initializeNewDatabase(const QString &dbFilePath, const QSt
         }
     }
 
-    // 创建数据库连接
-    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    // [FIXED] 创建唯一的、命名的数据库连接，以统一管理方式
+    if (QSqlDatabase::contains("qt_sql_default_connection")) {
+        QSqlDatabase::removeDatabase("qt_sql_default_connection");
+    }
+    m_connectionName = QString("db_conn_%1").arg(QDateTime::currentMSecsSinceEpoch());
+    m_db = QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
     m_db.setDatabaseName(dbFilePath);
 
     // 打开数据库

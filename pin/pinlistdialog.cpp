@@ -6,6 +6,10 @@
 #include <QMessageBox>
 #include <QLabel>
 #include <QDebug>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include "../database/databasemanager.h"
 
 PinListDialog::PinListDialog(QWidget *parent)
     : QDialog(parent)
@@ -199,6 +203,8 @@ void PinListDialog::updateDisplayName(int row)
 
 void PinListDialog::onAccepted()
 {
+    qDebug() << "PinListDialog: OK button clicked. Attempting to save changes.";
+
     // 检查是否所有管脚都有名称
     bool allValid = true;
     for (int i = 0; i < pinList.size(); ++i)
@@ -236,7 +242,54 @@ void PinListDialog::onAccepted()
         }
     }
 
-    accept(); // 关闭对话框并返回QDialog::Accepted
+    // 保存到数据库
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.transaction()) {
+        QMessageBox::critical(this, "数据库错误", "无法开始事务: " + db.lastError().text());
+        return;
+    }
+
+    bool success = true;
+    
+    // 清空现有的pin_list表，然后重新插入所有管脚
+    QSqlQuery clearQuery(db);
+    if (!clearQuery.exec("DELETE FROM pin_list")) {
+        qWarning() << "Failed to clear pin_list table:" << clearQuery.lastError().text();
+        success = false;
+    }
+
+    if (success) {
+        qDebug() << "Successfully cleared pin_list table. Inserting" << finalPinNames.size() << "pins.";
+
+        // 插入所有管脚
+        QSqlQuery insertQuery(db);
+        insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+        
+        for (const QString &pinName : finalPinNames) {
+            insertQuery.bindValue(0, pinName);
+            insertQuery.bindValue(1, ""); // pin_note为空
+            insertQuery.bindValue(2, ""); // pin_nav_note为空
+            
+            if (!insertQuery.exec()) {
+                qWarning() << "Failed to insert pin" << pinName << ":" << insertQuery.lastError().text();
+                success = false;
+                break;
+            }
+        }
+    }
+
+    if (success) {
+        if (!db.commit()) {
+            QMessageBox::critical(this, "数据库错误", "提交事务失败: " + db.lastError().text());
+            db.rollback();
+        } else {
+            qDebug() << "Pin changes successfully committed to the database.";
+            accept(); // 只有在完全成功时才关闭对话框
+        }
+    } else {
+        db.rollback();
+        QMessageBox::critical(this, "数据库错误", "保存管脚更改时出错。");
+    }
 }
 
 QList<QString> PinListDialog::getPinNames() const

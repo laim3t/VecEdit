@@ -66,6 +66,9 @@ private slots:
     void openExistingProject();
     void closeCurrentProject();
 
+    // 新建项目菜单事件处理
+    void on_actionNewProject_triggered();
+
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
 
@@ -109,7 +112,7 @@ private slots:
     void showPinSelectionDialog(int tableId, const QString &tableName);
 
     // 显示向量行数据录入对话框
-    void showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
+    int showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
 
     // 为当前选中的向量表添加行
     void addRowToCurrentVectorTable();
@@ -261,6 +264,11 @@ private:
 
     // 当前项目的数据库路径
     QString m_currentDbPath;
+    
+    // 当前表格标识和名称
+    int m_currentTableId;
+    QString m_currentTableName;
+    QString m_currentProjectName;
 
     // 菜单项
     QMenu *m_viewMenu; // "视图"菜单

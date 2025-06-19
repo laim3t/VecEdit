@@ -16,7 +16,7 @@ public:
     bool showPinSelectionDialog(int tableId, const QString &tableName);
 
     // 显示向量行数据录入对话框
-    bool showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
+    int showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
 
     // 显示添加管脚对话框
     bool showAddPinsDialog();

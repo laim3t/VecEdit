@@ -523,7 +523,7 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
     }
 }
 
-bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
+int DialogManager::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
     // 创建向量行数据录入对话框
     QDialog vectorDataDialog(m_parent);
@@ -591,13 +591,13 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
     else
     {
         QMessageBox::critical(m_parent, "数据库错误", "获取管脚信息失败：" + query.lastError().text());
-        return false;
+        return -1;
     }
 
     if (selectedPins.isEmpty())
     {
         QMessageBox::warning(m_parent, "警告", "插入向量行前请先引用管脚。");
-        return false;
+        return -1;
     }
 
     // 获取pin_options选项
@@ -889,7 +889,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         dialog.exec(); });
 
     // 连接保存和取消按钮信号
-    QObject::connect(saveButton, &QPushButton::clicked, [&]()
+    QObject::connect(saveButton, &QPushButton::clicked, [&]() -> int
                      {
         // 获取向量行和用户设置参数
         int rowDataCount = vectorTable->rowCount();
@@ -898,18 +898,18 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         // 检查行数设置
         if (totalRowCount < rowDataCount) {
             QMessageBox::warning(&vectorDataDialog, "参数错误", "设置的总行数小于实际添加的行数据数量！");
-            return;
+            return -1;
         }
         
         if (totalRowCount % rowDataCount != 0) {
             QMessageBox::warning(&vectorDataDialog, "参数错误", "设置的总行数必须是行数据数量的整数倍！");
-            return;
+            return -1;
         }
         
         // 检查是否超出可用行数
         if (totalRowCount > remainingRows) {
             QMessageBox::warning(&vectorDataDialog, "参数错误", "添加的行数超出了可用行数！");
-            return;
+            return -1;
         }
         
         // 获取插入位置
@@ -972,14 +972,24 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         if (success) {
             // QMessageBox::information(&vectorDataDialog, "保存成功", "向量行数据已成功保存！");
             vectorDataDialog.accept();
+            return totalRowCount;
         } else {
             QMessageBox::critical(&vectorDataDialog, "数据库错误", errorMessage);
+            return -1;
         } });
 
     QObject::connect(cancelButton, &QPushButton::clicked, &vectorDataDialog, &QDialog::reject);
 
-    // 显示对话框
-    return (vectorDataDialog.exec() == QDialog::Accepted);
+    // 保存totalRowCount变量以便在对话框关闭后使用
+    int resultRowCount = -1;
+
+    // 显示对话框并获取结果
+    if (vectorDataDialog.exec() == QDialog::Accepted) {
+        // 对话框被接受，获取最新的行数
+        resultRowCount = rowCountEdit->text().toInt();
+    }
+    
+    return resultRowCount;
 }
 
 bool DialogManager::showAddPinsDialog()

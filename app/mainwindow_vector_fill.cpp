@@ -115,10 +115,10 @@ void MainWindow::showFillVectorDialog()
 
     // 尝试找到Label列（通常是第一列）
     int labelColumnIndex = -1;
-    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+    for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
     {
-        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-        if (headerItem && (headerItem->text().toLower() == "label" || headerItem->text() == "标签"))
+        QString headerText = m_vectorTableModel->headerData(col, Qt::Horizontal).toString();
+        if (headerText.toLower() == "label" || headerText == "标签")
         {
             labelColumnIndex = col;
             break;
@@ -128,14 +128,16 @@ void MainWindow::showFillVectorDialog()
     // 如果找到了Label列，收集标签和对应的行号
     if (labelColumnIndex >= 0)
     {
-        for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
+        // 使用当前页可见的行
+        for (int row = 0; row < m_vectorTableModel->rowCount(); ++row)
         {
-            QTableWidgetItem *labelItem = m_vectorTableWidget->item(row, labelColumnIndex);
-            if (labelItem && !labelItem->text().trimmed().isEmpty())
+            QModelIndex labelIndex = m_vectorTableModel->index(row, labelColumnIndex);
+            QString labelText = m_vectorTableModel->data(labelIndex).toString().trimmed();
+            if (!labelText.isEmpty())
             {
                 // 将UI行号转换为绝对行号（1-based）
                 int absoluteRow = pageOffset + row + 1;
-                labelRows.append(QPair<QString, int>(labelItem->text().trimmed(), absoluteRow));
+                labelRows.append(QPair<QString, int>(labelText, absoluteRow));
             }
         }
     }
@@ -329,8 +331,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 
         // 记录UI表头列名和实际二进制文件列之间的映射关系
         int targetBinaryColumn = -1;
-        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
-        QString headerText = headerItem ? headerItem->text() : "";
+        QString headerText = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
         QString targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
 
         qDebug() << "向量填充 - 目标列名 (处理后):" << targetColumnName;
@@ -401,10 +402,13 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 
         // 刷新表格显示
         int currentPage = m_currentPage;
-        bool refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, currentPage, m_pageSize);
-        if (!refreshSuccess)
-        {
-            qWarning() << "向量填充 - 刷新表格数据失败";
+        
+        // 刷新视图数据 - 使用模型的重新加载机制
+        if (m_vectorTableModel) {
+            m_vectorTableModel->loadPage(currentPage);
+            qDebug() << "向量填充 - 刷新表格数据成功";
+        } else {
+            qWarning() << "向量填充 - 刷新表格数据失败：向量模型不可用";
         }
 
         // 选中原来的行

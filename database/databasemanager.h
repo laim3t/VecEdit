@@ -101,6 +101,9 @@ private:
     // 当前打开的数据库文件路径
     QString m_dbFilePath;
 
+    // 数据库连接名称
+    QString m_connectionName;
+
     // 单例实例
     static DatabaseManager *m_instance;
 
