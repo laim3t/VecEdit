@@ -81,7 +81,7 @@ namespace Vector
 
         /**
          * @brief 设置单元格数据 - 实现单元格编辑功能
-         * 
+         *
          * 本方法处理用户对单元格的编辑操作，确保数据有效性，
          * 并将修改持久化到后端存储。
          *
@@ -91,10 +91,10 @@ namespace Vector
          * @return 成功修改返回true，否则返回false
          */
         bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
-        
+
         /**
          * @brief 获取单元格标志 - 决定单元格的交互属性
-         * 
+         *
          * 根据列的类型和属性，决定单元格是否可编辑、可选择等。
          *
          * @param index 单元格索引
@@ -133,6 +133,19 @@ namespace Vector
          */
         const QList<ColumnInfo> &columns() const { return m_columns; }
 
+        /**
+         * @brief 加载指定页的数据
+         * @param page 页码（从0开始）
+         * @return 加载成功返回true，失败返回false
+         */
+        bool loadPage(int page);
+
+        /**
+         * @brief 清理资源
+         * 关闭文件句柄和数据库连接，清除缓存
+         */
+        void cleanup();
+
     private:
         // ---- 状态管理成员 ----
         int m_tableId;               // 当前加载的表ID
@@ -159,7 +172,7 @@ namespace Vector
 
         /**
          * @brief 验证单元格数据是否有效
-         * 
+         *
          * 根据列的类型和属性，验证用户输入的数据是否合法。
          *
          * @param column 列索引
@@ -167,10 +180,10 @@ namespace Vector
          * @return 有效返回true，无效返回false
          */
         bool validateCellData(int column, const QVariant &value) const;
-        
+
         /**
          * @brief 更新缓存中的行数据
-         * 
+         *
          * 当单元格数据发生变化时，更新内存缓存。
          *
          * @param rowIndex 行索引
@@ -195,12 +208,6 @@ namespace Vector
          * @return 行数据
          */
         RowData fetchRowData(int rowIndex) const;
-
-        /**
-         * @brief 清理资源
-         * 关闭文件句柄和数据库连接，清除缓存
-         */
-        void cleanup();
     };
 
 } // namespace Vector

@@ -214,28 +214,29 @@ namespace Vector
             // 尝试几个可能的位置
             QStringList possibleDirs;
             possibleDirs << dbDir // 数据库所在目录
-                         << dbDir + "/TEST3211_vbindata" 
+                         << dbDir + "/TEST3211_vbindata"
                          << dbDir + "/../tests/database/TEST3211_vbindata";
-            
+
             // 添加额外的可能路径（基于数据库文件所在的实际路径）
             QString dbFileName = dbInfo.fileName();
             QString dbBaseName = dbInfo.baseName();
-            
+
             // 添加以数据库名称命名的子目录
             possibleDirs << dbDir + "/" + dbBaseName + "_vbindata";
-            
+
             // 添加项目目录和父目录的可能位置
             QString appDir = QCoreApplication::applicationDirPath();
             possibleDirs << appDir + "/database";
             possibleDirs << appDir + "/../database";
             possibleDirs << appDir + "/tests/database";
             possibleDirs << appDir + "/../tests/database";
-            
+
             // 日志输出当前数据库路径和我们尝试查找的文件
             qDebug() << "VectorTableModel::loadTableMetadata - 数据库路径: " << dbPath;
             qDebug() << "VectorTableModel::loadTableMetadata - 尝试寻找二进制文件: " << binFileName;
             qDebug() << "VectorTableModel::loadTableMetadata - 将在以下目录中查找:";
-            foreach (const QString &dir, possibleDirs) {
+            foreach (const QString &dir, possibleDirs)
+            {
                 qDebug() << " - " << dir;
             }
 
@@ -255,14 +256,18 @@ namespace Vector
             if (!found)
             {
                 // 尝试直接使用相对路径（相对于数据库文件）和绝对路径
-                if (QFile::exists(binFileName)) {
+                if (QFile::exists(binFileName))
+                {
                     m_binaryFilePath = QFileInfo(binFileName).absoluteFilePath();
                     found = true;
                     qDebug() << "VectorTableModel::loadTableMetadata - 使用直接文件名找到二进制文件: " << m_binaryFilePath;
-                } else {
+                }
+                else
+                {
                     // 尝试使用数据库目录作为基准的相对路径
                     QString relativePath = QDir(dbDir).absoluteFilePath(binFileName);
-                    if (QFile::exists(relativePath)) {
+                    if (QFile::exists(relativePath))
+                    {
                         m_binaryFilePath = relativePath;
                         found = true;
                         qDebug() << "VectorTableModel::loadTableMetadata - 使用相对路径找到二进制文件: " << m_binaryFilePath;
@@ -291,28 +296,29 @@ namespace Vector
             // 尝试几个可能的位置
             QStringList possibleDirs;
             possibleDirs << dbDir // 数据库所在目录
-                         << dbDir + "/TEST3211_vbindata" 
+                         << dbDir + "/TEST3211_vbindata"
                          << dbDir + "/../tests/database/TEST3211_vbindata";
-            
+
             // 添加额外的可能路径（基于数据库文件所在的实际路径）
             QString dbFileName = dbInfo.fileName();
             QString dbBaseName = dbInfo.baseName();
-            
+
             // 添加以数据库名称命名的子目录
             possibleDirs << dbDir + "/" + dbBaseName + "_vbindata";
-            
+
             // 添加项目目录和父目录的可能位置
             QString appDir = QCoreApplication::applicationDirPath();
             possibleDirs << appDir + "/database";
             possibleDirs << appDir + "/../database";
             possibleDirs << appDir + "/tests/database";
             possibleDirs << appDir + "/../tests/database";
-            
+
             // 日志输出当前数据库路径和我们尝试查找的文件
             qDebug() << "VectorTableModel::loadTableMetadata - 数据库路径: " << dbPath;
             qDebug() << "VectorTableModel::loadTableMetadata - 尝试寻找二进制文件: " << binFileName;
             qDebug() << "VectorTableModel::loadTableMetadata - 将在以下目录中查找:";
-            foreach (const QString &dir, possibleDirs) {
+            foreach (const QString &dir, possibleDirs)
+            {
                 qDebug() << " - " << dir;
             }
 
@@ -332,14 +338,18 @@ namespace Vector
             if (!found)
             {
                 // 尝试直接使用相对路径（相对于数据库文件）和绝对路径
-                if (QFile::exists(binFileName)) {
+                if (QFile::exists(binFileName))
+                {
                     m_binaryFilePath = QFileInfo(binFileName).absoluteFilePath();
                     found = true;
                     qDebug() << "VectorTableModel::loadTableMetadata - 使用直接文件名找到二进制文件: " << m_binaryFilePath;
-                } else {
+                }
+                else
+                {
                     // 尝试使用数据库目录作为基准的相对路径
                     QString relativePath = QDir(dbDir).absoluteFilePath(binFileName);
-                    if (QFile::exists(relativePath)) {
+                    if (QFile::exists(relativePath))
+                    {
                         m_binaryFilePath = relativePath;
                         found = true;
                         qDebug() << "VectorTableModel::loadTableMetadata - 使用相对路径找到二进制文件: " << m_binaryFilePath;
@@ -656,17 +666,17 @@ namespace Vector
             // 对于测试阶段，我们先让大多数类型都可编辑
             switch (colInfo.type)
             {
-            case ColumnDataType::TEXT:               // 普通文本允许编辑
-            case ColumnDataType::PIN_STATE_ID:       // 管脚状态允许编辑
-            case ColumnDataType::INSTRUCTION_ID:     // 指令ID允许编辑
-            case ColumnDataType::TIMESET_ID:         // TimeSet ID允许编辑
-            case ColumnDataType::INTEGER:            // 整数允许编辑
-            case ColumnDataType::REAL:               // 实数允许编辑
-            case ColumnDataType::BOOLEAN:            // 布尔值允许编辑
+            case ColumnDataType::TEXT:           // 普通文本允许编辑
+            case ColumnDataType::PIN_STATE_ID:   // 管脚状态允许编辑
+            case ColumnDataType::INSTRUCTION_ID: // 指令ID允许编辑
+            case ColumnDataType::TIMESET_ID:     // TimeSet ID允许编辑
+            case ColumnDataType::INTEGER:        // 整数允许编辑
+            case ColumnDataType::REAL:           // 实数允许编辑
+            case ColumnDataType::BOOLEAN:        // 布尔值允许编辑
                 flags |= Qt::ItemIsEditable;
                 break;
 
-            case ColumnDataType::JSON_PROPERTIES:    // JSON属性暂不支持直接编辑
+            case ColumnDataType::JSON_PROPERTIES: // JSON属性暂不支持直接编辑
             default:
                 // 保持为不可编辑
                 break;
@@ -697,8 +707,8 @@ namespace Vector
         // 范围检查
         if (row < 0 || row >= m_rowCount || column < 0 || column >= m_columnCount)
         {
-            qWarning() << "VectorTableModel::setData - 行或列超出范围，行: " << row 
-                       << ", 列: " << column << ", 最大行: " << m_rowCount 
+            qWarning() << "VectorTableModel::setData - 行或列超出范围，行: " << row
+                       << ", 列: " << column << ", 最大行: " << m_rowCount
                        << ", 最大列: " << m_columnCount;
             return false;
         }
@@ -706,7 +716,7 @@ namespace Vector
         // 验证数据有效性
         if (!validateCellData(column, value))
         {
-            qWarning() << "VectorTableModel::setData - 数据验证失败，列: " << column 
+            qWarning() << "VectorTableModel::setData - 数据验证失败，列: " << column
                        << ", 值: " << value;
             return false;
         }
@@ -722,9 +732,9 @@ namespace Vector
         QElapsedTimer timer;
         timer.start();
 
-                 // 尝试更新数据到后端存储
+        // 尝试更新数据到后端存储
         bool success = VectorDataHandler::instance().updateCellData(m_tableId, row, column, value);
-        
+
         if (success)
         {
             // 更新成功，更新本地缓存
@@ -732,14 +742,14 @@ namespace Vector
 
             // 发出数据变更信号，通知视图更新UI
             emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-            
-            qDebug() << "VectorTableModel::setData - 成功更新数据，表ID: " << m_tableId 
+
+            qDebug() << "VectorTableModel::setData - 成功更新数据，表ID: " << m_tableId
                      << ", 行: " << row << ", 列: " << column << ", 耗时: " << timer.elapsed() << "毫秒";
             return true;
         }
         else
         {
-            qWarning() << "VectorTableModel::setData - 更新数据失败，表ID: " << m_tableId 
+            qWarning() << "VectorTableModel::setData - 更新数据失败，表ID: " << m_tableId
                        << ", 行: " << row << ", 列: " << column;
             return false;
         }
@@ -800,11 +810,11 @@ namespace Vector
         {
             // 管脚状态：确保是有效的状态值 (常见值为 "0", "1", "L", "H", "X", "Z" 等)
             QString pinState = value.toString().trimmed().toUpper();
-            return pinState.isEmpty() || // 允许空值
+            return pinState.isEmpty() ||                 // 允许空值
                    pinState == "0" || pinState == "1" || // 数字状态
                    pinState == "L" || pinState == "H" || // 低/高状态
                    pinState == "X" || pinState == "Z" || // 不定/高阻状态
-                   pinState == "N" || pinState == "P"; // 可能的其他有效状态
+                   pinState == "N" || pinState == "P";   // 可能的其他有效状态
         }
 
         case ColumnDataType::BOOLEAN:
@@ -814,7 +824,7 @@ namespace Vector
                 return true;
 
             QString str = value.toString().trimmed().toLower();
-            return str == "true" || str == "false" || str == "1" || str == "0" || 
+            return str == "true" || str == "false" || str == "1" || str == "0" ||
                    str == "yes" || str == "no" || str == "y" || str == "n";
         }
 
@@ -838,13 +848,13 @@ namespace Vector
             {
                 // 更新缓存中的值
                 m_rowCache[rowIndex][colIndex] = value;
-                qDebug() << "VectorTableModel::updateRowCache - 更新缓存，行: " << rowIndex 
+                qDebug() << "VectorTableModel::updateRowCache - 更新缓存，行: " << rowIndex
                          << ", 列: " << colIndex << ", 新值: " << value;
             }
             else
             {
-                qWarning() << "VectorTableModel::updateRowCache - 列索引超出缓存数据范围，行: " 
-                           << rowIndex << ", 列: " << colIndex << ", 缓存列数: " 
+                qWarning() << "VectorTableModel::updateRowCache - 列索引超出缓存数据范围，行: "
+                           << rowIndex << ", 列: " << colIndex << ", 缓存列数: "
                            << m_rowCache[rowIndex].size();
             }
         }
@@ -854,6 +864,28 @@ namespace Vector
             // 下次访问时会从文件中重新加载，自然包含更新后的数据
             qDebug() << "VectorTableModel::updateRowCache - 行不在缓存中，行: " << rowIndex;
         }
+    }
+
+    bool VectorTableModel::loadPage(int page)
+    {
+        if (m_tableId == -1)
+            return false;
+
+        beginResetModel();
+        m_rowCache.clear();
+
+        // 这是一个简化的实现，实际加载逻辑在 fetchMore 中
+        // 这里我们只需要确保模型状态被重置，以便fetchMore能正确工作
+
+        endResetModel();
+
+        // fetchMore 会根据当前rowCount决定是否加载新数据
+        // 我们通过重置模型来触发它
+        if (canFetchMore(QModelIndex()))
+        {
+            fetchMore(QModelIndex());
+        }
+        return true;
     }
 
 } // namespace Vector

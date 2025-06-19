@@ -49,14 +49,14 @@ public:
     // 刷新表格显示
     static void refreshTable(QTableWidget *table);
 
-    // 设置管脚列的列宽，使六列管脚平均分配剩余空间
-    static void setPinColumnWidths(QTableWidget *table);
-
     // 应用预定义的样式类到单元格
     static void applyCellStyleClass(QTableWidget *table, int row, int column, StyleClass styleClass);
 
     // 应用预定义的样式类到整列
     static void applyColumnStyleClass(QTableWidget *table, int column, StyleClass styleClass);
+
+    // 设置管脚列的列宽
+    static void setPinColumnWidths(QTableView *view);
 
 private:
     // 获取预定义样式类的CSS字符串

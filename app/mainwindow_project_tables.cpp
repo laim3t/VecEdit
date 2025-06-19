@@ -643,9 +643,47 @@ void MainWindow::deleteCurrentVectorTable()
         return;
     }
 
-    // 使用数据处理器删除向量表
+    // 删除向量表
     QString errorMessage;
-    if (VectorDataHandler::instance().deleteVectorTable(tableId, errorMessage))
+    // 直接使用数据库API删除表
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+
+    // 开始事务
+    db.transaction();
+
+    // 删除表定义
+    query.prepare("DELETE FROM VectorTable WHERE id = ?");
+    query.addBindValue(tableId);
+    bool success = query.exec();
+
+    // 删除相关数据
+    if (success)
+    {
+        query.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+        query.addBindValue(tableId);
+        success = success && query.exec();
+    }
+
+    if (success)
+    {
+        query.prepare("DELETE FROM vector_data WHERE table_id = ?");
+        query.addBindValue(tableId);
+        success = success && query.exec();
+    }
+
+    // 提交或回滚事务
+    if (success)
+    {
+        db.commit();
+    }
+    else
+    {
+        db.rollback();
+        errorMessage = "数据库操作失败：" + query.lastError().text();
+    }
+
+    if (success)
     {
         // 记录当前选中的索引
         int previousIndex = m_vectorTableSelector->currentIndex();
@@ -675,9 +713,11 @@ void MainWindow::deleteCurrentVectorTable()
         }
         else
         {
-            // 如果没有剩余表，清空表格并显示欢迎界面
-            m_vectorTableWidget->setRowCount(0);
-            m_vectorTableWidget->setColumnCount(0);
+            // 如果没有剩余表，清空表格模型并显示欢迎界面
+            if (m_vectorTableModel)
+            {
+                m_vectorTableModel->cleanup();
+            }
             m_welcomeWidget->setVisible(true);
             m_vectorTableContainer->setVisible(false);
         }

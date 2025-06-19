@@ -521,26 +521,12 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
         qDebug() << "填充TimeSet - 操作成功完成";
 
         // 保存当前页码并仅刷新当前页数据，不改变页码状态
-        int currentIndex = m_vectorTabWidget->currentIndex();
-        if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
-        {
-            int tableId = m_tabToTableId[currentIndex];
+        // 直接加载当前页数据
+        qDebug() << "填充TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
+        loadCurrentPage();
 
-            // 清除当前表的数据缓存，但不改变页码
-            VectorDataHandler::instance().clearTableDataCache(tableId);
-
-            // 直接加载当前页数据，而不是调用refreshVectorTableData
-            qDebug() << "填充TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-
-            // 更新分页信息显示
-            updatePaginationInfo();
-        }
-        else
-        {
-            qWarning() << "填充TimeSet - 无法获取当前向量表ID，回退到使用refreshVectorTableData()";
-            refreshVectorTableData();
-        }
+        // 更新分页信息显示
+        updatePaginationInfo();
 
         // 更新波形图以反映TimeSet变更
         if (m_isWaveformVisible && m_waveformPlot)
@@ -592,7 +578,7 @@ void MainWindow::showFillTimeSetDialog()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int rowCount = m_vectorTableModel->rowCount();
     if (rowCount <= 0)
     {
         QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
@@ -605,7 +591,7 @@ void MainWindow::showFillTimeSetDialog()
     dialog.setVectorRowCount(rowCount);
 
     // 获取选中的单元格并计算行范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）
@@ -1257,26 +1243,12 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
         qDebug() << "替换TimeSet - 操作成功完成，共更新" << updatedRowCount << "行数据";
 
         // 保存当前页码并仅刷新当前页数据，不改变页码状态
-        int currentIndex = m_vectorTabWidget->currentIndex();
-        if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
-        {
-            int tableId = m_tabToTableId[currentIndex];
+        // 直接加载当前页数据
+        qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
+        loadCurrentPage();
 
-            // 清除当前表的数据缓存，但不改变页码
-            VectorDataHandler::instance().clearTableDataCache(tableId);
-
-            // 直接加载当前页数据，而不是调用refreshVectorTableData
-            qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-
-            // 更新分页信息显示
-            updatePaginationInfo();
-        }
-        else
-        {
-            qWarning() << "替换TimeSet - 无法获取当前向量表ID，回退到使用refreshVectorTableData()";
-            refreshVectorTableData();
-        }
+        // 更新分页信息显示
+        updatePaginationInfo();
 
         // 更新波形图以反映TimeSet变更
         if (m_isWaveformVisible && m_waveformPlot)
@@ -1327,7 +1299,7 @@ void MainWindow::showReplaceTimeSetDialog()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int rowCount = m_vectorTableModel->rowCount();
     if (rowCount <= 0)
     {
         QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
@@ -1340,7 +1312,7 @@ void MainWindow::showReplaceTimeSetDialog()
     dialog.setVectorRowCount(rowCount);
 
     // 获取选中的单元格并计算行范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）

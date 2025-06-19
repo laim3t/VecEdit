@@ -55,8 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
             {
         if (m_vectorTableView && m_vectorTableView->isVisible() && m_vectorTableView->model() && m_vectorTableView->model()->columnCount() > 6) {
             qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
-            // TableStyleManager::setPinColumnWidths(m_vectorTableWidget); // 这是旧的调用
-            // TODO: 为 QTableView 实现新的列宽调整逻辑
+            TableStyleManager::setPinColumnWidths(m_vectorTableView);
         } });
 }
 
@@ -701,17 +700,17 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         }
 
         // 确保向量表容器适应新窗口尺寸
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible())
+        if (m_vectorTableView && m_vectorTableView->isVisible())
         {
             qDebug() << "MainWindow::resizeEvent - 调整向量表大小以适应窗口";
 
             // 刷新表格布局
-            m_vectorTableWidget->updateGeometry();
+            m_vectorTableView->updateGeometry();
 
             // 如果表格有列，调整列宽
-            if (m_vectorTableWidget->columnCount() > 6)
+            if (m_vectorTableView->model() && m_vectorTableView->model()->columnCount() > 6)
             {
-                TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+                TableStyleManager::setPinColumnWidths(m_vectorTableView);
             }
         }
 

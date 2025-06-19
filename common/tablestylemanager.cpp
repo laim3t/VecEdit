@@ -56,9 +56,6 @@ void TableStyleManager::applyTableStyle(QTableWidget *table)
     // 设置列对齐方式
     setColumnAlignments(table);
 
-    // 设置管脚列的列宽
-    setPinColumnWidths(table);
-
     // 刷新显示
     refreshTable(table);
 
@@ -190,8 +187,7 @@ void TableStyleManager::applyTableStyleOptimized(QTableWidget *table)
         }
     }
 
-    // 设置管脚列的列宽（只调用一次）
-    setPinColumnWidths(table);
+    // 管脚列宽度已在模型中处理
 
     // 恢复滚动条位置
     if (hScrollBar)
@@ -414,122 +410,9 @@ void TableStyleManager::refreshTable(QTableWidget *table)
     }
 }
 
-void TableStyleManager::setPinColumnWidths(QTableWidget *table)
+void TableStyleManager::setPinColumnWidths(QTableView *view)
 {
-    const QString funcName = "TableStyleManager::setPinColumnWidths";
-    qDebug() << funcName << " - 开始设置管脚列的列宽";
-
-    if (!table)
-    {
-        qWarning() << funcName << " - 错误：表格对象为空";
-        return;
-    }
-
-    int columnCount = table->columnCount();
-    if (columnCount <= 0)
-    {
-        qWarning() << funcName << " - 错误：表格没有列";
-        return;
-    }
-
-    // 基础列（非管脚列）索引和列宽设置
-    const int ADDRESS_COL = 0; // 地址列索引
-    const int LABEL_COL = 1;   // 标签列索引
-    const int TIMESET_COL = 2; // TimeSet列索引
-    const int I_DUT_COL = 3;   // I_DUT列索引
-    const int O_DUT_COL = 4;   // O_DUT列索引
-    const int IO_DUT_COL = 5;  // IO_DUT列索引
-
-    const int ADDRESS_WIDTH = 80;  // 地址列宽度
-    const int LABEL_WIDTH = 120;   // 标签列宽度
-    const int TIMESET_WIDTH = 100; // TimeSet列宽度
-    const int I_DUT_WIDTH = 80;    // I_DUT列宽度
-    const int O_DUT_WIDTH = 80;    // O_DUT列宽度
-    const int IO_DUT_WIDTH = 80;   // IO_DUT列宽度
-
-    int totalFixedWidth = ADDRESS_WIDTH + LABEL_WIDTH + TIMESET_WIDTH + I_DUT_WIDTH + O_DUT_WIDTH + IO_DUT_WIDTH;
-
-    // 检查列数是否足够
-    if (columnCount <= 6)
-    {
-        qDebug() << funcName << " - 无需调整管脚列宽度，列数不足：" << columnCount;
-        return;
-    }
-
-    // 设置基础列的宽度
-    if (ADDRESS_COL < columnCount)
-    {
-        table->setColumnWidth(ADDRESS_COL, ADDRESS_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(ADDRESS_COL, QHeaderView::Interactive);
-    }
-    if (LABEL_COL < columnCount)
-    {
-        table->setColumnWidth(LABEL_COL, LABEL_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(LABEL_COL, QHeaderView::Interactive);
-    }
-    if (TIMESET_COL < columnCount)
-    {
-        table->setColumnWidth(TIMESET_COL, TIMESET_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(TIMESET_COL, QHeaderView::Interactive);
-    }
-    if (I_DUT_COL < columnCount)
-    {
-        table->setColumnWidth(I_DUT_COL, I_DUT_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(I_DUT_COL, QHeaderView::Interactive);
-    }
-    if (O_DUT_COL < columnCount)
-    {
-        table->setColumnWidth(O_DUT_COL, O_DUT_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(O_DUT_COL, QHeaderView::Interactive);
-    }
-    if (IO_DUT_COL < columnCount)
-    {
-        table->setColumnWidth(IO_DUT_COL, IO_DUT_WIDTH);
-        table->horizontalHeader()->setSectionResizeMode(IO_DUT_COL, QHeaderView::Interactive);
-    }
-
-    // 识别管脚列（通过列标题中包含的换行符）
-    QList<int> pinColumns;
-    for (int col = 6; col < columnCount; col++)
-    {
-        QTableWidgetItem *headerItem = table->horizontalHeaderItem(col);
-        if (headerItem && headerItem->text().contains("\n"))
-        {
-            pinColumns.append(col);
-            qDebug() << funcName << " - 检测到管脚列:" << col << headerItem->text();
-        }
-    }
-
-    // 如果没有找到管脚列，直接返回
-    if (pinColumns.isEmpty())
-    {
-        qDebug() << funcName << " - 未检测到管脚列";
-        return;
-    }
-
-    // 计算除固定宽度外的可用空间
-    int availableWidth = table->width() - totalFixedWidth;
-    if (availableWidth <= 0)
-    {
-        qDebug() << funcName << " - 没有足够的空间分配给管脚列";
-        return;
-    }
-
-    // 计算每列应分配的宽度
-    int widthPerPinColumn = availableWidth / pinColumns.size();
-    qDebug() << funcName << " - 每个管脚列分配宽度: " << widthPerPinColumn
-             << ", 管脚列数: " << pinColumns.size()
-             << ", 可用总宽度: " << availableWidth;
-
-    // 设置所有管脚列的宽度
-    for (int pinCol : pinColumns)
-    {
-        table->setColumnWidth(pinCol, widthPerPinColumn);
-        table->horizontalHeader()->setSectionResizeMode(pinCol, QHeaderView::Interactive);
-        qDebug() << funcName << " - 设置管脚列 " << pinCol << " 宽度为 " << widthPerPinColumn;
-    }
-
-    qDebug() << funcName << " - 管脚列宽度设置完成";
+    /* TODO: Implement for QTableView */
 }
 
 void TableStyleManager::applyBatchTableStyle(QTableWidget *table)
@@ -730,8 +613,7 @@ void TableStyleManager::applyBatchTableStyle(QTableWidget *table)
         }
     }
 
-    // 设置管脚列的列宽（一次性批量设置）
-    setPinColumnWidths(table);
+    // 管脚列宽度已在模型中处理
 
     // 恢复滚动条位置
     if (hScrollBar)

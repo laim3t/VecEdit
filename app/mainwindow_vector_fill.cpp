@@ -33,7 +33,7 @@ void MainWindow::showFillVectorDialog()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int rowCount = m_vectorTableModel->totalRows();
     if (rowCount <= 0)
     {
         QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
@@ -41,7 +41,7 @@ void MainWindow::showFillVectorDialog()
     }
 
     // 获取选中的单元格
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (selectedIndexes.isEmpty())
     {
         QMessageBox::warning(this, "操作失败", "请先选择要填充的单元格");
@@ -88,8 +88,8 @@ void MainWindow::showFillVectorDialog()
         maxRow = qMax(maxRow, rowIdx);
 
         // 获取单元格值
-        QTableWidgetItem *item = m_vectorTableWidget->item(index.row(), index.column());
-        QString cellValue = item ? item->text() : "";
+        QModelIndex modelIndex = m_vectorTableModel->index(index.row(), index.column());
+        QString cellValue = m_vectorTableModel->data(modelIndex).toString();
 
         // 保存到排序map
         sortedValues[rowIdx] = cellValue;
@@ -202,7 +202,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
     qDebug() << "向量填充 - 当前向量表ID:" << tableId << ", 名称:" << tableName;
 
     // 获取选中的列
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (selectedIndexes.isEmpty())
     {
         QMessageBox::warning(this, tr("警告"), tr("请选择要填充的单元格"));
@@ -419,11 +419,11 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
             {
                 // 将数据库索引转换为UI表格索引
                 int uiRowIdx = rowIdx - pageOffset;
-                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
+                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableModel->rowCount())
                 {
                     // 选中行和列
-                    QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
-                    m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
+                    QModelIndex index = m_vectorTableModel->index(uiRowIdx, targetColumn);
+                    m_vectorTableView->selectionModel()->select(index, QItemSelectionModel::Select);
                 }
             }
         }

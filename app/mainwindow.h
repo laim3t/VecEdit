@@ -269,12 +269,11 @@ private:
     QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
-    QTableView *m_vectorTableView;     // 向量表视图
-    QTableWidget *m_vectorTableWidget; // 旧向量表组件
-    QComboBox *m_vectorTableSelector;  // 向量表选择器
-    QWidget *m_centralWidget;          // 中央部件
+    QTableView *m_vectorTableView; // 向量表视图
+    QWidget *m_centralWidget;      // 中央部件
     QWidget *m_welcomeWidget;
-    QWidget *m_vectorTableContainer; // 向量表容器
+    QWidget *m_vectorTableContainer;  // 向量表容器
+    QComboBox *m_vectorTableSelector; // 向量表选择器
     QAction *m_fillVectorAction;
     QAction *m_fillTimeSetAction;
     QAction *m_replaceTimeSetAction;
@@ -314,7 +313,7 @@ private:
     QTabWidget *m_vectorTabWidget; // 向量表Tab控件
     bool m_isUpdatingUI;           // 防止UI更新循环的标志
 
-    // 自定义代理
+    // 创建项委托，处理单元格编辑
     VectorTableItemDelegate *m_itemDelegate;
 
     // 数据处理和对话框管理器
