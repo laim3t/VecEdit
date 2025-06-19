@@ -174,116 +174,79 @@ void MainWindow::onVectorTableSelectionChanged(int index)
 
     // 根据当前模式选择加载表格数据的方式
     bool loadSuccess = false;
-    
-    if (m_isUsingNewTableModel) {
-        // 使用新的表格模型加载数据
-        qDebug() << funcName << " - 使用VectorTableModel加载表格数据，表ID:" << tableId;
-        
-        // 确保模型已创建
-        if (!m_vectorTableModel) {
-            qDebug() << funcName << " - 创建新的VectorTableModel实例";
-            m_vectorTableModel = new Vector::VectorTableModel(this);
-        }
-        
-        // 设置模型数据源
-        if (m_vectorTableModel->setTable(tableId)) {
-            // 将模型设置给表格视图
-            m_vectorTableView->setModel(m_vectorTableModel);
-            
-            // 设置列宽度
-            for (int i = 0; i < m_vectorTableModel->columnCount(); ++i) {
-                m_vectorTableView->setColumnWidth(i, 100); // 默认列宽
-            }
-            
-            qDebug() << funcName << " - VectorTableModel加载成功，列数:" 
-                     << m_vectorTableModel->columnCount() 
-                     << "，总行数:" << m_vectorTableModel->totalRows();
-            loadSuccess = true;
-            
-            // 确保正确的表格视图可见
-            syncViewWithTableModel();
-        } else {
-            // 获取数据库中的二进制文件名，用于诊断问题
-            QString binFileName;
-            QList<Vector::ColumnInfo> columns;
-            int schemaVersion = 0;
-            int rowCount = 0;
-            
-            if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount)) {
-                qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId 
-                           << "，二进制文件名:" << binFileName;
-                
-                // 检查文件是否存在于数据库所在目录
-                QString dbPath = DatabaseManager::instance()->database().databaseName();
-                QFileInfo dbInfo(dbPath);
-                QString dbDir = dbInfo.absolutePath();
-                QString expectedPath = QDir(dbDir).filePath(binFileName);
-                
-                if (!QFile::exists(expectedPath)) {
-                    qWarning() << funcName << " - 二进制文件不存在于数据库目录: " << expectedPath;
-                    QMessageBox::warning(this, tr("数据文件错误"), 
-                                         tr("找不到向量表数据文件: %1\n\n请确保二进制数据文件位于正确位置。").arg(binFileName));
-                }
-            } else {
-                qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId << "，无法获取元数据";
-            }
-            
-            loadSuccess = false;
-        }
-    } else {
-        // 使用传统方式加载数据
-        qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
-        loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-        qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
-                << "，表ID:" << tableId
-                << "，列数:" << m_vectorTableWidget->columnCount();
 
-        if (loadSuccess) {
-            qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
+    // 使用表格模型加载数据
+    qDebug() << funcName << " - 使用VectorTableModel加载表格数据，表ID:" << tableId;
 
-            // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
-            if (m_vectorTableWidget->columnCount() < 6) {
-                qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
-                        << "），可能缺少标准列。尝试修复...";
-                fixExistingTableWithoutColumns(tableId);
-                // 重新加载表格（使用分页）
-                loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
-                        << "，列数:" << m_vectorTableWidget->columnCount();
-            }
-
-            // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-            TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-
-            // 输出每一列的标题，用于调试
-            QStringList columnHeaders;
-            for (int i = 0; i < m_vectorTableWidget->columnCount(); i++) {
-                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-                columnHeaders << headerText;
-            }
-            qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
-            
-            // 确保正确的表格视图可见
-            syncViewWithTableModel();
-        }
+    // 确保模型已创建
+    if (!m_vectorTableModel)
+    {
+        qDebug() << funcName << " - 创建新的VectorTableModel实例";
+        m_vectorTableModel = new Vector::VectorTableModel(this);
     }
 
-    // 更新波形图视图（无论使用哪种模式）
-    if (loadSuccess && m_isWaveformVisible && m_waveformPlot) {
+    // 设置模型数据源
+    if (m_vectorTableModel->setTable(tableId))
+    {
+        // 设置列宽度
+        for (int i = 0; i < m_vectorTableModel->columnCount(); ++i)
+        {
+            m_vectorTableView->setColumnWidth(i, 100); // 默认列宽
+        }
+
+        qDebug() << funcName << " - VectorTableModel加载成功，列数:"
+                 << m_vectorTableModel->columnCount()
+                 << "，总行数:" << m_vectorTableModel->totalRows();
+        loadSuccess = true;
+    }
+    else
+    {
+        // 获取数据库中的二进制文件名，用于诊断问题
+        QString binFileName;
+        QList<Vector::ColumnInfo> columns;
+        int schemaVersion = 0;
+        int rowCount = 0;
+
+        if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
+        {
+            qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId
+                       << "，二进制文件名:" << binFileName;
+
+            // 检查文件是否存在于数据库所在目录
+            QString dbPath = DatabaseManager::instance()->database().databaseName();
+            QFileInfo dbInfo(dbPath);
+            QString dbDir = dbInfo.absolutePath();
+            QString expectedPath = QDir(dbDir).filePath(binFileName);
+
+            if (!QFile::exists(expectedPath))
+            {
+                qWarning() << funcName << " - 二进制文件不存在于数据库目录: " << expectedPath;
+                QMessageBox::warning(this, tr("数据文件错误"),
+                                     tr("找不到向量表数据文件: %1\n\n请确保二进制数据文件位于正确位置。").arg(binFileName));
+            }
+        }
+        else
+        {
+            qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId << "，无法获取元数据";
+        }
+
+        loadSuccess = false;
+    }
+
+    // 更新波形图视图
+    if (loadSuccess && m_isWaveformVisible && m_waveformPlot)
+    {
         updateWaveformView();
     }
 
     // 更新状态栏消息
-    if (loadSuccess) {
-        int columnCount = m_isUsingNewTableModel ? 
-                          m_vectorTableModel->columnCount() : 
-                          m_vectorTableWidget->columnCount();
-                          
+    if (loadSuccess)
+    {
         statusBar()->showMessage(
-            QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(columnCount)
-        );
-    } else {
+            QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableModel->columnCount()));
+    }
+    else
+    {
         statusBar()->showMessage("加载向量表失败");
     }
 
@@ -393,152 +356,6 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
             }
 
             break;
-        }
-    }
-}
-
-// 处理表格单元格变更
-void MainWindow::onTableCellChanged(int row, int column)
-{
-    // 在使用新表格模型模式下，单元格编辑由Model/View架构处理，不需要这里的处理逻辑
-    if (m_isUsingNewTableModel)
-    {
-        qDebug() << "MainWindow::onTableCellChanged - 使用优化表格模型模式，跳过传统处理逻辑";
-        return;
-    }
-    
-    qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
-
-    // 获取当前表的列配置信息
-    int tabIndex = m_vectorTabWidget->currentIndex();
-    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
-    {
-        onTableRowModified(row);
-        return;
-    }
-
-    int tableId = m_tabToTableId[tabIndex];
-    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(tableId);
-
-    // 检查是否是Label列发生变化
-    bool isLabelColumn = false;
-    int labelColumnIndex = -1;
-    if (column < columns.size() && columns[column].name.toLower() == "label")
-    {
-        isLabelColumn = true;
-        labelColumnIndex = column;
-    }
-
-    // 如果是Label列发生变化，检查是否有重复值
-    if (isLabelColumn && m_vectorTableWidget)
-    {
-        QTableWidgetItem *currentItem = m_vectorTableWidget->item(row, column);
-        if (currentItem)
-        {
-            QString newLabel = currentItem->text().trimmed();
-            if (!newLabel.isEmpty())
-            {
-                // 计算当前行在整个表中的实际索引（考虑分页）
-                int actualRowIndex = m_currentPage * m_pageSize + row;
-
-                // 检查Label值是否重复
-                int duplicateRow = -1;
-                if (isLabelDuplicate(tableId, newLabel, actualRowIndex, duplicateRow))
-                {
-                    // 阻止表格信号，避免递归触发
-                    m_vectorTableWidget->blockSignals(true);
-
-                    // 将单元格值恢复为空
-                    currentItem->setText("");
-
-                    // 重新启用表格信号
-                    m_vectorTableWidget->blockSignals(false);
-
-                    // 计算重复行在哪一页以及页内索引
-                    int duplicatePage = duplicateRow / m_pageSize + 1;      // 显示给用户的页码从1开始
-                    int duplicateRowInPage = duplicateRow % m_pageSize + 1; // 显示给用户的行号从1开始
-
-                    // 弹出警告对话框
-                    QMessageBox::warning(this,
-                                         "标签重复",
-                                         QString("标签 '%1' 已经存在于第 %2 页第 %3 行，请使用不同的标签值。")
-                                             .arg(newLabel)
-                                             .arg(duplicatePage)
-                                             .arg(duplicateRowInPage));
-
-                    // 让单元格保持编辑状态
-                    m_vectorTableWidget->editItem(currentItem);
-
-                    // 由于恢复了值，不需要标记为已修改
-                    return;
-                }
-            }
-        }
-    }
-
-    // 标记行为已修改
-    onTableRowModified(row);
-
-    // 如果是Label列变化，刷新侧边栏导航树
-    if (isLabelColumn)
-    {
-        qDebug() << "MainWindow::onTableCellChanged - Label列变化，刷新侧边栏";
-        refreshSidebarNavigator();
-    }
-}
-
-// 处理表格行修改
-void MainWindow::onTableRowModified(int row)
-{
-    const QString funcName = "MainWindow::onTableRowModified";
-    
-    // 获取当前选中的向量表ID
-    int tabIndex = m_vectorTabWidget->currentIndex();
-    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
-    {
-        qWarning() << funcName << " - 没有选中有效的向量表";
-        return;
-    }
-
-    int tableId = m_tabToTableId[tabIndex];
-
-    // 计算实际数据库中的行索引（考虑分页）
-    int actualRowIndex = m_currentPage * m_pageSize + row;
-    qDebug() << funcName << " - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
-
-    // 更新修改标志和窗口标题 - 这部分在所有模式下都需要
-    m_hasUnsavedChanges = true;
-    updateWindowTitle(m_currentDbPath);
-
-    // 如果使用新的表格模型，不需要标记修改行，因为数据修改已经通过模型的setData保存
-    if (m_isUsingNewTableModel)
-    {
-        qDebug() << funcName << " - 使用优化表格模型模式，不需要标记修改行";
-        
-        // 如果波形图可见，则更新它
-        if (m_isWaveformVisible)
-        {
-            updateWaveformView();
-            // 确保修改后高亮仍然在正确的位置
-            if (m_selectedWaveformPoint >= 0)
-            {
-                highlightWaveformPoint(m_selectedWaveformPoint);
-            }
-        }
-        return;
-    }
-
-    // 传统模式：标记行为已修改
-    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
-
-    // 如果波形图可见，则更新它
-    if (m_isWaveformVisible)
-    {
-        updateWaveformView();
-        // 确保修改后高亮仍然在正确的位置
-        if (m_selectedWaveformPoint >= 0)
-        {
-            highlightWaveformPoint(m_selectedWaveformPoint);
         }
     }
 }
@@ -1417,11 +1234,11 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 
     const QString funcName = "MainWindow::onLabelItemClicked";
     QString labelText = item->data(0, Qt::UserRole).toString();
-    
+
     // 获取标签所属的表ID和行索引（如果存在）
     int labelTableId = item->data(0, Qt::UserRole + 1).toInt();
     int labelRowIndex = item->data(0, Qt::UserRole + 2).toInt();
-    
+
     qDebug() << funcName << " - 点击标签:" << labelText << "，所属表ID:" << labelTableId << "，行索引:" << labelRowIndex;
 
     // 获取当前表ID
@@ -1439,16 +1256,18 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
     if (labelTableId > 0 && labelTableId != currentTableId)
     {
         qDebug() << funcName << " - 标签来自不同的表，需要先切换表";
-        
+
         // 查找表ID对应的索引
         int targetTabIndex = -1;
-        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-            if (it.value() == labelTableId) {
+        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+        {
+            if (it.value() == labelTableId)
+            {
                 targetTabIndex = it.key();
                 break;
             }
         }
-        
+
         if (targetTabIndex >= 0 && targetTabIndex < m_vectorTabWidget->count())
         {
             // 切换到目标表
@@ -1463,15 +1282,15 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
             QSqlQuery query(DatabaseManager::instance()->database());
             query.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
             query.addBindValue(labelTableId);
-            
+
             if (query.exec() && query.next())
             {
                 QString tableName = query.value(0).toString();
                 qDebug() << funcName << " - 表未打开，正在打开表:" << tableName << "，ID:" << labelTableId;
-                
+
                 // 打开表
                 openVectorTable(labelTableId, tableName);
-                
+
                 // 更新当前表ID
                 tabIndex = m_vectorTabWidget->currentIndex();
                 if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
@@ -1491,7 +1310,7 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
     if (labelRowIndex >= 0)
     {
         qDebug() << funcName << " - 使用已知行索引直接跳转:" << labelRowIndex;
-        
+
         // 计算目标行所在的页码
         int targetPage = labelRowIndex / m_pageSize;
         int rowInPage = labelRowIndex % m_pageSize;
@@ -2003,212 +1822,6 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
     if (m_pinValueField)
     {
         m_pinValueField->setText(hexResult);
-    }
-}
-
-// 处理16进制值编辑后的同步操作
-void MainWindow::onHexValueEdited()
-{
-    // 获取输入的16进制值
-    QString hexValue = m_pinValueField->text().trimmed();
-    if (hexValue.isEmpty())
-        return;
-
-    // 如果输入无效，则不执行任何操作
-    if (m_pinValueField->property("invalid").toBool())
-    {
-        return;
-    }
-
-    // 使用已保存的列和行信息，如果不存在则尝试获取当前选中内容
-    QList<int> selectedRows = m_currentSelectedRows;
-    int selectedColumn = m_currentHexValueColumn;
-
-    // 如果没有保存的列信息或行信息，则尝试从当前选中项获取
-    if (selectedColumn < 0 || selectedRows.isEmpty())
-    {
-        selectedRows.clear();
-        bool sameColumn = true;
-
-        QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
-        if (selectedItems.isEmpty())
-            return;
-
-        selectedColumn = selectedItems.first()->column();
-
-        // 检查是否所有选择都在同一列
-        for (QTableWidgetItem *item : selectedItems)
-        {
-            if (item->column() != selectedColumn)
-            {
-                sameColumn = false;
-                break;
-            }
-
-            if (!selectedRows.contains(item->row()))
-                selectedRows.append(item->row());
-        }
-
-        if (!sameColumn || selectedRows.isEmpty())
-            return;
-    }
-
-    // 确保行按从上到下排序
-    std::sort(selectedRows.begin(), selectedRows.end());
-
-    // 获取当前表的列配置信息
-    if (m_vectorTabWidget->currentIndex() < 0)
-        return;
-
-    int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
-    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-
-    // 检查列索引是否有效且是否为PIN_STATE_ID列
-    if (selectedColumn < 0 || selectedColumn >= columns.size())
-        return;
-
-    Vector::ColumnDataType colType = columns[selectedColumn].type;
-    if (colType != Vector::ColumnDataType::PIN_STATE_ID)
-        return;
-
-    // 判断格式类型和提取16进制值
-    bool useHLFormat = false;
-    QString hexDigits;
-    bool validFormat = false;
-
-    // 统一将输入转为小写以便处理
-    QString lowerHexValue = hexValue.toLower();
-
-    if (lowerHexValue.startsWith("+0x"))
-    {
-        useHLFormat = true;
-        hexDigits = lowerHexValue.mid(3);
-        validFormat = true;
-    }
-    else if (lowerHexValue.startsWith("0x"))
-    {
-        useHLFormat = false;
-        hexDigits = lowerHexValue.mid(2);
-        validFormat = true;
-    }
-    else
-    {
-        return;
-    }
-
-    if (!validFormat)
-    {
-        return;
-    }
-
-    QRegExp hexRegex("^[0-9a-fA-F]{1,2}$");
-    if (!hexRegex.exactMatch(hexDigits))
-    {
-        return;
-    }
-
-    bool ok;
-    int decimalValue = hexDigits.toInt(&ok, 16);
-    if (!ok)
-    {
-        return;
-    }
-
-    // 1. 转换为8位二进制字符串
-    QString binaryStr = QString::number(decimalValue, 2).rightJustified(8, '0');
-
-    // 2. 确定要操作的行数 (最多8行)
-    int rowsToChange = qMin(selectedRows.size(), 8);
-
-    // 3. 从8位字符串中截取右边的部分
-    QString finalBinaryStr = binaryStr.right(rowsToChange);
-
-    // 4. 将最终的二进制字符串覆写到选中的单元格
-    m_vectorTableWidget->blockSignals(true);
-
-    for (int i = 0; i < finalBinaryStr.length(); ++i)
-    {
-        int row = selectedRows[i];
-        QChar bit = finalBinaryStr[i];
-        QString newValue;
-        if (useHLFormat)
-        {
-            newValue = (bit == '1' ? "H" : "L");
-        }
-        else
-        {
-            newValue = bit;
-        }
-
-        QTableWidgetItem *item = m_vectorTableWidget->item(row, selectedColumn);
-        if (item)
-        {
-            item->setText(newValue);
-        }
-        else
-        {
-            item = new QTableWidgetItem(newValue);
-            m_vectorTableWidget->setItem(row, selectedColumn, item);
-        }
-    }
-
-    m_vectorTableWidget->blockSignals(false);
-
-    // 手动触发一次数据变更的逻辑，以便undo/redo和保存状态能够更新
-    if (!selectedRows.isEmpty())
-    {
-        onTableRowModified(selectedRows.first());
-    }
-
-    // --- 新增：处理回车后的跳转和选择逻辑 ---
-
-    // 1. 确定最后一个被影响的行和总行数
-    int lastAffectedRow = -1;
-    if (selectedRows.size() <= 8)
-    {
-        lastAffectedRow = selectedRows.last();
-    }
-    else
-    {
-        lastAffectedRow = selectedRows[7]; // n > 8 时，只影响前8行
-    }
-
-    int totalRowCount = m_vectorTableWidget->rowCount();
-    int nextRow = lastAffectedRow + 1;
-
-    // 如果下一行超出表格范围，则不执行任何操作
-    if (nextRow >= totalRowCount)
-    {
-        return;
-    }
-
-    // 2. 清除当前选择
-    m_vectorTableWidget->clearSelection();
-
-    // 3. 根据"连续"模式设置新选择
-    if (m_continuousSelectCheckBox && m_continuousSelectCheckBox->isChecked())
-    {
-        // 连续模式开启
-        int selectionStartRow = nextRow;
-        int selectionEndRow = qMin(selectionStartRow + 7, totalRowCount - 1);
-
-        // 创建选择范围
-        QTableWidgetSelectionRange range(selectionStartRow, m_currentHexValueColumn,
-                                         selectionEndRow, m_currentHexValueColumn);
-        m_vectorTableWidget->setCurrentItem(m_vectorTableWidget->item(selectionStartRow, m_currentHexValueColumn));
-        m_vectorTableWidget->setRangeSelected(range, true);
-
-        // 确保新选区可见
-        m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(selectionStartRow, m_currentHexValueColumn), QAbstractItemView::PositionAtTop);
-
-        // 将焦点设置回输入框
-        m_pinValueField->setFocus();
-        m_pinValueField->selectAll();
-    }
-    else
-    {
-        // 连续模式关闭
-        m_vectorTableWidget->setCurrentCell(nextRow, m_currentHexValueColumn);
     }
 }
 

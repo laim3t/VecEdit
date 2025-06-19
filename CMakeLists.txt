@@ -246,6 +246,23 @@ target_include_directories(test_vector_model PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vector
 )
 
+# --- 自动部署Qt依赖 ---
+# 为Windows平台添加一个自定义的编译后命令
+# 这个命令会在 VecEdit 目标成功编译后，自动运行 windeployqt 工具
+# windeployqt 会将所有必需的Qt库、插件、翻译文件等复制到可执行文件所在的目录
+if(WIN32)
+    add_custom_command(
+        TARGET VecEdit POST_BUILD
+        COMMAND ${WINDEPLOYQT_EXECUTABLE}
+            --verbose 2 # 使用 --verbose 替代 --log-level，以兼容 Qt 5.15
+            # 使用生成器表达式确保在构建时获取正确的路径
+            --dir "$<TARGET_FILE_DIR:VecEdit>"
+            --plugindir "$<TARGET_FILE_DIR:VecEdit>/plugins"
+            "$<TARGET_FILE:VecEdit>"
+        COMMENT "Running windeployqt to deploy Qt dependencies for VecEdit..."
+    )
+endif()
+
 # --- 安装与打包 ---
 include(GNUInstallDirs)
 

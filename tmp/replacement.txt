@@ -1,0 +1,78 @@
+    // 使用表格模型加载数据
+    bool loadSuccess = false;
+    qDebug() << funcName << " - 使用VectorTableModel加载表格数据，表ID:" << tableId;
+
+    // 确保模型已创建
+    if (!m_vectorTableModel)
+    {
+        qDebug() << funcName << " - 创建新的VectorTableModel实例";
+        m_vectorTableModel = new Vector::VectorTableModel(this);
+    }
+
+    // 设置模型数据源
+    if (m_vectorTableModel->setTable(tableId))
+    {
+        // 将模型设置给表格视图
+        m_vectorTableView->setModel(m_vectorTableModel);
+
+        // 设置列宽度
+        for (int i = 0; i < m_vectorTableModel->columnCount(); ++i)
+        {
+            m_vectorTableView->setColumnWidth(i, 100); // 默认列宽
+        }
+
+        qDebug() << funcName << " - VectorTableModel加载成功，列数:"
+                 << m_vectorTableModel->columnCount()
+                 << "，总行数:" << m_vectorTableModel->totalRows();
+        loadSuccess = true;
+    }
+    else
+    {
+        // 获取数据库中的二进制文件名，用于诊断问题
+        QString binFileName;
+        QList<Vector::ColumnInfo> columns;
+        int schemaVersion = 0;
+        int rowCount = 0;
+
+        if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
+        {
+            qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId
+                       << "，二进制文件名:" << binFileName;
+
+            // 检查文件是否存在于数据库所在目录
+            QString dbPath = DatabaseManager::instance()->database().databaseName();
+            QFileInfo dbInfo(dbPath);
+            QString dbDir = dbInfo.absolutePath();
+            QString expectedPath = QDir(dbDir).filePath(binFileName);
+
+            if (!QFile::exists(expectedPath))
+            {
+                qWarning() << funcName << " - 二进制文件不存在于数据库目录: " << expectedPath;
+                QMessageBox::warning(this, tr("数据文件错误"),
+                                     tr("找不到向量表数据文件: %1\n\n请确保二进制数据文件位于正确位置。").arg(binFileName));
+            }
+        }
+        else
+        {
+            qWarning() << funcName << " - VectorTableModel加载失败，表ID:" << tableId << "，无法获取元数据";
+        }
+
+        loadSuccess = false;
+    }
+
+    // 更新波形图视图
+    if (loadSuccess && m_isWaveformVisible && m_waveformPlot)
+    {
+        updateWaveformView();
+    }
+
+    // 更新状态栏消息
+    if (loadSuccess)
+    {
+        statusBar()->showMessage(
+            QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableModel->columnCount()));
+    }
+    else
+    {
+        statusBar()->showMessage("加载向量表失败");
+    } 

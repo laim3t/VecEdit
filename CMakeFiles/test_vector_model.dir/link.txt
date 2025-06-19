@@ -1,3 +1,0 @@
-"C:\Program Files (x86)\CMake\bin\cmake.exe" -E rm -f CMakeFiles\test_vector_model.dir/objects.a
-C:\Qt\Tools\mingw810_32\bin\ar.exe qc CMakeFiles\test_vector_model.dir/objects.a @CMakeFiles\test_vector_model.dir\objects1.rsp
-C:\Qt\Tools\mingw810_32\bin\c++.exe -Wl,--whole-archive CMakeFiles\test_vector_model.dir/objects.a -Wl,--no-whole-archive -o test_vector_model.exe -Wl,--out-implib,libtest_vector_model.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\test_vector_model.dir\linkLibs.rsp

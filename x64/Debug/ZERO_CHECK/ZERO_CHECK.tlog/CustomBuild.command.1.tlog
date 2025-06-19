@@ -1,0 +1,10 @@
+^C:\VECEDIT\CMAKEFILES\9A5A1E29A2732000BCFC02BDCF1F0AB7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files (x86)\CMake\bin\cmake.exe" -SC:/VecEdit -BC:/VecEdit --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/VecEdit/VecEdit.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

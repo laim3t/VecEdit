@@ -710,8 +710,10 @@ void MainWindow::openVectorTable(int tableId, const QString &tableName)
 
     // 检查表是否已经打开
     int existingTabIndex = -1;
-    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-        if (it.value() == tableId) {
+    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+    {
+        if (it.value() == tableId)
+        {
             existingTabIndex = it.key();
             break;
         }

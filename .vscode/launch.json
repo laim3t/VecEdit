@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/build/VecEdit.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${workspaceFolder}",
             "environment": [
                 {
                     "name": "PATH",
@@ -27,6 +27,16 @@
             ],
             "preLaunchTask": "build",
             "visualizerFile": "c:\\Users\\GIGA\\AppData\\Roaming\\Cursor\\User\\workspaceStorage\\e1942ad4e03feb38ee1cc98db928eea1\\tonka3000.qtvsctools\\qt.natvis.xml"
+        },
+        {
+            "name": "Run VecEdit (Direct)",
+            "type": "shell",
+            "request": "launch",
+            "command": ".\\VecEdit.exe",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
         }
     ]
 }

@@ -43,6 +43,23 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "run-vecedit",
+            "type": "shell",
+            "command": ".\\VecEdit.exe",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
         }
     ]
 }

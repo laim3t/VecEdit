@@ -36,10 +36,8 @@ void MainWindow::saveVectorTableData()
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
     
-    // 如果使用新的表格模型，数据已经实时保存
-    if (m_isUsingNewTableModel && m_vectorTableModel) 
-    {
-        qDebug() << funcName << " - 使用优化表格模型模式，数据已经实时保存";
+    // 使用表格模型，数据已经实时保存
+    qDebug() << funcName << " - 使用表格模型模式，数据已经实时保存";
         
         // 清除修改标志
         m_hasUnsavedChanges = false;
@@ -51,9 +49,6 @@ void MainWindow::saveVectorTableData()
         statusBar()->showMessage("数据已保存");
         
         return;
-    }
-
-    // 以下代码只在传统模式下执行
     // Ensure m_vectorTableWidget is the correct one associated with the current tab/selection
     QWidget *currentTabWidget = m_vectorTabWidget->currentWidget();
     QTableWidget *targetTableWidget = nullptr;
@@ -617,19 +612,9 @@ void MainWindow::saveCurrentTableData()
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
     
-    // 如果使用新的表格模型，数据已经实时保存
-    if (m_isUsingNewTableModel && m_vectorTableModel) 
-    {
-        qDebug() << funcName << " - 使用优化表格模型模式，数据已经实时保存，无需额外保存";
+    // 使用表格模型，数据已经实时保存
+    qDebug() << funcName << " - 使用表格模型模式，数据已经实时保存，无需额外保存";
         return;
-    }
-    
-    // 传统模式：需要使用vectorTableWidget
-    if (!m_vectorTableWidget)
-    {
-        qDebug() << funcName << " - 无表格控件，不进行保存";
-        return;
-    }
 
     // 保存结果变量
     QString errorMessage;

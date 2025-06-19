@@ -19,23 +19,20 @@
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeCXXInformation.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU-CXX.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/GNU.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/MSVC-CXX.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/MSVC.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-MSVC-CXX.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-MSVC.cmake",
 		"C:/VecEdit/CMakeFiles/4.0.2/CMakeRCCompiler.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeRCInformation.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-windres.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Windows-GNU-CXX-ABI.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Internal/CMakeCXXLinkerInformation.cmake",
 		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Internal/CMakeCommonLinkerInformation.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Linker/GNU-CXX.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Linker/GNU.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU-CXX.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-GNU.cmake",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/GNU.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Linker/MSVC-CXX.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Linker/MSVC.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC-CXX.cmake",
+		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC.cmake",
 		"C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5/Qt5ConfigVersion.cmake",
 		"C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5/Qt5Config.cmake",
 		"C:/Qt/5.15.2/mingw81_32/lib/cmake/Qt5/Qt5ModuleLocation.cmake",
@@ -94,8 +91,8 @@
 	],
 	"CMAKE_SOURCE_DIR" : "C:/VecEdit",
 	"CROSS_CONFIG" : false,
-	"DEP_FILE" : "C:/VecEdit/test_vector_model_autogen/deps",
-	"DEP_FILE_RULE_NAME" : "test_vector_model_autogen/timestamp",
+	"DEP_FILE" : "",
+	"DEP_FILE_RULE_NAME" : "",
 	"HEADERS" : 
 	[
 		[
@@ -162,8 +159,28 @@
 	],
 	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
 	"INCLUDE_DIR" : "C:/VecEdit/test_vector_model_autogen/include",
+	"INCLUDE_DIR_Debug" : "C:/VecEdit/test_vector_model_autogen/include_Debug",
+	"INCLUDE_DIR_MinSizeRel" : "C:/VecEdit/test_vector_model_autogen/include_MinSizeRel",
+	"INCLUDE_DIR_RelWithDebInfo" : "C:/VecEdit/test_vector_model_autogen/include_RelWithDebInfo",
+	"INCLUDE_DIR_Release" : "C:/VecEdit/test_vector_model_autogen/include_Release",
 	"MOC_COMPILATION_FILE" : "C:/VecEdit/test_vector_model_autogen/mocs_compilation.cpp",
-	"MOC_DEFINITIONS" : 
+	"MOC_COMPILATION_FILE_Debug" : "C:/VecEdit/test_vector_model_autogen/mocs_compilation_Debug.cpp",
+	"MOC_COMPILATION_FILE_MinSizeRel" : "C:/VecEdit/test_vector_model_autogen/mocs_compilation_MinSizeRel.cpp",
+	"MOC_COMPILATION_FILE_RelWithDebInfo" : "C:/VecEdit/test_vector_model_autogen/mocs_compilation_RelWithDebInfo.cpp",
+	"MOC_COMPILATION_FILE_Release" : "C:/VecEdit/test_vector_model_autogen/mocs_compilation_Release.cpp",
+	"MOC_DEFINITIONS" : [],
+	"MOC_DEFINITIONS_Debug" : 
+	[
+		"QT_CONCURRENT_LIB",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_MESSAGELOGCONTEXT",
+		"QT_PRINTSUPPORT_LIB",
+		"QT_SQL_LIB",
+		"QT_WIDGETS_LIB",
+		"WIN32"
+	],
+	"MOC_DEFINITIONS_MinSizeRel" : 
 	[
 		"QT_CONCURRENT_LIB",
 		"QT_CORE_LIB",
@@ -172,7 +189,32 @@
 		"QT_NO_DEBUG",
 		"QT_PRINTSUPPORT_LIB",
 		"QT_SQL_LIB",
-		"QT_WIDGETS_LIB"
+		"QT_WIDGETS_LIB",
+		"WIN32"
+	],
+	"MOC_DEFINITIONS_RelWithDebInfo" : 
+	[
+		"QT_CONCURRENT_LIB",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_MESSAGELOGCONTEXT",
+		"QT_NO_DEBUG",
+		"QT_PRINTSUPPORT_LIB",
+		"QT_SQL_LIB",
+		"QT_WIDGETS_LIB",
+		"WIN32"
+	],
+	"MOC_DEFINITIONS_Release" : 
+	[
+		"QT_CONCURRENT_LIB",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_MESSAGELOGCONTEXT",
+		"QT_NO_DEBUG",
+		"QT_PRINTSUPPORT_LIB",
+		"QT_SQL_LIB",
+		"QT_WIDGETS_LIB",
+		"WIN32"
 	],
 	"MOC_DEPEND_FILTERS" : 
 	[
@@ -181,7 +223,8 @@
 			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
 		]
 	],
-	"MOC_INCLUDES" : 
+	"MOC_INCLUDES" : [],
+	"MOC_INCLUDES_Debug" : 
 	[
 		"C:/VecEdit",
 		"C:/VecEdit/app",
@@ -199,42 +242,102 @@
 		"C:/Qt/5.15.2/mingw81_32/mkspecs/win32-g++",
 		"C:/Qt/5.15.2/mingw81_32/include/QtSql",
 		"C:/Qt/5.15.2/mingw81_32/include/QtConcurrent",
-		"C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport",
-		"C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++",
-		"C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/i686-w64-mingw32",
-		"C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/backward",
-		"C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include",
-		"C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include-fixed",
-		"C:/Qt/Tools/mingw810_32/i686-w64-mingw32/include"
+		"C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport"
+	],
+	"MOC_INCLUDES_MinSizeRel" : 
+	[
+		"C:/VecEdit",
+		"C:/VecEdit/app",
+		"C:/VecEdit/common",
+		"C:/VecEdit/database",
+		"C:/VecEdit/migration",
+		"C:/VecEdit/pin",
+		"C:/VecEdit/timeset",
+		"C:/VecEdit/vector",
+		"C:/Qt/5.15.2/mingw81_32/include",
+		"C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
+		"C:/Qt/5.15.2/mingw81_32/include/QtGui",
+		"C:/Qt/5.15.2/mingw81_32/include/QtANGLE",
+		"C:/Qt/5.15.2/mingw81_32/include/QtCore",
+		"C:/Qt/5.15.2/mingw81_32/mkspecs/win32-g++",
+		"C:/Qt/5.15.2/mingw81_32/include/QtSql",
+		"C:/Qt/5.15.2/mingw81_32/include/QtConcurrent",
+		"C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport"
+	],
+	"MOC_INCLUDES_RelWithDebInfo" : 
+	[
+		"C:/VecEdit",
+		"C:/VecEdit/app",
+		"C:/VecEdit/common",
+		"C:/VecEdit/database",
+		"C:/VecEdit/migration",
+		"C:/VecEdit/pin",
+		"C:/VecEdit/timeset",
+		"C:/VecEdit/vector",
+		"C:/Qt/5.15.2/mingw81_32/include",
+		"C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
+		"C:/Qt/5.15.2/mingw81_32/include/QtGui",
+		"C:/Qt/5.15.2/mingw81_32/include/QtANGLE",
+		"C:/Qt/5.15.2/mingw81_32/include/QtCore",
+		"C:/Qt/5.15.2/mingw81_32/mkspecs/win32-g++",
+		"C:/Qt/5.15.2/mingw81_32/include/QtSql",
+		"C:/Qt/5.15.2/mingw81_32/include/QtConcurrent",
+		"C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport"
+	],
+	"MOC_INCLUDES_Release" : 
+	[
+		"C:/VecEdit",
+		"C:/VecEdit/app",
+		"C:/VecEdit/common",
+		"C:/VecEdit/database",
+		"C:/VecEdit/migration",
+		"C:/VecEdit/pin",
+		"C:/VecEdit/timeset",
+		"C:/VecEdit/vector",
+		"C:/Qt/5.15.2/mingw81_32/include",
+		"C:/Qt/5.15.2/mingw81_32/include/QtWidgets",
+		"C:/Qt/5.15.2/mingw81_32/include/QtGui",
+		"C:/Qt/5.15.2/mingw81_32/include/QtANGLE",
+		"C:/Qt/5.15.2/mingw81_32/include/QtCore",
+		"C:/Qt/5.15.2/mingw81_32/mkspecs/win32-g++",
+		"C:/Qt/5.15.2/mingw81_32/include/QtSql",
+		"C:/Qt/5.15.2/mingw81_32/include/QtConcurrent",
+		"C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport"
 	],
 	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
 	"MOC_OPTIONS" : [],
 	"MOC_PATH_PREFIX" : false,
-	"MOC_PREDEFS_CMD" : 
-	[
-		"C:/Qt/Tools/mingw810_32/bin/c++.exe",
-		"-std=gnu++17",
-		"-w",
-		"-dM",
-		"-E",
-		"C:/Program Files (x86)/CMake/share/cmake-4.0/Modules/CMakeCXXCompilerABI.cpp"
-	],
-	"MOC_PREDEFS_FILE" : "C:/VecEdit/test_vector_model_autogen/moc_predefs.h",
+	"MOC_PREDEFS_CMD" : [],
+	"MOC_PREDEFS_FILE" : "",
 	"MOC_RELAXED_MODE" : false,
 	"MOC_SKIP" : 
 	[
 		"C:/VecEdit/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp",
-		"C:/VecEdit/VecEdit_autogen/mocs_compilation.cpp",
-		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation.cpp"
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_Debug.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_MinSizeRel.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_RelWithDebInfo.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_Release.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_Debug.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_MinSizeRel.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_RelWithDebInfo.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_Release.cpp"
 	],
-	"MULTI_CONFIG" : false,
+	"MULTI_CONFIG" : true,
 	"PARALLEL" : 4,
 	"PARSE_CACHE_FILE" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/ParseCache.txt",
+	"PARSE_CACHE_FILE_Debug" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/ParseCache_Debug.txt",
+	"PARSE_CACHE_FILE_MinSizeRel" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/ParseCache_MinSizeRel.txt",
+	"PARSE_CACHE_FILE_RelWithDebInfo" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/ParseCache_RelWithDebInfo.txt",
+	"PARSE_CACHE_FILE_Release" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/ParseCache_Release.txt",
 	"QT_MOC_EXECUTABLE" : "C:/Qt/5.15.2/mingw81_32/bin/moc.exe",
 	"QT_UIC_EXECUTABLE" : "C:/Qt/5.15.2/mingw81_32/bin/uic.exe",
 	"QT_VERSION_MAJOR" : 5,
 	"QT_VERSION_MINOR" : 15,
 	"SETTINGS_FILE" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/AutogenUsed.txt",
+	"SETTINGS_FILE_Debug" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/AutogenUsed_Debug.txt",
+	"SETTINGS_FILE_MinSizeRel" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/AutogenUsed_MinSizeRel.txt",
+	"SETTINGS_FILE_RelWithDebInfo" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/AutogenUsed_RelWithDebInfo.txt",
+	"SETTINGS_FILE_Release" : "C:/VecEdit/CMakeFiles/test_vector_model_autogen.dir/AutogenUsed_Release.txt",
 	"SOURCES" : 
 	[
 		[ "C:/VecEdit/common/logger.cpp", "MU", null ],
@@ -252,8 +355,14 @@
 	"UIC_SKIP" : 
 	[
 		"C:/VecEdit/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp",
-		"C:/VecEdit/VecEdit_autogen/mocs_compilation.cpp",
-		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation.cpp"
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_Debug.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_MinSizeRel.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_RelWithDebInfo.cpp",
+		"C:/VecEdit/VecEdit_autogen/mocs_compilation_Release.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_Debug.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_MinSizeRel.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_RelWithDebInfo.cpp",
+		"C:/VecEdit/test_fetch_row_autogen/mocs_compilation_Release.cpp"
 	],
 	"UIC_UI_FILES" : [],
 	"USE_BETTER_GRAPH" : false,

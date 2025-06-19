@@ -14,7 +14,7 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
-      m_vectorTableModel(nullptr), m_isUsingNewTableModel(false)
+      m_vectorTableModel(nullptr)
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     setMinimumSize(800, 600); // 设置窗口最小尺寸
 
     // 恢复上次的窗口状态
-    restoreWindowState();
+    // restoreWindowState(); // FIXME: 可能导致启动时窗口不可见,暂时注释
 
     // 初始化菜单状态
     updateMenuState();
@@ -53,9 +53,10 @@ MainWindow::MainWindow(QWidget *parent)
     // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
     connect(this, &MainWindow::windowResized, [this]()
             {
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 6) {
+        if (m_vectorTableView && m_vectorTableView->isVisible() && m_vectorTableView->model() && m_vectorTableView->model()->columnCount() > 6) {
             qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
-            TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+            // TableStyleManager::setPinColumnWidths(m_vectorTableWidget); // 这是旧的调用
+            // TODO: 为 QTableView 实现新的列宽调整逻辑
         } });
 }
 
@@ -229,45 +230,6 @@ void MainWindow::setupMenu()
     QAction *toggleWaveformAction = m_waveformDock->toggleViewAction();
     toggleWaveformAction->setText(tr("显示波形图面板(&W)"));
     docksMenu->addAction(toggleWaveformAction);
-    
-    // 分割线
-    viewMenu->addSeparator();
-    
-    // 添加表格模式切换选项
-    QAction *toggleTableModeAction = viewMenu->addAction(tr("使用优化表格模型(&T)"));
-    toggleTableModeAction->setCheckable(true);
-    toggleTableModeAction->setChecked(m_isUsingNewTableModel);
-    connect(toggleTableModeAction, &QAction::toggled, [this](bool checked) {
-        qDebug() << "MainWindow - 表格模式切换:" << (checked ? "新表格模型" : "传统表格控件");
-        
-        // 保存当前选择的表ID
-        int currentTableId = -1;
-        if (m_vectorTableSelector->currentIndex() >= 0) {
-            currentTableId = m_vectorTableSelector->currentData().toInt();
-        }
-        
-        // 更改表格模式
-        m_isUsingNewTableModel = checked;
-        
-        // 同步视图状态
-        syncViewWithTableModel();
-        
-        // 如果有打开的表格，重新加载
-        if (currentTableId > 0 && m_vectorTableSelector->currentIndex() >= 0) {
-            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-            
-            if (checked) {
-                QMessageBox::information(this, "表格模式已切换", 
-                    "已切换到优化的表格模型 (VectorTableModel)。\n\n"
-                    "此模式下表格可以处理数百万行数据而不会导致内存溢出或UI卡顿。\n"
-                    "性能优化来自于按需加载策略和行缓存机制。");
-            } else {
-                QMessageBox::information(this, "表格模式已切换", 
-                    "已切换到传统表格控件 (QTableWidget)。\n\n"
-                    "注意：此模式下大型表格可能会出现性能问题。");
-            }
-        }
-    });
 }
 
 void MainWindow::setupVectorTableUI()
@@ -416,18 +378,7 @@ void MainWindow::setupVectorTableUI()
     // 将工具栏添加到容器布局的顶部
     containerLayout->addWidget(toolBar);
 
-    // 初始化两种表格显示方式
-    // 1. 创建传统QTableWidget表格
-    m_vectorTableWidget = new QTableWidget(this);
-    m_vectorTableWidget->setAlternatingRowColors(true);
-    m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
-    m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
-    m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
-    m_vectorTableWidget->verticalHeader()->setVisible(true);
-
-    // 2. 创建新的QTableView表格视图
+    // 创建表格视图
     m_vectorTableView = new QTableView(this);
     m_vectorTableView->setAlternatingRowColors(true);
     m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -436,87 +387,14 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
     m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableView->verticalHeader()->setVisible(true);
-    m_vectorTableView->setVisible(false); // 初始隐藏，待功能完成后逐步替换
-    
+
     // 初始化表格模型
     m_vectorTableModel = new Vector::VectorTableModel(this);
-    m_isUsingNewTableModel = false; // 默认使用旧模式
-    
+
     // 设置表格右键菜单和信号/槽连接
-    m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
+    m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_vectorTableView, &QTableView::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
-
-    // 监听单元格变更事件
-    connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
-
-    // 单元格点击时更新向量列属性栏
-    connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
-
-    // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
-    connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
-            {
-        QWidget *widget = m_vectorTableWidget->cellWidget(row, column);
-        if (PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(widget)) {
-            connect(pinEdit, &PinValueLineEdit::textChanged, [this, row]() {
-                onTableRowModified(row);
-            });
-        } });
-
-    // 添加选择变更事件处理，更新16进制值
-    connect(m_vectorTableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
-            [this](const QItemSelection &selected, const QItemSelection &deselected)
-            {
-                // 获取当前选中的列
-                QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
-                if (selectedIndexes.isEmpty())
-                    return;
-
-                // 检查是否所有选择都在同一列
-                int column = selectedIndexes.first().column();
-                bool sameColumn = true;
-
-                for (const QModelIndex &idx : selectedIndexes)
-                {
-                    if (idx.column() != column)
-                    {
-                        sameColumn = false;
-                        break;
-                    }
-                }
-
-                // 只有当所有选择都在同一列时才更新16进制值
-                if (sameColumn)
-                {
-                    QList<int> selectedRows;
-                    for (const QModelIndex &idx : selectedIndexes)
-                    {
-                        if (!selectedRows.contains(idx.row()))
-                            selectedRows.append(idx.row());
-                    }
-
-                    // 获取当前表的列配置信息
-                    if (m_vectorTabWidget && m_vectorTabWidget->currentIndex() >= 0)
-                    {
-                        int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
-                        QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-
-                        // 检查列索引是否有效
-                        if (column >= 0 && column < columns.size())
-                        {
-                            // 获取列类型
-                            Vector::ColumnDataType colType = columns[column].type;
-
-                            // 只处理管脚列
-                            if (colType == Vector::ColumnDataType::PIN_STATE_ID)
-                            {
-                                // 更新管脚名称和16进制值
-                                updateVectorColumnProperties(selectedRows.first(), column);
-                            }
-                        }
-                    }
-                }
-            });
 
     // 连接向量表选择器信号
     connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -524,7 +402,7 @@ void MainWindow::setupVectorTableUI()
 
     // 创建项委托，处理单元格编辑
     m_itemDelegate = new VectorTableItemDelegate(this);
-    m_vectorTableWidget->setItemDelegate(m_itemDelegate);
+    m_vectorTableView->setItemDelegate(m_itemDelegate);
 
     // 创建分页控件
     m_paginationWidget = new QWidget(this);
@@ -596,17 +474,18 @@ void MainWindow::setupVectorTableUI()
     setupTabBar();
 
     // 将布局添加到容器
-    containerLayout->addWidget(m_vectorTableWidget);
-    containerLayout->addWidget(m_vectorTableView);  // 添加新的表格视图控件
-    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
+    containerLayout->addWidget(m_vectorTableView);
+    containerLayout->addWidget(m_paginationWidget);
     containerLayout->addWidget(m_vectorTabWidget);
 
     // 将容器添加到主布局
+    /*
     QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
     if (mainLayout)
     {
         mainLayout->addWidget(m_vectorTableContainer);
     }
+    */
 }
 
 void MainWindow::setupTabBar()
@@ -1220,7 +1099,10 @@ void MainWindow::setupVectorColumnPropertiesBar()
     formLayout->addRow("", miniSeparator2);
 
     // 连接编辑完成信号
-    connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
+    connect(m_pinValueField, &QLineEdit::editingFinished, this, [this]()
+            {
+        // 当编辑完成时，只需清除选择即可
+        m_pinValueField->selectAll(); });
 
     // 连接文本变化信号，实时验证输入
     connect(m_pinValueField, &QLineEdit::textChanged, this, &MainWindow::validateHexInput);
@@ -1257,93 +1139,73 @@ void MainWindow::setupVectorColumnPropertiesBar()
 void MainWindow::setupVectorTableView()
 {
     qDebug() << "MainWindow::setupVectorTableView() - 初始化表格视图";
-    
+
+    // 在函数开头设置模型，确保selectionModel有效
+    m_vectorTableView->setModel(m_vectorTableModel);
+
     // 设置表格视图的右键菜单策略
     m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_vectorTableView, &QTableView::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
-            
+
     // 连接选择变更事件
     connect(m_vectorTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             [this](const QItemSelection &selected, const QItemSelection &deselected)
-    {
-        if (m_vectorTableView->model() == nullptr)
-            return;
-            
-        QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
-        if (selectedIndexes.isEmpty())
-            return;
-            
-        // 检查是否所有选择都在同一列
-        int column = selectedIndexes.first().column();
-        bool sameColumn = true;
-        
-        for (const QModelIndex &idx : selectedIndexes)
-        {
-            if (idx.column() != column)
             {
-                sameColumn = false;
-                break;
-            }
-        }
-        
-        // 更新属性栏
-        if (sameColumn && !selectedIndexes.isEmpty())
-        {
-            updateVectorColumnProperties(selectedIndexes.first().row(), column);
-        }
-    });
-    
+                if (m_vectorTableView->model() == nullptr)
+                    return;
+
+                QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+                if (selectedIndexes.isEmpty())
+                    return;
+
+                // 检查是否所有选择都在同一列
+                int column = selectedIndexes.first().column();
+                bool sameColumn = true;
+
+                for (const QModelIndex &idx : selectedIndexes)
+                {
+                    if (idx.column() != column)
+                    {
+                        sameColumn = false;
+                        break;
+                    }
+                }
+
+                // 更新属性栏
+                if (sameColumn && !selectedIndexes.isEmpty())
+                {
+                    updateVectorColumnProperties(selectedIndexes.first().row(), column);
+                }
+            });
+
     // 连接单元格点击事件
-    connect(m_vectorTableView, &QTableView::clicked, [this](const QModelIndex &index) {
-        updateVectorColumnProperties(index.row(), index.column());
-    });
-    
+    connect(m_vectorTableView, &QTableView::clicked, [this](const QModelIndex &index)
+            { updateVectorColumnProperties(index.row(), index.column()); });
+
     // 设置项委托，处理单元格编辑
-    if (m_itemDelegate) {
+    if (m_itemDelegate)
+    {
         m_vectorTableView->setItemDelegate(m_itemDelegate);
     }
-    
+
     // 连接数据更改信号 - 这个关键的连接在模型数据变化时更新UI和标记未保存状态
-    if (m_vectorTableModel) {
+    if (m_vectorTableModel)
+    {
         connect(m_vectorTableModel, &QAbstractItemModel::dataChanged,
-                [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) {
-            // 设置未保存标志
-            m_hasUnsavedChanges = true;
-            
-            // 更新窗口标题以显示未保存状态
-            updateWindowTitle(m_currentDbPath);
-            
-            // 如果波形图可见，更新波形图显示
-            if (m_isWaveformVisible) {
-                updateWaveformView();
-            }
-        });
-    }
-}
+                [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)
+                {
+                    // 设置未保存标志
+                    m_hasUnsavedChanges = true;
 
-// 实现syncViewWithTableModel函数
-void MainWindow::syncViewWithTableModel()
-{
-    qDebug() << "MainWindow::syncViewWithTableModel() - 同步视图状态，当前模式:" 
-             << (m_isUsingNewTableModel ? "优化表格模型" : "传统表格控件");
+                    // 更新窗口标题以显示未保存状态
+                    updateWindowTitle(m_currentDbPath);
 
-    // 根据当前模式隐藏/显示相应的表格控件
-    if (m_isUsingNewTableModel)
-    {
-        // 使用新的表格模型
-        m_vectorTableWidget->setVisible(false);
-        m_vectorTableView->setVisible(true);
-        
-        // 确保委托被正确设置
-        if (m_itemDelegate && m_vectorTableView) {
-            m_vectorTableView->setItemDelegate(m_itemDelegate);
-        }
-    }
-    else
-    {
-        // 使用传统表格控件
-        m_vectorTableView->setVisible(false);
-        m_vectorTableWidget->setVisible(true);
+                    // 如果波形图可见，更新波形图显示
+                    if (m_isWaveformVisible)
+                    {
+                        updateWaveformView();
+                    }
+                });
     }
 }

@@ -12,7 +12,9 @@
         "qmainwindow": "cpp",
         "qwidget": "cpp",
         "qaction": "cpp",
-        "qgraphicsitem": "cpp"
+        "qgraphicsitem": "cpp",
+        "qsqldatabase": "cpp",
+        "qfileinfo": "cpp"
     },
     "editor.formatOnSave": true,
     "cmake.configureSettings": {

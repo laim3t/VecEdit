@@ -162,10 +162,6 @@ private slots:
     void changePageSize(int newSize);
     void jumpToPage(int pageNum);
 
-    // 表格数据变更监听
-    void onTableCellChanged(int row, int column);
-    void onTableRowModified(int row);
-
     // 显示管脚列的右键菜单
     void showPinColumnContextMenu(const QPoint &pos);
 
@@ -185,9 +181,6 @@ private slots:
 
     // 计算16进制值并显示在向量列属性栏中
     void calculateAndDisplayHexValue(const QList<int> &selectedRows, int column);
-
-    // 处理16进制值编辑后的同步操作
-    void onHexValueEdited();
 
     // 实时验证16进制输入
     void validateHexInput(const QString &text);
@@ -276,12 +269,12 @@ private:
     QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
-    QTableView *m_vectorTableView;        // 向量表视图
-    QTableWidget *m_vectorTableWidget;    // 旧向量表组件
-    QComboBox *m_vectorTableSelector;     // 向量表选择器
-    QWidget *m_centralWidget;             // 中央部件
+    QTableView *m_vectorTableView;     // 向量表视图
+    QTableWidget *m_vectorTableWidget; // 旧向量表组件
+    QComboBox *m_vectorTableSelector;  // 向量表选择器
+    QWidget *m_centralWidget;          // 中央部件
     QWidget *m_welcomeWidget;
-    QWidget *m_vectorTableContainer;      // 向量表容器
+    QWidget *m_vectorTableContainer; // 向量表容器
     QAction *m_fillVectorAction;
     QAction *m_fillTimeSetAction;
     QAction *m_replaceTimeSetAction;
@@ -296,13 +289,13 @@ private:
     QAction *m_addGroupAction;    // 添加管脚分组按钮
 
     // 分页相关UI组件
-    QWidget *m_paginationWidget;          // 分页控件
-    QPushButton *m_prevPageButton;        // 上一页按钮
-    QPushButton *m_nextPageButton;        // 下一页按钮
-    QLabel *m_pageInfoLabel;              // 页码信息标签
-    QSpinBox *m_pageJumper;               // 页码跳转
-    QPushButton *m_jumpButton;            // 跳转按钮
-    QComboBox *m_pageSizeSelector;        // 每页行数选择
+    QWidget *m_paginationWidget;   // 分页控件
+    QPushButton *m_prevPageButton; // 上一页按钮
+    QPushButton *m_nextPageButton; // 下一页按钮
+    QLabel *m_pageInfoLabel;       // 页码信息标签
+    QSpinBox *m_pageJumper;        // 页码跳转
+    QPushButton *m_jumpButton;     // 跳转按钮
+    QComboBox *m_pageSizeSelector; // 每页行数选择
 
     // 分页相关数据
     int m_currentPage;    // 当前页码（从0开始）
@@ -318,8 +311,8 @@ private:
     bool hasUnsavedChanges() const;
 
     // Tab页签组件
-    QTabWidget *m_vectorTabWidget;        // 向量表Tab控件
-    bool m_isUpdatingUI; // 防止UI更新循环的标志
+    QTabWidget *m_vectorTabWidget; // 向量表Tab控件
+    bool m_isUpdatingUI;           // 防止UI更新循环的标志
 
     // 自定义代理
     VectorTableItemDelegate *m_itemDelegate;
@@ -426,12 +419,8 @@ private:
     // 添加新的VectorTableModel成员
     Vector::VectorTableModel *m_vectorTableModel; // 向量表数据模型
 
-    // 添加表格模型状态控制变量
-    bool m_isUsingNewTableModel;          // 是否使用新的表格模型
-
-    // 新增辅助方法，用于过渡期管理
-    void setupVectorTableView();          // 设置新表格视图
-    void syncViewWithTableModel();        // 同步视图和模型
+    // 新增辅助方法
+    void setupVectorTableView(); // 设置表格视图
 };
 
 #endif // MAINWINDOW_H
