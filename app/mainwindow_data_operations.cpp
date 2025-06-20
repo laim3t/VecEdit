@@ -44,10 +44,11 @@ void MainWindow::addRowToCurrentVectorTable()
     }
 
     // 使用对话框管理器显示向量行数据录入对话框
-    if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
+    if (m_dialogManager->showVectorDataDialog(db, tableId, tableName, maxSortIndex + 1))
     {
         // 刷新表格显示
         onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+        loadCurrentPage(); // 确保数据被加载显示
 
         // 刷新侧边栏导航树，确保Label同步
         refreshSidebarNavigator();
@@ -111,15 +112,29 @@ void MainWindow::loadCurrentPage()
 {
     const QString funcName = "MainWindow::loadCurrentPage";
     qDebug() << funcName << " - 加载当前页数据，页码:" << m_currentPage;
+    qDebug() << "[UI_REFRESH_DEBUG] Entering loadCurrentPage(). Current page:" << m_currentPage;
 
     if (m_vectorTableModel)
     {
+        qDebug() << "[UI_REFRESH_DEBUG] m_vectorTableModel exists. Current tableId:" << m_vectorTableModel->tableId() << ", rowCount:" << m_vectorTableModel->rowCount();
+        
         if (m_vectorTableModel->loadPage(m_currentPage))
         {
+            qDebug() << "[UI_REFRESH_DEBUG] m_vectorTableModel->loadPage() returned true. New rowCount:" << m_vectorTableModel->rowCount();
             updatePaginationInfo();
             statusBar()->showMessage(QString("Page %1 / %2 loaded.").arg(m_currentPage + 1).arg(m_totalPages), 3000);
         }
+        else
+        {
+            qDebug() << "[UI_REFRESH_DEBUG] m_vectorTableModel->loadPage() returned false!";
+        }
     }
+    else
+    {
+        qDebug() << "[UI_REFRESH_DEBUG] m_vectorTableModel is NULL!";
+    }
+    
+    qDebug() << "[UI_REFRESH_DEBUG] Exiting loadCurrentPage().";
 }
 
 // 加载下一页

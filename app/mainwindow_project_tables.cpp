@@ -269,391 +269,251 @@ void MainWindow::loadVectorTable()
 
 void MainWindow::addNewVectorTable()
 {
-    const QString funcName = "MainWindow::addNewVectorTable";
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: Entered function.";
-
-    // 检查是否有打开的数据库
     if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
     {
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 未打开数据库，操作取消";
         QMessageBox::warning(this, "警告", "请先打开或创建一个项目数据库");
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 因未连接数据库而取消";
         return;
     }
 
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 数据库已连接，路径:" << m_currentDbPath;
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-
     // 弹出向量表命名对话框
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 创建向量表命名对话框";
-    QDialog vectorNameDialog(this);
-    vectorNameDialog.setWindowTitle("创建向量表向导");
-    vectorNameDialog.setFixedSize(320, 120);
+    QDialog dialog(this);
+    dialog.setWindowTitle("创建向量表向导");
+    dialog.setFixedSize(320, 120);
 
-    QVBoxLayout *layout = new QVBoxLayout(&vectorNameDialog);
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
 
     // 名称标签和输入框
-    QLabel *nameLabel = new QLabel("向量表名称:", &vectorNameDialog);
+    QLabel *nameLabel = new QLabel("向量表名称:", &dialog);
     layout->addWidget(nameLabel);
 
-    QLineEdit *nameEdit = new QLineEdit(&vectorNameDialog);
-    nameEdit->setPlaceholderText("请输入向量表名称");
-    layout->addWidget(nameEdit);
+    QLineEdit *nameLineEdit = new QLineEdit(&dialog);
+    nameLineEdit->setPlaceholderText("请输入向量表名称");
+    layout->addWidget(nameLineEdit);
 
     // 按钮
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &vectorNameDialog);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
     layout->addWidget(buttonBox);
 
     // 连接信号和槽
-    connect(buttonBox, &QDialogButtonBox::accepted, &vectorNameDialog, &QDialog::accept);
-    connect(buttonBox, &QDialogButtonBox::rejected, &vectorNameDialog, &QDialog::reject);
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
-    // 显示对话框
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 显示向量表命名对话框";
-    int result = vectorNameDialog.exec();
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 对话框结果:" << (result == QDialog::Accepted ? "已接受" : "已取消");
-    
-    if (result == QDialog::Accepted)
-    {
-        // 获取用户输入的表名
-        QString tableName = nameEdit->text().trimmed();
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 用户输入的表名:" << tableName;
-
-        // 检查表名是否为空
-        if (tableName.isEmpty())
-        {
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 表名为空，操作取消";
-            QMessageBox::warning(this, "错误", "请输入有效的向量表名称");
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 因表名为空而取消";
+    if (dialog.exec() == QDialog::Accepted) {
+        QString tableName = nameLineEdit->text().trimmed();
+        if (tableName.isEmpty()) {
+            QMessageBox::warning(this, "无效名称", "向量表名称不能为空。");
             return;
         }
 
+        // ========= 事务总指挥部：开始 =========
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (!db.transaction()) {
+            qCritical() << "Failed to start transaction in addNewVectorTable.";
+            QMessageBox::critical(this, "数据库错误", "无法开始创建新表的事务。");
+            return;
+        }
+        qDebug() << "--- [Sub-Workflow] addNewVectorTable: Transaction started.";
+
+        bool overallSuccess = false;
+        
         // 检查表名是否已存在
         QSqlQuery checkQuery(db);
         checkQuery.prepare("SELECT COUNT(*) FROM vector_tables WHERE table_name = ?");
         checkQuery.addBindValue(tableName);
 
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 检查表名是否已存在";
-        if (checkQuery.exec() && checkQuery.next())
-        {
-            int count = checkQuery.value(0).toInt();
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 同名表的数量:" << count;
-            if (count > 0)
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 表名已存在，操作取消";
-                QMessageBox::warning(this, "错误", "已存在同名向量表");
-                return;
-            }
+        if (!checkQuery.exec() || !checkQuery.next()) {
+            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 检查表名失败:" << checkQuery.lastError().text();
+            db.rollback();
+            QMessageBox::critical(this, "数据库错误", "检查表名是否存在时发生错误。");
+            return;
         }
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 表名检查通过，继续创建";
+        
+        int count = checkQuery.value(0).toInt();
+        if (count > 0) {
+            db.rollback();
+            QMessageBox::warning(this, "错误", "已存在同名向量表");
+            return;
+        }
 
-        // 插入新表
+        // 插入新表记录
         QSqlQuery insertQuery(db);
         insertQuery.prepare("INSERT INTO vector_tables (table_name) VALUES (?)");
         insertQuery.addBindValue(tableName);
 
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 执行SQL插入向量表记录";
-        if (insertQuery.exec())
-        {
-            int newTableId = insertQuery.lastInsertId().toInt();
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
-
-            // 使用 PathUtils 获取项目特定的二进制数据目录
-            // m_currentDbPath 应该是最新且正确的数据库路径
-            QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
-            if (projectBinaryDataDir.isEmpty())
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 无法生成二进制数据目录路径";
-                QMessageBox::critical(this, "错误", QString("无法为数据库 '%1' 生成二进制数据目录路径。").arg(m_currentDbPath));
-                // 考虑是否需要回滚 vector_tables 中的插入
-                return;
-            }
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 项目二进制数据目录:" << projectBinaryDataDir;
-
-            QDir dataDir(projectBinaryDataDir);
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 检查数据目录是否存在";
-            if (!dataDir.exists())
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 目录不存在，尝试创建";
-                if (!dataDir.mkpath(".")) // mkpath creates parent directories if necessary
-                {
-                    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 创建目录失败";
-                    QMessageBox::critical(this, "错误", "无法创建项目二进制数据目录: " + projectBinaryDataDir);
-                    // 考虑是否需要回滚 vector_tables 中的插入
-                    return;
-                }
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已创建项目二进制数据目录: " << projectBinaryDataDir;
-            }
-
-            // 构造二进制文件名 (纯文件名)
-            QString binaryOnlyFileName = QString("table_%1_data.vbindata").arg(newTableId);
-            // 使用QDir::cleanPath确保路径格式正确，然后转换为本地路径格式
-            QString absoluteBinaryFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binaryOnlyFileName);
-            absoluteBinaryFilePath = QDir::toNativeSeparators(absoluteBinaryFilePath);
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 绝对二进制文件路径:" << absoluteBinaryFilePath;
-
-            // 创建VectorTableMasterRecord记录
-            QSqlQuery insertMasterQuery(db);
-            insertMasterQuery.prepare("INSERT INTO VectorTableMasterRecord "
-                                      "(original_vector_table_id, table_name, binary_data_filename, "
-                                      "file_format_version, data_schema_version, row_count, column_count) "
-                                      "VALUES (?, ?, ?, ?, ?, ?, ?)"); // Added one more ? for schema
-            insertMasterQuery.addBindValue(newTableId);
-            insertMasterQuery.addBindValue(tableName);
-            insertMasterQuery.addBindValue(binaryOnlyFileName);                       // <--- 存储纯文件名
-            insertMasterQuery.addBindValue(Persistence::CURRENT_FILE_FORMAT_VERSION); // 使用定义的版本
-            insertMasterQuery.addBindValue(1);                                        // 初始数据 schema version
-            insertMasterQuery.addBindValue(0);                                        // row_count
-            insertMasterQuery.addBindValue(0);                                        // column_count
-
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 执行SQL插入VectorTableMasterRecord记录";
-            if (!insertMasterQuery.exec())
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 创建VectorTableMasterRecord记录失败: " << insertMasterQuery.lastError().text();
-                QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
-                // 考虑回滚 vector_tables 和清理目录
-                return;
-            }
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: VectorTableMasterRecord记录创建成功 for table ID:" << newTableId;
-
-            // 添加默认列配置
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 准备添加默认列配置";
-            if (!addDefaultColumnConfigurations(newTableId))
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 添加默认列配置失败";
-                QMessageBox::critical(this, "错误", "无法添加默认列配置");
-                // 考虑回滚 vector_tables 和清理目录
-                return;
-            }
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已成功添加默认列配置";
-
-            // 创建空的二进制文件
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 开始创建二进制文件:" << absoluteBinaryFilePath;
-            QFile binaryFile(absoluteBinaryFilePath);
-            
-            // 检查文件是否已存在
-            if (binaryFile.exists())
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 二进制文件已存在(异常情况):" << absoluteBinaryFilePath;
-                // Decide on handling: overwrite, error out, or skip? For now, let's attempt to open and write header.
-            }
-
-            // 检查目标目录是否存在和可写
-            QFileInfo fileInfo(absoluteBinaryFilePath);
-            QDir parentDir = fileInfo.dir();
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 检查父目录:" << parentDir.absolutePath() 
-                     << ", 存在:" << parentDir.exists()
-                     << ", 可写:" << QFileInfo(parentDir.absolutePath()).isWritable();
-
-            // 尝试打开或创建文件
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 尝试打开/创建二进制文件";
-            if (!binaryFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) // Truncate if exists
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 无法打开/创建二进制数据文件:"
-                         << absoluteBinaryFilePath << ", 错误:" << binaryFile.errorString()
-                         << ", 错误代码:" << binaryFile.error();
-                
-                QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString()); // 更明确的错误信息
-
-                // --- 开始回滚 ---
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 开始回滚数据库操作";
-                QSqlQuery rollbackQuery(db);
-                db.transaction(); // 开始事务以便原子回滚
-
-                // 删除列配置
-                rollbackQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除列配置失败: " << rollbackQuery.lastError().text();
-                    // 即使回滚失败也要继续尝试删除其他记录
-                }
-
-                // 删除主记录
-                rollbackQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除主记录失败: " << rollbackQuery.lastError().text();
-                }
-
-                // 删除 vector_tables 记录
-                rollbackQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除 vector_tables 记录失败: " << rollbackQuery.lastError().text();
-                }
-
-                if (!db.commit())
-                { // 提交事务
-                    qWarning() << funcName << " - 回滚事务提交失败: " << db.lastError().text();
-                    db.rollback(); // 尝试再次回滚以防万一
-                }
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已执行数据库回滚操作";
-                // --- 结束回滚 ---
-
-                return;
-            }
-
-            // 创建并写入文件头
-            BinaryFileHeader header; // 从 common/binary_file_format.h
-            header.magic_number = Persistence::VEC_BINDATA_MAGIC;
-            header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
-            header.row_count_in_file = 0;
-            header.column_count_in_file = 0; // 初始没有列
-            header.data_schema_version = 1;  // 与 VectorTableMasterRecord 中的 schema version 一致
-            header.timestamp_created = QDateTime::currentSecsSinceEpoch();
-            header.timestamp_updated = header.timestamp_created;
-            // header.reserved 保持默认 (0)
-
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 准备写入文件头到:" << absoluteBinaryFilePath;
-            bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
-            binaryFile.close();
-
-            if (!headerWriteSuccess)
-            {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 无法写入二进制文件头";
-                QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头"); // 更明确的错误信息
-                // 考虑回滚和删除文件
-                QFile::remove(absoluteBinaryFilePath); // Attempt to clean up
-
-                // --- 开始回滚 ---
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 开始回滚数据库操作";
-                QSqlQuery rollbackQuery(db);
-                db.transaction(); // 开始事务以便原子回滚
-
-                // 删除列配置
-                rollbackQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除列配置失败: " << rollbackQuery.lastError().text();
-                    // 即使回滚失败也要继续尝试删除其他记录
-                }
-
-                // 删除主记录
-                rollbackQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除主记录失败: " << rollbackQuery.lastError().text();
-                }
-
-                // 删除 vector_tables 记录
-                rollbackQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
-                rollbackQuery.addBindValue(newTableId);
-                if (!rollbackQuery.exec())
-                {
-                    qWarning() << funcName << " - 回滚: 删除 vector_tables 记录失败: " << rollbackQuery.lastError().text();
-                }
-
-                if (!db.commit())
-                { // 提交事务
-                    qWarning() << funcName << " - 回滚事务提交失败: " << db.lastError().text();
-                    db.rollback(); // 尝试再次回滚以防万一
-                }
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已执行数据库回滚操作";
-                // --- 结束回滚 ---
-
-                return;
-            }
-
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 成功创建二进制文件并写入文件头:" << absoluteBinaryFilePath;
-
-            // 添加到下拉框和Tab页签
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 将表添加到UI选择器";
-            m_vectorTableSelector->addItem(tableName, newTableId);
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 调用addVectorTableTab";
-            addVectorTableTab(newTableId, tableName);
-
-            // 选中新添加的表
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 选择新创建的表";
-            int newIndex = m_vectorTableSelector->findData(newTableId);
-            if (newIndex >= 0)
-            {
-                m_vectorTableSelector->setCurrentIndex(newIndex);
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已设置当前索引为:" << newIndex;
-            }
-            else {
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 无法找到新创建的表索引";
-            }
-
-            // 显示管脚选择对话框
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 准备调用showPinSelectionDialog, tableId=" << newTableId;
-            showPinSelectionDialog(newTableId, tableName);
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 完成调用showPinSelectionDialog";
-
-            // 注意：检查是否需要调用showVectorDataDialog
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 检查是否应该调用showVectorDataDialog";
-            // 假定这是应该被调用但缺失的一部分
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 准备调用showVectorDataDialog, tableId=" << newTableId;
-            int finalRowCount = m_dialogManager->showVectorDataDialog(newTableId, tableName);
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 完成调用showVectorDataDialog, 返回行数:" << finalRowCount;
-            
-            // 如果对话框成功返回了有效的行数
-            if (finalRowCount >= 0) {
-                qDebug() << "[Final Fix] Dialog reported" << finalRowCount << "rows. Attempting to update master record.";
-                QSqlQuery updateQuery(db); // 'db' 对象在当前作用域内是可用的
-                updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
-                updateQuery.addBindValue(finalRowCount);
-                updateQuery.addBindValue(newTableId);
-
-                if (updateQuery.exec()) {
-                    int rowsAffected = updateQuery.numRowsAffected();
-                    qDebug() << "[Final Fix] UPDATE command executed successfully." << "Rows affected:" << rowsAffected;
-
-                    if (rowsAffected > 0) {
-                        // ----- 司法鉴定步骤 -----
-                        qDebug() << "[Final Fix] VERIFICATION: Immediately re-querying the row count using the same connection.";
-                        QSqlQuery verifyQuery(db);
-                        verifyQuery.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
-                        verifyQuery.addBindValue(newTableId);
-                        if (verifyQuery.exec() && verifyQuery.next()) {
-                            int verifiedRowCount = verifyQuery.value(0).toInt();
-                            qDebug() << "[Final Fix] VERIFICATION SUCCEEDED: Read back row_count =" << verifiedRowCount;
-                            if (verifiedRowCount != finalRowCount) {
-                                qWarning() << "[Final Fix] VERIFICATION MISMATCH! Wrote" << finalRowCount << "but read back" << verifiedRowCount;
-                            }
-                        } else {
-                            qWarning() << "[Final Fix] VERIFICATION FAILED: Could not re-query the row count:" << verifyQuery.lastError().text();
-                        }
-                    } else {
-                         qWarning() << "[Final Fix] UPDATE command affected 0 rows. The record for table ID" << newTableId << "was likely not found.";
-                    }
-                } else {
-                    qWarning() << "[Final Fix] Failed to execute UPDATE for final row count in VectorTableMasterRecord:" << updateQuery.lastError().text();
-                }
-            }
-
-            // 更新UI显示
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 更新UI显示状态";
-            if (m_welcomeWidget->isVisible())
-            {
-                m_welcomeWidget->setVisible(false);
-                m_vectorTableContainer->setVisible(true);
-                qDebug() << "--- [Sub-Workflow] addNewVectorTable: 已切换从欢迎界面到向量表容器";
-            }
-
-            // 在成功创建向量表后添加代码，在执行成功后刷新导航栏
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 刷新侧边栏";
-            refreshSidebarNavigator();
-            
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 向量表创建成功完成!";
-        }
-        else
-        {
-            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 创建向量表失败, SQL错误:" << insertQuery.lastError().text();
+        if (!insertQuery.exec()) {
+            db.rollback();
             QMessageBox::critical(this, "数据库错误", "无法在数据库中创建新向量表: " + insertQuery.lastError().text());
+            return;
+        }
+        
+        int newTableId = insertQuery.lastInsertId().toInt();
+        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
+
+        // 使用 PathUtils 获取项目特定的二进制数据目录
+        QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
+        if (projectBinaryDataDir.isEmpty()) {
+            db.rollback();
+            QMessageBox::critical(this, "错误", QString("无法为数据库 '%1' 生成二进制数据目录路径。").arg(m_currentDbPath));
+            return;
+        }
+
+        QDir dataDir(projectBinaryDataDir);
+        if (!dataDir.exists() && !dataDir.mkpath(".")) {
+            db.rollback();
+            QMessageBox::critical(this, "错误", "无法创建项目二进制数据目录: " + projectBinaryDataDir);
+            return;
+        }
+
+        // 构造二进制文件名
+        QString binaryOnlyFileName = QString("table_%1_data.vbindata").arg(newTableId);
+        QString absoluteBinaryFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binaryOnlyFileName);
+        absoluteBinaryFilePath = QDir::toNativeSeparators(absoluteBinaryFilePath);
+
+        // 创建VectorTableMasterRecord记录
+        QSqlQuery insertMasterQuery(db);
+        insertMasterQuery.prepare("INSERT INTO VectorTableMasterRecord "
+                                  "(original_vector_table_id, table_name, binary_data_filename, "
+                                  "file_format_version, data_schema_version, row_count, column_count) "
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
+        insertMasterQuery.addBindValue(newTableId);
+        insertMasterQuery.addBindValue(tableName);
+        insertMasterQuery.addBindValue(binaryOnlyFileName);
+        insertMasterQuery.addBindValue(Persistence::CURRENT_FILE_FORMAT_VERSION);
+        insertMasterQuery.addBindValue(1);  // 初始数据 schema version
+        insertMasterQuery.addBindValue(0);  // row_count
+        insertMasterQuery.addBindValue(0);  // column_count
+
+        if (!insertMasterQuery.exec()) {
+            db.rollback();
+            QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
+            return;
+        }
+
+        // 添加默认列配置
+        if (!addDefaultColumnConfigurations(newTableId)) {
+            db.rollback();
+            QMessageBox::critical(this, "错误", "无法添加默认列配置");
+            return;
+        }
+
+        // 创建空的二进制文件
+        QFile binaryFile(absoluteBinaryFilePath);
+        if (!binaryFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            db.rollback();
+            QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString());
+            return;
+        }
+
+        // 创建并写入文件头
+        BinaryFileHeader header;
+        header.magic_number = Persistence::VEC_BINDATA_MAGIC;
+        header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
+        header.row_count_in_file = 0;
+        header.column_count_in_file = 0;
+        header.data_schema_version = 1;
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+        header.timestamp_updated = header.timestamp_created;
+
+        bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
+        binaryFile.close();
+
+        if (!headerWriteSuccess) {
+            QFile::remove(absoluteBinaryFilePath);
+            db.rollback();
+            QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头");
+            return;
+        }
+
+        // 添加到下拉框和Tab页签
+        m_vectorTableSelector->addItem(tableName, newTableId);
+        addVectorTableTab(newTableId, tableName);
+
+        // 选中新添加的表
+        int newIndex = m_vectorTableSelector->findData(newTableId);
+        if (newIndex >= 0) {
+            m_vectorTableSelector->setCurrentIndex(newIndex);
+        }
+
+        // 按顺序执行向导步骤，任何一步失败都会导致整体失败
+        if (showPinSelectionDialog(newTableId, tableName)) {
+            qDebug() << "--- [Sub-Workflow] addNewVectorTable: Pin selection successful.";
+            if (showVectorDataDialog(db, newTableId, tableName)) {
+                qDebug() << "--- [Sub-Workflow] addNewVectorTable: Vector data entry successful.";
+                overallSuccess = true; // 仅当所有步骤都成功时，才算成功
+            } else {
+                qDebug() << "--- [Sub-Workflow] addNewVectorTable: Vector data entry was cancelled or failed.";
+            }
+        } else {
+            qDebug() << "--- [Sub-Workflow] addNewVectorTable: Pin selection was cancelled or failed.";
+        }
+
+        // ========= 事务总指挥部：结束 =========
+        if (overallSuccess) {
+            if (!db.commit()) {
+                qCritical() << "Failed to commit transaction in addNewVectorTable: " << db.lastError().text();
+                QMessageBox::critical(this, "数据库错误", "提交新表事务失败。");
+                db.rollback();
+                // 失败后依然要刷新UI，以防万一有部分UI状态不一致
+                refreshSidebarNavigator();
+                refreshVectorTableData();
+            } else {
+                qDebug() << "--- [Sub-Workflow] addNewVectorTable: Transaction committed successfully.";
+
+                // ========= 100% CERTAINTY PROBE: PART 1 =========
+                qDebug() << "[CERTAINTY_CHECK] In addNewVectorTable, immediately after commit.";
+                QSqlQuery mainWindowValidator(db); // 使用刚刚提交事务的同一个db句柄
+                mainWindowValidator.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
+                mainWindowValidator.addBindValue(newTableId);
+                if (mainWindowValidator.exec() && mainWindowValidator.next()) {
+                    int count = mainWindowValidator.value(0).toInt();
+                    qDebug() << "[CERTAINTY_CHECK] SUCCESS: MainWindow's validator read row_count =" << count << "for tableId" << newTableId;
+                } else {
+                    qWarning() << "[CERTAINTY_CHECK] FAILURE: MainWindow's validator FAILED to read row_count. Error:" << mainWindowValidator.lastError().text();
+                }
+                // ===================================================
+
+                qDebug() << "[UI_REFRESH_DEBUG] Starting UI refresh sequence...";
+                
+                refreshSidebarNavigator();
+                qDebug() << "[UI_REFRESH_DEBUG] After refreshSidebarNavigator()";
+                
+                refreshVectorTableData();
+                qDebug() << "[UI_REFRESH_DEBUG] After refreshVectorTableData()";
+
+                // 手动触发一次刷新来加载新表
+                int newIndex = m_vectorTableSelector->findData(newTableId);
+                if (newIndex != -1) {
+                    qDebug() << "[UI_REFRESH_DEBUG] Found new table at index:" << newIndex << ". Blocking signals and setting index.";
+                    // 更新下拉框的选中项，这会触发 onVectorTableSelectionChanged
+                    // 在该函数中，模型会被 setTable() 重置
+                    m_vectorTableSelector->blockSignals(true);
+                    m_vectorTableSelector->setCurrentIndex(newIndex);
+                    m_vectorTableSelector->blockSignals(false);
+                    
+                    // **关键修复**: 在模型重置后，我们必须手动加载第一页的数据
+                    qDebug() << "[UI_REFRESH_DEBUG] Calling m_vectorTableModel->setTable(" << newTableId << ")";
+                    m_vectorTableModel->setTable(newTableId);
+                    qDebug() << "[UI_REFRESH_DEBUG] Returned from setTable. Model row count is now:" << m_vectorTableModel->rowCount();
+                    
+                    qDebug() << "[UI_REFRESH_DEBUG] Manually calling loadCurrentPage() to ensure data is displayed";
+                    loadCurrentPage();
+                } else {
+                    qDebug() << "[UI_REFRESH_DEBUG] COULD NOT FIND new table with ID" << newTableId << "in selector.";
+                }
+                
+                qDebug() << "[UI_REFRESH_DEBUG] UI refresh sequence finished.";
+            }
+        } else {
+            qDebug() << "--- [Sub-Workflow] addNewVectorTable: Rolling back transaction due to failure or cancellation.";
+            db.rollback();
+            if (!tableName.isEmpty()) { 
+                 QMessageBox::warning(this, "操作已取消", "新建向量表的操作已被中途取消或失败，所有更改已自动回滚。");
+            }
+            // 失败或取消后，依然要刷新UI
+            refreshSidebarNavigator();
+            refreshVectorTableData();
         }
     }
-    else {
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 用户取消了创建向量表";
-    }
-    
-    qDebug() << "--- [Sub-Workflow] addNewVectorTable: 函数执行完毕";
 }
 
 // 删除当前选中的向量表

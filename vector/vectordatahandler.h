@@ -10,6 +10,7 @@
 #include <QAtomicInt>
 #include <QSet>
 #include <QDateTime>
+#include <QSqlDatabase>
 #include "vector/vector_data_types.h"
 
 class VectorDataHandler : public QObject
@@ -58,7 +59,7 @@ public:
     QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
 
     // 插入向量行数据
-    bool insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId,
+    bool insertVectorRows(QSqlDatabase& db, int tableId, int startIndex, int rowCount, int timesetId,
                           QTableWidget *dataTable, bool appendToEnd,
                           const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
                           QString &errorMessage);

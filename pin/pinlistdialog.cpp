@@ -244,17 +244,13 @@ void PinListDialog::onAccepted()
 
     // 保存到数据库
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.transaction()) {
-        QMessageBox::critical(this, "数据库错误", "无法开始事务: " + db.lastError().text());
-        return;
-    }
-
     bool success = true;
     
     // 清空现有的pin_list表，然后重新插入所有管脚
     QSqlQuery clearQuery(db);
     if (!clearQuery.exec("DELETE FROM pin_list")) {
         qWarning() << "Failed to clear pin_list table:" << clearQuery.lastError().text();
+        QMessageBox::critical(this, "数据库错误", "清空管脚列表失败: " + clearQuery.lastError().text());
         success = false;
     }
 
@@ -272,23 +268,20 @@ void PinListDialog::onAccepted()
             
             if (!insertQuery.exec()) {
                 qWarning() << "Failed to insert pin" << pinName << ":" << insertQuery.lastError().text();
+                QMessageBox::critical(this, "数据库错误", "插入管脚失败: " + insertQuery.lastError().text());
                 success = false;
                 break;
             }
         }
     }
 
+    // 3. 根据结果关闭或保留对话框
     if (success) {
-        if (!db.commit()) {
-            QMessageBox::critical(this, "数据库错误", "提交事务失败: " + db.lastError().text());
-            db.rollback();
-        } else {
-            qDebug() << "Pin changes successfully committed to the database.";
-            accept(); // 只有在完全成功时才关闭对话框
-        }
+        qDebug() << "Pin changes successfully staged for commit by the caller.";
+        accept(); // 操作成功，关闭对话框，让调用者去commit
     } else {
-        db.rollback();
-        QMessageBox::critical(this, "数据库错误", "保存管脚更改时出错。");
+        qDebug() << "Pin changes failed. The transaction should be rolled back by the caller.";
+        // 不要关闭对话框，让用户看到错误信息
     }
 }
 

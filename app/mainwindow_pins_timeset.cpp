@@ -1705,6 +1705,7 @@ void MainWindow::openPinSettingsDialog()
         if (m_vectorTableSelector->count() > 0 && m_vectorTableSelector->currentIndex() >= 0)
         {
             onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+            loadCurrentPage(); // 确保数据被加载显示
         }
         // 不再显示第二个提示对话框，避免重复提示
     }

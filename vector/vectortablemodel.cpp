@@ -26,10 +26,10 @@ namespace Vector
           m_cacheHits(0),
           m_cacheMisses(0)
     {
-        // 创建唯一的数据库连接名
-        m_dbConnectionName = QString("VectorTableModel_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+        // 不再创建唯一的数据库连接名，直接使用主连接的名称
+        m_dbConnectionName = DatabaseManager::instance()->database().connectionName();
 
-        qDebug() << "VectorTableModel创建，连接名:" << m_dbConnectionName;
+        qDebug() << "VectorTableModel创建，使用共享连接:" << m_dbConnectionName;
     }
 
     VectorTableModel::~VectorTableModel()
@@ -125,10 +125,32 @@ namespace Vector
 
     bool VectorTableModel::setTable(int tableId)
     {
-        // 如果是同一个表，不做任何操作
-        if (m_tableId == tableId)
+        qDebug() << "[CERTAINTY_CHECK] Entering VectorTableModel::setTable with tableId:" << tableId;
+        
+        // ========= 100% CERTAINTY PROBE: PART 2 =========
+        // 在执行任何模型操作之前，先进行一次独立的验证性读取
+        QSqlDatabase modelDbHandle = DatabaseManager::instance()->database();
+        qDebug() << "[CERTAINTY_CHECK] In setTable, got a DB handle. Connection name:" << modelDbHandle.connectionName();
+        QSqlQuery modelValidator(modelDbHandle);
+        modelValidator.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
+        modelValidator.addBindValue(tableId);
+        if (modelValidator.exec() && modelValidator.next()) {
+            int count = modelValidator.value(0).toInt();
+            qDebug() << "[CERTAINTY_CHECK] --- CRITICAL --- Model's validator read row_count =" << count << "for tableId" << tableId;
+        } else {
+            qWarning() << "[CERTAINTY_CHECK] --- CRITICAL --- Model's validator FAILED to read row_count. Error:" << modelValidator.lastError().text();
+        }
+        // ===================================================
+        
+        // **关键修复：在执行任何操作前，都从管理器获取最新的数据库句柄实例**
+        m_dbConnectionName = modelDbHandle.connectionName(); // 更新连接名
+        
+        qDebug() << "[UI_REFRESH_DEBUG] Entering VectorTableModel::setTable with tableId:" << tableId;
+        
+        // 如果是同一个表，不做任何操作，但增加检查确保句柄有效
+        if (m_tableId == tableId && DatabaseManager::instance()->database().isOpen())
         {
-            qDebug() << "VectorTableModel::setTable - 已加载表ID:" << tableId;
+            qDebug() << "[UI_REFRESH_DEBUG] tableId is the same, aborting.";
             return true;
         }
 
@@ -141,6 +163,9 @@ namespace Vector
         // 加载表元数据
         beginResetModel();
         bool success = loadTableMetadata();
+        
+        qDebug() << "[UI_REFRESH_DEBUG] loadTableMetadata returned:" << success << ". The model's internal m_rowCount is now:" << m_rowCount;
+        
         endResetModel();
 
         if (!success)
@@ -170,7 +195,8 @@ namespace Vector
         m_columns.clear();
         m_binaryFilePath.clear();
 
-        QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+        // 使用主数据库连接而非自己的连接
+        QSqlDatabase db = DatabaseManager::instance()->database();
 
         // 获取表映射关系 - 查询VectorTableMasterRecord表获取二进制文件信息
         QSqlQuery query(db);
@@ -182,6 +208,7 @@ namespace Vector
         if (!query.exec())
         {
             qWarning() << "VectorTableModel::loadTableMetadata - 查询失败:" << query.lastError().text();
+            qWarning() << "[UI_REFRESH_DEBUG] --- CRITICAL --- In loadTableMetadata, query execution FAILED for tableId" << m_tableId << ". Error:" << query.lastError().text();
             return false;
         }
 
@@ -195,11 +222,13 @@ namespace Vector
             if (!query.exec() || !query.next())
             {
                 qWarning() << "VectorTableModel::loadTableMetadata - 表ID未找到:" << m_tableId;
+                qWarning() << "[UI_REFRESH_DEBUG] --- CRITICAL --- In loadTableMetadata, FAILED to find tableId" << m_tableId << "in both old and new tables.";
                 return false;
             }
 
             QString tableName = query.value(0).toString();
             qWarning() << "VectorTableModel::loadTableMetadata - 使用旧表结构:" << tableName;
+            qDebug() << "[UI_REFRESH_DEBUG] --- CRITICAL --- In loadTableMetadata, using old table structure for tableId" << m_tableId << ", tableName:" << tableName;
 
             // 使用旧表结构的处理逻辑
             QString binFileName = QString("table_%1_data.vbindata").arg(m_tableId);
@@ -287,6 +316,9 @@ namespace Vector
             m_rowCount = query.value(0).toInt();
             QString binFileName = query.value(1).toString();
             m_schemaVersion = query.value(2).toInt();
+
+            qDebug() << "[UI_REFRESH_DEBUG] --- CRITICAL --- In loadTableMetadata, for tableId" << m_tableId << ", read row_count from DB. Value:" << m_rowCount;
+            qDebug() << "[UI_REFRESH_DEBUG] Binary file name:" << binFileName << ", schema version:" << m_schemaVersion;
 
             // 获取二进制文件路径
             QString dbPath = DatabaseManager::instance()->database().databaseName();
@@ -500,35 +532,20 @@ namespace Vector
         return true;
     }
 
-    // 尝试打开并保持与数据库的连接
+    // 尝试获取主数据库连接
     bool VectorTableModel::ensureDatabaseConnection()
     {
-        // 检查连接是否已存在且有效
-        if (QSqlDatabase::contains(m_dbConnectionName))
+        // 直接使用DatabaseManager提供的主连接
+        // 不再创建新连接，避免事务隔离问题
+        if (DatabaseManager::instance()->isDatabaseConnected())
         {
-            QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-            if (db.isOpen())
-            {
-                return true;
-            }
+            return true;
         }
-
-        // 创建新连接
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", m_dbConnectionName);
-        db.setDatabaseName(DatabaseManager::instance()->database().databaseName());
-
-        if (!db.open())
+        else
         {
-            qWarning() << "VectorTableModel::ensureDatabaseConnection - 无法打开数据库:"
-                       << db.lastError().text();
+            qWarning() << "VectorTableModel::ensureDatabaseConnection - 主数据库连接未建立";
             return false;
         }
-
-        // 设置外键约束
-        QSqlQuery query(db);
-        query.exec("PRAGMA foreign_keys = ON");
-
-        return true;
     }
 
     // 确保二进制文件被打开
@@ -623,11 +640,8 @@ namespace Vector
             m_binaryFile.close();
         }
 
-        // 关闭数据库连接
-        if (QSqlDatabase::contains(m_dbConnectionName))
-        {
-            QSqlDatabase::database(m_dbConnectionName).close();
-        }
+        // 不再关闭数据库连接，因为使用的是主连接
+        // 主连接由 DatabaseManager 负责管理
 
         // 清除行缓存
         m_rowCache.clear();
@@ -868,23 +882,44 @@ namespace Vector
 
     bool VectorTableModel::loadPage(int page)
     {
+        qDebug() << "[UI_REFRESH_DEBUG] Entering VectorTableModel::loadPage with page:" << page << ", tableId:" << m_tableId;
+        
         if (m_tableId == -1)
+        {
+            qDebug() << "[UI_REFRESH_DEBUG] m_tableId is -1, aborting loadPage.";
             return false;
+        }
+            
+        // **关键修复：在重新加载页面数据前，获取最新的数据库句柄实例**
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        m_dbConnectionName = db.connectionName(); // 更新连接名
+        qDebug() << "[UI_REFRESH_DEBUG] Using database connection:" << m_dbConnectionName;
 
         beginResetModel();
+        qDebug() << "[UI_REFRESH_DEBUG] Called beginResetModel(), clearing row cache";
         m_rowCache.clear();
 
         // 这是一个简化的实现，实际加载逻辑在 fetchMore 中
         // 这里我们只需要确保模型状态被重置，以便fetchMore能正确工作
 
         endResetModel();
+        qDebug() << "[UI_REFRESH_DEBUG] Called endResetModel()";
 
         // fetchMore 会根据当前rowCount决定是否加载新数据
         // 我们通过重置模型来触发它
+        qDebug() << "[UI_REFRESH_DEBUG] About to check canFetchMore(). Current rowCount:" << m_rowCount;
         if (canFetchMore(QModelIndex()))
         {
+            qDebug() << "[UI_REFRESH_DEBUG] canFetchMore() returned true, calling fetchMore()";
             fetchMore(QModelIndex());
+            qDebug() << "[UI_REFRESH_DEBUG] After fetchMore(), new rowCount:" << m_rowCount;
         }
+        else
+        {
+            qDebug() << "[UI_REFRESH_DEBUG] canFetchMore() returned false, no data to fetch";
+        }
+        
+        qDebug() << "[UI_REFRESH_DEBUG] Exiting loadPage() with rowCount:" << m_rowCount;
         return true;
     }
 

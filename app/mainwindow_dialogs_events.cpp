@@ -24,20 +24,24 @@ void MainWindow::gotoLine()
     // 实现跳转到行逻辑
 }
 
-int MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
+bool MainWindow::showVectorDataDialog(QSqlDatabase& db, int tableId, const QString &tableName, int startIndex)
 {
-    qDebug() << "--- [Wizard Step] Entering 'showVectorDataDialog' for table ID:" << tableId << ". Replacing STUB with real implementation.";
-    
-    // 使用DialogManager来处理向量数据录入
-    if (m_dialogManager) {
-        int rowCount = m_dialogManager->showVectorDataDialog(tableId, tableName, startIndex);
-        qDebug() << "--- [Wizard Step] Completed DialogManager::showVectorDataDialog call. Returned row count:" << rowCount;
-        return rowCount;
-    } else {
+    qDebug() << "--- [Wizard Step] Entering 'showVectorDataDialog' for table ID:" << tableId;
+
+    if (!m_dialogManager) {
         qDebug() << "--- [Wizard Step] ERROR: m_dialogManager is null!";
         QMessageBox::critical(this, "错误", "无法显示向量数据录入对话框：对话框管理器未初始化");
-        return -1;
+        return false;
     }
+
+    // 传递数据库连接到对话框管理器
+    bool success = m_dialogManager->showVectorDataDialog(db, tableId, tableName, startIndex);
+
+    if (!success) {
+        qDebug() << "--- [Wizard Step] DialogManager::showVectorDataDialog reported failure or cancellation.";
+    }
+
+    return success;
 }
 
 void MainWindow::refreshSidebarNavigator()
@@ -65,13 +69,23 @@ void MainWindow::showDatabaseViewDialog()
 
 bool MainWindow::showAddPinsDialog()
 {
-    qDebug() << "--- [Wizard Step] Entering 'showAddPinsDialog'. Replacing STUB with real implementation.";
+    qDebug() << "--- [Wizard Step] Entering 'showAddPinsDialog'.";
     
     // 检查数据库连接
     if (!DatabaseManager::instance()->isDatabaseConnected()) {
         QMessageBox::critical(this, "错误", "数据库未连接，无法管理管脚。");
         return false;
     }
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // **关键修复：由调用者开启和管理事务**
+    if (!db.transaction()) {
+        qCritical() << "Failed to start transaction in showAddPinsDialog: " << db.lastError().text();
+        QMessageBox::critical(this, "数据库错误", "无法为管脚设置开启事务。");
+        return false;
+    }
+    qDebug() << "Transaction started by showAddPinsDialog.";
 
     // 创建并显示管脚列表对话框
     PinListDialog dialog(this);
@@ -80,13 +94,25 @@ bool MainWindow::showAddPinsDialog()
     // 检查用户是点击了"确定"还是"取消"
     if (result == QDialog::Accepted) {
         qDebug() << "--- [Wizard Step] PinListDialog accepted by user.";
+        
+        // 用户点击了OK，并且PinListDialog内部操作成功
+        qDebug() << "PinListDialog accepted. Committing transaction.";
+        if (!db.commit()) {
+            qCritical() << "Failed to commit transaction in showAddPinsDialog: " << db.lastError().text();
+            QMessageBox::critical(this, "数据库错误", "提交管脚设置失败。");
+            db.rollback(); // 尝试回滚
+            return false;
+        }
+        
         // 刷新侧边栏，以防管脚列表有变
         refreshSidebarNavigator();
         return true; // 用户确认了管脚设置，向导可以继续
     } else {
         qDebug() << "--- [Wizard Step] PinListDialog cancelled by user. Aborting project creation.";
-        // 用户取消了第一步，整个"新建项目"流程都应该终止
-        return false;
+        // 用户点击了Cancel，或者PinListDialog内部操作失败
+        qDebug() << "PinListDialog rejected or failed. Rolling back transaction.";
+        db.rollback();
+        return false; // 用户取消了第一步，整个"新建项目"流程都应该终止
     }
 }
 
@@ -108,16 +134,22 @@ bool MainWindow::showTimeSetDialog(bool create_new)
 
 void MainWindow::onVectorTableSelectionChanged(int index)
 {
-    // 这是一个核心函数，在之前的重构中被意外删除。
-    // 它负责在用户从下拉列表选择一个新的向量表时，更新所有相关的UI和数据。
+    // 这是一个核心函数，它负责在用户从下拉列表选择一个新的向量表时，更新模型。
+    // 经过优化，此函数不再自动加载数据，而是将该责任交给调用者。
+    qDebug() << "[UI_REFRESH_DEBUG] onVectorTableSelectionChanged called with index:" << index;
+    
     if (index < 0 || index >= m_vectorTableSelector->count())
     {
+        if (m_vectorTableModel) {
+            m_vectorTableModel->setTable(-1); // 重置模型到无效状态
+        }
+        updateWindowTitle("VecEdit"); // 重置窗口标题
         return;
     }
 
     m_currentTableId = m_vectorTableSelector->itemData(index).toInt();
     m_currentTableName = m_vectorTableSelector->itemText(index);
-    qDebug() << "MainWindow::onVectorTableSelectionChanged - a vector table was selected:" << m_currentTableName << "with tableId" << m_currentTableId;
+    qDebug() << "[UI_REFRESH_DEBUG] Selected table ID:" << m_currentTableId << ", name:" << m_currentTableName;
 
     // 让新的数据模型知道要处理哪个表
     if (m_vectorTableModel)
@@ -125,12 +157,14 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         m_vectorTableModel->setTable(m_currentTableId);
     }
 
-    // 加载第一页数据
+    // 重置页码但不加载数据，加载的责任交给调用者
     m_currentPage = 0;
-    loadCurrentPage(); // 这个函数现在应该可以正确工作了
+    updatePaginationInfo(); // 更新分页信息
     
-    // 更新其他UI组件
+    // 更新窗口标题
     updateWindowTitle(m_currentProjectName + " - " + m_currentTableName);
+    
+    // 刷新侧边栏和波形视图
     refreshSidebarNavigator();
     updateWaveformView();
 }
@@ -140,26 +174,31 @@ void MainWindow::onTabChanged(int index)
     qDebug() << "STUB: onTabChanged(int) called. Re-implementation needed.";
 }
 
-void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
+bool MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 {
-    qDebug() << "--- [Wizard Step] Entering 'showPinSelectionDialog' for table ID:" << tableId << ". Replacing STUB with real implementation.";
+    qDebug() << "--- [Wizard Step] Entering 'showPinSelectionDialog' for table ID:" << tableId;
 
-    // 使用DialogManager来处理管脚选择
-    if (m_dialogManager) {
-        m_dialogManager->showPinSelectionDialog(tableId, tableName);
-        qDebug() << "--- [Wizard Step] Completed DialogManager::showPinSelectionDialog call.";
-    } else {
+    if (!m_dialogManager) {
         qDebug() << "--- [Wizard Step] ERROR: m_dialogManager is null!";
         QMessageBox::critical(this, "错误", "无法显示管脚选择对话框：对话框管理器未初始化");
+        return false;
+    }
+
+    // 直接调用，不管理事务。成功与否完全由DialogManager返回。
+    bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
+
+    if (success) {
+        qDebug() << "--- [Wizard Step] DialogManager::showPinSelectionDialog reported success. Refreshing UI.";
+        // 如果操作成功且当前显示的就是这个表，则刷新UI
+        if (m_vectorTableSelector->currentData().toInt() == tableId) {
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+        }
+    } else {
+        qDebug() << "--- [Wizard Step] DialogManager::showPinSelectionDialog reported failure or cancellation.";
     }
 
     qDebug() << "--- [Wizard Step] Exiting 'showPinSelectionDialog'.";
-
-    // After pins are potentially selected, we should refresh the UI
-    // in case this table is the currently active one.
-    if (m_vectorTableSelector->currentData().toInt() == tableId) {
-        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
-    }
+    return success;
 }
 
 void MainWindow::openTimeSetSettingsDialog()

@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QDialog>
 #include <QTableWidget>
+#include <QSqlDatabase>
 
 class DialogManager
 {
@@ -16,7 +17,7 @@ public:
     bool showPinSelectionDialog(int tableId, const QString &tableName);
 
     // 显示向量行数据录入对话框
-    int showVectorDataDialog(int tableId, const QString &tableName, int startIndex = 0);
+    bool showVectorDataDialog(QSqlDatabase& db, int tableId, const QString &tableName, int startIndex = 0);
 
     // 显示添加管脚对话框
     bool showAddPinsDialog();
