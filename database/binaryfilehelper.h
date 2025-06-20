@@ -208,6 +208,30 @@ namespace Persistence
                                       Vector::RowData &rowData,
                                       bool useCache = true);
 
+        /**
+         * @brief 创建一个新的空二进制文件，并写入初始头部
+         * 
+         * @param binFilePath 要创建的二进制文件路径
+         * @param columns 列信息
+         * @param schemaVersion 数据库schema版本
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool createNewEmptyBinaryFile(const QString &binFilePath, 
+                                           const QList<Vector::ColumnInfo> &columns,
+                                           int schemaVersion);
+
+        /**
+         * @brief 将单行数据追加到二进制文件末尾
+         * 
+         * @param binFilePath 二进制文件的绝对路径
+         * @param columns 列信息
+         * @param rowData 要追加的单行数据
+         * @return bool 成功返回true，失败返回false
+         */
+        static bool appendRowToBinary(const QString &binFilePath,
+                                    const QList<Vector::ColumnInfo> &columns,
+                                    const Vector::RowData &rowData);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度

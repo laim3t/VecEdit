@@ -237,9 +237,9 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         {
             int pinId = it.key();
             QCheckBox *checkbox = it.value();
-            
+
             if (checkbox->isChecked())
-            {
+        {
                 PinDataFromDialog pinData;
                 pinData.pinId = pinId;
                 pinData.pinName = localPinList[pinId];
@@ -261,44 +261,38 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
 
         // 添加标准列配置
         qDebug() << "DialogManager::showPinSelectionDialog - 开始添加标准列配置";
-        // 1. 添加Label列
-        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
-                          "(master_record_id, column_name, column_order, column_type, data_properties) "
-                          "VALUES (?, ?, ?, ?, ?)");
-        queryHelper.addBindValue(tableId);
-        queryHelper.addBindValue("Label");
-        queryHelper.addBindValue(columnOrder++);
-        queryHelper.addBindValue("TEXT");
-        
+        QList<QPair<QString, QString>> standardColumnsToAdd;
+        standardColumnsToAdd << qMakePair(QString("Label"), QString("TEXT"));
+        standardColumnsToAdd << qMakePair(QString("Instruction"), QString("TEXT"));
+        standardColumnsToAdd << qMakePair(QString("TimeSet"), QString("TIMESET"));
+        standardColumnsToAdd << qMakePair(QString("Capture"), QString("TEXT"));
+        standardColumnsToAdd << qMakePair(QString("Ext"), QString("TEXT"));
+        standardColumnsToAdd << qMakePair(QString("Comment"), QString("TEXT"));
+
         // 创建空的JSON对象作为属性
         QJsonObject properties;
         QJsonDocument doc(properties);
         QString jsonString = doc.toJson(QJsonDocument::Compact);
         
-        queryHelper.addBindValue(jsonString);
-        
+        int sortIndex = 0;
+        for (const auto& col : standardColumnsToAdd) {
+            qDebug() << "DialogManager::showPinSelectionDialog - 添加标准列:" << col.first << "类型:" << col.second;
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
+            queryHelper.addBindValue(col.first);
+        queryHelper.addBindValue(columnOrder++);
+            queryHelper.addBindValue(col.second);
+            queryHelper.addBindValue(jsonString);
+
         if (!queryHelper.exec())
         {
-            qCritical() << "DialogManager::showPinSelectionDialog - Failed to insert Label column:" << queryHelper.lastError().text();
-            QMessageBox::critical(m_parent, "数据库错误", "添加Label列失败：" + queryHelper.lastError().text());
+                qCritical() << "DialogManager::showPinSelectionDialog - Failed to insert standard column" << col.first << ":" << queryHelper.lastError().text();
+                QMessageBox::critical(m_parent, "数据库错误", "添加" + col.first + "列失败：" + queryHelper.lastError().text());
             return false;
         }
-
-        // 2. 添加TimeSet列
-        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
-                          "(master_record_id, column_name, column_order, column_type, data_properties) "
-                          "VALUES (?, ?, ?, ?, ?)");
-        queryHelper.addBindValue(tableId);
-        queryHelper.addBindValue("TimeSet");
-        queryHelper.addBindValue(columnOrder++);
-        queryHelper.addBindValue("TIMESET");
-        queryHelper.addBindValue(jsonString); // 使用相同的空JSON
-        
-        if (!queryHelper.exec())
-        {
-            qCritical() << "DialogManager::showPinSelectionDialog - Failed to insert TimeSet column:" << queryHelper.lastError().text();
-            QMessageBox::critical(m_parent, "数据库错误", "添加TimeSet列失败：" + queryHelper.lastError().text());
-            return false;
+            sortIndex++;
         }
 
         // 3. 为每个选中的管脚添加列配置
@@ -308,30 +302,30 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
             queryHelper.prepare("INSERT INTO vector_table_pins "
                               "(table_id, pin_id, pin_type, pin_channel_count) "
                               "VALUES (?, ?, ?, ?)");
-            queryHelper.addBindValue(tableId);
+        queryHelper.addBindValue(tableId);
             queryHelper.addBindValue(pinData.pinId);
             queryHelper.addBindValue(pinData.typeId);
             queryHelper.addBindValue(pinData.channelCount);
-            
-            if (!queryHelper.exec())
-            {
+
+        if (!queryHelper.exec())
+        {
                 qCritical() << "DialogManager::showPinSelectionDialog - Failed to insert vector_table_pins record:" << queryHelper.lastError().text();
                 QMessageBox::critical(m_parent, "数据库错误", "添加管脚关联记录失败：" + queryHelper.lastError().text());
-                return false;
-            }
-            
+            return false;
+        }
+
             // 添加列配置
-            queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
-                              "(master_record_id, column_name, column_order, column_type, data_properties) "
-                              "VALUES (?, ?, ?, ?, ?)");
-            queryHelper.addBindValue(tableId);
+        queryHelper.prepare("INSERT INTO VectorTableColumnConfiguration "
+                            "(master_record_id, column_name, column_order, column_type, data_properties) "
+                            "VALUES (?, ?, ?, ?, ?)");
+        queryHelper.addBindValue(tableId);
             queryHelper.addBindValue(pinData.pinName);
-            queryHelper.addBindValue(columnOrder++);
+        queryHelper.addBindValue(columnOrder++);
             
             // 根据管脚类型设置列类型
             QString columnType;
             switch (pinData.typeId)
-            {
+        {
                 case 1: // 假设1是INPUT类型
                     columnType = "INPUT";
                     break;
@@ -355,29 +349,29 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
             
             queryHelper.addBindValue(pinJsonString);
             
-            if (!queryHelper.exec())
-            {
+                if (!queryHelper.exec())
+                {
                 qCritical() << "DialogManager::showPinSelectionDialog - Failed to insert pin column configuration:" << queryHelper.lastError().text();
                 QMessageBox::critical(m_parent, "数据库错误", "添加管脚列配置失败：" + queryHelper.lastError().text());
-                return false;
-            }
+            return false;
+        }
         }
 
         // 所有操作成功，提示用户并继续
-        // QMessageBox::information(m_parent, "保存成功", "管脚信息已成功保存！");
+            // QMessageBox::information(m_parent, "保存成功", "管脚信息已成功保存！");
         // 这里不应该调用下一个对话框，由主窗口的工作流控制
-        return true;
-    }
-    else
-    {
+            return true;
+        }
+        else
+        {
         // 用户取消了操作，清理任何可能的临时数据
         qDebug() << "DialogManager::showPinSelectionDialog - User cancelled pin selection.";
-        return false;
+            return false;
+        }
     }
-}
 
 bool DialogManager::showVectorDataDialog(QSqlDatabase& db, int tableId, const QString &tableName, int startIndex)
-{
+        {
     qDebug() << "[TXN_PROBE] DialogManager::showVectorDataDialog ENTRY. Transaction state:" << db.transaction();
 
     // 创建向量行数据录入对话框

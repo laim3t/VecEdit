@@ -2866,4 +2866,135 @@ namespace Persistence
         return false;
     }
     }
+
+    bool BinaryFileHelper::createNewEmptyBinaryFile(const QString &binFilePath,
+                                                const QList<Vector::ColumnInfo> &columns,
+                                                int schemaVersion)
+    {
+        const QString funcName = "BinaryFileHelper::createNewEmptyBinaryFile";
+        qDebug() << funcName << "- 开始创建空二进制文件:" << binFilePath;
+        
+        // 确保目录存在
+        QFileInfo fileInfo(binFilePath);
+        QDir dir = fileInfo.dir();
+        if (!dir.exists()) {
+            if (!dir.mkpath(".")) {
+                qWarning() << funcName << "- 无法创建目录:" << dir.absolutePath();
+                return false;
+            }
+        }
+        
+        // 创建或截断文件
+        QFile file(binFilePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            qWarning() << funcName << "- 无法打开文件进行写入:" << file.errorString();
+            return false;
+        }
+        
+        // 创建并初始化文件头
+        BinaryFileHeader header;
+        header.magic_number = VEC_BINDATA_MAGIC;  // 必须设置正确的魔数
+        header.file_format_version = CURRENT_FILE_FORMAT_VERSION;
+        header.data_schema_version = schemaVersion;
+        header.row_count_in_file = 0;  // 初始为0行
+        header.column_count_in_file = columns.size();
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+        header.timestamp_updated = header.timestamp_created;
+        header.compression_type = 0;  // 不使用压缩
+        std::memset(header.reserved_bytes, 0, sizeof(header.reserved_bytes));
+        
+        // 写入文件头
+        if (!writeBinaryHeader(&file, header)) {
+            qWarning() << funcName << "- 写入文件头失败";
+            file.close();
+            return false;
+        }
+        
+        file.close();
+        qDebug() << funcName << "- 成功创建空二进制文件，列数:" << columns.size();
+        return true;
+    }
+
+    bool BinaryFileHelper::appendRowToBinary(const QString &binFilePath,
+                                         const QList<Vector::ColumnInfo> &columns,
+                                         const Vector::RowData &rowData)
+    {
+        const QString funcName = "BinaryFileHelper::appendRowToBinary";
+        
+        // 打开文件进行追加
+        QFile file(binFilePath);
+        if (!file.open(QIODevice::ReadWrite)) {
+            qWarning() << funcName << "- 无法打开文件进行读写:" << file.errorString();
+            return false;
+        }
+        
+        // 首先读取文件头
+        BinaryFileHeader header;
+        if (!readBinaryHeader(&file, header)) {
+            qWarning() << funcName << "- 读取文件头失败";
+            file.close();
+            return false;
+        }
+        
+        // 验证列数
+        if (header.column_count_in_file != static_cast<uint32_t>(columns.size())) {
+            qWarning() << funcName << "- 列数不匹配! 文件头:" << header.column_count_in_file 
+                      << ", 传入:" << columns.size();
+            file.close();
+            return false;
+        }
+        
+        // 将文件指针移动到文件末尾，准备写入新行
+        if (!file.seek(file.size())) {
+            qWarning() << funcName << "- 移动到文件末尾失败";
+            file.close();
+            return false;
+        }
+        
+        // 序列化行数据
+        QByteArray serializedRow;
+        if (!serializeRow(rowData, columns, serializedRow)) {
+            qWarning() << funcName << "- 序列化行数据失败";
+            file.close();
+            return false;
+        }
+        
+        // 创建数据流
+        QDataStream out(&file);
+        out.setByteOrder(QDataStream::LittleEndian);
+        
+        // 写入行数据大小
+        out << static_cast<quint32>(serializedRow.size());
+        
+        // 写入行数据
+        if (file.write(serializedRow) != serializedRow.size()) {
+            qWarning() << funcName << "- 写入行数据失败";
+            file.close();
+            return false;
+        }
+        
+        // 更新文件头中的行数
+        header.row_count_in_file++;
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+        
+        // 重新定位到文件开头，更新文件头
+        if (!file.seek(0)) {
+            qWarning() << funcName << "- 移动到文件开头失败";
+            file.close();
+            return false;
+        }
+        
+        if (!writeBinaryHeader(&file, header)) {
+            qWarning() << funcName << "- 更新文件头失败";
+            file.close();
+            return false;
+        }
+        
+        file.close();
+        
+        // 清除行偏移缓存
+        clearRowOffsetCache(binFilePath);
+        
+        return true;
+    }
 } // namespace Persistence

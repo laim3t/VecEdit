@@ -538,9 +538,9 @@ namespace Vector
         // 直接使用DatabaseManager提供的主连接
         // 不再创建新连接，避免事务隔离问题
         if (DatabaseManager::instance()->isDatabaseConnected())
-        {
-            return true;
-        }
+            {
+                return true;
+            }
         else
         {
             qWarning() << "VectorTableModel::ensureDatabaseConnection - 主数据库连接未建立";

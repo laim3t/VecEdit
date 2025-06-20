@@ -1897,12 +1897,141 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     if (appendToEnd)
     {
         finalRowCount = existingRowCountFromMeta + rowCount;
-    }
-    else
-    {
+            }
+            else
+            {
         // 非追加模式，最终行数 = 原有行数 + 新增行数
         finalRowCount = existingRowCountFromMeta + rowCount;
     }
+    
+        // ========= 最终核心修复：高效批量写入 =========
+    // 1. 首先，创建一个空的二进制文件，并写入一个只包含列信息的初始头部。
+    qDebug() << funcName << "- Creating a new empty binary file at:" << absoluteBinFilePath;
+    if (!Persistence::BinaryFileHelper::createNewEmptyBinaryFile(absoluteBinFilePath, columns, schemaVersion)) {
+        errorMessage = "Failed to create a new empty binary file.";
+            qWarning() << funcName << "-" << errorMessage;
+            emit progressUpdated(100);
+            return false;
+        }
+
+    // 2. 以读写模式重新打开我们刚刚创建的文件
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadWrite)) {
+        errorMessage = "Failed to reopen binary file for bulk writing.";
+        qWarning() << funcName << "-" << errorMessage << file.errorString();
+            emit progressUpdated(100);
+            return false;
+        }
+
+    // 3. 将文件指针移动到文件末尾 (即初始头部之后)，准备写入所有行数据
+    if (!file.seek(file.size())) {
+        errorMessage = "Failed to seek to the end of binary file for writing.";
+        qWarning() << funcName << "-" << errorMessage;
+        file.close();
+                emit progressUpdated(100);
+                return false;
+            }
+
+    // 4. 根据列结构，预先序列化一个"空行"模板，以备高效复用
+    Vector::RowData emptyRow;
+    for (int i = 0; i < columns.size(); ++i) {
+        emptyRow.append(QVariant());
+    }
+    QByteArray serializedEmptyRow;
+    if (!Persistence::BinaryFileHelper::serializeRow(emptyRow, columns, serializedEmptyRow)) {
+        errorMessage = "Failed to serialize the empty row template.";
+                    qWarning() << funcName << "-" << errorMessage;
+        file.close();
+                    emit progressUpdated(100);
+                    return false;
+                }
+    const quint32 emptyRowSize = static_cast<quint32>(serializedEmptyRow.size());
+
+    // 5. 创建一个数据流，循环 'rowCount' 次，将空行模板高效地写入文件
+    QDataStream out(&file);
+    out.setByteOrder(QDataStream::LittleEndian);
+
+    // 在写入循环之前，添加预检日志
+    qDebug() << "[BULK_WRITE_DEBUG] Preparing to write" << rowCount << "rows.";
+    qDebug() << "[BULK_WRITE_DEBUG] Initial file size (after header):" << file.size();
+    qDebug() << "[BULK_WRITE_DEBUG] Serialized empty row size:" << emptyRowSize;
+    qDebug() << "[BULK_WRITE_DEBUG] Serialized empty row hex:" << serializedEmptyRow.toHex();
+
+    qDebug() << funcName << "- Bulk-writing" << rowCount << "empty rows to the binary file.";
+    for (int i = 0; i < rowCount; ++i) {
+        // 为了避免日志刷屏，我们只详细打印开头、结尾和关键的故障点附近
+        bool verboseLog = (i < 5) || (i >= rowCount - 5) || (i >= 34 && i <= 38);
+
+        qint64 posBeforeWrite = file.pos();
+        if (verboseLog) {
+            qDebug().noquote() << QString("[BULK_WRITE_DEBUG] Row %1 --- Pos Before: %2").arg(i, 3).arg(posBeforeWrite, 5);
+        }
+
+        out << emptyRowSize;
+        out.writeRawData(serializedEmptyRow.constData(), emptyRowSize);
+        
+        qint64 posAfterWrite = file.pos();
+        qint64 bytesWritten = posAfterWrite - posBeforeWrite;
+        qint64 expectedBytes = 4 + emptyRowSize;
+
+        if (verboseLog) {
+            qDebug().noquote() << QString("[BULK_WRITE_DEBUG] Row %1 --- Pos After:  %2, Bytes Written: %3 (Expected: %4)")
+                                  .arg(i, 3).arg(posAfterWrite, 5).arg(bytesWritten, 3).arg(expectedBytes, 3);
+        }
+        
+        if (bytesWritten != expectedBytes) {
+            qWarning() << "[BULK_WRITE_DEBUG] FATAL: UNEXPECTED WRITE SIZE AT ROW" << i;
+            // 立即停止，不再继续写入错误数据
+            errorMessage = QString("FATAL: Unexpected write size at row %1.").arg(i);
+            file.close();
+                emit progressUpdated(100);
+                return false;
+        }
+    }
+
+    // 在循环之后，添加收尾日志
+    qDebug() << "[BULK_WRITE_DEBUG] Bulk write loop finished. Final position:" << file.pos();
+
+    // 6. 所有行已成功写入。现在，更新文件头以反映正确的总行数。
+    qDebug() << funcName << "- All rows written. Finalizing header with correct row count.";
+    if (!file.seek(0)) { // 定位回文件开头
+        errorMessage = "Failed to seek to the beginning of the file to update header.";
+                qWarning() << funcName << "-" << errorMessage;
+        file.close();
+                emit progressUpdated(100);
+                return false;
+            }
+
+    // 读取现有头部，更新，然后写回
+    BinaryFileHeader header;
+    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header)) {
+        errorMessage = "Failed to read header for final update.";
+            qWarning() << funcName << "-" << errorMessage;
+        file.close();
+            return false;
+        }
+
+    header.row_count_in_file = rowCount; // 这是关键的更新
+    header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+    
+    // 再次定位到文件开头以覆盖写入头部
+    if (!file.seek(0)) {
+        errorMessage = "Failed to seek to the beginning of the file for final write.";
+            qWarning() << funcName << "-" << errorMessage;
+        file.close();
+            return false;
+        }
+
+    if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+        errorMessage = "Failed to write final updated header.";
+        qWarning() << funcName << "-" << errorMessage;
+        file.close();
+        return false;
+    }
+
+    file.close();
+    qDebug() << funcName << "- 成功批量写入" << rowCount << "个空行。文件已关闭。";
+    // ============================================================
 
     QSqlQuery updateQuery(db);
     updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
@@ -1912,11 +2041,11 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     if (!updateQuery.exec())
     {
         errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
-        qWarning() << funcName << "-" << errorMessage;
+                    qWarning() << funcName << "-" << errorMessage;
         // 不再回滚事务，由调用者负责
-        emit progressUpdated(100);
-        return false;
-    }
+                emit progressUpdated(100);
+                return false;
+            }
 
     if (updateQuery.numRowsAffected() > 0) {
         qDebug() << "[TXN_DEBUG] UPDATE successful. Attempting immediate re-read to verify.";
@@ -1933,6 +2062,45 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     // 不再提交事务，由调用者负责
 
     qDebug() << funcName << "- 数据库元数据行数已更新为:" << finalRowCount << " for table ID:" << tableId;
+
+    // ========= 关键修复：更新二进制文件的文件头信息 =========
+    qDebug() << funcName << "- 开始更新二进制文件头，总行数:" << finalRowCount;
+    QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (!binFilePath.isEmpty()) {
+        BinaryFileHeader header;
+        QFile file(binFilePath);
+
+        // 以读写方式打开文件
+        if (file.open(QIODevice::ReadWrite)) {
+            // 读取现有文件头
+            if (Persistence::BinaryFileHelper::readBinaryHeader(&file, header)) {
+                // 更新行数
+                header.row_count_in_file = finalRowCount;
+                header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+
+                // 将文件指针移回开头
+                file.seek(0);
+
+                // 写回更新后的文件头
+                if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+                    errorMessage = "无法写回更新后的二进制文件头。";
+            qWarning() << funcName << "-" << errorMessage;
+                    // 根据策略决定是否返回 false
+                } else {
+                    qDebug() << funcName << "- 成功更新二进制文件头。";
+                }
+            } else {
+                errorMessage = "无法读取二进制文件头以进行更新。";
+        qWarning() << funcName << "-" << errorMessage;
+            }
+            file.close();
+        } else {
+            errorMessage = "无法以读写模式打开二进制文件进行头更新: " + file.errorString();
+        qWarning() << funcName << "-" << errorMessage;
+        }
+    }
+    // =======================================================
+
     emit progressUpdated(100); // 操作完成
     qDebug() << funcName << "- 所有操作成功完成。";
     qDebug() << funcName << "- 向量行数据操作成功完成。";

@@ -315,7 +315,7 @@ void MainWindow::addNewVectorTable()
         qDebug() << "--- [Sub-Workflow] addNewVectorTable: Transaction started.";
 
         bool overallSuccess = false;
-        
+
         // 检查表名是否已存在
         QSqlQuery checkQuery(db);
         checkQuery.prepare("SELECT COUNT(*) FROM vector_tables WHERE table_name = ?");
@@ -328,11 +328,11 @@ void MainWindow::addNewVectorTable()
             return;
         }
         
-        int count = checkQuery.value(0).toInt();
+            int count = checkQuery.value(0).toInt();
         if (count > 0) {
             db.rollback();
-            QMessageBox::warning(this, "错误", "已存在同名向量表");
-            return;
+                QMessageBox::warning(this, "错误", "已存在同名向量表");
+                return;
         }
 
         // 插入新表记录
@@ -346,37 +346,37 @@ void MainWindow::addNewVectorTable()
             return;
         }
         
-        int newTableId = insertQuery.lastInsertId().toInt();
-        qDebug() << "--- [Sub-Workflow] addNewVectorTable: 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
+            int newTableId = insertQuery.lastInsertId().toInt();
+            qDebug() << "--- [Sub-Workflow] addNewVectorTable: 新向量表创建成功，ID:" << newTableId << ", 名称:" << tableName;
 
-        // 使用 PathUtils 获取项目特定的二进制数据目录
-        QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
+            // 使用 PathUtils 获取项目特定的二进制数据目录
+            QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
         if (projectBinaryDataDir.isEmpty()) {
             db.rollback();
-            QMessageBox::critical(this, "错误", QString("无法为数据库 '%1' 生成二进制数据目录路径。").arg(m_currentDbPath));
-            return;
-        }
+                QMessageBox::critical(this, "错误", QString("无法为数据库 '%1' 生成二进制数据目录路径。").arg(m_currentDbPath));
+                return;
+            }
 
-        QDir dataDir(projectBinaryDataDir);
+            QDir dataDir(projectBinaryDataDir);
         if (!dataDir.exists() && !dataDir.mkpath(".")) {
             db.rollback();
-            QMessageBox::critical(this, "错误", "无法创建项目二进制数据目录: " + projectBinaryDataDir);
-            return;
-        }
+                    QMessageBox::critical(this, "错误", "无法创建项目二进制数据目录: " + projectBinaryDataDir);
+                    return;
+            }
 
         // 构造二进制文件名
-        QString binaryOnlyFileName = QString("table_%1_data.vbindata").arg(newTableId);
-        QString absoluteBinaryFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binaryOnlyFileName);
-        absoluteBinaryFilePath = QDir::toNativeSeparators(absoluteBinaryFilePath);
+            QString binaryOnlyFileName = QString("table_%1_data.vbindata").arg(newTableId);
+            QString absoluteBinaryFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binaryOnlyFileName);
+            absoluteBinaryFilePath = QDir::toNativeSeparators(absoluteBinaryFilePath);
 
-        // 创建VectorTableMasterRecord记录
-        QSqlQuery insertMasterQuery(db);
-        insertMasterQuery.prepare("INSERT INTO VectorTableMasterRecord "
-                                  "(original_vector_table_id, table_name, binary_data_filename, "
-                                  "file_format_version, data_schema_version, row_count, column_count) "
+            // 创建VectorTableMasterRecord记录
+            QSqlQuery insertMasterQuery(db);
+            insertMasterQuery.prepare("INSERT INTO VectorTableMasterRecord "
+                                      "(original_vector_table_id, table_name, binary_data_filename, "
+                                      "file_format_version, data_schema_version, row_count, column_count) "
                                   "VALUES (?, ?, ?, ?, ?, ?, ?)");
-        insertMasterQuery.addBindValue(newTableId);
-        insertMasterQuery.addBindValue(tableName);
+            insertMasterQuery.addBindValue(newTableId);
+            insertMasterQuery.addBindValue(tableName);
         insertMasterQuery.addBindValue(binaryOnlyFileName);
         insertMasterQuery.addBindValue(Persistence::CURRENT_FILE_FORMAT_VERSION);
         insertMasterQuery.addBindValue(1);  // 初始数据 schema version
@@ -385,53 +385,53 @@ void MainWindow::addNewVectorTable()
 
         if (!insertMasterQuery.exec()) {
             db.rollback();
-            QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
-            return;
-        }
+                QMessageBox::critical(this, "错误", "创建VectorTableMasterRecord记录失败: " + insertMasterQuery.lastError().text());
+                return;
+            }
 
-        // 添加默认列配置
+            // 添加默认列配置
         if (!addDefaultColumnConfigurations(newTableId)) {
             db.rollback();
-            QMessageBox::critical(this, "错误", "无法添加默认列配置");
-            return;
-        }
+                QMessageBox::critical(this, "错误", "无法添加默认列配置");
+                return;
+            }
 
-        // 创建空的二进制文件
-        QFile binaryFile(absoluteBinaryFilePath);
+            // 创建空的二进制文件
+            QFile binaryFile(absoluteBinaryFilePath);
         if (!binaryFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             db.rollback();
             QMessageBox::critical(this, "错误", "创建向量表失败: 无法创建二进制数据文件: " + binaryFile.errorString());
-            return;
-        }
+                return;
+            }
 
-        // 创建并写入文件头
+            // 创建并写入文件头
         BinaryFileHeader header;
-        header.magic_number = Persistence::VEC_BINDATA_MAGIC;
-        header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
-        header.row_count_in_file = 0;
+            header.magic_number = Persistence::VEC_BINDATA_MAGIC;
+            header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
+            header.row_count_in_file = 0;
         header.column_count_in_file = 0;
         header.data_schema_version = 1;
-        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
-        header.timestamp_updated = header.timestamp_created;
+            header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+            header.timestamp_updated = header.timestamp_created;
 
-        bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
-        binaryFile.close();
+            bool headerWriteSuccess = Persistence::BinaryFileHelper::writeBinaryHeader(&binaryFile, header);
+            binaryFile.close();
 
         if (!headerWriteSuccess) {
             QFile::remove(absoluteBinaryFilePath);
             db.rollback();
             QMessageBox::critical(this, "错误", "创建向量表失败: 无法写入二进制文件头");
-            return;
-        }
+                return;
+            }
 
-        // 添加到下拉框和Tab页签
-        m_vectorTableSelector->addItem(tableName, newTableId);
-        addVectorTableTab(newTableId, tableName);
+            // 添加到下拉框和Tab页签
+            m_vectorTableSelector->addItem(tableName, newTableId);
+            addVectorTableTab(newTableId, tableName);
 
-        // 选中新添加的表
-        int newIndex = m_vectorTableSelector->findData(newTableId);
+            // 选中新添加的表
+            int newIndex = m_vectorTableSelector->findData(newTableId);
         if (newIndex >= 0) {
-            m_vectorTableSelector->setCurrentIndex(newIndex);
+                m_vectorTableSelector->setCurrentIndex(newIndex);
         }
 
         // 按顺序执行向导步骤，任何一步失败都会导致整体失败
@@ -458,7 +458,7 @@ void MainWindow::addNewVectorTable()
                 refreshVectorTableData();
             } else {
                 qDebug() << "--- [Sub-Workflow] addNewVectorTable: Transaction committed successfully.";
-
+            
                 // ========= 100% CERTAINTY PROBE: PART 1 =========
                 qDebug() << "[CERTAINTY_CHECK] In addNewVectorTable, immediately after commit.";
                 QSqlQuery mainWindowValidator(db); // 使用刚刚提交事务的同一个db句柄

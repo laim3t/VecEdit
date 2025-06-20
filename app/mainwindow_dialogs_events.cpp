@@ -27,7 +27,7 @@ void MainWindow::gotoLine()
 bool MainWindow::showVectorDataDialog(QSqlDatabase& db, int tableId, const QString &tableName, int startIndex)
 {
     qDebug() << "--- [Wizard Step] Entering 'showVectorDataDialog' for table ID:" << tableId;
-
+    
     if (!m_dialogManager) {
         qDebug() << "--- [Wizard Step] ERROR: m_dialogManager is null!";
         QMessageBox::critical(this, "错误", "无法显示向量数据录入对话框：对话框管理器未初始化");

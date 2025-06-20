@@ -12,6 +12,7 @@
 #include <QDateTime>
 #include <QSqlDatabase>
 #include "vector/vector_data_types.h"
+#include "common/binary_file_format.h"
 
 class VectorDataHandler : public QObject
 {
