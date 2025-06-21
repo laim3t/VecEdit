@@ -1650,7 +1650,7 @@ int VectorDataHandler::getVectorTableRowCount(int tableId)
     const static QString funcName = "VectorDataHandler::getVectorTableRowCount";
     QSqlDatabase db = DatabaseManager::instance()->database();
     qDebug() << "[TXN_DEBUG] In" << funcName << "for table ID" << tableId << ". Transaction active:" << db.transaction();
-    
+
     qDebug() << funcName << " - 获取表ID为" << tableId << "的行数";
 
     // 首先尝试从元数据中获取行数
@@ -1748,15 +1748,15 @@ int VectorDataHandler::getVectorTableRowCount(int tableId)
     return 0;
 }
 
-bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int startIndex, int rowCount, int timesetId,
+bool VectorDataHandler::insertVectorRows(QSqlDatabase &db, int tableId, int startIndex, int rowCount, int timesetId,
                                          QTableWidget *dataTable, bool appendToEnd,
                                          const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
                                          QString &errorMessage)
 {
     const static QString funcName = "VectorDataHandler::insertVectorRows";
-    
+
     // 不再获取数据库连接，使用传入的db参数
-    
+
     m_cancelRequested.storeRelease(0);
     emit progressUpdated(0); // Start
 
@@ -1897,132 +1897,207 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     if (appendToEnd)
     {
         finalRowCount = existingRowCountFromMeta + rowCount;
-            }
-            else
-            {
+    }
+    else
+    {
         // 非追加模式，最终行数 = 原有行数 + 新增行数
         finalRowCount = existingRowCountFromMeta + rowCount;
     }
-    
-        // ========= 最终核心修复：高效批量写入 =========
+
+    // ========= 最终核心修复：高效批量写入 =========
     // 1. 首先，创建一个空的二进制文件，并写入一个只包含列信息的初始头部。
     qDebug() << funcName << "- Creating a new empty binary file at:" << absoluteBinFilePath;
-    if (!Persistence::BinaryFileHelper::createNewEmptyBinaryFile(absoluteBinFilePath, columns, schemaVersion)) {
+    if (!Persistence::BinaryFileHelper::createNewEmptyBinaryFile(absoluteBinFilePath, columns, schemaVersion))
+    {
         errorMessage = "Failed to create a new empty binary file.";
-            qWarning() << funcName << "-" << errorMessage;
-            emit progressUpdated(100);
-            return false;
-        }
+        qWarning() << funcName << "-" << errorMessage;
+        emit progressUpdated(100);
+        return false;
+    }
 
     // 2. 以读写模式重新打开我们刚刚创建的文件
     QFile file(absoluteBinFilePath);
-    if (!file.open(QIODevice::ReadWrite)) {
+    if (!file.open(QIODevice::ReadWrite))
+    {
         errorMessage = "Failed to reopen binary file for bulk writing.";
         qWarning() << funcName << "-" << errorMessage << file.errorString();
-            emit progressUpdated(100);
-            return false;
-        }
+        emit progressUpdated(100);
+        return false;
+    }
 
     // 3. 将文件指针移动到文件末尾 (即初始头部之后)，准备写入所有行数据
-    if (!file.seek(file.size())) {
+    if (!file.seek(file.size()))
+    {
         errorMessage = "Failed to seek to the end of binary file for writing.";
         qWarning() << funcName << "-" << errorMessage;
         file.close();
-                emit progressUpdated(100);
-                return false;
-            }
+        emit progressUpdated(100);
+        return false;
+    }
 
     // 4. 根据列结构，预先序列化一个"空行"模板，以备高效复用
     Vector::RowData emptyRow;
-    for (int i = 0; i < columns.size(); ++i) {
-        emptyRow.append(QVariant());
+    qDebug() << funcName << "- 开始为" << columns.size() << "列创建默认值行模板";
+
+    for (int i = 0; i < columns.size(); ++i)
+    {
+        // --- 修改开始：根据列的数据类型创建适当的默认值 ---
+        const auto &column = columns[i];
+        QVariant defaultValue;
+
+        switch (column.type)
+        {
+        case Vector::ColumnDataType::TEXT:
+            defaultValue = QString("");
+            break;
+        case Vector::ColumnDataType::INTEGER:
+            defaultValue = 0;
+            break;
+        case Vector::ColumnDataType::REAL:
+            defaultValue = 0.0;
+            break;
+        case Vector::ColumnDataType::INSTRUCTION_ID:
+            defaultValue = -1; // 无效的指令ID
+            break;
+        case Vector::ColumnDataType::TIMESET_ID:
+            // 如果提供了有效的timesetId参数，则使用它作为默认值
+            defaultValue = (timesetId > 0) ? timesetId : -1;
+            break;
+        case Vector::ColumnDataType::PIN_STATE_ID:
+            defaultValue = "X"; // 默认管脚状态为"X"（未定义）
+            break;
+        case Vector::ColumnDataType::BOOLEAN:
+            defaultValue = false;
+            break;
+        case Vector::ColumnDataType::JSON_PROPERTIES:
+            defaultValue = QString("{}"); // 空JSON对象
+            break;
+        default:
+            defaultValue = QVariant(); // 对于未知类型使用空值
+            break;
+        }
+
+        // 添加调试日志，记录列的类型和默认值
+        qDebug() << funcName << "- 列[" << i << "]:" << column.name
+                 << ", 类型:" << static_cast<int>(column.type)
+                 << "(" << column.original_type_str << ")"
+                 << ", 默认值类型:" << defaultValue.typeName()
+                 << ", 值:" << defaultValue.toString();
+
+        emptyRow.append(defaultValue);
+        // --- 修改结束 ---
     }
+
+    qDebug() << funcName << "- 成功创建默认值行模板，行大小:" << emptyRow.size();
     QByteArray serializedEmptyRow;
-    if (!Persistence::BinaryFileHelper::serializeRow(emptyRow, columns, serializedEmptyRow)) {
+    if (!Persistence::BinaryFileHelper::serializeRow(emptyRow, columns, serializedEmptyRow))
+    {
         errorMessage = "Failed to serialize the empty row template.";
-                    qWarning() << funcName << "-" << errorMessage;
+        qWarning() << funcName << "-" << errorMessage;
         file.close();
-                    emit progressUpdated(100);
-                    return false;
-                }
+        emit progressUpdated(100);
+        return false;
+    }
+
+    // 添加额外的验证和日志记录
     const quint32 emptyRowSize = static_cast<quint32>(serializedEmptyRow.size());
+    if (emptyRowSize == 0 || emptyRowSize > 100000) // 设置一个合理的上限，防止异常值
+    {
+        errorMessage = QString("序列化后的空行大小异常: %1 字节").arg(emptyRowSize);
+        qWarning() << funcName << "- 严重错误:" << errorMessage;
+        file.close();
+        emit progressUpdated(100);
+        return false;
+    }
 
-    // 5. 创建一个数据流，循环 'rowCount' 次，将空行模板高效地写入文件
-    QDataStream out(&file);
-    out.setByteOrder(QDataStream::LittleEndian);
+    // 记录序列化结果的详细信息
+    qDebug() << funcName << "- 序列化成功，空行大小:" << emptyRowSize << "字节";
+    // 只输出前20个字节的十六进制表示，避免日志过大
+    qDebug() << funcName << "- 序列化数据前20字节:"
+             << serializedEmptyRow.left(20).toHex();
 
-    // 在写入循环之前，添加预检日志
-    qDebug() << "[BULK_WRITE_DEBUG] Preparing to write" << rowCount << "rows.";
-    qDebug() << "[BULK_WRITE_DEBUG] Initial file size (after header):" << file.size();
-    qDebug() << "[BULK_WRITE_DEBUG] Serialized empty row size:" << emptyRowSize;
-    qDebug() << "[BULK_WRITE_DEBUG] Serialized empty row hex:" << serializedEmptyRow.toHex();
+    // 5. 创建一个完整的内存缓冲区，包含所有行的数据，然后一次性写入文件
+    qDebug() << "[BULK_WRITE_DEBUG] 创建内存缓冲区用于" << rowCount << "行数据";
+    qDebug() << "[BULK_WRITE_DEBUG] 每行大小: " << (4 + emptyRowSize) << "字节 (4字节大小 + " << emptyRowSize << "字节数据)";
+    qDebug() << "[BULK_WRITE_DEBUG] 估计总缓冲区大小: " << (rowCount * (4 + emptyRowSize)) << "字节";
 
-    qDebug() << funcName << "- Bulk-writing" << rowCount << "empty rows to the binary file.";
-    for (int i = 0; i < rowCount; ++i) {
-        // 为了避免日志刷屏，我们只详细打印开头、结尾和关键的故障点附近
-        bool verboseLog = (i < 5) || (i >= rowCount - 5) || (i >= 34 && i <= 38);
+    // 预分配一个足够大的缓冲区
+    QByteArray allRowsBuffer;
+    allRowsBuffer.reserve(rowCount * (4 + emptyRowSize));
 
-        qint64 posBeforeWrite = file.pos();
-        if (verboseLog) {
-            qDebug().noquote() << QString("[BULK_WRITE_DEBUG] Row %1 --- Pos Before: %2").arg(i, 3).arg(posBeforeWrite, 5);
-        }
+    // 使用内存中的数据流来构建缓冲区
+    QDataStream memStream(&allRowsBuffer, QIODevice::WriteOnly);
+    memStream.setByteOrder(QDataStream::LittleEndian);
 
-        out << emptyRowSize;
-        out.writeRawData(serializedEmptyRow.constData(), emptyRowSize);
-        
-        qint64 posAfterWrite = file.pos();
-        qint64 bytesWritten = posAfterWrite - posBeforeWrite;
-        qint64 expectedBytes = 4 + emptyRowSize;
+    qDebug() << "[BULK_WRITE_DEBUG] 开始在内存中构建所有行数据";
+    for (int i = 0; i < rowCount; ++i)
+    {
+        // 写入行大小
+        memStream << emptyRowSize;
+        // 写入行数据
+        memStream.writeRawData(serializedEmptyRow.constData(), emptyRowSize);
 
-        if (verboseLog) {
-            qDebug().noquote() << QString("[BULK_WRITE_DEBUG] Row %1 --- Pos After:  %2, Bytes Written: %3 (Expected: %4)")
-                                  .arg(i, 3).arg(posAfterWrite, 5).arg(bytesWritten, 3).arg(expectedBytes, 3);
-        }
-        
-        if (bytesWritten != expectedBytes) {
-            qWarning() << "[BULK_WRITE_DEBUG] FATAL: UNEXPECTED WRITE SIZE AT ROW" << i;
-            // 立即停止，不再继续写入错误数据
-            errorMessage = QString("FATAL: Unexpected write size at row %1.").arg(i);
-            file.close();
-                emit progressUpdated(100);
-                return false;
+        // 仅记录少量行的详细信息，避免日志过大
+        if (i < 3 || i >= rowCount - 3)
+        {
+            qDebug() << "[BULK_WRITE_DEBUG] 已添加行 " << i << " 到内存缓冲区";
         }
     }
+
+    // 完成内存缓冲区的构建
+    qDebug() << "[BULK_WRITE_DEBUG] 内存缓冲区构建完成，实际大小: " << allRowsBuffer.size() << "字节";
+
+    // 一次性写入整个缓冲区到文件
+    qint64 bytesWritten = file.write(allRowsBuffer);
+    if (bytesWritten != allRowsBuffer.size())
+    {
+        errorMessage = QString("写入文件失败: 预期写入 %1 字节，实际写入 %2 字节").arg(allRowsBuffer.size()).arg(bytesWritten);
+        qWarning() << funcName << "- " << errorMessage;
+        file.close();
+        emit progressUpdated(100);
+        return false;
+    }
+
+    qDebug() << "[BULK_WRITE_DEBUG] 成功一次性写入所有行数据到文件，总字节数: " << bytesWritten;
 
     // 在循环之后，添加收尾日志
     qDebug() << "[BULK_WRITE_DEBUG] Bulk write loop finished. Final position:" << file.pos();
 
     // 6. 所有行已成功写入。现在，更新文件头以反映正确的总行数。
     qDebug() << funcName << "- All rows written. Finalizing header with correct row count.";
-    if (!file.seek(0)) { // 定位回文件开头
+    if (!file.seek(0))
+    { // 定位回文件开头
         errorMessage = "Failed to seek to the beginning of the file to update header.";
-                qWarning() << funcName << "-" << errorMessage;
+        qWarning() << funcName << "-" << errorMessage;
         file.close();
-                emit progressUpdated(100);
-                return false;
-            }
+        emit progressUpdated(100);
+        return false;
+    }
 
     // 读取现有头部，更新，然后写回
     BinaryFileHeader header;
-    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header)) {
+    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+    {
         errorMessage = "Failed to read header for final update.";
-            qWarning() << funcName << "-" << errorMessage;
+        qWarning() << funcName << "-" << errorMessage;
         file.close();
-            return false;
-        }
+        return false;
+    }
 
     header.row_count_in_file = rowCount; // 这是关键的更新
     header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-    
-    // 再次定位到文件开头以覆盖写入头部
-    if (!file.seek(0)) {
-        errorMessage = "Failed to seek to the beginning of the file for final write.";
-            qWarning() << funcName << "-" << errorMessage;
-        file.close();
-            return false;
-        }
 
-    if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+    // 再次定位到文件开头以覆盖写入头部
+    if (!file.seek(0))
+    {
+        errorMessage = "Failed to seek to the beginning of the file for final write.";
+        qWarning() << funcName << "-" << errorMessage;
+        file.close();
+        return false;
+    }
+
+    if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header))
+    {
         errorMessage = "Failed to write final updated header.";
         qWarning() << funcName << "-" << errorMessage;
         file.close();
@@ -2041,20 +2116,24 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     if (!updateQuery.exec())
     {
         errorMessage = QString("更新数据库中的行数记录失败: %1").arg(updateQuery.lastError().text());
-                    qWarning() << funcName << "-" << errorMessage;
+        qWarning() << funcName << "-" << errorMessage;
         // 不再回滚事务，由调用者负责
-                emit progressUpdated(100);
-                return false;
-            }
+        emit progressUpdated(100);
+        return false;
+    }
 
-    if (updateQuery.numRowsAffected() > 0) {
+    if (updateQuery.numRowsAffected() > 0)
+    {
         qDebug() << "[TXN_DEBUG] UPDATE successful. Attempting immediate re-read to verify.";
         QSqlQuery verificationQuery(db);
         verificationQuery.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
         verificationQuery.addBindValue(tableId);
-        if (verificationQuery.exec() && verificationQuery.next()) {
+        if (verificationQuery.exec() && verificationQuery.next())
+        {
             qDebug() << "[TXN_DEBUG] VERIFICATION SUCCEEDED. Read back row_count =" << verificationQuery.value(0).toInt();
-        } else {
+        }
+        else
+        {
             qWarning() << "[TXN_DEBUG] VERIFICATION FAILED. Could not re-read:" << verificationQuery.lastError().text();
         }
     }
@@ -2066,14 +2145,17 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
     // ========= 关键修复：更新二进制文件的文件头信息 =========
     qDebug() << funcName << "- 开始更新二进制文件头，总行数:" << finalRowCount;
     QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (!binFilePath.isEmpty()) {
+    if (!binFilePath.isEmpty())
+    {
         BinaryFileHeader header;
         QFile file(binFilePath);
 
         // 以读写方式打开文件
-        if (file.open(QIODevice::ReadWrite)) {
+        if (file.open(QIODevice::ReadWrite))
+        {
             // 读取现有文件头
-            if (Persistence::BinaryFileHelper::readBinaryHeader(&file, header)) {
+            if (Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+            {
                 // 更新行数
                 header.row_count_in_file = finalRowCount;
                 header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
@@ -2082,21 +2164,28 @@ bool VectorDataHandler::insertVectorRows(QSqlDatabase& db, int tableId, int star
                 file.seek(0);
 
                 // 写回更新后的文件头
-                if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header)) {
+                if (!Persistence::BinaryFileHelper::writeBinaryHeader(&file, header))
+                {
                     errorMessage = "无法写回更新后的二进制文件头。";
-            qWarning() << funcName << "-" << errorMessage;
+                    qWarning() << funcName << "-" << errorMessage;
                     // 根据策略决定是否返回 false
-                } else {
+                }
+                else
+                {
                     qDebug() << funcName << "- 成功更新二进制文件头。";
                 }
-            } else {
+            }
+            else
+            {
                 errorMessage = "无法读取二进制文件头以进行更新。";
-        qWarning() << funcName << "-" << errorMessage;
+                qWarning() << funcName << "-" << errorMessage;
             }
             file.close();
-        } else {
+        }
+        else
+        {
             errorMessage = "无法以读写模式打开二进制文件进行头更新: " + file.errorString();
-        qWarning() << funcName << "-" << errorMessage;
+            qWarning() << funcName << "-" << errorMessage;
         }
     }
     // =======================================================
@@ -2175,7 +2264,7 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
         return false;
     }
 
-    qDebug() << funcName << " - 从元数据获取的行数:" << currentRowCount;
+    qDebug() << funcName << "- 从元数据获取的行数:" << currentRowCount;
 
     // 2. 解析二进制文件路径
     QString resolveError;
@@ -2205,7 +2294,7 @@ bool VectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int to
         return false;
     }
 
-    qDebug() << funcName << " - 从二进制文件读取到的行数:" << allRows.size();
+    qDebug() << funcName << "- 从二进制文件读取到的行数:" << allRows.size();
 
     // 验证实际读取的行数与元数据中的行数是否一致
     if (allRows.size() != currentRowCount)
@@ -4131,7 +4220,7 @@ bool VectorDataHandler::updateCellData(int tableId, int rowIndex, int columnInde
     const QString funcName = "VectorDataHandler::updateCellData";
     qDebug() << funcName << " - 开始更新单元格数据，表ID: " << tableId
              << ", 行: " << rowIndex << ", 列: " << columnIndex << ", 值: " << value;
-    
+
     // 1. 获取表的元数据和列信息
     QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
     if (columns.isEmpty())
@@ -4168,14 +4257,113 @@ bool VectorDataHandler::updateCellData(int tableId, int rowIndex, int columnInde
     Vector::RowData rowData;
     if (!fetchRowData(tableId, rowIndex, rowData))
     {
-        qWarning() << funcName << " - 无法获取行数据，表ID: " << tableId << ", 行: " << rowIndex;
-        return false;
+        // --- 修改开始：处理行不存在的情况 ---
+        // 获取当前表的总行数
+        int totalRows = getVectorTableRowCount(tableId);
+
+        // 检查是否是在尝试添加新行（行索引等于总行数）
+        if (rowIndex == totalRows)
+        {
+            qDebug() << funcName << " - 检测到新行场景，表ID: " << tableId << ", 行索引: " << rowIndex << " 等于总行数: " << totalRows;
+
+            // 创建一个包含默认值的新行数据
+            rowData.clear();
+            for (const auto &column : columns)
+            {
+                // 根据列的数据类型创建默认值
+                QVariant defaultValue;
+                switch (column.type)
+                {
+                case Vector::ColumnDataType::TEXT:
+                    defaultValue = QString("");
+                    break;
+                case Vector::ColumnDataType::INTEGER:
+                    defaultValue = 0;
+                    break;
+                case Vector::ColumnDataType::REAL:
+                    defaultValue = 0.0;
+                    break;
+                case Vector::ColumnDataType::INSTRUCTION_ID:
+                    defaultValue = -1; // 无效的指令ID
+                    break;
+                case Vector::ColumnDataType::TIMESET_ID:
+                    defaultValue = -1; // 无效的TimeSet ID
+                    break;
+                case Vector::ColumnDataType::PIN_STATE_ID:
+                    defaultValue = "X"; // 默认管脚状态为"X"（未定义）
+                    break;
+                case Vector::ColumnDataType::BOOLEAN:
+                    defaultValue = false;
+                    break;
+                case Vector::ColumnDataType::JSON_PROPERTIES:
+                    defaultValue = QString("{}"); // 空JSON对象
+                    break;
+                default:
+                    defaultValue = QVariant(); // 空值
+                    break;
+                }
+                rowData.append(defaultValue);
+            }
+
+            // 更新用户输入的值到新行数据中
+            rowData[columnIndex] = value;
+
+            // 将新行追加到二进制文件
+            bool appendSuccess = Persistence::BinaryFileHelper::appendRowToBinary(
+                binFilePath, columns, rowData);
+
+            if (!appendSuccess)
+            {
+                qWarning() << funcName << " - 追加新行到二进制文件失败，表ID: " << tableId << ", 行: " << rowIndex;
+                return false;
+            }
+
+            // 更新数据库中的行数记录
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            QSqlQuery updateRowCountQuery(db);
+            updateRowCountQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            updateRowCountQuery.addBindValue(tableId);
+            if (!updateRowCountQuery.exec())
+            {
+                qWarning() << funcName << " - 更新行数记录失败，表ID: " << tableId << ", 错误: " << updateRowCountQuery.lastError().text();
+                // 虽然更新行数失败，但我们已经成功追加了数据，所以继续执行
+            }
+
+            // 标记行已被修改
+            markRowAsModified(tableId, rowIndex);
+
+            // 更新内存缓存（如果有的话）
+            if (m_tableDataCache.contains(tableId))
+            {
+                if (m_tableDataCache[tableId].size() == rowIndex)
+                {
+                    // 追加到缓存
+                    m_tableDataCache[tableId].append(rowData);
+                }
+                else if (m_tableDataCache[tableId].size() > rowIndex)
+                {
+                    // 更新缓存中的行
+                    m_tableDataCache[tableId][rowIndex] = rowData;
+                }
+                qDebug() << funcName << " - 更新缓存成功，表ID: " << tableId << ", 行: " << rowIndex;
+            }
+
+            qDebug() << funcName << " - 成功创建并保存新行数据，表ID: " << tableId << ", 行: " << rowIndex;
+            return true;
+        }
+        else
+        {
+            // 这是一个真正的错误，行索引无效
+            qWarning() << funcName << " - 无法获取行数据，行索引 " << rowIndex << " 无效或超出范围 " << totalRows;
+            return false;
+        }
+        // --- 修改结束 ---
     }
 
     // 5. 验证行数据有效性
     if (rowData.isEmpty() || columnIndex >= rowData.size())
     {
-        qWarning() << funcName << " - 行数据无效或列索引超出范围，列索引: " << columnIndex 
+        qWarning() << funcName << " - 行数据无效或列索引超出范围，列索引: " << columnIndex
                    << ", 行数据大小: " << rowData.size();
         return false;
     }
@@ -4195,14 +4383,14 @@ bool VectorDataHandler::updateCellData(int tableId, int rowIndex, int columnInde
     {
         // 9. 标记行已被修改
         markRowAsModified(tableId, rowIndex);
-        
+
         // 10. 更新内存缓存（如果有的话）
         if (m_tableDataCache.contains(tableId) && m_tableDataCache[tableId].size() > rowIndex)
         {
             m_tableDataCache[tableId][rowIndex] = rowData;
             qDebug() << funcName << " - 更新缓存成功，表ID: " << tableId << ", 行: " << rowIndex;
         }
-        
+
         qDebug() << funcName << " - 成功更新单元格数据，表ID: " << tableId
                  << ", 行: " << rowIndex << ", 列: " << columnIndex;
         return true;
@@ -4210,7 +4398,7 @@ bool VectorDataHandler::updateCellData(int tableId, int rowIndex, int columnInde
     else
     {
         qWarning() << funcName << " - 更新二进制文件失败，表ID: " << tableId
-                  << ", 行: " << rowIndex << ", 列: " << columnIndex;
+                   << ", 行: " << rowIndex << ", 列: " << columnIndex;
         return false;
     }
 }

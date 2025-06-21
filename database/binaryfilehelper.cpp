@@ -12,8 +12,8 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
-#include <QtEndian>  // 添加用于字节序转换
-#include <limits> // 添加 std::numeric_limits 所需的头文件
+#include <QtEndian> // 添加用于字节序转换
+#include <limits>   // 添加 std::numeric_limits 所需的头文件
 
 // 初始化静态成员
 QMap<QString, Persistence::BinaryFileHelper::RowOffsetCache> Persistence::BinaryFileHelper::s_fileRowOffsetCache;
@@ -274,27 +274,44 @@ namespace Persistence
                      << ", 计数器:" << serializeCounter;
         }
 
-        serializedRow.clear();
-
         if (rowData.size() != columns.size())
         {
             qWarning() << funcName << " - 列数与数据项数不一致!";
             return false;
         }
 
-        QByteArray tempData;
-        QDataStream out(&tempData, QIODevice::WriteOnly);
+        // 1. 计算总大小
+        int totalFixedRowSize = 0;
+        for (const auto &col : columns)
+        {
+            totalFixedRowSize += getFixedLengthForType(col.type, col.name);
+        }
+
+        // 添加日志记录总大小
+        if (serializeCounter % LOG_INTERVAL == 1 || serializeCounter <= 3)
+        {
+            qDebug() << funcName << " - 计算的总固定行大小:" << totalFixedRowSize << "字节";
+        }
+
+        // 2. 创建预填充的内存缓冲区
+        QByteArray rowBuffer(totalFixedRowSize, '\0');
+        QDataStream out(&rowBuffer, QIODevice::WriteOnly);
         out.setByteOrder(QDataStream::LittleEndian);
 
+        // 记录当前处理到的位置
+        int currentPosition = 0;
+
+        // 3. 遍历并写入数据
         for (int i = 0; i < columns.size(); ++i)
         {
             const auto &col = columns[i];
             const QVariant &val = rowData[i];
 
-            // 使用列名称和类型获取该字段的固定长度
+            // 获取该字段的固定长度
             int fieldLength = getFixedLengthForType(col.type, col.name);
-            // 移除循环中的日志
-            // qDebug() << funcName << " - 字段固定长度:" << fieldLength;
+
+            // 确保流位置正确
+            out.device()->seek(currentPosition);
 
             switch (col.type)
             {
@@ -319,13 +336,18 @@ namespace Persistence
                 // 写入文本内容
                 out.writeRawData(text.toUtf8().constData(), textLength);
 
-                // 填充剩余空间
-                int paddingNeeded = fieldLength - 4 - textLength; // 4字节长度字段
-                if (paddingNeeded > 0)
+                // 添加详细日志（仅在低频率下）
+                if (serializeCounter <= 3 && i < 10) // 只记录前10列，避免日志过多
                 {
-                    QByteArray padding(paddingNeeded, '\0');
-                    out.writeRawData(padding.constData(), paddingNeeded);
+                    qDebug() << funcName << " - 列[" << i << "]:" << col.name
+                             << ", 类型:TEXT, 实际数据大小:" << (textLength + 4) // 4字节长度字段
+                             << ", 固定长度:" << fieldLength
+                             << ", 填充:" << (fieldLength - textLength - 4) << "字节";
                 }
+
+                // 不再手动填充，因为缓冲区已预填充为'\0'
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::PIN_STATE_ID:
@@ -336,8 +358,6 @@ namespace Persistence
                 {
                     // 使用默认值'X'
                     pinValue = "X";
-                    // 移除循环中的日志
-                    // qDebug() << funcName << " - 管脚状态列为空或无效，使用默认值'X'，列名:" << col.name;
                 }
                 else
                 {
@@ -347,13 +367,14 @@ namespace Persistence
                         pinValue != "H" && pinValue != "S" && pinValue != "V" && pinValue != "M")
                     {
                         pinValue = "X"; // 无效的状态使用X
-                        // 移除循环中的日志
-                        // qDebug() << funcName << " - 管脚状态值无效，使用默认值'X'，列名:" << col.name;
                     }
                 }
                 // 直接写入字符
                 char pinChar = pinValue.at(0).toLatin1();
                 out.writeRawData(&pinChar, PIN_STATE_FIELD_MAX_LENGTH);
+
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::INTEGER:
@@ -361,19 +382,28 @@ namespace Persistence
             case Vector::ColumnDataType::TIMESET_ID:
             {
                 int intValue = val.toInt();
-                out << quint32(intValue);
+                out.writeRawData(reinterpret_cast<const char *>(&intValue), INTEGER_FIELD_MAX_LENGTH);
+
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::REAL:
             {
                 double realValue = val.toDouble();
-                out << realValue;
+                out.writeRawData(reinterpret_cast<const char *>(&realValue), REAL_FIELD_MAX_LENGTH);
+
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::BOOLEAN:
             {
                 quint8 boolValue = val.toBool() ? 1 : 0;
-                out << boolValue;
+                out.writeRawData(reinterpret_cast<const char *>(&boolValue), BOOLEAN_FIELD_MAX_LENGTH);
+
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::JSON_PROPERTIES:
@@ -385,15 +415,23 @@ namespace Persistence
                     // 这里我们选择截断JSON，但在实际应用中可能需要更优雅的处理
                     jsonStr = jsonStr.left(JSON_PROPERTIES_MAX_LENGTH / 2);
                 }
-                out << quint32(jsonStr.length()); // 先写入实际长度
-                out.writeRawData(jsonStr.toUtf8().constData(), jsonStr.toUtf8().size());
-                // 填充剩余空间
-                int padding = JSON_PROPERTIES_MAX_LENGTH - jsonStr.toUtf8().size() - sizeof(quint32);
-                if (padding > 0)
+                QByteArray jsonBytes = jsonStr.toUtf8();
+                qint32 jsonLength = jsonBytes.size();
+                out.writeRawData(reinterpret_cast<const char *>(&jsonLength), 4); // 先写入实际长度
+                out.writeRawData(jsonBytes.constData(), jsonLength);
+
+                // 添加详细日志（仅在低频率下）
+                if (serializeCounter <= 3 && i < 10) // 只记录前10列，避免日志过多
                 {
-                    QByteArray paddingData(padding, '\0');
-                    out.writeRawData(paddingData.constData(), paddingData.size());
+                    qDebug() << funcName << " - 列[" << i << "]:" << col.name
+                             << ", 类型:JSON_PROPERTIES, 实际数据大小:" << (jsonLength + 4) // 4字节长度字段
+                             << ", 固定长度:" << fieldLength
+                             << ", 填充:" << (fieldLength - jsonLength - 4) << "字节";
                 }
+
+                // 不再手动填充，因为缓冲区已预填充为'\0'
+                // 更新位置
+                currentPosition += fieldLength;
                 break;
             }
             default:
@@ -408,14 +446,21 @@ namespace Persistence
             }
         }
 
-        // 将临时数据复制到输出
-        serializedRow = tempData;
+        // 4. 返回结果
+        serializedRow = rowBuffer;
 
         // 仅在特定间隔输出完成日志
         if (serializeCounter % LOG_INTERVAL == 1 || serializeCounter <= 3)
         {
             qDebug() << funcName << " - 序列化完成, 字节长度:" << serializedRow.size()
                      << ", 计数器:" << serializeCounter;
+
+            // 验证序列化结果的大小与预期的总大小一致
+            if (serializedRow.size() != totalFixedRowSize)
+            {
+                qWarning() << funcName << " - 警告: 序列化结果大小(" << serializedRow.size()
+                           << ")与预期总大小(" << totalFixedRowSize << ")不一致!";
+            }
         }
         return true;
     }
@@ -447,12 +492,19 @@ namespace Persistence
         QDataStream in(bytes);
         in.setByteOrder(QDataStream::LittleEndian);
 
+        // 记录当前处理到的位置
+        int currentPosition = 0;
+
         for (const auto &col : columns)
         {
             // 获取该字段的固定长度
             int fieldLength = getFixedLengthForType(col.type, col.name);
-            // 移除列级别的处理日志，减少日志输出
-            // qDebug().nospace() << funcName << " - 处理列: " << col.name << ", 类型: " << static_cast<int>(col.type) << ", 固定长度: " << fieldLength;
+
+            // 确保流位置正确
+            in.device()->seek(currentPosition);
+
+            // 记录字段起始位置
+            const qint64 fieldStartPos = in.device()->pos();
 
             QVariant value;
             // 使用固定长度格式
@@ -479,12 +531,8 @@ namespace Persistence
                 in.readRawData(textData.data(), textLength);
                 value = QString::fromUtf8(textData);
 
-                // 跳过填充字节
-                int paddingToSkip = fieldLength - 4 - textLength;
-                if (paddingToSkip > 0)
-                {
-                    in.skipRawData(paddingToSkip);
-                }
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::PIN_STATE_ID:
@@ -493,6 +541,9 @@ namespace Persistence
                 char pinState;
                 in.readRawData(&pinState, PIN_STATE_FIELD_MAX_LENGTH);
                 value = QString(QChar(pinState));
+
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::INTEGER:
@@ -502,6 +553,9 @@ namespace Persistence
                 qint32 intValue;
                 in.readRawData(reinterpret_cast<char *>(&intValue), INTEGER_FIELD_MAX_LENGTH);
                 value = intValue;
+
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::REAL:
@@ -509,6 +563,9 @@ namespace Persistence
                 double doubleValue;
                 in.readRawData(reinterpret_cast<char *>(&doubleValue), REAL_FIELD_MAX_LENGTH);
                 value = doubleValue;
+
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::BOOLEAN:
@@ -516,6 +573,9 @@ namespace Persistence
                 quint8 boolValue;
                 in.readRawData(reinterpret_cast<char *>(&boolValue), BOOLEAN_FIELD_MAX_LENGTH);
                 value = bool(boolValue);
+
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             case Vector::ColumnDataType::JSON_PROPERTIES:
@@ -550,38 +610,21 @@ namespace Persistence
                     value = doc.object();
                 }
 
-                // 跳过填充字节
-                int paddingToSkip = JSON_PROPERTIES_MAX_LENGTH - 4 - jsonLength;
-                if (paddingToSkip > 0)
-                {
-                    in.skipRawData(paddingToSkip);
-                }
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
             default:
                 qWarning() << funcName << " - 不支持的列类型:" << static_cast<int>(col.type) << ", 列名:" << col.name;
                 // 使用默认空值
                 value = QVariant(); // Default to a null QVariant
-                // 为了健壮性，即使遇到未知类型，也尝试跳过预期的固定长度，如果fieldLength在此处有意义
-                // 但由于这是固定长度模式，我们必须读取或跳过fieldLength字节以保持流的同步
-                // 注意：如果getFixedLengthForType为未知类型返回0或负值，这里需要额外处理
-                if (fieldLength > 0)
-                {
-                    in.skipRawData(fieldLength); // 假设未知类型也占用了其定义的固定长度
-                }
-                else
-                {
-                    // 如果没有固定长度或长度无效，这可能是一个严重错误，可能导致后续数据错位
-                    qWarning() << funcName << " - 未知类型的字段长度无效，可能导致数据解析错误，列名:" << col.name;
-                    // 无法安全跳过，返回错误
-                    return false;
-                }
+
+                // 更新位置到下一个字段
+                currentPosition += fieldLength;
                 break;
             }
 
             rowData.append(value);
-            // 移除每列的详细解析日志
-            // qDebug().nospace() << funcName << " - 解析列: " << col.name << ", 值: " << value;
         }
 
         if (in.status() != QDataStream::Ok)
@@ -2159,7 +2202,7 @@ namespace Persistence
         {
             // 尝试从索引文件读取
             RowOffsetCache indexCache = loadRowOffsetIndex(binFilePath, fileLastModified);
-            
+
             // 无论缓存是否为空，都将其存入内存缓存，这样下次不会重复尝试读取索引文件
             if (!indexCache.isEmpty())
             {
@@ -2169,7 +2212,7 @@ namespace Persistence
             {
                 qDebug() << funcName << "- 索引文件加载失败或为空，存储空缓存以避免重复加载尝试";
             }
-            
+
             s_fileRowOffsetCache[binFilePath] = indexCache;
             return indexCache;
         }
@@ -2786,215 +2829,237 @@ namespace Persistence
             }
         }
 
-    // 如果缓存不可用或无效，则执行一次性完全扫描以构建缓存。
-    qDebug() << funcName << "- Cache for row" << rowIndex << "is missing or invalid. Performing full scan to build cache.";
+        // 如果缓存不可用或无效，则执行一次性完全扫描以构建缓存。
+        qDebug() << funcName << "- Cache for row" << rowIndex << "is missing or invalid. Performing full scan to build cache.";
 
-    file.seek(0);
-    if (!readBinaryHeader(&file, header)) {
-        qWarning() << funcName << "- Full scan failed: Could not re-read file header.";
-        file.close();
-        return false;
-    }
-
-    if (!file.seek(sizeof(BinaryFileHeader))) {
-        qWarning() << funcName << "- Full scan failed: Could not seek to data section start.";
-        file.close();
-        return false;
-    }
-
-    QFileInfo fileInfo(binFilePath);
-    const QDateTime fileLastModified = fileInfo.lastModified();
-    const quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
-    const qint64 fileSize = file.size();
-    RowOffsetCache newCache;
-    newCache.reserve(header.row_count_in_file);
-
-    bool buildSuccess = true;
-    for (quint32 i = 0; i < header.row_count_in_file; ++i) {
-        if (file.pos() >= fileSize) {
-            qWarning() << funcName << "- [FATAL] Full scan aborted: Reached end of file prematurely at row" << i << ". Expected" << header.row_count_in_file << ". File may be corrupt.";
-            buildSuccess = false;
-            break;
+        file.seek(0);
+        if (!readBinaryHeader(&file, header))
+        {
+            qWarning() << funcName << "- Full scan failed: Could not re-read file header.";
+            file.close();
+            return false;
         }
 
-        const qint64 rowStartOffset = file.pos();
-        
-        QByteArray sizeBytes = file.read(sizeof(quint32));
-        if (sizeBytes.size() != sizeof(quint32)) {
-            qWarning() << funcName << "- [FATAL] Full scan aborted: Could not read size for row" << i;
-            buildSuccess = false;
-            break;
+        if (!file.seek(sizeof(BinaryFileHeader)))
+        {
+            qWarning() << funcName << "- Full scan failed: Could not seek to data section start.";
+            file.close();
+            return false;
         }
 
-        const quint32 rowByteSize = qFromLittleEndian<quint32>(reinterpret_cast<const uchar*>(sizeBytes.constData()));
+        QFileInfo fileInfo(binFilePath);
+        const QDateTime fileLastModified = fileInfo.lastModified();
+        const quint64 fileTimestamp = fileLastModified.toSecsSinceEpoch();
+        const qint64 fileSize = file.size();
+        RowOffsetCache newCache;
+        newCache.reserve(header.row_count_in_file);
 
-        // --- FINAL ROBUSTNESS CHECK ---
-        const qint64 bytesToSkip = (rowByteSize == 0xFFFFFFFF) ? sizeof(qint64) : rowByteSize;
-        if (file.pos() + bytesToSkip > fileSize) {
-            qWarning() << funcName << "- [FATAL] Corrupt data detected at row" << i
-                       << ". Declared size" << rowByteSize << "(skip" << bytesToSkip << ")"
-                       << "would read past the end of the file (current_pos:" << file.pos()
-                       << ", file_size:" << fileSize << "). Aborting cache build.";
-            buildSuccess = false;
-            break;
+        bool buildSuccess = true;
+        for (quint32 i = 0; i < header.row_count_in_file; ++i)
+        {
+            if (file.pos() >= fileSize)
+            {
+                qWarning() << funcName << "- [FATAL] Full scan aborted: Reached end of file prematurely at row" << i << ". Expected" << header.row_count_in_file << ". File may be corrupt.";
+                buildSuccess = false;
+                break;
+            }
+
+            const qint64 rowStartOffset = file.pos();
+
+            QByteArray sizeBytes = file.read(sizeof(quint32));
+            if (sizeBytes.size() != sizeof(quint32))
+            {
+                qWarning() << funcName << "- [FATAL] Full scan aborted: Could not read size for row" << i;
+                buildSuccess = false;
+                break;
+            }
+
+            const quint32 rowByteSize = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(sizeBytes.constData()));
+
+            // --- FINAL ROBUSTNESS CHECK ---
+            const qint64 bytesToSkip = (rowByteSize == 0xFFFFFFFF) ? sizeof(qint64) : rowByteSize;
+            if (file.pos() + bytesToSkip > fileSize)
+            {
+                qWarning() << funcName << "- [FATAL] Corrupt data detected at row" << i
+                           << ". Declared size" << rowByteSize << "(skip" << bytesToSkip << ")"
+                           << "would read past the end of the file (current_pos:" << file.pos()
+                           << ", file_size:" << fileSize << "). Aborting cache build.";
+                buildSuccess = false;
+                break;
+            }
+            // --- END OF CHECK ---
+
+            RowPositionInfo posInfo;
+            posInfo.offset = rowStartOffset;
+            posInfo.dataSize = rowByteSize;
+            posInfo.timestamp = fileTimestamp;
+            newCache.append(posInfo);
+
+            if (!file.seek(file.pos() + bytesToSkip))
+            {
+                qWarning() << funcName << "- [FATAL] Full scan aborted: Failed to seek past data for row" << i << ". The file is likely truncated.";
+                buildSuccess = false;
+                break;
+            }
         }
-        // --- END OF CHECK ---
 
-        RowPositionInfo posInfo;
-        posInfo.offset = rowStartOffset;
-        posInfo.dataSize = rowByteSize;
-        posInfo.timestamp = fileTimestamp;
-        newCache.append(posInfo);
-
-        if (!file.seek(file.pos() + bytesToSkip)) {
-             qWarning() << funcName << "- [FATAL] Full scan aborted: Failed to seek past data for row" << i << ". The file is likely truncated.";
-             buildSuccess = false;
-             break;
+        if (buildSuccess && newCache.size() == header.row_count_in_file)
+        {
+            qDebug() << funcName << "- Successfully built a complete row offset cache with" << newCache.size() << "entries. Saving and retrying.";
+            QMutexLocker locker(&s_cacheMutex);
+            s_fileRowOffsetCache[binFilePath] = newCache;
+            file.close();
+            // 递归调用是安全的，因为下一次调用会命中缓存
+            return readRowFromBinary(binFilePath, columns, schemaVersion, rowIndex, rowData, useCache);
         }
-    }
-
-    if (buildSuccess && newCache.size() == header.row_count_in_file) {
-        qDebug() << funcName << "- Successfully built a complete row offset cache with" << newCache.size() << "entries. Saving and retrying.";
-        QMutexLocker locker(&s_cacheMutex);
-        s_fileRowOffsetCache[binFilePath] = newCache;
-        file.close();
-        // 递归调用是安全的，因为下一次调用会命中缓存
-        return readRowFromBinary(binFilePath, columns, schemaVersion, rowIndex, rowData, useCache);
-    } else {
-        qWarning() << funcName << "- Cache building failed due to data corruption or file errors. No cache will be saved.";
-        file.close();
-        return false;
-    }
+        else
+        {
+            qWarning() << funcName << "- Cache building failed due to data corruption or file errors. No cache will be saved.";
+            file.close();
+            return false;
+        }
     }
 
     bool BinaryFileHelper::createNewEmptyBinaryFile(const QString &binFilePath,
-                                                const QList<Vector::ColumnInfo> &columns,
-                                                int schemaVersion)
+                                                    const QList<Vector::ColumnInfo> &columns,
+                                                    int schemaVersion)
     {
         const QString funcName = "BinaryFileHelper::createNewEmptyBinaryFile";
         qDebug() << funcName << "- 开始创建空二进制文件:" << binFilePath;
-        
+
         // 确保目录存在
         QFileInfo fileInfo(binFilePath);
         QDir dir = fileInfo.dir();
-        if (!dir.exists()) {
-            if (!dir.mkpath(".")) {
+        if (!dir.exists())
+        {
+            if (!dir.mkpath("."))
+            {
                 qWarning() << funcName << "- 无法创建目录:" << dir.absolutePath();
                 return false;
             }
         }
-        
+
         // 创建或截断文件
         QFile file(binFilePath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        {
             qWarning() << funcName << "- 无法打开文件进行写入:" << file.errorString();
             return false;
         }
-        
+
         // 创建并初始化文件头
         BinaryFileHeader header;
-        header.magic_number = VEC_BINDATA_MAGIC;  // 必须设置正确的魔数
+        header.magic_number = VEC_BINDATA_MAGIC; // 必须设置正确的魔数
         header.file_format_version = CURRENT_FILE_FORMAT_VERSION;
         header.data_schema_version = schemaVersion;
-        header.row_count_in_file = 0;  // 初始为0行
+        header.row_count_in_file = 0; // 初始为0行
         header.column_count_in_file = columns.size();
         header.timestamp_created = QDateTime::currentSecsSinceEpoch();
         header.timestamp_updated = header.timestamp_created;
-        header.compression_type = 0;  // 不使用压缩
+        header.compression_type = 0; // 不使用压缩
         std::memset(header.reserved_bytes, 0, sizeof(header.reserved_bytes));
-        
+
         // 写入文件头
-        if (!writeBinaryHeader(&file, header)) {
+        if (!writeBinaryHeader(&file, header))
+        {
             qWarning() << funcName << "- 写入文件头失败";
             file.close();
             return false;
         }
-        
+
         file.close();
         qDebug() << funcName << "- 成功创建空二进制文件，列数:" << columns.size();
         return true;
     }
 
     bool BinaryFileHelper::appendRowToBinary(const QString &binFilePath,
-                                         const QList<Vector::ColumnInfo> &columns,
-                                         const Vector::RowData &rowData)
+                                             const QList<Vector::ColumnInfo> &columns,
+                                             const Vector::RowData &rowData)
     {
         const QString funcName = "BinaryFileHelper::appendRowToBinary";
-        
+
         // 打开文件进行追加
         QFile file(binFilePath);
-        if (!file.open(QIODevice::ReadWrite)) {
+        if (!file.open(QIODevice::ReadWrite))
+        {
             qWarning() << funcName << "- 无法打开文件进行读写:" << file.errorString();
             return false;
         }
-        
+
         // 首先读取文件头
         BinaryFileHeader header;
-        if (!readBinaryHeader(&file, header)) {
+        if (!readBinaryHeader(&file, header))
+        {
             qWarning() << funcName << "- 读取文件头失败";
             file.close();
             return false;
         }
-        
+
         // 验证列数
-        if (header.column_count_in_file != static_cast<uint32_t>(columns.size())) {
-            qWarning() << funcName << "- 列数不匹配! 文件头:" << header.column_count_in_file 
-                      << ", 传入:" << columns.size();
+        if (header.column_count_in_file != static_cast<uint32_t>(columns.size()))
+        {
+            qWarning() << funcName << "- 列数不匹配! 文件头:" << header.column_count_in_file
+                       << ", 传入:" << columns.size();
             file.close();
             return false;
         }
-        
+
         // 将文件指针移动到文件末尾，准备写入新行
-        if (!file.seek(file.size())) {
+        if (!file.seek(file.size()))
+        {
             qWarning() << funcName << "- 移动到文件末尾失败";
             file.close();
             return false;
         }
-        
+
         // 序列化行数据
         QByteArray serializedRow;
-        if (!serializeRow(rowData, columns, serializedRow)) {
+        if (!serializeRow(rowData, columns, serializedRow))
+        {
             qWarning() << funcName << "- 序列化行数据失败";
             file.close();
             return false;
         }
-        
+
         // 创建数据流
         QDataStream out(&file);
         out.setByteOrder(QDataStream::LittleEndian);
-        
+
         // 写入行数据大小
         out << static_cast<quint32>(serializedRow.size());
-        
+
         // 写入行数据
-        if (file.write(serializedRow) != serializedRow.size()) {
+        if (file.write(serializedRow) != serializedRow.size())
+        {
             qWarning() << funcName << "- 写入行数据失败";
             file.close();
             return false;
         }
-        
+
         // 更新文件头中的行数
         header.row_count_in_file++;
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-        
+
         // 重新定位到文件开头，更新文件头
-        if (!file.seek(0)) {
+        if (!file.seek(0))
+        {
             qWarning() << funcName << "- 移动到文件开头失败";
             file.close();
             return false;
         }
-        
-        if (!writeBinaryHeader(&file, header)) {
+
+        if (!writeBinaryHeader(&file, header))
+        {
             qWarning() << funcName << "- 更新文件头失败";
             file.close();
             return false;
         }
-        
+
         file.close();
-        
+
         // 清除行偏移缓存
         clearRowOffsetCache(binFilePath);
-        
+
         return true;
     }
 } // namespace Persistence
