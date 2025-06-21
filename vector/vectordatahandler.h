@@ -30,6 +30,9 @@ public:
                                   int currentPage, int pageSize, int totalRows,
                                   QString &errorMessage);
 
+    // 更新单元格数据
+    bool updateCellData(int tableId, int row, int column, const QVariant &value);
+
     // 添加向量行
     static void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 

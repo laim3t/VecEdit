@@ -23,10 +23,33 @@ VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent, const QVector<
     : QStyledItemDelegate(parent),
       m_tableIdCached(false),
       m_cachedTableId(-1),
+      m_specifiedTableId(-1),
       m_cellTypes(cellEditTypes)
 {
     // 清空缓存，确保每次创建代理时都重新从数据库获取选项
     refreshCache();
+}
+
+// 新增构造函数实现
+VectorTableItemDelegate::VectorTableItemDelegate(int tableId, QObject *parent, const QVector<int> &cellEditTypes)
+    : QStyledItemDelegate(parent),
+      m_tableIdCached(true),
+      m_cachedTableId(tableId),
+      m_specifiedTableId(tableId),
+      m_cellTypes(cellEditTypes)
+{
+    // 清空缓存，确保每次创建代理时都重新从数据库获取选项
+    refreshCache();
+    qDebug() << "VectorTableItemDelegate::VectorTableItemDelegate - 使用指定的表格ID创建代理:" << tableId;
+}
+
+// 设置表格ID的方法实现
+void VectorTableItemDelegate::setTableId(int tableId)
+{
+    m_specifiedTableId = tableId;
+    m_tableIdCached = true;
+    m_cachedTableId = tableId;
+    qDebug() << "VectorTableItemDelegate::setTableId - 设置表格ID:" << tableId;
 }
 
 // 刷新缓存方法实现
@@ -39,8 +62,10 @@ void VectorTableItemDelegate::refreshCache()
     // 清空静态列配置缓存
     s_tableColumnsCache.clear();
 
-    // 同时刷新表ID缓存
-    refreshTableIdCache();
+    // 同时刷新表ID缓存，但保留指定的表格ID
+    if (m_specifiedTableId < 0) {
+        refreshTableIdCache();
+    }
 
     qDebug() << "VectorTableItemDelegate::refreshCache - 缓存已清空，下次使用将重新从数据库加载";
 }
@@ -48,6 +73,11 @@ void VectorTableItemDelegate::refreshCache()
 // 刷新表ID缓存方法实现
 void VectorTableItemDelegate::refreshTableIdCache()
 {
+    // 如果有指定的表格ID，不要重置它
+    if (m_specifiedTableId >= 0) {
+        return;
+    }
+    
     m_tableIdCached = false;
     m_cachedTableId = -1;
     qDebug() << "VectorTableItemDelegate::refreshTableIdCache - 表ID缓存已重置";
@@ -312,6 +342,13 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
 int VectorTableItemDelegate::getTableIdForCurrentTable() const
 {
     qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Function entry.";
+
+    // 优先使用指定的表格ID
+    if (m_specifiedTableId >= 0)
+    {
+        qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - 使用指定的表格ID:" << m_specifiedTableId;
+        return m_specifiedTableId;
+    }
 
     // 如果已经缓存了表ID，直接返回
     if (m_tableIdCached)

@@ -36,33 +36,24 @@ void MainWindow::saveVectorTableData()
     // 获取表ID
     int tableId = m_vectorTableSelector->currentData().toInt();
 
-    // Ensure m_vectorTableWidget is the correct one associated with the current tab/selection
+    // 获取当前Tab页签中的Widget
     QWidget *currentTabWidget = m_vectorTabWidget->currentWidget();
-    QTableWidget *targetTableWidget = nullptr;
-
-    if (currentTabWidget)
+    if (!currentTabWidget)
     {
-        // Find the QTableWidget within the current tab. This assumes a specific structure.
-        // If your tabs directly contain QTableWidget, this is simpler.
-        // If they contain a layout which then contains the QTableWidget, you'll need to find it.
-        targetTableWidget = currentTabWidget->findChild<QTableWidget *>();
-    }
-
-    if (!targetTableWidget)
-    {
-        // Fallback or if the structure is QTableWidget is directly managed by MainWindow for the active view
-        targetTableWidget = m_vectorTableWidget;
-        qDebug() << funcName << " - 未找到当前Tab页中的TableWidget, 回退到 m_vectorTableWidget";
-    }
-
-    if (!targetTableWidget)
-    {
-        QMessageBox::critical(this, "保存失败", "无法确定要保存的表格控件。");
-        qCritical() << funcName << " - 无法确定要保存的表格控件。";
+        QMessageBox::critical(this, "保存失败", "无法获取当前Tab页签内容。");
+        qCritical() << funcName << " - 无法获取当前Tab页签内容。";
         return;
     }
-    qDebug() << funcName << " - 目标表格控件已确定。";
-
+    
+    // 获取存储在Widget属性中的模型
+    VectorTableModel* tableModel = currentTabWidget->property("tableModel").value<VectorTableModel*>();
+    if (!tableModel)
+    {
+        QMessageBox::critical(this, "保存失败", "无法获取表格模型。");
+        qCritical() << funcName << " - 无法获取表格模型。";
+        return;
+    }
+    
     // 创建并显示保存中对话框
     QMessageBox savingDialog(this);
     savingDialog.setWindowTitle("保存中");
@@ -77,41 +68,13 @@ void MainWindow::saveVectorTableData()
     // 立即处理事件，确保对话框显示出来
     QCoreApplication::processEvents();
 
-    // 保存当前表格的状态信息
-    int currentPage = m_currentPage;
-    int pageSize = m_pageSize;
-
     // 保存结果变量
     bool saveSuccess = false;
     QString errorMessage;
 
-    // 性能优化：检查是否在分页模式下，是否有待保存的修改
-    if (m_totalRows > pageSize)
-    {
-        qDebug() << funcName << " - 检测到分页模式，准备保存数据";
-
-        // 优化：直接传递分页信息到VectorDataHandler，避免创建临时表格
-        saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-            tableId,
-            targetTableWidget,
-            currentPage,
-            pageSize,
-            m_totalRows,
-            errorMessage);
-    }
-    else
-    {
-        // 非分页模式，统一使用 saveVectorTableDataPaged 进行保存
-        qDebug() << funcName << " - 非分页模式，但仍调用 saveVectorTableDataPaged 以启用增量更新尝试";
-        int currentRowCount = targetTableWidget ? targetTableWidget->rowCount() : 0;
-        saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-            tableId,
-            targetTableWidget,
-            0,               // currentPage 设为 0
-            currentRowCount, // pageSize 设为当前行数
-            currentRowCount, // totalRows 设为当前行数
-            errorMessage);
-    }
+    // 使用Model/View架构保存数据
+    qDebug() << funcName << " - 使用Model/View架构保存数据";
+    saveSuccess = tableModel->saveTable(errorMessage);
 
     // 关闭"保存中"对话框
     savingDialog.close();
@@ -135,18 +98,11 @@ void MainWindow::saveVectorTableData()
             // 清除修改标志
             m_hasUnsavedChanges = false;
 
-            // 清除所有修改行的标记
-            int tableId = m_vectorTableSelector->currentData().toInt();
-            VectorDataHandler::instance().clearModifiedRows(tableId);
-
             // 更新窗口标题
             updateWindowTitle(m_currentDbPath);
         }
 
-        // 不再重新加载当前页数据，保留用户的编辑状态
-        qDebug() << funcName << " - 保存操作完成，保留用户当前的界面编辑状态";
-
-        // 保存成功后刷新侧边栏，确保所有标签同步
+        // 保存成功后刷新侧边栏，确保Label同步
         refreshSidebarNavigator();
     }
     else
@@ -429,11 +385,24 @@ void MainWindow::refreshVectorTableData()
 
     int tableId = m_tabToTableId[tabIndex];
 
-    // 清除当前表的数据缓存
-    VectorDataHandler::instance().clearTableDataCache(tableId);
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        qWarning() << funcName << " - 无法获取Tab页签的Widget";
+        return;
+    }
 
-    // 重新加载当前页面数据
-    loadCurrentPage();
+    // 获取存储在Widget属性中的模型
+    VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+    if (!tableModel)
+    {
+        qWarning() << funcName << " - 无法获取表格模型";
+        return;
+    }
+
+    // 使用模型的refresh方法刷新数据
+    tableModel->refresh();
 
     // 刷新侧边导航栏
     refreshSidebarNavigator();
@@ -443,174 +412,43 @@ void MainWindow::refreshVectorTableData()
     qDebug() << funcName << " - 向量表数据刷新完成";
 }
 
-// 更新分页信息显示
-void MainWindow::updatePaginationInfo()
-{
-    const QString funcName = "MainWindow::updatePaginationInfo";
-    qDebug() << funcName << " - 更新分页信息，当前页:" << m_currentPage << "，总页数:" << m_totalPages << "，总行数:" << m_totalRows;
-
-    // 更新页码信息标签
-    m_pageInfoLabel->setText(tr("第 %1/%2 页，共 %3 行").arg(m_currentPage + 1).arg(m_totalPages).arg(m_totalRows));
-
-    // 更新上一页按钮状态
-    m_prevPageButton->setEnabled(m_currentPage > 0);
-
-    // 更新下一页按钮状态
-    m_nextPageButton->setEnabled(m_currentPage < m_totalPages - 1 && m_totalPages > 0);
-
-    // 更新页码跳转输入框
-    m_pageJumper->setMaximum(m_totalPages > 0 ? m_totalPages : 1);
-    m_pageJumper->setValue(m_currentPage + 1);
-
-    // 根据总页数启用或禁用跳转按钮
-    m_jumpButton->setEnabled(m_totalPages > 1);
-}
-
-// 加载当前页数据
-void MainWindow::loadCurrentPage()
-{
-    const QString funcName = "MainWindow::loadCurrentPage";
-    qDebug() << funcName << " - 加载当前页数据，页码:" << m_currentPage;
-
-    // 获取当前选中的向量表ID
-    int tabIndex = m_vectorTabWidget->currentIndex();
-    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
-    {
-        qWarning() << funcName << " - 没有选中有效的向量表";
-        return;
-    }
-
-    int tableId = m_tabToTableId[tabIndex];
-    qDebug() << funcName << " - 当前向量表ID:" << tableId;
-
-    // 获取向量表总行数
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-
-    // 计算总页数
-    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-
-    // 确保当前页码在有效范围内
-    if (m_currentPage < 0)
-        m_currentPage = 0;
-    if (m_currentPage >= m_totalPages && m_totalPages > 0)
-        m_currentPage = m_totalPages - 1;
-
-    qDebug() << funcName << " - 总行数:" << m_totalRows << "，总页数:" << m_totalPages << "，当前页:" << m_currentPage;
-
-    // 在加载新页面数据前，自动保存当前页面的修改
-    /*
-    QString errorMsg;
-    if (m_vectorTableWidget->rowCount() > 0) // 确保当前有数据需要保存
-    {
-        qDebug() << funcName << " - 在切换页面前自动保存当前页面修改";
-        if (!VectorDataHandler::instance().saveVectorTableData(tableId, m_vectorTableWidget, errorMsg))
-        {
-            qWarning() << funcName << " - 保存当前页面失败:" << errorMsg;
-        }
-        else
-        {
-            qDebug() << funcName << " - 当前页面保存成功";
-        }
-    }
-    */
-
-    // 加载当前页数据
-    bool success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-
-    if (!success)
-    {
-        qWarning() << funcName << " - 加载页面数据失败";
-    }
-
-    // 更新分页信息显示
-    updatePaginationInfo();
-}
-
-// 加载下一页
-void MainWindow::loadNextPage()
-{
-    const QString funcName = "MainWindow::loadNextPage";
-    qDebug() << funcName << " - 加载下一页";
-
-    if (m_currentPage < m_totalPages - 1)
-    {
-        m_currentPage++;
-        loadCurrentPage();
-    }
-    else
-    {
-        qWarning() << funcName << " - 已经是最后一页";
-    }
-}
-
-// 加载上一页
-void MainWindow::loadPrevPage()
-{
-    const QString funcName = "MainWindow::loadPrevPage";
-    qDebug() << funcName << " - 加载上一页";
-
-    if (m_currentPage > 0)
-    {
-        m_currentPage--;
-        loadCurrentPage();
-    }
-    else
-    {
-        qWarning() << funcName << " - 已经是第一页";
-    }
-}
-
-// 修改每页行数
-void MainWindow::changePageSize(int newSize)
-{
-    const QString funcName = "MainWindow::changePageSize";
-    qDebug() << funcName << " - 修改每页行数为:" << newSize;
-
-    if (newSize <= 0)
-    {
-        qWarning() << funcName << " - 无效的页面大小:" << newSize;
-        return;
-    }
-
-    // 保存当前页的第一行在整个数据集中的索引
-    int currentFirstRow = m_currentPage * m_pageSize;
-
-    // 更新页面大小
-    m_pageSize = newSize;
-
-    // 计算新的页码
-    m_currentPage = currentFirstRow / m_pageSize;
-
-    // 重新加载当前页
-    loadCurrentPage();
-}
-
 void MainWindow::saveCurrentTableData()
 {
     const QString funcName = "MainWindow::saveCurrentTableData";
-    qDebug() << funcName << " - 开始保存当前页面数据";
+    qDebug() << funcName << " - 开始保存当前表格数据";
 
     // 获取当前选择的向量表
-    if (m_vectorTableSelector->currentIndex() < 0 || !m_vectorTableWidget)
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
     {
-        qDebug() << funcName << " - 无当前表或表格控件，不进行保存";
+        qDebug() << funcName << " - 无当前表，不进行保存";
         return;
     }
 
     // 获取表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        qWarning() << funcName << " - 无法获取Tab页签的Widget";
+        return;
+    }
+
+    // 获取存储在Widget属性中的模型
+    VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+    if (!tableModel)
+    {
+        qWarning() << funcName << " - 无法获取表格模型";
+        return;
+    }
 
     // 保存结果变量
     QString errorMessage;
 
-    // 使用分页保存模式
-    bool saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-        tableId,
-        m_vectorTableWidget,
-        m_currentPage,
-        m_pageSize,
-        m_totalRows,
-        errorMessage);
+    // 使用模型保存数据
+    bool saveSuccess = tableModel->saveTable(errorMessage);
 
     if (!saveSuccess)
     {
@@ -627,24 +465,34 @@ void MainWindow::saveCurrentTableData()
 bool MainWindow::hasUnsavedChanges() const
 {
     // 如果没有打开的数据库或没有选中的向量表，则没有未保存的内容
-    if (m_currentDbPath.isEmpty() || m_vectorTableSelector->count() == 0)
+    if (m_currentDbPath.isEmpty() || m_vectorTabWidget->count() == 0)
     {
         return false;
     }
 
     // 获取当前选中的向量表ID
-    int tableId = -1;
-    int currentIdx = m_vectorTableSelector->currentIndex();
-    if (currentIdx >= 0)
-    {
-        tableId = m_vectorTableSelector->currentData().toInt();
-    }
-    else
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
     {
         return false;
     }
 
-    // 检查VectorDataHandler中是否有该表的修改行
-    // 任何一行被修改，就表示有未保存的内容
-    return VectorDataHandler::instance().isRowModified(tableId, -1);
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        return false;
+    }
+
+    // 获取存储在Widget属性中的模型
+    VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+    if (!tableModel)
+    {
+        return false;
+    }
+
+    // 检查模型中是否有修改的行
+    return tableModel->hasModifiedRows();
 }

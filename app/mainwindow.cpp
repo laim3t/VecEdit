@@ -14,6 +14,7 @@
 #include "vector/vectordatahandler.h"
 #include "vector/fillvectordialog.h"
 #include "vector/vector_data_types.h"
+#include "vector/vectortablemodel.h" // 添加Model引用
 #include "common/dialogmanager.h"
 #include "pin/vectorpinsettingsdialog.h"
 #include "pin/pinsettingsdialog.h"
@@ -35,3 +36,4 @@
 #include "mainwindow_waveform_view.cpp"
 #include "mainwindow_waveform_timeset.cpp"
 #include "mainwindow_waveform_types.cpp"
+#include "mainwindow_test.cpp" // 添加测试模块

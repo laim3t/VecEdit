@@ -18,7 +18,12 @@ class VectorTableItemDelegate : public QStyledItemDelegate
     Q_OBJECT
 
 public:
+    // 原有构造函数
     explicit VectorTableItemDelegate(QObject *parent = nullptr, const QVector<int> &cellEditTypes = QVector<int>());
+    
+    // 新增构造函数，允许直接指定表格ID
+    explicit VectorTableItemDelegate(int tableId, QObject *parent = nullptr, const QVector<int> &cellEditTypes = QVector<int>());
+    
     ~VectorTableItemDelegate() override;
 
     // 创建编辑器
@@ -35,6 +40,9 @@ public:
 
     // 刷新表ID缓存
     void refreshTableIdCache();
+    
+    // 设置表格ID
+    void setTableId(int tableId);
 
 private:
     // 获取指令选项
@@ -69,6 +77,9 @@ private:
     // 表ID缓存
     mutable bool m_tableIdCached;
     mutable int m_cachedTableId;
+    
+    // 直接指定的表格ID，优先级高于缓存的ID
+    int m_specifiedTableId;
 
     // 单元格编辑类型，用于支持不同类型的编辑器
     QVector<int> m_cellTypes;

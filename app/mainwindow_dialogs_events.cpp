@@ -160,64 +160,28 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         fixExistingTableWithoutColumns(tableId);
     }
 
-    // 重置分页状态
-    m_currentPage = 0;
+    // 使用Model/View架构加载表格数据
+    qDebug() << funcName << " - 开始使用Model/View架构加载表格数据，表ID:" << tableId;
+    loadVectorTableWithModelView(tableId);
+    
+    qDebug() << funcName << " - 表格加载成功";
 
-    // 获取总行数并更新页面信息
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-
-    // 更新分页信息显示
-    updatePaginationInfo();
-
-    // 使用分页方式加载数据
-    qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
-    bool loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-    qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
-             << "，表ID:" << tableId
-             << "，列数:" << m_vectorTableWidget->columnCount();
-
-    if (loadSuccess)
+    // 更新波形图视图
+    if (m_isWaveformVisible && m_waveformPlot)
     {
-        qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
-
-        // 更新波形图视图
-        if (m_isWaveformVisible && m_waveformPlot)
-        {
-            updateWaveformView();
-        }
-
-        // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
-        if (m_vectorTableWidget->columnCount() < 6)
-        {
-            qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
-                       << "），可能缺少标准列。尝试修复...";
-            fixExistingTableWithoutColumns(tableId);
-            // 重新加载表格（使用分页）
-            loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-            qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
-                     << "，列数:" << m_vectorTableWidget->columnCount();
-        }
-
-        // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-        TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-
-        // 输出每一列的标题，用于调试
-        QStringList columnHeaders;
-        for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
-        {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-            QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-            columnHeaders << headerText;
-        }
-        qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
-
-        statusBar()->showMessage(QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableWidget->columnCount()));
+        updateWaveformView();
     }
-    else
+
+    // 如果列配置太少，可能需要修复
+    QSqlQuery columnQuery(db);
+    columnQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1");
+    columnQuery.addBindValue(tableId);
+    
+    int columnCount = 0;
+    if (columnQuery.exec() && columnQuery.next())
     {
-        qWarning() << funcName << " - 表格加载失败，表ID:" << tableId;
-        statusBar()->showMessage("加载向量表失败");
+        columnCount = columnQuery.value(0).toInt();
+        qDebug() << funcName << " - 表 " << tableId << " 有 " << columnCount << " 个可见列";
     }
 
     // 重置标志
@@ -295,34 +259,9 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
             // 重新加载数据
             if (tableId > 0)
             {
-                // 重置分页状态
-                m_currentPage = 0;
-
-                // 获取总行数并更新页面信息
-                m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-                m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-
-                // 更新分页信息显示
-                updatePaginationInfo();
-
-                // 使用分页方式加载数据
-                if (VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize))
-                {
-                    qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，页码:" << m_currentPage
-                             << "，每页行数:" << m_pageSize << "，列数:" << m_vectorTableWidget->columnCount();
-                    // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-                    TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-
-                    // 输出每一列的标题，用于调试
-                    QStringList columnHeaders;
-                    for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
-                    {
-                        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                        QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-                        columnHeaders << headerText;
-                    }
-                    qDebug() << "MainWindow::syncComboBoxWithTab - 表头列表:" << columnHeaders.join(", ");
-                }
+                // 使用Model/View架构加载数据
+                loadVectorTableWithModelView(tableId);
+                qDebug() << "MainWindow::syncComboBoxWithTab - 成功使用Model/View架构重新加载表格数据";
             }
 
             break;
@@ -330,92 +269,39 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
     }
 }
 
-// 处理表格单元格变更
+// 处理表格单元格变更 - Model/View架构下由模型直接处理
 void MainWindow::onTableCellChanged(int row, int column)
 {
     qDebug() << "MainWindow::onTableCellChanged - 单元格变更: 行=" << row << ", 列=" << column;
-
-    // 获取当前表的列配置信息
+    qDebug() << "MainWindow::onTableCellChanged - 此方法在Model/View架构下不再需要，单元格变更由模型直接处理";
+    
+    // 在Model/View架构下，此方法不再需要，但为了兼容性保留
+    // 获取当前表的ID
     int tabIndex = m_vectorTabWidget->currentIndex();
     if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
     {
-        onTableRowModified(row);
         return;
     }
 
     int tableId = m_tabToTableId[tabIndex];
-    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(tableId);
-
-    // 检查是否是Label列发生变化
-    bool isLabelColumn = false;
-    int labelColumnIndex = -1;
-    if (column < columns.size() && columns[column].name.toLower() == "label")
-    {
-        isLabelColumn = true;
-        labelColumnIndex = column;
-    }
-
-    // 如果是Label列发生变化，检查是否有重复值
-    if (isLabelColumn && m_vectorTableWidget)
-    {
-        QTableWidgetItem *currentItem = m_vectorTableWidget->item(row, column);
-        if (currentItem)
-        {
-            QString newLabel = currentItem->text().trimmed();
-            if (!newLabel.isEmpty())
-            {
-                // 计算当前行在整个表中的实际索引（考虑分页）
-                int actualRowIndex = m_currentPage * m_pageSize + row;
-
-                // 检查Label值是否重复
-                int duplicateRow = -1;
-                if (isLabelDuplicate(tableId, newLabel, actualRowIndex, duplicateRow))
-                {
-                    // 阻止表格信号，避免递归触发
-                    m_vectorTableWidget->blockSignals(true);
-
-                    // 将单元格值恢复为空
-                    currentItem->setText("");
-
-                    // 重新启用表格信号
-                    m_vectorTableWidget->blockSignals(false);
-
-                    // 计算重复行在哪一页以及页内索引
-                    int duplicatePage = duplicateRow / m_pageSize + 1;      // 显示给用户的页码从1开始
-                    int duplicateRowInPage = duplicateRow % m_pageSize + 1; // 显示给用户的行号从1开始
-
-                    // 弹出警告对话框
-                    QMessageBox::warning(this,
-                                         "标签重复",
-                                         QString("标签 '%1' 已经存在于第 %2 页第 %3 行，请使用不同的标签值。")
-                                             .arg(newLabel)
-                                             .arg(duplicatePage)
-                                             .arg(duplicateRowInPage));
-
-                    // 让单元格保持编辑状态
-                    m_vectorTableWidget->editItem(currentItem);
-
-                    // 由于恢复了值，不需要标记为已修改
-                    return;
-                }
-            }
-        }
-    }
-
-    // 标记行为已修改
-    onTableRowModified(row);
-
+    
     // 如果是Label列变化，刷新侧边栏导航树
-    if (isLabelColumn)
+    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(tableId);
+    bool isLabelColumn = false;
+    if (column < columns.size() && columns[column].name.toLower() == "label")
     {
         qDebug() << "MainWindow::onTableCellChanged - Label列变化，刷新侧边栏";
         refreshSidebarNavigator();
     }
 }
 
-// 处理表格行修改
+// 处理表格行修改 - Model/View架构下由模型直接处理
 void MainWindow::onTableRowModified(int row)
 {
+    qDebug() << "MainWindow::onTableRowModified - 行修改: 行=" << row;
+    qDebug() << "MainWindow::onTableRowModified - 此方法在Model/View架构下不再需要，行修改由模型直接处理";
+    
+    // 在Model/View架构下，此方法不再需要，但为了兼容性保留
     // 获取当前选中的向量表ID
     int tabIndex = m_vectorTabWidget->currentIndex();
     if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
@@ -423,15 +309,6 @@ void MainWindow::onTableRowModified(int row)
         qWarning() << "MainWindow::onTableRowModified - 没有选中有效的向量表";
         return;
     }
-
-    int tableId = m_tabToTableId[tabIndex];
-
-    // 计算实际数据库中的行索引（考虑分页）
-    int actualRowIndex = m_currentPage * m_pageSize + row;
-    qDebug() << "MainWindow::onTableRowModified - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
-
-    // 标记行为已修改
-    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
 
     // 更新修改标志和窗口标题
     m_hasUnsavedChanges = true;
@@ -449,22 +326,6 @@ void MainWindow::onTableRowModified(int row)
     }
 }
 
-// 跳转到指定页
-void MainWindow::jumpToPage(int pageNum)
-{
-    const QString funcName = "MainWindow::jumpToPage";
-    qDebug() << funcName << " - 跳转到页码:" << pageNum;
-
-    if (pageNum < 0 || pageNum >= m_totalPages)
-    {
-        qWarning() << funcName << " - 无效的页码:" << pageNum;
-        return;
-    }
-
-    m_currentPage = pageNum;
-    loadCurrentPage();
-}
-
 // 跳转到指定行
 void MainWindow::gotoLine()
 {
@@ -479,17 +340,43 @@ void MainWindow::gotoLine()
     }
 
     // 检查是否有选中的向量表
-    if (m_vectorTableSelector->count() == 0 || m_vectorTableSelector->currentIndex() < 0)
+    if (m_vectorTabWidget->count() == 0 || m_vectorTabWidget->currentIndex() < 0)
     {
         QMessageBox::warning(this, "警告", "请先选择一个向量表");
         return;
     }
 
+    // 获取当前Tab页签的索引
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    
     // 获取当前表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
+    int tableId = m_tabToTableId.value(tabIndex, -1);
+    if (tableId <= 0)
+    {
+        QMessageBox::warning(this, "警告", "无法获取当前表格ID");
+        return;
+    }
+
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        QMessageBox::warning(this, "警告", "无法获取当前表格内容");
+        return;
+    }
+
+    // 获取存储在Widget属性中的模型和视图
+    VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+    QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+    
+    if (!tableModel || !tableView)
+    {
+        QMessageBox::warning(this, "警告", "无法获取表格模型或视图");
+        return;
+    }
 
     // 获取表的总行数
-    int totalRowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int totalRowCount = tableModel->rowCount();
 
     if (totalRowCount <= 0)
     {
@@ -513,39 +400,26 @@ void MainWindow::gotoLine()
 
     qDebug() << funcName << " - 用户输入的行号:" << targetLine;
 
-    // 计算目标行所在的页码
-    int targetPage = (targetLine - 1) / m_pageSize;
-    int rowInPage = (targetLine - 1) % m_pageSize;
+    // 在Model/View架构中，行索引是从0开始的，而用户输入的是从1开始的
+    int rowIndex = targetLine - 1;
 
-    qDebug() << funcName << " - 目标行" << targetLine << "在第" << (targetPage + 1) << "页，页内行号:" << (rowInPage + 1);
+    // 清除当前选择
+    tableView->clearSelection();
 
-    // 如果不是当前页，需要切换页面
-    if (targetPage != m_currentPage)
-    {
-        m_currentPage = targetPage;
-        loadCurrentPage();
-    }
+    // 创建目标行的模型索引
+    QModelIndex targetIndex = tableModel->index(rowIndex, 0);
+    
+    // 选中目标行
+    tableView->selectionModel()->select(
+        QItemSelection(targetIndex, tableModel->index(rowIndex, tableModel->columnCount() - 1)),
+        QItemSelectionModel::Select
+    );
 
-    // 在页面中选中行（使用页内索引）
-    if (rowInPage >= 0 && rowInPage < m_vectorTableWidget->rowCount())
-    {
-        // 清除当前选择
-        m_vectorTableWidget->clearSelection();
+    // 滚动到目标行
+    tableView->scrollTo(targetIndex, QAbstractItemView::PositionAtCenter);
 
-        // 选中目标行
-        m_vectorTableWidget->selectRow(rowInPage);
-
-        // 滚动到目标行
-        m_vectorTableWidget->scrollTo(m_vectorTableWidget->model()->index(rowInPage, 0), QAbstractItemView::PositionAtCenter);
-
-        qDebug() << funcName << " - 已跳转到第" << targetLine << "行 (第" << (targetPage + 1) << "页，页内行:" << (rowInPage + 1) << ")";
-        statusBar()->showMessage(tr("已跳转到第 %1 行（第 %2 页）").arg(targetLine).arg(targetPage + 1));
-    }
-    else
-    {
-        QMessageBox::warning(this, "错误", "无效的行号");
-        qDebug() << funcName << " - 无效的行号:" << targetLine << ", 页内索引:" << rowInPage;
-    }
+    qDebug() << funcName << " - 已跳转到第" << targetLine << "行";
+    statusBar()->showMessage(tr("已跳转到第 %1 行").arg(targetLine));
 }
 
 // 字体缩放滑块值改变响应
@@ -556,22 +430,41 @@ void MainWindow::onFontZoomSliderValueChanged(int value)
     // 计算缩放因子 (从50%到200%)
     double scaleFactor = value / 100.0;
 
-    // 更新向量表字体大小
-    if (m_vectorTableWidget)
+    // 获取当前Tab页签的索引
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0)
     {
-        QFont font = m_vectorTableWidget->font();
+        qDebug() << "MainWindow::onFontZoomSliderValueChanged - 没有活动的Tab页签";
+        return;
+    }
+    
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        qDebug() << "MainWindow::onFontZoomSliderValueChanged - 无法获取当前Tab页签内容";
+        return;
+    }
+    
+    // 获取存储在Widget属性中的视图
+    QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+    
+    if (tableView)
+    {
+        // 更新表格视图字体大小
+        QFont font = tableView->font();
         int baseSize = 9; // 默认字体大小
         font.setPointSizeF(baseSize * scaleFactor);
-        m_vectorTableWidget->setFont(font);
+        tableView->setFont(font);
 
         // 更新表头字体
-        QFont headerFont = m_vectorTableWidget->horizontalHeader()->font();
+        QFont headerFont = tableView->horizontalHeader()->font();
         headerFont.setPointSizeF(baseSize * scaleFactor);
-        m_vectorTableWidget->horizontalHeader()->setFont(headerFont);
-        m_vectorTableWidget->verticalHeader()->setFont(headerFont);
+        tableView->horizontalHeader()->setFont(headerFont);
+        tableView->verticalHeader()->setFont(headerFont);
 
         // 调整行高以适应字体大小
-        m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(qMax(25, int(25 * scaleFactor)));
+        tableView->verticalHeader()->setDefaultSectionSize(qMax(25, int(25 * scaleFactor)));
 
         qDebug() << "MainWindow::onFontZoomSliderValueChanged - 字体大小已调整为:" << font.pointSizeF();
     }
@@ -582,21 +475,40 @@ void MainWindow::onFontZoomReset()
 {
     qDebug() << "MainWindow::onFontZoomReset - 重置字体缩放";
 
-    // 重置字体大小到默认值
-    if (m_vectorTableWidget)
+    // 获取当前Tab页签的索引
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0)
     {
-        QFont font = m_vectorTableWidget->font();
+        qDebug() << "MainWindow::onFontZoomReset - 没有活动的Tab页签";
+        return;
+    }
+    
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->widget(tabIndex);
+    if (!tabWidget)
+    {
+        qDebug() << "MainWindow::onFontZoomReset - 无法获取当前Tab页签内容";
+        return;
+    }
+    
+    // 获取存储在Widget属性中的视图
+    QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+    
+    if (tableView)
+    {
+        // 重置字体大小到默认值
+        QFont font = tableView->font();
         font.setPointSizeF(9); // 恢复默认字体大小
-        m_vectorTableWidget->setFont(font);
+        tableView->setFont(font);
 
         // 重置表头字体
-        QFont headerFont = m_vectorTableWidget->horizontalHeader()->font();
+        QFont headerFont = tableView->horizontalHeader()->font();
         headerFont.setPointSizeF(9);
-        m_vectorTableWidget->horizontalHeader()->setFont(headerFont);
-        m_vectorTableWidget->verticalHeader()->setFont(headerFont);
+        tableView->horizontalHeader()->setFont(headerFont);
+        tableView->verticalHeader()->setFont(headerFont);
 
         // 重置行高
-        m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
+        tableView->verticalHeader()->setDefaultSectionSize(25);
 
         qDebug() << "MainWindow::onFontZoomReset - 字体大小已重置为默认值";
     }
@@ -959,7 +871,7 @@ void MainWindow::refreshSidebarNavigator()
                         if (item && !item->text().isEmpty())
                         {
                             // 计算全局行索引
-                            int globalRowIndex = m_currentPage * m_pageSize + row;
+                            int globalRowIndex = row; // 直接使用行索引，不再考虑分页
 
                             LabelInfo info;
                             info.name = item->text();
@@ -981,14 +893,9 @@ void MainWindow::refreshSidebarNavigator()
                     {
                         qDebug() << "MainWindow::refreshSidebarNavigator - 从二进制文件补充当前表的其他页标签数据";
 
-                        // 从其他页的数据中收集标签（避免与当前页的标签重复）
+                        // 从所有行数据中收集标签（避免与当前已显示的标签重复）
                         for (int rowIdx = 0; rowIdx < allRows.size(); rowIdx++)
                         {
-                            // 跳过当前页中的行
-                            int pageStart = m_currentPage * m_pageSize;
-                            int pageEnd = pageStart + m_pageSize - 1;
-                            if (rowIdx >= pageStart && rowIdx <= pageEnd)
-                                continue;
 
                             if (labelColumnIndex < allRows[rowIdx].size())
                             {
@@ -1318,77 +1225,78 @@ void MainWindow::onVectorTableItemClicked(QTreeWidgetItem *item, int column)
 // 标签项目点击事件
 void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 {
-    if (!item)
+    const QString funcName = "MainWindow::onLabelItemClicked";
+    qDebug() << funcName << " - 标签项目被点击";
+
+    if (!item || !item->parent())
         return;
 
-    const QString funcName = "MainWindow::onLabelItemClicked";
-    QString labelText = item->data(0, Qt::UserRole).toString();
-    
-    // 获取标签所属的表ID和行索引（如果存在）
+    // 检查是否是标签项目
+    QTreeWidgetItem *parent = item->parent();
+    if (parent->data(0, Qt::UserRole).toString() != "labels")
+        return;
+
+    // 获取标签文本
+    QString labelText = item->text(0);
+    qDebug() << funcName << " - 标签文本:" << labelText;
+
+    // 获取标签所在的表ID和行索引
     int labelTableId = item->data(0, Qt::UserRole + 1).toInt();
     int labelRowIndex = item->data(0, Qt::UserRole + 2).toInt();
-    
-    qDebug() << funcName << " - 点击标签:" << labelText << "，所属表ID:" << labelTableId << "，行索引:" << labelRowIndex;
+
+    qDebug() << funcName << " - 标签所在表ID:" << labelTableId << "，行索引:" << labelRowIndex;
 
     // 获取当前表ID
+    int currentTableId = -1;
     int tabIndex = m_vectorTabWidget->currentIndex();
-    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
     {
-        qWarning() << funcName << " - 没有选中有效的向量表";
-        return;
+        currentTableId = m_tabToTableId[tabIndex];
     }
 
-    int currentTableId = m_tabToTableId[tabIndex];
-    qDebug() << funcName << " - 当前向量表ID:" << currentTableId;
-
-    // 如果标签来自其他表，需要先切换到对应的表
-    if (labelTableId > 0 && labelTableId != currentTableId)
+    // 如果标签不在当前表中，需要先切换到对应的表
+    if (labelTableId != currentTableId)
     {
-        qDebug() << funcName << " - 标签来自不同的表，需要先切换表";
-        
-        // 查找表ID对应的索引
-        int targetTabIndex = -1;
-        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-            if (it.value() == labelTableId) {
-                targetTabIndex = it.key();
-                break;
-            }
-        }
-        
-        if (targetTabIndex >= 0 && targetTabIndex < m_vectorTabWidget->count())
+        qDebug() << funcName << " - 标签不在当前表中，需要切换表";
+
+        // 查找表名
+        QString tableName;
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        if (db.isOpen())
         {
-            // 切换到目标表
-            m_vectorTabWidget->setCurrentIndex(targetTabIndex);
-            // 更新当前表ID
-            currentTableId = labelTableId;
-            qDebug() << funcName << " - 已切换到表ID:" << currentTableId << "，Tab索引:" << targetTabIndex;
-        }
-        else
-        {
-            // 如果表未打开，则打开它
-            QSqlQuery query(DatabaseManager::instance()->database());
+            QSqlQuery query(db);
             query.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
             query.addBindValue(labelTableId);
-            
             if (query.exec() && query.next())
             {
-                QString tableName = query.value(0).toString();
-                qDebug() << funcName << " - 表未打开，正在打开表:" << tableName << "，ID:" << labelTableId;
-                
-                // 打开表
-                openVectorTable(labelTableId, tableName);
-                
-                // 更新当前表ID
-                tabIndex = m_vectorTabWidget->currentIndex();
-                if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
+                tableName = query.value(0).toString();
+                qDebug() << funcName << " - 找到表名:" << tableName;
+            }
+        }
+
+        // 切换到对应的表
+        if (!tableName.isEmpty())
+        {
+            // 查找表在下拉框中的索引
+            int comboIndex = -1;
+            for (int i = 0; i < m_vectorTableSelector->count(); i++)
+            {
+                if (m_vectorTableSelector->itemData(i).toInt() == labelTableId)
                 {
-                    currentTableId = m_tabToTableId[tabIndex];
+                    comboIndex = i;
+                    break;
                 }
+            }
+
+            if (comboIndex >= 0)
+            {
+                qDebug() << funcName << " - 切换到表索引:" << comboIndex;
+                m_vectorTableSelector->setCurrentIndex(comboIndex);
+                // onVectorTableSelectionChanged会被触发，加载新表
             }
             else
             {
-                qWarning() << funcName << " - 无法找到表ID:" << labelTableId;
-                return;
+                qWarning() << funcName << " - 未在下拉框中找到表ID:" << labelTableId;
             }
         }
     }
@@ -1398,144 +1306,100 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
     {
         qDebug() << funcName << " - 使用已知行索引直接跳转:" << labelRowIndex;
         
-        // 计算目标行所在的页码
-        int targetPage = labelRowIndex / m_pageSize;
-        int rowInPage = labelRowIndex % m_pageSize;
-
-        qDebug() << funcName << " - 标签所在页码:" << targetPage << "，页内行号:" << rowInPage;
-
-        // 如果不是当前页，需要切换页面
-        if (targetPage != m_currentPage)
+        // 获取当前Tab页签中的Widget
+        QWidget* tabWidget = m_vectorTabWidget->currentWidget();
+        if (!tabWidget)
         {
-            qDebug() << funcName << " - 跳转到页码:" << targetPage;
-            m_currentPage = targetPage;
-            loadCurrentPage();
+            qWarning() << funcName << " - 无法获取当前Tab页签内容";
+            return;
         }
-
-        // 在页面中选中行
-        if (rowInPage >= 0 && rowInPage < m_vectorTableWidget->rowCount())
+        
+        // 获取存储在Widget属性中的模型和视图
+        VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+        QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+        
+        if (!tableModel || !tableView)
         {
-            m_vectorTableWidget->selectRow(rowInPage);
-            m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowInPage, 0));
-            qDebug() << funcName << " - 已选中页内行:" << rowInPage;
+            qWarning() << funcName << " - 无法获取表格模型或视图";
+            return;
+        }
+        
+        // 检查行索引是否有效
+        if (labelRowIndex >= 0 && labelRowIndex < tableModel->rowCount())
+        {
+            // 创建目标行的模型索引
+            QModelIndex targetIndex = tableModel->index(labelRowIndex, 0);
+            
+            // 选中目标行
+            tableView->selectionModel()->select(
+                QItemSelection(targetIndex, tableModel->index(labelRowIndex, tableModel->columnCount() - 1)),
+                QItemSelectionModel::Select
+            );
+            
+            // 滚动到目标行
+            tableView->scrollTo(targetIndex, QAbstractItemView::PositionAtCenter);
+            
+            qDebug() << funcName << " - 已选中行:" << labelRowIndex;
             return;
         }
     }
 
     // 如果没有精确的行索引或者跳转失败，则在当前表中查找标签
-    // 1. 首先在当前页中查找
-    bool foundInCurrentPage = false;
-    if (m_vectorTableWidget && m_vectorTableWidget->rowCount() > 0)
+    // 获取当前Tab页签中的Widget
+    QWidget* tabWidget = m_vectorTabWidget->currentWidget();
+    if (!tabWidget)
     {
-        // 获取当前表的列配置
-        QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-
-        // 查找Label列的索引
-        int labelColumnIndex = -1;
-        for (int i = 0; i < columns.size() && i < m_vectorTableWidget->columnCount(); i++)
+        qWarning() << funcName << " - 无法获取当前Tab页签内容";
+        return;
+    }
+    
+    // 获取存储在Widget属性中的模型
+    VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+    QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+    
+    if (!tableModel || !tableView)
+    {
+        qWarning() << funcName << " - 无法获取表格模型或视图";
+        return;
+    }
+    
+    // 查找Label列的索引
+    QList<Vector::ColumnInfo> columns = tableModel->getColumnConfiguration();
+    int labelColumnIndex = -1;
+    for (int i = 0; i < columns.size(); i++)
+    {
+        if (columns[i].name.toLower() == "label")
         {
-            if (columns[i].name.toLower() == "label" && columns[i].is_visible)
-            {
-                // 找到表格中对应的列索引
-                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                if (headerItem && headerItem->text().toLower() == "label")
-                {
-                    labelColumnIndex = i;
-                    break;
-                }
-            }
-        }
-
-        // 如果找到了Label列，在当前页中查找
-        if (labelColumnIndex >= 0)
-        {
-            for (int row = 0; row < m_vectorTableWidget->rowCount(); row++)
-            {
-                QTableWidgetItem *item = m_vectorTableWidget->item(row, labelColumnIndex);
-                if (item && item->text() == labelText)
-                {
-                    m_vectorTableWidget->selectRow(row);
-                    m_vectorTableWidget->scrollToItem(item);
-                    qDebug() << funcName << " - 在当前页找到标签，行:" << row;
-                    foundInCurrentPage = true;
-                    break;
-                }
-            }
+            labelColumnIndex = i;
+            break;
         }
     }
-
-    // 2. 如果当前页未找到，则在所有数据中查找
-    if (!foundInCurrentPage)
+    
+    if (labelColumnIndex >= 0)
     {
-        qDebug() << funcName << " - 当前页未找到标签，开始在所有数据中查找";
-
-        // 从二进制文件中读取所有行数据
-        bool ok = false;
-        QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
-
-        if (ok && !allRows.isEmpty())
+        // 在所有行中查找匹配的标签
+        for (int row = 0; row < tableModel->rowCount(); row++)
         {
-            // 查找Label列的索引
-            QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-            int labelColumnIndex = -1;
-            for (int i = 0; i < columns.size(); i++)
+            QModelIndex index = tableModel->index(row, labelColumnIndex);
+            QString cellText = tableModel->data(index, Qt::DisplayRole).toString();
+            
+            if (cellText == labelText)
             {
-                if (columns[i].name.toLower() == "label")
-                {
-                    labelColumnIndex = i;
-                    break;
-                }
-            }
-
-            if (labelColumnIndex >= 0)
-            {
-                // 在所有行中查找匹配的标签
-                int matchingRowIndex = -1;
-                for (int i = 0; i < allRows.size(); i++)
-                {
-                    if (labelColumnIndex < allRows[i].size() &&
-                        allRows[i][labelColumnIndex].toString() == labelText)
-                    {
-                        matchingRowIndex = i;
-                        qDebug() << funcName << " - 在所有数据中找到标签，全局行索引:" << matchingRowIndex;
-                        break;
-                    }
-                }
-
-                if (matchingRowIndex >= 0)
-                {
-                    // 计算目标行所在的页码
-                    int targetPage = matchingRowIndex / m_pageSize;
-                    int rowInPage = matchingRowIndex % m_pageSize;
-
-                    qDebug() << funcName << " - 标签所在页码:" << targetPage << "，页内行号:" << rowInPage;
-
-                    // 如果不是当前页，需要切换页面
-                    if (targetPage != m_currentPage)
-                    {
-                        qDebug() << funcName << " - 跳转到页码:" << targetPage;
-                        m_currentPage = targetPage;
-                        loadCurrentPage();
-                    }
-
-                    // 在页面中选中行
-                    if (rowInPage >= 0 && rowInPage < m_vectorTableWidget->rowCount())
-                    {
-                        m_vectorTableWidget->selectRow(rowInPage);
-                        m_vectorTableWidget->scrollToItem(m_vectorTableWidget->item(rowInPage, 0));
-                        qDebug() << funcName << " - 已选中页内行:" << rowInPage;
-                    }
-                }
-                else
-                {
-                    qWarning() << funcName << " - 在所有数据中未找到标签:" << labelText;
-                }
+                // 选中目标行
+                tableView->selectionModel()->select(
+                    QItemSelection(tableModel->index(row, 0), tableModel->index(row, tableModel->columnCount() - 1)),
+                    QItemSelectionModel::Select
+                );
+                
+                // 滚动到目标行
+                tableView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+                
+                qDebug() << funcName << " - 在数据中找到标签，行索引:" << row;
+                return;
             }
         }
-        else
-        {
-            qWarning() << funcName << " - 无法获取所有行数据";
-        }
+        
+        qWarning() << funcName << " - 在数据中未找到标签:" << labelText;
     }
 }
 

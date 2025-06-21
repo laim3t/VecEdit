@@ -73,7 +73,6 @@ void MainWindow::showFillVectorDialog()
 
     // 获取选中单元格的值作为模式初始值
     QList<QString> selectedValues;
-    int pageOffset = m_currentPage * m_pageSize; // 分页偏移
 
     // 找出最小和最大行号（1-based）
     int minRow = INT_MAX;
@@ -83,7 +82,7 @@ void MainWindow::showFillVectorDialog()
     QMap<int, QString> sortedValues;
     foreach (const QModelIndex &index, selectedIndexes)
     {
-        int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
+        int rowIdx = index.row() + 1; // 转换为1-based的行号
         minRow = qMin(minRow, rowIdx);
         maxRow = qMax(maxRow, rowIdx);
 
@@ -134,7 +133,7 @@ void MainWindow::showFillVectorDialog()
             if (labelItem && !labelItem->text().trimmed().isEmpty())
             {
                 // 将UI行号转换为绝对行号（1-based）
-                int absoluteRow = pageOffset + row + 1;
+                int absoluteRow = row + 1;
                 labelRows.append(QPair<QString, int>(labelItem->text().trimmed(), absoluteRow));
             }
         }
@@ -400,32 +399,49 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
         db.commit();
 
         // 刷新表格显示
-        int currentPage = m_currentPage;
-        bool refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, currentPage, m_pageSize);
-        if (!refreshSuccess)
+        int currentIndex = m_vectorTabWidget->currentIndex();
+        if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
         {
-            qWarning() << "向量填充 - 刷新表格数据失败";
-        }
-
-        // 选中原来的行
-        for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
-        {
-            int rowIdx = it.key();
-            // 检查行是否在当前页面
-            int pageSize = m_pageSize;
-            int pageOffset = currentPage * pageSize;
-
-            if (rowIdx >= pageOffset && rowIdx < pageOffset + pageSize)
+            // 获取当前Tab页签中的Widget
+            QWidget* tabWidget = m_vectorTabWidget->widget(currentIndex);
+            if (tabWidget)
             {
-                // 将数据库索引转换为UI表格索引
-                int uiRowIdx = rowIdx - pageOffset;
-                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
+                // 获取存储在Widget属性中的模型和视图
+                VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+                QTableView* tableView = tabWidget->property("tableView").value<QTableView*>();
+                
+                if (tableModel && tableView)
                 {
-                    // 选中行和列
-                    QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
-                    m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
+                    // 刷新模型数据
+                    tableModel->refresh();
+                    
+                    // 选中原来的行
+                    for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
+                    {
+                        int rowIdx = it.key();
+                        if (rowIdx >= 0 && rowIdx < tableModel->rowCount())
+                        {
+                            // 创建目标行和列的模型索引
+                            QModelIndex index = tableModel->index(rowIdx, targetColumn);
+                            
+                            // 选中单元格
+                            tableView->selectionModel()->select(index, QItemSelectionModel::Select);
+                        }
+                    }
+                }
+                else
+                {
+                    qWarning() << "向量填充 - 无法获取表格模型或视图";
                 }
             }
+            else
+            {
+                qWarning() << "向量填充 - 无法获取Tab页签的Widget";
+            }
+        }
+        else
+        {
+            qWarning() << "向量填充 - 无法获取当前Tab页签索引";
         }
 
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));

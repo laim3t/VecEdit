@@ -308,6 +308,11 @@ void MainWindow::loadVectorTable()
 
         // 默认选择第一个表
         m_vectorTableSelector->setCurrentIndex(0);
+        
+        // 使用Model/View架构加载第一个表
+        int firstTableId = m_vectorTableSelector->itemData(0).toInt();
+        loadVectorTableWithModelView(firstTableId);
+        qDebug() << "MainWindow::loadVectorTable - 使用Model/View架构加载了第一个表，ID:" << firstTableId;
     }
     else
     {
@@ -675,9 +680,7 @@ void MainWindow::deleteCurrentVectorTable()
         }
         else
         {
-            // 如果没有剩余表，清空表格并显示欢迎界面
-            m_vectorTableWidget->setRowCount(0);
-            m_vectorTableWidget->setColumnCount(0);
+            // 如果没有剩余表，显示欢迎界面
             m_welcomeWidget->setVisible(true);
             m_vectorTableContainer->setVisible(false);
         }
@@ -696,8 +699,11 @@ void MainWindow::addVectorTableTab(int tableId, const QString &tableName)
 {
     qDebug() << "MainWindow::addVectorTableTab - 添加向量表Tab页签:" << tableName;
 
+    // 创建一个空的容器Widget
+    QWidget* containerWidget = new QWidget();
+    
     // 添加到Tab页签
-    int index = m_vectorTabWidget->addTab(new QWidget(), tableName);
+    int index = m_vectorTabWidget->addTab(containerWidget, tableName);
 
     // 存储映射关系
     m_tabToTableId[index] = tableId;

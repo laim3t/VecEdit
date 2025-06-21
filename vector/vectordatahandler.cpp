@@ -4463,3 +4463,39 @@ QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok
     ok = true;
     return rows;
 }
+
+// 添加updateCellData方法的实现
+bool VectorDataHandler::updateCellData(int tableId, int row, int column, const QVariant &value)
+{
+    const QString funcName = "VectorDataHandler::updateCellData";
+    
+    // 检查表数据缓存是否存在
+    if (!m_tableDataCache.contains(tableId)) {
+        qWarning() << funcName << " - 表数据缓存不存在，表ID:" << tableId;
+        return false;
+    }
+    
+    // 检查行是否在有效范围内
+    QList<Vector::RowData> &rows = m_tableDataCache[tableId];
+    if (row < 0 || row >= rows.size()) {
+        qWarning() << funcName << " - 行索引超出范围，表ID:" << tableId << "，行:" << row;
+        return false;
+    }
+    
+    // 检查列是否在有效范围内
+    if (column < 0 || column >= rows[row].size()) {
+        qWarning() << funcName << " - 列索引超出范围，表ID:" << tableId << "，列:" << column;
+        return false;
+    }
+    
+    // 更新数据
+    rows[row][column] = value;
+    
+    // 标记行为已修改
+    markRowAsModified(tableId, row);
+    
+    qDebug() << funcName << " - 单元格数据已更新，表ID:" << tableId 
+             << "，行:" << row << "，列:" << column << "，值:" << value;
+    
+    return true;
+}

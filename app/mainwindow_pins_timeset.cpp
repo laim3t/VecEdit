@@ -513,8 +513,8 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             throw std::runtime_error(errorText.toStdString());
         }
 
-        // 注意：不要在这里调用onVectorTableSelectionChanged，因为它会重置页码
-        qDebug() << "填充TimeSet - 准备重新加载表格数据，将保留当前页码:" << m_currentPage;
+        // 注意：不要在这里调用onVectorTableSelectionChanged
+        qDebug() << "填充TimeSet - 准备重新加载表格数据";
 
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount));
@@ -526,15 +526,19 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
         {
             int tableId = m_tabToTableId[currentIndex];
 
-            // 清除当前表的数据缓存，但不改变页码
-            VectorDataHandler::instance().clearTableDataCache(tableId);
-
-            // 直接加载当前页数据，而不是调用refreshVectorTableData
-            qDebug() << "填充TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-
-            // 更新分页信息显示
-            updatePaginationInfo();
+            // 获取当前Tab页签中的Widget
+            QWidget* tabWidget = m_vectorTabWidget->widget(currentIndex);
+            if (tabWidget)
+            {
+                // 获取存储在Widget属性中的模型
+                VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+                if (tableModel)
+                {
+                    // 刷新模型数据
+                    qDebug() << "填充TimeSet - 刷新表格模型数据";
+                    tableModel->refresh();
+                }
+            }
         }
         else
         {
@@ -611,10 +615,9 @@ void MainWindow::showFillTimeSetDialog()
         // 找出最小和最大行号（1-based）
         int minRow = INT_MAX;
         int maxRow = 0;
-        int pageOffset = m_currentPage * m_pageSize; // 分页偏移
         foreach (const QModelIndex &index, selectedIndexes)
         {
-            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
+            int rowIdx = index.row() + 1; // 转换为1-based的行号
             minRow = qMin(minRow, rowIdx);
             maxRow = qMax(maxRow, rowIdx);
         }
@@ -1249,28 +1252,32 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             throw std::runtime_error(errorText.toStdString());
         }
 
-        // 注意：不要在这里调用onVectorTableSelectionChanged，因为它会重置页码
-        qDebug() << "替换TimeSet - 准备重新加载表格数据，将保留当前页码:" << m_currentPage;
+        // 注意：不要在这里调用onVectorTableSelectionChanged
+        qDebug() << "替换TimeSet - 准备重新加载表格数据";
 
         // 显示成功消息
         QMessageBox::information(this, tr("成功"), tr("已将 %1 替换为 %2，共更新了 %3 行数据").arg(fromTimeSetName).arg(toTimeSetName).arg(updatedRowCount));
         qDebug() << "替换TimeSet - 操作成功完成，共更新" << updatedRowCount << "行数据";
 
-        // 保存当前页码并仅刷新当前页数据，不改变页码状态
+        // 刷新当前表格数据
         int currentIndex = m_vectorTabWidget->currentIndex();
         if (currentIndex >= 0 && m_tabToTableId.contains(currentIndex))
         {
             int tableId = m_tabToTableId[currentIndex];
 
-            // 清除当前表的数据缓存，但不改变页码
-            VectorDataHandler::instance().clearTableDataCache(tableId);
-
-            // 直接加载当前页数据，而不是调用refreshVectorTableData
-            qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-
-            // 更新分页信息显示
-            updatePaginationInfo();
+            // 获取当前Tab页签中的Widget
+            QWidget* tabWidget = m_vectorTabWidget->widget(currentIndex);
+            if (tabWidget)
+            {
+                // 获取存储在Widget属性中的模型
+                VectorTableModel* tableModel = tabWidget->property("tableModel").value<VectorTableModel*>();
+                if (tableModel)
+                {
+                    // 刷新模型数据
+                    qDebug() << "替换TimeSet - 刷新表格模型数据";
+                    tableModel->refresh();
+                }
+            }
         }
         else
         {
@@ -1346,10 +1353,9 @@ void MainWindow::showReplaceTimeSetDialog()
         // 找出最小和最大行号（1-based）
         int minRow = INT_MAX;
         int maxRow = 0;
-        int pageOffset = m_currentPage * m_pageSize; // 分页偏移
         foreach (const QModelIndex &index, selectedIndexes)
         {
-            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
+            int rowIdx = index.row() + 1; // 转换为1-based的行号
             minRow = qMin(minRow, rowIdx);
             maxRow = qMax(maxRow, rowIdx);
         }

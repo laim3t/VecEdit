@@ -13,7 +13,8 @@
 #include "pin/pinvalueedit.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
+    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
+      m_testTableView(nullptr), m_testTableModel(nullptr)
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -137,6 +138,10 @@ void MainWindow::setupMenu()
     // 查看数据库
     QAction *viewDatabaseAction = viewMenu->addAction(tr("查看数据库(&D)"));
     connect(viewDatabaseAction, &QAction::triggered, this, &MainWindow::showDatabaseViewDialog);
+    
+    // 测试Model/View架构
+    QAction *testModelViewAction = viewMenu->addAction(tr("测试Model/View架构(&T)"));
+    connect(testModelViewAction, &QAction::triggered, this, &MainWindow::testModelView);
 
     // 分隔符
     viewMenu->addSeparator();
@@ -225,6 +230,13 @@ void MainWindow::setupMenu()
     m_toggleWaveformAction = m_waveformDock->toggleViewAction();
     m_toggleWaveformAction->setText(tr("波形图视图"));
     m_viewMenu->addAction(m_toggleWaveformAction);
+    
+    // 添加测试菜单
+    QMenu *testMenu = menuBar()->addMenu(tr("测试(&T)"));
+    
+    // 添加测试Model/View架构的菜单项
+    QAction *testModelViewMenuAction = testMenu->addAction(tr("测试表格模型(&M)"));
+    connect(testModelViewMenuAction, &QAction::triggered, this, &MainWindow::testModelView);
 }
 
 void MainWindow::setupVectorTableUI()
@@ -477,78 +489,11 @@ void MainWindow::setupVectorTableUI()
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
-    // 创建分页控件
-    m_paginationWidget = new QWidget(this);
-    QHBoxLayout *paginationLayout = new QHBoxLayout(m_paginationWidget);
-    paginationLayout->setContentsMargins(5, 5, 5, 5);
-
-    // 上一页按钮
-    m_prevPageButton = new QPushButton(tr("上一页"), this);
-    m_prevPageButton->setFixedWidth(80);
-    connect(m_prevPageButton, &QPushButton::clicked, this, &MainWindow::loadPrevPage);
-    paginationLayout->addWidget(m_prevPageButton);
-
-    // 页码信息标签
-    m_pageInfoLabel = new QLabel(tr("第 0/0 页，共 0 行"), this);
-    paginationLayout->addWidget(m_pageInfoLabel);
-
-    // 下一页按钮
-    m_nextPageButton = new QPushButton(tr("下一页"), this);
-    m_nextPageButton->setFixedWidth(80);
-    connect(m_nextPageButton, &QPushButton::clicked, this, &MainWindow::loadNextPage);
-    paginationLayout->addWidget(m_nextPageButton);
-
-    // 每页行数选择
-    QLabel *pageSizeLabel = new QLabel(tr("每页行数:"), this);
-    paginationLayout->addWidget(pageSizeLabel);
-
-    m_pageSizeSelector = new QComboBox(this);
-    m_pageSizeSelector->addItem("100", 100);
-    m_pageSizeSelector->addItem("500", 500);
-    m_pageSizeSelector->addItem("1000", 1000);
-    m_pageSizeSelector->addItem("5000", 5000);
-    m_pageSizeSelector->setCurrentIndex(0);
-    connect(m_pageSizeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            [this](int index)
-            {
-                int newPageSize = m_pageSizeSelector->itemData(index).toInt();
-                this->changePageSize(newPageSize);
-            });
-    paginationLayout->addWidget(m_pageSizeSelector);
-
-    // 页码跳转
-    QLabel *jumpLabel = new QLabel(tr("跳转到:"), this);
-    paginationLayout->addWidget(jumpLabel);
-
-    m_pageJumper = new QSpinBox(this);
-    m_pageJumper->setMinimum(1);
-    m_pageJumper->setMaximum(1);
-    m_pageJumper->setFixedWidth(60);
-    paginationLayout->addWidget(m_pageJumper);
-
-    m_jumpButton = new QPushButton(tr("确定"), this);
-    m_jumpButton->setFixedWidth(50);
-    connect(m_jumpButton, &QPushButton::clicked, [this]()
-            {
-        int pageNum = m_pageJumper->value() - 1; // 转换为0-based索引
-        this->jumpToPage(pageNum); });
-    paginationLayout->addWidget(m_jumpButton);
-
-    // 添加伸缩项
-    paginationLayout->addStretch();
-
-    // 初始化分页相关变量
-    m_currentPage = 0;
-    m_pageSize = 100; // 默认每页100行
-    m_totalPages = 0;
-    m_totalRows = 0;
-
     // 创建Tab栏
     setupTabBar();
 
     // 将布局添加到容器
     containerLayout->addWidget(m_vectorTableWidget);
-    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
 
     // 将容器添加到主布局
@@ -852,9 +797,6 @@ void MainWindow::saveWindowState()
     // 保存窗口状态（工具栏、停靠窗口等）
     settings.setValue("MainWindow/windowState", QMainWindow::saveState());
 
-    // 保存分页大小
-    settings.setValue("MainWindow/pageSize", m_pageSize);
-
     // 保存向量表选择
     if (m_vectorTableSelector && m_vectorTableSelector->count() > 0)
     {
@@ -901,29 +843,6 @@ void MainWindow::restoreWindowState()
     if (settings.contains("MainWindow/windowState"))
     {
         QMainWindow::restoreState(settings.value("MainWindow/windowState").toByteArray());
-    }
-
-    // 恢复分页大小
-    if (settings.contains("MainWindow/pageSize"))
-    {
-        int savedPageSize = settings.value("MainWindow/pageSize").toInt();
-        if (savedPageSize > 0 && savedPageSize != m_pageSize)
-        {
-            // 确保页面大小选择器已初始化
-            if (m_pageSizeSelector)
-            {
-                for (int i = 0; i < m_pageSizeSelector->count(); ++i)
-                {
-                    if (m_pageSizeSelector->itemData(i).toInt() == savedPageSize)
-                    {
-                        m_pageSizeSelector->setCurrentIndex(i);
-                        break;
-                    }
-                }
-            }
-
-            m_pageSize = savedPageSize;
-        }
     }
 
     // 恢复向量表选择

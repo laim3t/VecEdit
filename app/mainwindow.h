@@ -35,6 +35,8 @@
 // 前置声明
 class VectorTableItemDelegate;
 class DialogManager;
+class VectorTableModel;
+class QTableView;
 
 class MainWindow : public QMainWindow
 {
@@ -153,13 +155,6 @@ private slots:
     void onFontZoomReset();
     void closeTab(int index);
 
-    // 分页功能相关方法
-    void loadCurrentPage();
-    void loadNextPage();
-    void loadPrevPage();
-    void changePageSize(int newSize);
-    void jumpToPage(int pageNum);
-
     // 表格数据变更监听
     void onTableCellChanged(int row, int column);
     void onTableRowModified(int row);
@@ -207,10 +202,20 @@ private slots:
     void on_action_triggered(bool checked);
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
     void updateWindowTitle(const QString &dbPath = QString());
+    
+    // 测试Model/View架构的函数
+    void testModelView();
+    
+    // 使用Model/View架构加载向量表
+    void loadVectorTableWithModelView(int tableId);
 
 private:
     void setupUI();
     void setupMenu();
+    
+    // Model/View架构相关成员
+    QTableView *m_testTableView;
+    VectorTableModel *m_testTableModel;
     void setupVectorTableUI();
     void setupTabBar();
     void setupSidebarNavigator();
@@ -239,9 +244,6 @@ private:
 
     // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();
-
-    // 辅助函数：更新分页信息
-    void updatePaginationInfo();
 
     // 辅助函数：加载向量表元数据
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, int &schemaVersion, int &rowCount);
@@ -288,22 +290,6 @@ private:
     QAction *m_deleteRangeAction; // 删除指定范围内的向量行按钮
     QAction *m_gotoLineAction;    // 跳转到某行按钮
     QAction *m_addGroupAction;    // 添加管脚分组按钮
-
-    // 分页相关UI组件
-    QWidget *m_paginationWidget;   // 分页控件容器
-    QPushButton *m_prevPageButton; // 上一页按钮
-    QPushButton *m_nextPageButton; // 下一页按钮
-    QLabel *m_pageInfoLabel;       // 页码信息标签
-    QComboBox *m_pageSizeSelector; // 每页行数选择器
-    QSpinBox *m_pageJumper;        // 页码跳转输入框
-    QPushButton *m_jumpButton;     // 跳转按钮
-
-    // 分页相关数据
-    int m_currentPage;    // 当前页码（从0开始）
-    int m_pageSize;       // 每页显示的行数
-    int m_totalPages;     // 总页数
-    int m_totalRows;      // 总行数
-    bool m_pagingEnabled; // 是否启用分页
 
     // 数据修改状态
     bool m_hasUnsavedChanges; // 跟踪是否有未保存的内容
