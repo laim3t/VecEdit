@@ -1,4 +1,4 @@
-# 100% 成功率 - QTableWidget 到 QTableView 重构AI执行手册 (优化版)
+# 100%成功率 - QTableWidget 到 QTableView 重构AI执行手册 (最终版v3)
 
 ## 1. 核心目标与AI执行原则
 
@@ -11,43 +11,59 @@
 - **禁止创造:** 你的任务是精确执行指令，而不是提出替代方案或进行创造性修改。所有必要的决策都已在本手册中做出。
 
 ---
-
-## 2. 总体规划
-
-本次重构将分四个阶段进行，以确保过程的稳定和可控：
-
-- **阶段一：奠定基础 (非破坏性)** - 创建新的模型类和扩展数据接口，但暂不触及现有 UI。
-- **阶段二：核心切换 (只读模式)** - 用 `QTableView` 替换 `QTableWidget`，并连接新模型以显示数据。
-- **阶段三：恢复交互功能** - 重新实现数据编辑、行/列操作等所有交互功能。
-- **阶段四：最终清理与验证** - 移除所有废弃代码并进行最终测试。
-
----
-
-## 阶段一：奠定基础 (非破坏性)
+## 阶段一：奠定数据层基础 (非破坏性修改)
 
 ### **步骤 1: 创建 `VectorTableModel` 的文件框架**
-
 *   **目标:** 创建新数据模型 `VectorTableModel` 的 `.h` 和 `.cpp` 文件。
 *   **AI指令:**
-    1.  创建文件 `vector/vectortablemodel.h`。
-    2.  在文件中定义一个名为 `VectorTableModel` 的新类，它必须公开继承自 `QAbstractTableModel`。
-    3.  在类定义上方，前置声明 `class VectorDataHandler;` 和 `namespace Vector { struct ColumnInfo; }`。
-    4.  在类中，声明构造函数和析构函数。
-    5.  声明并重写 (override) `QAbstractTableModel` 的四个核心虚函数：
+    1.  创建文件 `vector/vectortablemodel.h`，内容如下:
         ```cpp
-        int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-        int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-        QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-        QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+        #ifndef VECTORTABLEMODEL_H
+        #define VECTORTABLEMODEL_H
+        #include <QAbstractTableModel>
+        #include "vector/vector_data_types.h" // 包含依赖
+        
+        // 前置声明
+        class VectorDataHandler;
+        
+        class VectorTableModel : public QAbstractTableModel
+        {
+            Q_OBJECT
+        
+        public:
+            explicit VectorTableModel(QObject *parent = nullptr);
+            ~VectorTableModel();
+        
+            int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+            int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+            QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+            QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+        
+        private:
+            VectorDataHandler* m_dataHandler = nullptr;
+            QList<Vector::ColumnInfo> m_columnInfoList;
+            int m_rowCount = 0;
+            int m_tableId = -1; // 提前添加tableId成员
+        };
+        #endif // VECTORTABLEMODEL_H
         ```
-    6.  创建文件 `vector/vectortablemodel.cpp`。
-    7.  在该文件中包含 `"vectortablemodel.h"`，并为上述所有声明的函数提供最基础的空实现（例如，`rowCount` 返回 `0`，`data` 返回 `QVariant()`）。
+    2.  创建文件 `vector/vectortablemodel.cpp`，内容如下:
+        ```cpp
+        #include "vectortablemodel.h"
+        #include "vector/vectordatahandler.h" // 包含依赖
+
+        VectorTableModel::VectorTableModel(QObject *parent) : QAbstractTableModel(parent) {}
+        VectorTableModel::~VectorTableModel() {}
+        int VectorTableModel::rowCount(const QModelIndex &parent) const { return 0; }
+        int VectorTableModel::columnCount(const QModelIndex &parent) const { return 0; }
+        QVariant VectorTableModel::data(const QModelIndex &index, int role) const { return QVariant(); }
+        QVariant VectorTableModel::headerData(int section, Qt::Orientation orientation, int role) const { return QVariant(); }
+        ```
 *   **验收标准:**
     *   [ ] 文件 `vector/vectortablemodel.h` 和 `vector/vectortablemodel.cpp` 已按指令创建。
     *   [ ] **(关键)** 此时，项目 **必须** 仍然能够成功编译并通过。
 
 ### **步骤 2: 将新模型集成到构建系统**
-
 *   **目标:** 让项目能够识别并编译 `VectorTableModel` 文件。
 *   **AI指令:**
     1.  打开项目根目录下的 `CMakeLists.txt` 文件。
@@ -57,96 +73,230 @@
     *   [ ] `CMakeLists.txt` 文件已被修改。
     *   [ ] **(关键)** 项目 **必须** 能够再次成功编译。
 
-### **步骤 3: 扩展 `VectorDataHandler` 以支持按需加载**
-
-*   **目标:** 为 `VectorDataHandler` 添加一个新方法，使其能一次只获取一行数据。
+### **步骤 3: 为 `VectorDataHandler` 添加独立的数据接口**
+*   **目标:** 为 `VectorDataHandler` 添加不依赖 `QTableWidget` 的新方法，为后续解耦做准备。
 *   **AI指令:**
     1.  打开 `vector/vectordatahandler.h` 文件。
-    2.  在 `VectorDataHandler` 类的 `public` 部分，声明一个新的 `const` 成员函数：
+    2.  在前置声明区域，添加 `class VectorTableModel;`。
+    3.  在 `public:` 部分，添加以下三个新的函数声明：
         ```cpp
-        QList<QVariant> getRow(int rowIndex) const;
+        // 新增：获取单行数据，以QVariantList形式返回，供模型使用
+        QList<QVariant> getRowForModel(int tableId, int rowIndex);
+
+        // 新增：更新单个单元格数据
+        bool updateCellValue(int tableId, int rowIndex, int columnIndex, const QVariant &value);
+
+        // 新增：保存来自模型的数据（替代旧的saveVectorTableDataPaged）
+        bool saveVectorTableModelData(int tableId, VectorTableModel *tableModel, int currentPage, int pageSize, int totalRows, QString &errorMessage);
         ```
-    3.  打开 `vector/vectordatahandler.cpp` 文件。
-    4.  实现 `getRow` 函数。
-    5.  **实现逻辑:** 该函数的逻辑必须基于现有 `getAllVectorRows` 中的二进制文件读取逻辑。但它不应使用循环来读取所有行。相反，它需要计算出 `rowIndex` 对应的行在二进制文件中的准确字节偏移量，直接 `seek` 到该位置，只读取并解析那一单行的数据，然后将其作为 `QList<QVariant>` 返回。
+    4. 打开 `vector/vectordatahandler.cpp` 文件。
+    5. **(重要)** 添加新头文件包含 `#include "vector/vectortablemodel.h"`。
+    6. 在文件末尾，为上述三个新函数添加空的实现体，确保能够编译通过。示例如下：
+        ```cpp
+        QList<QVariant> VectorDataHandler::getRowForModel(int tableId, int rowIndex) {
+            // TODO: 在后续步骤中实现
+            Q_UNUSED(tableId); Q_UNUSED(rowIndex);
+            return QList<QVariant>();
+        }
+
+        bool VectorDataHandler::updateCellValue(int tableId, int rowIndex, int columnIndex, const QVariant &value) {
+            // TODO: 在后续步骤中实现
+            Q_UNUSED(tableId); Q_UNUSED(rowIndex); Q_UNUSED(columnIndex); Q_UNUSED(value);
+            return false;
+        }
+        
+        bool VectorDataHandler::saveVectorTableModelData(int tableId, VectorTableModel *tableModel, int currentPage, int pageSize, int totalRows, QString &errorMessage) {
+            // TODO: 在后续步骤中实现
+            Q_UNUSED(tableId); Q_UNUSED(tableModel); Q_UNUSED(currentPage); Q_UNUSED(pageSize); Q_UNUSED(totalRows); Q_UNUSED(errorMessage);
+            return false;
+        }
+        ```
 *   **验收标准:**
-    *   [ ] `VectorDataHandler` 类现在拥有 `getRow(int rowIndex) const` 方法。
+    *   [ ] `VectorDataHandler` 类已拥有三个新的空方法。
     *   [ ] 项目 **必须** 能够成功编译。
 
-### **步骤 4: 实现 `VectorTableModel` 的核心只读逻辑**
+### **步骤 4: 实现 `getRowForModel`**
+*   **目标:** 填充 `getRowForModel` 函数的逻辑，使其能按需从二进制文件中读取单行数据。
+*   **AI指令:**
+    1. 打开 `vector/vectordatahandler.cpp`。
+    2. 找到 `getAllVectorRows` 函数，复制其内部关于打开文件、读取元数据和列信息的逻辑。
+    3. 用复制的逻辑重写 `getRowForModel` 的空实现。
+    4. **核心逻辑:**
+        *   不要一次性读取所有行。
+        *   必须通过循环读取每一行的字节长度，累加偏移量，直到找到 `rowIndex` 对应的行的起始位置。**（注意：行的长度是可变的，不能通过 `行号 * 固定长度` 来计算偏移量）**
+        *   `seek()` 到目标位置，只读取那一单行的数据。
+        *   反序列化该行数据为 `Vector::RowData`。
+        *   将 `Vector::RowData` 转换为 `QList<QVariant>` 并返回。
+        *   **必须** 正确处理缓存（`m_tableDataCache`），如果缓存命中则直接从缓存返回。
+*   **验收标准:**
+    *   [ ] `getRowForModel` 已被正确实现。
+    *   [ ] 项目 **必须** 能够成功编译。
 
+### **步骤 5: 实现 `VectorTableModel` 的核心只读逻辑**
 *   **目标:** 填充模型类的逻辑，使其能够通过 `VectorDataHandler` 加载数据。
 *   **AI指令:**
-    1.  打开 `vector/vectortablemodel.h` 文件:
-        *   添加头文件包含: `#include "vector/vectordatahandler.h"` 和 `#include "vector/vector_data_types.h"`。
-        *   在 `private` 部分添加成员变量：
-            ```cpp
-            VectorDataHandler* m_dataHandler = nullptr;
-            QList<Vector::ColumnInfo> m_columnInfoList;
-            int m_rowCount = 0;
-            ```
-        *   添加一个新的公共方法 `void loadTable(int tableId, VectorDataHandler* dataHandler);` 和 `void clear();`。
-    2.  打开 `vector/vectortablemodel.cpp` 文件:
-        *   **实现 `loadTable`:**
-            1.  在函数顶部调用 `beginResetModel()`。
-            2.  保存 `dataHandler`。
-            3.  **重要:** 调用 `m_dataHandler->getVectorTableRowCount(tableId)` 来获取并保存行数到 `m_rowCount`。
-            4.  **重要:** 调用 `m_dataHandler->getAllColumnInfo(tableId)` 来获取并保存列信息到 `m_columnInfoList`。
-            5.  在函数末尾调用 `endResetModel()`。
-        *   **实现 `clear`:** 调用 `beginResetModel()`, 清空成员变量, 然后调用 `endResetModel()`。
-        *   **实现 `rowCount`:** `return m_rowCount;`。
-        *   **实现 `columnCount`:** `return m_columnInfoList.size();`。
-        *   **实现 `headerData`:** 如果 `orientation` 是 `Qt::Horizontal` 且 `role` 是 `Qt::DisplayRole`，返回 `m_columnInfoList.at(section).name`。否则返回 `QVariant()`。
-        *   **实现 `data`:** 如果 `role` 是 `Qt::DisplayRole` 并且 `index` 有效：
-            1.  调用 `m_dataHandler->getRow(index.row())` 来获取整行数据。
-            2.  从返回的 `QList<QVariant>` 中，返回位于 `index.column()` 位置的 `QVariant`。
+    1.  在 `vector/vectortablemodel.h` 中添加两个新公有函数声明:
+        ```cpp
+        void loadTable(int tableId, VectorDataHandler* dataHandler);
+        void clear();
+        ```
+    2.  打开 `vector/vectortablemodel.cpp` 文件，用以下内容替换所有现有函数实现：
+        ```cpp
+        #include "vectortablemodel.h"
+        #include "vector/vectordatahandler.h"
+
+        VectorTableModel::VectorTableModel(QObject *parent) : QAbstractTableModel(parent) {}
+        VectorTableModel::~VectorTableModel() {}
+
+        void VectorTableModel::loadTable(int tableId, VectorDataHandler* dataHandler) {
+            beginResetModel();
+            m_dataHandler = dataHandler;
+            m_tableId = tableId;
+            if (m_dataHandler) {
+                m_rowCount = m_dataHandler->getVectorTableRowCount(m_tableId);
+                m_columnInfoList = m_dataHandler->getAllColumnInfo(m_tableId);
+            } else {
+                m_rowCount = 0;
+                m_columnInfoList.clear();
+            }
+            endResetModel();
+        }
+
+        void VectorTableModel::clear() {
+            beginResetModel();
+            m_dataHandler = nullptr;
+            m_tableId = -1;
+            m_rowCount = 0;
+            m_columnInfoList.clear();
+            endResetModel();
+        }
+        
+        int VectorTableModel::rowCount(const QModelIndex &parent) const {
+            return parent.isValid() ? 0 : m_rowCount;
+        }
+        
+        int VectorTableModel::columnCount(const QModelIndex &parent) const {
+            return parent.isValid() ? 0 : m_columnInfoList.size();
+        }
+        
+        QVariant VectorTableModel::data(const QModelIndex &index, int role) const {
+            if (!index.isValid() || !m_dataHandler || role != Qt::DisplayRole) {
+                return QVariant();
+            }
+            // 使用新函数 getRowForModel
+            QList<QVariant> rowData = m_dataHandler->getRowForModel(m_tableId, index.row());
+            if (index.column() < rowData.size()) {
+                return rowData.at(index.column());
+            }
+            return QVariant();
+        }
+        
+        QVariant VectorTableModel::headerData(int section, Qt::Orientation orientation, int role) const {
+            if (role == Qt::DisplayRole && orientation == Qt::Horizontal) {
+                if (section >= 0 && section < m_columnInfoList.size()) {
+                    return m_columnInfoList.at(section).name;
+                }
+            }
+            return QVariant();
+        }
+        ```
 *   **验收标准:**
     *   [ ] `VectorTableModel` 类的所有方法都已按上述指令实现。
     *   [ ] 项目 **必须** 能够成功编译。
 
 ---
+## 阶段二：核心切换与适配
 
-## 阶段二：核心切换 (只读模式)
-
-### **步骤 5: 在 `MainWindow` 中用 `QTableView` 替换 `QTableWidget`**
-
-*   **目标:** 在 `MainWindow` 的声明和 UI 构建代码中，将表格控件类型从 `QTableWidget` 更换为 `QTableView`。
+### **步骤 6: 在 `MainWindow` 中用 `QTableView` 替换 `QTableWidget`**
+*   **目标:** 在 `MainWindow` 的声明中，将表格控件类型从 `QTableWidget` 更换为 `QTableView`。
 *   **AI指令:**
     1.  打开 `app/mainwindow.h` 文件:
-        *   移除 `#include <QTableWidget>`。
-        *   添加 `#include <QTableView>`。
-        *   添加头文件: `#include "vector/vectortablemodel.h"`。
-        *   将成员变量 `QTableWidget *m_vectorTableWidget;` 修改为 `QTableView *m_vectorTableView;`。
-        *   添加一个新的私有成员: `VectorTableModel *m_vectorTableModel;`。
-    2.  打开 `app/mainwindow_setup.cpp` 文件，进入 `setupVectorTableUI` 函数:
-        *   将 `m_vectorTableWidget = new QTableWidget(...)` 修改为 `m_vectorTableView = new QTableView(...)`。
-        *   将该函数中所有对 `m_vectorTableWidget` 的引用全部更新为 `m_vectorTableView`。
-        *   **注意:** `QTableView` 没有 `setRowCount`, `setColumnCount` 等方法。暂时注释掉所有不兼容的行。
+        *   找到并删除 `#include <QTableWidget>`。
+        *   在头文件包含区，添加 `#include <QTableView>`。
+        *   在头文件包含区，添加 `#include "vector/vectortablemodel.h"`。
+        *   找到成员变量 `QTableWidget *m_vectorTableWidget;` 并将其修改为 `QTableView *m_vectorTableView;`。
+        *   在其下方添加一个新的私有成员: `VectorTableModel *m_vectorTableModel;`。
 *   **验收标准:**
     *   [ ] `MainWindow` 类成员已更新为 `QTableView*` 和 `VectorTableModel*`。
-    *   [ ] `setupVectorTableUI` 中的实例化代码已更新。
-    *   [ ] **(关键)** 此时，项目将 **无法编译**。这是正常的预期结果。
+    *   [ ] **(关键)** 此时，项目将 **大量报错且无法编译**。这是正常的预期结果。
 
-### **步骤 6: 关联模型与视图，并重构数据加载逻辑**
-
-*   **目标:** 实例化模型，设置给 `QTableView`，并用模型驱动数据加载。
+### **步骤 7: 适配UI初始化代码 (`mainwindow_setup.cpp`)**
+*   **目标:** 修改UI创建代码，实例化新控件和模型。
 *   **AI指令:**
-    1.  在 `MainWindow` 的构造函数 (`MainWindow::MainWindow` in `app/mainwindow_setup.cpp`) 中，实例化模型: `m_vectorTableModel = new VectorTableModel(this);`。
-    2.  在 `app/mainwindow_setup.cpp` 的 `setupVectorTableUI` 函数末尾，设置模型: `m_vectorTableView->setModel(m_vectorTableModel);`。
-    3.  **定位到 `app/mainwindow_dialogs_events.cpp` 文件中的 `openVectorTable` 函数。**
-    4.  **彻底删除** 其中所有关于 `setRowCount`, `setColumnCount` 的调用，以及循环创建 `QTableWidgetItem` 并 `setItem` 的整个代码块。
-    5.  用一行代码取而代之: `m_vectorTableModel->loadTable(tableId, &VectorDataHandler::instance());`。
+    1.  打开 `app/mainwindow_setup.cpp`。
+    2.  在 `MainWindow::MainWindow` 构造函数中，紧随 `setupUI()` 之后，添加模型实例化代码：`m_vectorTableModel = new VectorTableModel(this);`。
+    3.  在 `setupVectorTableUI` 函数中，将 `m_vectorTableWidget = new QTableWidget(...)` 修改为 `m_vectorTableView = new QTableView(...)`。
+    4.  紧随其后，添加 `m_vectorTableView->setModel(m_vectorTableModel);`。
+    5.  将该函数中所有对 `m_vectorTableWidget` 的引用全部更新为 `m_vectorTableView`。
+    6.  **重要：** `QTableView` 没有 `cellChanged` 信号。找到 `connect(m_vectorTableWidget, &QTableWidget::cellChanged, ...)` 这行，将其**完全删除或注释掉**。我们将在后续步骤中用模型信号替代它。
+    7.  **重要：** `QTableView` 没有 `cellWidget` 信号或方法。找到所有与 `cellWidget` 相关的 `connect` 语句，将其**完全删除或注释掉**。
 *   **验收标准:**
-    *   [ ] 旧的表格填充代码已被移除，并替换为对 `m_vectorTableModel->loadTable()` 的调用。
-    *   [ ] **(关键)** 修复所有因 `QTableWidget` API 被移除而导致的编译错误，直到项目再次编译成功。
-    *   [ ] 运行应用，打开一个项目，并选择一个向量表。
-    *   [ ] **(验收核心)** 表格视图中 **必须** 正确地显示出所有数据，包括正确的行数、列数和表头。
-    *   [ ] **(验收核心)** 上下滚动表格 **必须** 流畅，无任何卡顿。
+    *   [ ] `setupVectorTableUI` 中的实例化和 connect 代码已按指令更新。
+    *   [ ] 项目**仍然无法编译**，但与此文件相关的部分错误可能已解决。
 
-### **步骤 7: 适配所有读取表格状态的代码**
+### **步骤 8: 适配数据加载逻辑 (`mainwindow_dialogs_events.cpp`)**
+*   **目标:** 使用模型加载数据，替代旧的 `QTableWidget` 数据填充方式。
+*   **AI指令:**
+    1.  打开 `app/mainwindow_dialogs_events.cpp`。
+    2.  定位到 `openVectorTable` 函数。
+    3.  **彻底删除** 其中所有关于 `setRowCount`, `setColumnCount` 的调用，以及循环创建 `QTableWidgetItem` 并 `setItem` 的整个代码块。
+    4.  用一行代码取而代之: `m_vectorTableModel->loadTable(tableId, &VectorDataHandler::instance());`。
+    5.  将此函数中所有对 `m_vectorTableWidget` 的引用全部更新为 `m_vectorTableView`。将 `m_vectorTableWidget->rowCount()` 或 `columnCount()` 替换为 `m_vectorTableModel->rowCount()` 或 `columnCount()`。
+    6.  定位到 `onVectorTableSelectionChanged` 函数，执行与 `openVectorTable` 相同的替换操作。
+    7.  将 `TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);` 替换为 `TableStyleManager::applyBatchTableStyle(m_vectorTableView);`。
+*   **验收标准:**
+    *   [ ] 数据加载逻辑已更新为 `m_vectorTableModel->loadTable()`。
+    *   [ ] 项目**仍然无法编译**。
 
-*   **目标:** 修复所有之前从 `QTableWidget` 读取状态的代码。
-*   **AI指令:** 在整个项目中搜索 `m_vectorTableWidget->` 定位并修改所有用法。
-    1.  **获取选中项:** `m_vectorTableWidget->selectedItems()` 替换为 `m_vectorTableView->selectionModel()->selectedIndexes()`。 **注意:** 后者返回 `QModelIndexList`，你需要遍历它并使用 `.row()` 和 `.column()`。
-    2.  **获取单元格数据:** `m_vectorTableWidget->item(row, col)->text()` 替换为 `m_vectorTableModel->data(m_vectorTableModel->index(row, col)).toString()`。
-    3.  **获取行/列数:** `m_vectorTableWidget->rowCount()` 替换为 `m_vectorTableModel->rowCount()`。
+### **步骤 9: 全局适配其余API调用**
+*   **目标:** 逐一修复剩下的、分散在项目中的 `QTableWidget` API调用。
+*   **AI指令:**
+    1.  在 `app/mainwindow_project_tables.cpp` 的 `deleteCurrentVectorTable` 函数中，将 `m_vectorTableWidget->setRowCount(0);` 和 `setColumnCount(0)` 两行替换为 `m_vectorTableModel->clear();`。
+    2.  在 `app/mainwindow_pins_timeset.cpp` 的 `showFillTimeSetDialog` 和 `showReplaceTimeSetDialog` 函数中，将 `m_vectorTableWidget->selectionModel()` 替换为 `m_vectorTableView->selectionModel()`。
+    3.  在 `app/mainwindow_data_operations.cpp` 的 `deleteSelectedVectorRows` 和 `gotoLine` 函数中，进行相同的替换。
+    4.  在 `app/mainwindow_vector_fill.cpp` 的 `fillVectorForVectorTable` 函数中，进行相同的替换。
+    5.  **全局搜索** `m_vectorTableWidget`，将所有剩余的简单引用（非函数调用）替换为 `m_vectorTableView`。
+    6.  **全局搜索** `->rowCount()`，如果其调用者是 `m_vectorTableView`，则修正为 `m_vectorTableModel->rowCount()`。对 `columnCount` 做同样处理。
+    7.  **全局搜索** `->selectedItems()`，将其替换为 `->selectionModel()->selectedIndexes()`。并注意处理返回类型的差异。
+*   **验收标准:**
+    *   [ ] 所有 `m_vectorTableWidget` 的引用已被替换。
+    *   [ ] **(关键)** 项目此时 **必须** 能够成功编译。
+    *   [ ] 运行应用，打开一个向量表。表格 **必须** 能正确显示数据，且滚动流畅。所有只读功能应该正常。
+
+---
+## 阶段三：恢复交互功能
+
+### **步骤 10: 实现单元格数据编辑 (`setData`)**
+*   **目标:** 让用户能够再次编辑数据，并将修改持久化。
+*   **AI指令:**
+    1.  打开 `vector/vectortablemodel.h`，添加以下两个 `override` 函数声明：
+        ```cpp
+        Qt::ItemFlags flags(const QModelIndex &index) const override;
+        bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+        ```
+    2.  打开 `vector/vectortablemodel.cpp`，添加 `flags` 和 `setData` 的实现：
+        ```cpp
+        Qt::ItemFlags VectorTableModel::flags(const QModelIndex &index) const {
+            if (!index.isValid()) return Qt::NoItemFlags;
+            return QAbstractTableModel::flags(index) | Qt::ItemIsEditable;
+        }
+
+        bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+            if (role == Qt::EditRole && m_dataHandler) {
+                if (m_dataHandler->updateCellValue(m_tableId, index.row(), index.column(), value)) {
+                    emit dataChanged(index, index, {role});
+                    return true;
+                }
+            }
+            return false;
+        }
+        ```
+    3. 打开 `vector/vectordatahandler.cpp`，找到之前添加的空的 `updateCellValue` 函数，并为其添加真实逻辑：通过SQL `UPDATE` 语句更新数据库中的特定字段，并更新二进制文件中的对应数据。
+*   **验收标准:**
+    *   [ ] `flags` 和 `setData` 已实现。 `updateCellValue` 已实现。
+    *   [ ] **(关键)** 在UI中双击单元格，进入编辑模式。修改数据后，数据被成功保存。
+
+*(后续步骤，如行/列操作、清理等，也应遵循同样极度精细化的原则编写，但为简洁起见，此处省略。核心的最难部分已经覆盖。)*
+
+---
+**重构继续。**
