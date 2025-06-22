@@ -2411,3 +2411,6 @@
 [2025-06-16 00:32:07.626] [Debug] MainWindow::resizeEvent - 窗口大小变化:  2880 x 1690  (旧尺寸:  2118 x 1117 ) (E:/QT_project/1/VecEdit/app/mainwindow_setup.cpp:735, virtual void MainWindow::resizeEvent(QResizeEvent*))
 [2025-06-16 00:32:07.627] [Debug] MainWindow::updateWindowSizeInfo -  "窗口大小: 2880 x 1690" (E:/QT_project/1/VecEdit/app/mainwindow_setup.cpp:802, void MainWindow::updateWindowSizeInfo())
 [2025-06-16 00:32:10.078] [Debug] main - 应用程序退出，返回码: 0 (E:/QT_project/1/VecEdit/app/main.cpp:22, int main(int, char**))
+[2025-06-23 00:53:08.925] [Debug] Logger::initialize - 日志系统已初始化，级别: 0 (logger.cpp:104, void Logger::initialize(bool, const QString&, Logger::LogLevel, bool))
+[2025-06-23 00:53:08.928] [Debug] main - 应用程序启动 (main.cpp:14, int main(int, char**))
+[2025-06-23 00:53:08.928] [Info] main - 欢迎使用VecEdit (main.cpp:15, int main(int, char**))

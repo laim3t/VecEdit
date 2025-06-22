@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.obj: \
- C:\VecEdit\common\qcustomplot.cpp C:\VecEdit\common\qcustomplot.h \
+ E:\QT_project\1\VecEdit\common\qcustomplot.cpp \
+ E:\QT_project\1\VecEdit\common\qcustomplot.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \

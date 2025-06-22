@@ -18,3 +18,4 @@
 #include "EFITGCF6GF/moc_fillvectordialog.cpp"
 #include "EFITGCF6GF/moc_vectordatahandler.cpp"
 #include "EFITGCF6GF/moc_vectortabledelegate.cpp"
+#include "EFITGCF6GF/moc_vectortablemodel.cpp"

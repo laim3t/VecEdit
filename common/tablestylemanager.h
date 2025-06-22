@@ -33,6 +33,9 @@ public:
 
     // 批量设置表格样式（高性能版）
     static void applyBatchTableStyle(QTableWidget *table);
+    
+    // 批量设置表格样式(QTableView版本)
+    static void applyBatchTableStyle(QTableView *tableView);
 
     // 对QTableView进行风格设置
     static void applyTableStyle(QTableView *tableView);
@@ -51,6 +54,9 @@ public:
 
     // 设置管脚列的列宽，使六列管脚平均分配剩余空间
     static void setPinColumnWidths(QTableWidget *table);
+    
+    // 设置管脚列的列宽，使六列管脚平均分配剩余空间(QTableView版本)
+    static void setPinColumnWidths(QTableView *tableView);
 
     // 应用预定义的样式类到单元格
     static void applyCellStyleClass(QTableWidget *table, int row, int column, StyleClass styleClass);

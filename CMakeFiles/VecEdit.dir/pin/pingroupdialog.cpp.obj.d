@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj: \
- C:\VecEdit\pin\pingroupdialog.cpp C:\VecEdit\pin\pingroupdialog.h \
+ E:\QT_project\1\VecEdit\pin\pingroupdialog.cpp \
+ E:\QT_project\1\VecEdit\pin\pingroupdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
@@ -22,7 +23,7 @@ CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qpushbutton.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlabel.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \

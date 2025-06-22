@@ -264,12 +264,7 @@ void MainWindow::loadVectorTable()
 
     qDebug() << "MainWindow::loadVectorTable - 数据库已打开，开始查询向量表";
 
-    // 刷新itemDelegate的缓存，确保TimeSet选项是最新的
-    if (m_itemDelegate)
-    {
-        qDebug() << "MainWindow::loadVectorTable - 刷新TimeSet选项缓存";
-        m_itemDelegate->refreshCache();
-    }
+    // VectorTableDelegate不需要刷新缓存，它会在需要时从数据库中获取最新的TimeSet选项
 
     // 查询所有向量表
     QSqlQuery tableQuery(db);
@@ -676,8 +671,7 @@ void MainWindow::deleteCurrentVectorTable()
         else
         {
             // 如果没有剩余表，清空表格并显示欢迎界面
-            m_vectorTableWidget->setRowCount(0);
-            m_vectorTableWidget->setColumnCount(0);
+            m_vectorTableModel->clear();
             m_welcomeWidget->setVisible(true);
             m_vectorTableContainer->setVisible(false);
         }

@@ -1,5 +1,5 @@
-C:/VecEdit/VecEdit_autogen/OBAQL5E4PX/moc_filltimesetdialog.cpp: C:/VecEdit/timeset/filltimesetdialog.h \
-  C:/VecEdit/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/VecEdit_autogen/OBAQL5E4PX/moc_filltimesetdialog.cpp: E:/QT_project/1/VecEdit/timeset/filltimesetdialog.h \
+  E:/QT_project/1/VecEdit/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
@@ -323,4 +323,4 @@ C:/VecEdit/VecEdit_autogen/OBAQL5E4PX/moc_filltimesetdialog.cpp: C:/VecEdit/time
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdarg.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stddef.h \
   C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/stdint.h \
-  C:/VecEdit/timeset/timesetdataaccess.h
+  E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h

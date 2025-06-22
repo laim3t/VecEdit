@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: \
- C:\VecEdit\timeset\timesetdataaccess.cpp \
- C:\VecEdit\timeset\timesetdataaccess.h \
+ E:\QT_project\1\VecEdit\timeset\timesetdataaccess.cpp \
+ E:\QT_project\1\VecEdit\timeset\timesetdataaccess.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
@@ -25,7 +25,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \

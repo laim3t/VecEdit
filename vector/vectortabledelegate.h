@@ -11,15 +11,18 @@
 #include "vector/vector_data_types.h"
 
 /**
- * @brief 自定义代理类，用于处理向量表中不同列的编辑器类型
+ * @brief 自定义代理类，用于处理向量表中不同列的编辑器类型和渲染方式
  */
-class VectorTableItemDelegate : public QStyledItemDelegate
+class VectorTableDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 
 public:
-    explicit VectorTableItemDelegate(QObject *parent = nullptr, const QVector<int> &cellEditTypes = QVector<int>());
-    ~VectorTableItemDelegate() override;
+    explicit VectorTableDelegate(QObject *parent = nullptr);
+    ~VectorTableDelegate() override;
+    
+    // 设置列信息
+    void setColumnInfoList(const QList<Vector::ColumnInfo> &columns);
 
     // 创建编辑器
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
@@ -30,13 +33,23 @@ public:
     // 获取编辑器数据
     void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
 
-    // 刷新缓存数据
-    void refreshCache();
+    // 重写绘制函数，根据列类型设置不同的渲染样式
+    void paint(QPainter *painter, const QStyleOptionViewItem &option,
+              const QModelIndex &index) const override;
+              
+    // 委托需要的大小提示
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
-    // 刷新表ID缓存
-    void refreshTableIdCache();
+signals:
+    // 十六进制值编辑完成信号
+    void hexValueEdited(int row, int column, const QString &value) const;
 
 private:
+    QList<Vector::ColumnInfo> m_columnInfoList;
+
+    // 获取指定索引的列类型
+    Vector::ColumnDataType getColumnType(int column) const;
+    
     // 获取指令选项
     QStringList getInstructionOptions() const;
 
@@ -45,33 +58,6 @@ private:
 
     // 返回Capture选项（Y/N）
     QStringList getCaptureOptions() const;
-
-    // 辅助函数：获取当前表的ID
-    int getTableIdForCurrentTable() const;
-
-    // 辅助函数：通过UI索引获取列信息
-    Vector::ColumnInfo getColumnInfoByIndex(int tableId, int uiColumnIndex) const;
-    
-    // 辅助函数：获取表的列配置（新增）
-    QList<Vector::ColumnInfo> getColumnConfiguration(int tableId) const;
-
-    // 辅助函数：获取向量表选择器指针
-    QObject *getVectorTableSelectorPtr() const;
-
-    // 静态缓存（新增）
-    static QMap<int, QList<Vector::ColumnInfo>> s_tableColumnsCache;
-    
-    // 缓存
-    mutable QStringList m_instructionOptions;
-    mutable QStringList m_timeSetOptions;
-    mutable QStringList m_captureOptions;
-
-    // 表ID缓存
-    mutable bool m_tableIdCached;
-    mutable int m_cachedTableId;
-
-    // 单元格编辑类型，用于支持不同类型的编辑器
-    QVector<int> m_cellTypes;
 };
 
 #endif // VECTORTABLEDELEGATE_H

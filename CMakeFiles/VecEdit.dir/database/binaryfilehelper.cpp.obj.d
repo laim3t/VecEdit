@@ -1,11 +1,11 @@
 CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj: \
- C:\VecEdit\database\binaryfilehelper.cpp \
- C:\VecEdit\database\binaryfilehelper.h \
- C:/VecEdit/common/binary_file_format.h \
+ E:\QT_project\1\VecEdit\database\binaryfilehelper.cpp \
+ E:\QT_project\1\VecEdit\database\binaryfilehelper.h \
+ E:/QT_project/1/VecEdit/common/binary_file_format.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cstdint \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:/VecEdit/common/binary_field_lengths.h \
+ E:/QT_project/1/VecEdit/common/binary_field_lengths.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QIODevice \
@@ -23,14 +23,14 @@ CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj: \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/new \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/chrono \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/limits \
- C:/VecEdit/vector/vector_data_types.h \
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
- C:/VecEdit/common/logger.h \
+ E:/QT_project/1/VecEdit/common/logger.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QTextStream \

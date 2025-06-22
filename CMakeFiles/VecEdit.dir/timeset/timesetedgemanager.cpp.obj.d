@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: \
- C:\VecEdit\timeset\timesetedgemanager.cpp \
- C:\VecEdit\timeset\timesetedgemanager.h \
+ E:\QT_project\1\VecEdit\timeset\timesetedgemanager.cpp \
+ E:\QT_project\1\VecEdit\timeset\timesetedgemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTreeWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtreewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
@@ -14,7 +14,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qmap.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QBrush \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qbrush.h \
- C:\VecEdit\timeset\timesetdataaccess.h \
+ E:\QT_project\1\VecEdit\timeset\timesetdataaccess.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
@@ -29,7 +29,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:\VecEdit\timeset\timesetedgedialog.h \
+ E:\QT_project\1\VecEdit\timeset\timesetedgedialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDoubleSpinBox \

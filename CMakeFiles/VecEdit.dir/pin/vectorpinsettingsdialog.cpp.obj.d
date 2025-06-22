@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj: \
- C:\VecEdit\pin\vectorpinsettingsdialog.cpp \
- C:\VecEdit\pin\vectorpinsettingsdialog.h \
+ E:\QT_project\1\VecEdit\pin\vectorpinsettingsdialog.cpp \
+ E:\QT_project\1\VecEdit\pin\vectorpinsettingsdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
@@ -18,7 +18,7 @@ CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qpushbutton.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/stdexcept \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
@@ -40,12 +40,12 @@ CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlerror.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
@@ -54,7 +54,7 @@ CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
- C:/VecEdit/vector/vectordatahandler.h \
+ E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget \
@@ -64,4 +64,4 @@ CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
- C:/VecEdit/vector/vector_data_types.h
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h

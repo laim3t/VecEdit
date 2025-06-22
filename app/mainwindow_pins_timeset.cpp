@@ -531,7 +531,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
 
             // 直接加载当前页数据，而不是调用refreshVectorTableData
             qDebug() << "填充TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableModel, m_currentPage, m_pageSize);
 
             // 更新分页信息显示
             updatePaginationInfo();
@@ -605,7 +605,7 @@ void MainWindow::showFillTimeSetDialog()
     dialog.setVectorRowCount(rowCount);
 
     // 获取选中的单元格并计算行范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）
@@ -1267,7 +1267,7 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
 
             // 直接加载当前页数据，而不是调用refreshVectorTableData
             qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableModel, m_currentPage, m_pageSize);
 
             // 更新分页信息显示
             updatePaginationInfo();
@@ -1340,7 +1340,7 @@ void MainWindow::showReplaceTimeSetDialog()
     dialog.setVectorRowCount(rowCount);
 
     // 获取选中的单元格并计算行范围
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     if (!selectedIndexes.isEmpty())
     {
         // 找出最小和最大行号（1-based）

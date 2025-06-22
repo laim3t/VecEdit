@@ -15,25 +15,66 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
 {
+    qDebug() << "MainWindow::MainWindow - 构造函数开始";
+
+    qDebug() << "MainWindow::MainWindow - 创建 VectorTableModel";
+    m_vectorTableModel = new VectorTableModel(this);
+    qDebug() << "MainWindow::MainWindow - VectorTableModel 创建完成";
+    
+    qDebug() << "MainWindow::MainWindow - 调用 setupUI()";
     setupUI();
-    setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
-    setupVectorColumnPropertiesBar(); // 必须在 setupMenu() 之前调用，因为它初始化了 m_columnPropertiesDock
-    setupWaveformView();              // 必须在 setupMenu() 之前调用，因为它初始化了 m_waveformDock
+    qDebug() << "MainWindow::MainWindow - setupUI() 完成";
+    
+    // 连接模型的数据变更信号
+    connect(m_vectorTableModel, &VectorTableModel::dataChanged, 
+            [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) {
+        // 标记有未保存的变更
+        m_hasUnsavedChanges = true;
+        
+        // 获取修改的行号
+        for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
+            // 向用户界面通知行已修改
+            onTableRowModified(row);
+        }
+    });
+    
+    // 连接行修改信号
+    connect(m_vectorTableModel, &VectorTableModel::rowModified, this, &MainWindow::onTableRowModified);
+    qDebug() << "MainWindow::MainWindow - 连接模型信号完成";
+    
+    qDebug() << "MainWindow::MainWindow - 调用 setupSidebarNavigator()";
+    setupSidebarNavigator();
+    qDebug() << "MainWindow::MainWindow - setupSidebarNavigator() 完成";
+    
+    qDebug() << "MainWindow::MainWindow - 调用 setupVectorColumnPropertiesBar()";
+    setupVectorColumnPropertiesBar();
+    qDebug() << "MainWindow::MainWindow - setupVectorColumnPropertiesBar() 完成";
+    
+    qDebug() << "MainWindow::MainWindow - 调用 setupWaveformView()";
+    setupWaveformView();
+    qDebug() << "MainWindow::MainWindow - setupWaveformView() 完成";
+    
+    qDebug() << "MainWindow::MainWindow - 调用 setupMenu()";
     setupMenu();
+    qDebug() << "MainWindow::MainWindow - setupMenu() 完成";
 
     // 创建对话框管理器
+    qDebug() << "MainWindow::MainWindow - 创建 DialogManager";
     m_dialogManager = new DialogManager(this);
+    qDebug() << "MainWindow::MainWindow - DialogManager 创建完成";
 
     // 设置窗口标题和大小
     setWindowTitle("向量编辑器");
 
     // 初始窗口大小（如果没有保存的状态）
     resize(1024, 768);
+    qDebug() << "MainWindow::MainWindow - 设置窗口标题和大小完成";
 
     // 初始化窗口大小信息标签
     m_windowSizeLabel = new QLabel(this);
     statusBar()->addPermanentWidget(m_windowSizeLabel);
     updateWindowSizeInfo();
+    qDebug() << "MainWindow::MainWindow - 初始化状态栏完成";
 
     // 显示就绪状态
     statusBar()->showMessage("就绪");
@@ -43,18 +84,27 @@ MainWindow::MainWindow(QWidget *parent)
     setMinimumSize(800, 600); // 设置窗口最小尺寸
 
     // 恢复上次的窗口状态
+    qDebug() << "MainWindow::MainWindow - 调用 restoreWindowState()";
     restoreWindowState();
+    qDebug() << "MainWindow::MainWindow - restoreWindowState() 完成";
 
     // 初始化菜单状态
+    qDebug() << "MainWindow::MainWindow - 调用 updateMenuState()";
     updateMenuState();
+    qDebug() << "MainWindow::MainWindow - updateMenuState() 完成";
 
+    // 连接窗口大小变化信号到onWindowResized槽
+    connect(this, &MainWindow::windowResized, this, &MainWindow::onWindowResized);
+    
     // 连接窗口大小变化信号，当窗口大小改变时，更新管脚列宽度
     connect(this, &MainWindow::windowResized, [this]()
             {
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible() && m_vectorTableWidget->columnCount() > 6) {
+        if (m_vectorTableView && m_vectorTableView->isVisible() && m_vectorTableModel->columnCount() > 6) {
             qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
-            TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+            TableStyleManager::setPinColumnWidths(m_vectorTableView);
         } });
+    qDebug() << "MainWindow::MainWindow - 连接窗口大小变化信号完成";
+    qDebug() << "MainWindow::MainWindow - 构造函数结束";
 }
 
 MainWindow::~MainWindow()
@@ -69,39 +119,52 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupUI()
 {
+    qDebug() << "setupUI - 开始";
     // 创建一个中央窗口小部件
+    qDebug() << "setupUI - 创建 m_centralWidget";
     m_centralWidget = new QWidget(this);
+    qDebug() << "setupUI - 创建 mainLayout";
     QVBoxLayout *mainLayout = new QVBoxLayout(m_centralWidget);
 
     // 创建欢迎页面
+    qDebug() << "setupUI - 创建 m_welcomeWidget";
     m_welcomeWidget = new QWidget(this);
+    qDebug() << "setupUI - 创建 welcomeLayout";
     QVBoxLayout *welcomeLayout = new QVBoxLayout(m_welcomeWidget);
 
     // 添加欢迎标签
+    qDebug() << "setupUI - 创建 welcomeLabel";
     QLabel *welcomeLabel = new QLabel(tr("欢迎使用向量编辑器"), m_welcomeWidget);
     welcomeLabel->setAlignment(Qt::AlignCenter);
     welcomeLabel->setStyleSheet("font-size: 20pt; font-weight: bold; margin: 20px;");
 
     // 添加说明标签
+    qDebug() << "setupUI - 创建 instructionLabel";
     QLabel *instructionLabel = new QLabel(tr("请使用\"文件\"菜单创建或打开项目，然后通过\"查看\"菜单查看数据表"), m_welcomeWidget);
     instructionLabel->setAlignment(Qt::AlignCenter);
     instructionLabel->setStyleSheet("font-size: 14pt; margin: 10px;");
 
     // 将标签添加到欢迎页面布局
+    qDebug() << "setupUI - 添加 widgets 到 welcomeLayout";
     welcomeLayout->addStretch();
     welcomeLayout->addWidget(welcomeLabel);
     welcomeLayout->addWidget(instructionLabel);
     welcomeLayout->addStretch();
 
     // 创建向量表显示界面
+    qDebug() << "setupUI - 调用 setupVectorTableUI()";
     setupVectorTableUI();
+    qDebug() << "setupUI - setupVectorTableUI() 完成";
 
     // 初始显示欢迎页面
+    qDebug() << "setupUI - 添加 widgets 到 mainLayout";
     mainLayout->addWidget(m_welcomeWidget);
     mainLayout->addWidget(m_vectorTableContainer);
     m_vectorTableContainer->setVisible(false);
 
+    qDebug() << "setupUI - 调用 setCentralWidget";
     setCentralWidget(m_centralWidget);
+    qDebug() << "setupUI - 结束";
 }
 
 void MainWindow::setupMenu()
@@ -229,28 +292,35 @@ void MainWindow::setupMenu()
 
 void MainWindow::setupVectorTableUI()
 {
+    qDebug() << "setupVectorTableUI - 开始";
     // 创建向量表容器
+    qDebug() << "setupVectorTableUI - 创建 m_vectorTableContainer";
     m_vectorTableContainer = new QWidget(this);
+    qDebug() << "setupVectorTableUI - 创建 containerLayout";
     QVBoxLayout *containerLayout = new QVBoxLayout(m_vectorTableContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
 
     // 创建顶部工具栏
+    qDebug() << "setupVectorTableUI - 创建 toolBar";
     QToolBar *toolBar = new QToolBar(this);
     toolBar->setObjectName("vectorTableToolBar"); // 给工具栏一个对象名，方便查找
     toolBar->setIconSize(QSize(18, 18));
     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); // 默认样式
     toolBar->setStyleSheet("QToolBar { spacing: 1px; } QToolButton { padding: 2px; font-size: 9pt; }");
     toolBar->setMovable(false);
+    qDebug() << "setupVectorTableUI - 工具栏基本设置完成";
 
     // 刷新按钮
     m_refreshAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_BrowserReload), tr("刷新"), this);
     connect(m_refreshAction, &QAction::triggered, this, &MainWindow::refreshVectorTableData);
     toolBar->addAction(m_refreshAction);
+    qDebug() << "setupVectorTableUI - 添加刷新按钮";
 
     // 保存按钮
     QAction *saveAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), tr("保存"), this);
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveVectorTableData);
     toolBar->addAction(saveAction);
+    qDebug() << "setupVectorTableUI - 添加保存按钮";
 
     // 新建向量表按钮
     QAction *addTableAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileIcon), tr("新建向量表"), this);
@@ -382,44 +452,65 @@ void MainWindow::setupVectorTableUI()
 
     // 将工具栏添加到容器布局的顶部
     containerLayout->addWidget(toolBar);
+    qDebug() << "setupVectorTableUI - 工具栏添加到布局";
 
     // 创建表格视图
-    m_vectorTableWidget = new QTableWidget(this);
-    m_vectorTableWidget->setAlternatingRowColors(true);
-    m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
-    m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_vectorTableWidget->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
-    m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
-    m_vectorTableWidget->verticalHeader()->setVisible(true);
+    qDebug() << "setupVectorTableUI - 创建 m_vectorTableView";
+    m_vectorTableView = new QTableView(this);
+    m_vectorTableView->setAlternatingRowColors(true);
+    m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
+    m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
+    m_vectorTableView->verticalHeader()->setVisible(true);
+    qDebug() << "setupVectorTableUI - m_vectorTableView 基本属性设置完成";
+    
+    qDebug() << "setupVectorTableUI - 准备设置模型";
+    m_vectorTableView->setModel(m_vectorTableModel);
+    qDebug() << "setupVectorTableUI - 模型设置完成";
+    
+    // 创建并设置委托
+    qDebug() << "setupVectorTableUI - 准备创建委托";
+    m_itemDelegate = new VectorTableDelegate(this);
+    m_vectorTableView->setItemDelegate(m_itemDelegate);
+    qDebug() << "setupVectorTableUI - 委托设置完成";
+    
+    // 连接十六进制值编辑信号
+    connect(m_itemDelegate, &VectorTableDelegate::hexValueEdited, 
+            this, &MainWindow::onHexValueEdited);
 
     // 设置表格右键菜单和信号/槽连接
-    m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
+    m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_vectorTableView, &QTableView::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
 
-    // 监听单元格变更事件
-    connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
-
     // 单元格点击时更新向量列属性栏
-    connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
-
-    // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
-    connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
-            {
-        QWidget *widget = m_vectorTableWidget->cellWidget(row, column);
-        if (PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(widget)) {
-            connect(pinEdit, &PinValueLineEdit::textChanged, [this, row]() {
-                onTableRowModified(row);
+    connect(m_vectorTableView, &QTableView::clicked, 
+            [this](const QModelIndex &index) {
+                updateVectorColumnProperties(index.row(), index.column());
             });
-        } });
+    qDebug() << "setupVectorTableUI - 表格信号连接完成";
+
+    // 使用模型的dataChanged信号代替QTableWidget的cellChanged信号
+    connect(m_vectorTableModel, &VectorTableModel::dataChanged, 
+            [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) {
+                // 仅处理单元格编辑情况
+                if (topLeft == bottomRight && roles.contains(Qt::EditRole)) {
+                    onTableCellChanged(topLeft.row(), topLeft.column());
+                }
+            });
+            
+    // 连接模型的行修改信号
+    connect(m_vectorTableModel, &VectorTableModel::rowModified,
+            this, &MainWindow::onTableRowModified);
 
     // 添加选择变更事件处理，更新16进制值
-    connect(m_vectorTableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
+    connect(m_vectorTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             [this](const QItemSelection &selected, const QItemSelection &deselected)
             {
                 // 获取当前选中的列
-                QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+                QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
                 if (selectedIndexes.isEmpty())
                     return;
 
@@ -473,9 +564,7 @@ void MainWindow::setupVectorTableUI()
     connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onVectorTableSelectionChanged);
 
-    // 创建项委托，处理单元格编辑
-    m_itemDelegate = new VectorTableItemDelegate(this);
-    m_vectorTableWidget->setItemDelegate(m_itemDelegate);
+    // 委托已在前面创建并设置，这里不需要重复
 
     // 创建分页控件
     m_paginationWidget = new QWidget(this);
@@ -547,7 +636,7 @@ void MainWindow::setupVectorTableUI()
     setupTabBar();
 
     // 将布局添加到容器
-    containerLayout->addWidget(m_vectorTableWidget);
+    containerLayout->addWidget(m_vectorTableView);
     containerLayout->addWidget(m_paginationWidget); // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
 
@@ -557,6 +646,7 @@ void MainWindow::setupVectorTableUI()
     {
         mainLayout->addWidget(m_vectorTableContainer);
     }
+    qDebug() << "setupVectorTableUI - 结束";
 }
 
 void MainWindow::setupTabBar()
@@ -772,17 +862,17 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         }
 
         // 确保向量表容器适应新窗口尺寸
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible())
+        if (m_vectorTableView && m_vectorTableView->isVisible())
         {
             qDebug() << "MainWindow::resizeEvent - 调整向量表大小以适应窗口";
 
             // 刷新表格布局
-            m_vectorTableWidget->updateGeometry();
+            m_vectorTableView->updateGeometry();
 
             // 如果表格有列，调整列宽
-            if (m_vectorTableWidget->columnCount() > 6)
+            if (m_vectorTableModel->columnCount() > 6)
             {
-                TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
+                TableStyleManager::setPinColumnWidths(m_vectorTableView);
             }
         }
 
@@ -1170,7 +1260,7 @@ void MainWindow::setupVectorColumnPropertiesBar()
     formLayout->addRow("", miniSeparator2);
 
     // 连接编辑完成信号
-    connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
+    connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onPinValueEditingFinished);
 
     // 连接文本变化信号，实时验证输入
     connect(m_pinValueField, &QLineEdit::textChanged, this, &MainWindow::validateHexInput);
@@ -1201,4 +1291,26 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 将属性栏添加到主窗口的右侧
     addDockWidget(Qt::RightDockWidgetArea, m_columnPropertiesDock);
+}
+
+// 处理窗口大小改变事件
+void MainWindow::onWindowResized()
+{
+    qDebug() << "MainWindow::onWindowResized - 处理窗口大小改变事件";
+    
+    // 检查窗口大小标签是否已初始化
+    if (m_windowSizeLabel) {
+        // 更新状态栏中的窗口大小信息
+        updateWindowSizeInfo();
+    } else {
+        qWarning() << "MainWindow::onWindowResized - m_windowSizeLabel未初始化";
+    }
+    
+    // 如果波形视图可见，更新波形视图
+    if (m_waveformDock && m_waveformContainer && m_waveformPlot && m_waveformContainer->isVisible()) {
+        qDebug() << "MainWindow::onWindowResized - 更新波形视图";
+        updateWaveformView();
+    } else {
+        qDebug() << "MainWindow::onWindowResized - 波形视图未初始化或不可见，跳过更新";
+    }
 }

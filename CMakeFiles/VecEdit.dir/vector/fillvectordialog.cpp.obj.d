@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
- C:\VecEdit\vector\fillvectordialog.cpp \
- C:\VecEdit\vector\fillvectordialog.h \
+ E:\QT_project\1\VecEdit\vector\fillvectordialog.cpp \
+ E:\QT_project\1\VecEdit\vector\fillvectordialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QComboBox \
@@ -28,7 +28,7 @@ CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \

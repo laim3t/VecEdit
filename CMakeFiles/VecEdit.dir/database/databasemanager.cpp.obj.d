@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj: \
- C:\VecEdit\database\databasemanager.cpp \
- C:\VecEdit\database\databasemanager.h \
+ E:\QT_project\1\VecEdit\database\databasemanager.cpp \
+ E:\QT_project\1\VecEdit\database\databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \

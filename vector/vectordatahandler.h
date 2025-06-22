@@ -5,12 +5,16 @@
 #include <QList>
 #include <QMap>
 #include <QTableWidget>
+#include <QTableView>
 #include <QWidget>
 #include <QObject>
 #include <QAtomicInt>
 #include <QSet>
 #include <QDateTime>
 #include "vector/vector_data_types.h"
+
+// 前置声明
+class VectorTableModel;
 
 class VectorDataHandler : public QObject
 {
@@ -29,6 +33,21 @@ public:
     bool saveVectorTableDataPaged(int tableId, QTableWidget *currentPageTable,
                                   int currentPage, int pageSize, int totalRows,
                                   QString &errorMessage);
+
+    // 新增：获取单行数据，以QVariantList形式返回，供模型使用
+    QList<QVariant> getRowForModel(int tableId, int rowIndex);
+
+    // 新增：更新单个单元格数据
+    bool updateCellValue(int tableId, int rowIndex, int columnIndex, const QVariant &value);
+
+    // 新增：保存来自模型的数据（替代旧的saveVectorTableDataPaged）
+    bool saveVectorTableModelData(int tableId, VectorTableModel *tableModel, int currentPage, int pageSize, int totalRows, QString &errorMessage);
+    
+    // 新增：适用于Model-View架构的分页数据加载方法
+    bool loadVectorTablePageData(int tableId, VectorTableModel *tableModel, int pageIndex, int pageSize);
+    
+    // 新增：获取列信息以支持Model-View架构
+    QList<Vector::ColumnInfo> getColumnInfoForModel(int tableId);
 
     // 添加向量行
     static void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);

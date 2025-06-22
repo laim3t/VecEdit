@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj: \
- C:\VecEdit\vector\deleterangevectordialog.cpp \
- C:\VecEdit\vector\deleterangevectordialog.h \
+ E:\QT_project\1\VecEdit\vector\deleterangevectordialog.cpp \
+ E:\QT_project\1\VecEdit\vector\deleterangevectordialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLabel \

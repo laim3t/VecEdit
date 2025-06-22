@@ -2,5 +2,5 @@
 
 #pragma GCC system_header
 #ifdef __cplusplus
-#include "C:/VecEdit/app/pch.h"
+#include "E:/QT_project/1/VecEdit/app/pch.h"
 #endif // __cplusplus

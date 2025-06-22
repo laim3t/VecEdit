@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: \
- C:\VecEdit\common\tablestyleperformancetester.cpp \
- C:\VecEdit\common\tablestyleperformancetester.h \
+ E:\QT_project\1\VecEdit\common\tablestyleperformancetester.cpp \
+ E:\QT_project\1\VecEdit\common\tablestyleperformancetester.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
@@ -10,7 +10,7 @@ CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:\VecEdit\common\tablestylemanager.h \
+ E:\QT_project\1\VecEdit\common\tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \

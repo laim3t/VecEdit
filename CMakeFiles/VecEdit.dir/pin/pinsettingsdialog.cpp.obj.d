@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj: \
- C:\VecEdit\pin\pinsettingsdialog.cpp C:\VecEdit\pin\pinsettingsdialog.h \
+ E:\QT_project\1\VecEdit\pin\pinsettingsdialog.cpp \
+ E:\QT_project\1\VecEdit\pin\pinsettingsdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
@@ -21,7 +22,7 @@ CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qabstractslider.h \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
@@ -32,7 +33,7 @@ CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \

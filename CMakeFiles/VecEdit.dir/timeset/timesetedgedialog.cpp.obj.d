@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj: \
- C:\VecEdit\timeset\timesetedgedialog.cpp \
- C:\VecEdit\timeset\timesetedgedialog.h \
+ E:\QT_project\1\VecEdit\timeset\timesetedgedialog.cpp \
+ E:\QT_project\1\VecEdit\timeset\timesetedgedialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDoubleSpinBox \

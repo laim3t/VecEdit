@@ -11,73 +11,75 @@ CXX_FLAGS = -std=gnu++17
 
 RC_DEFINES = -DQT_CONCURRENT_LIB -DQT_CORE_LIB -DQT_GUI_LIB -DQT_MESSAGELOGCONTEXT -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_SQL_LIB -DQT_WIDGETS_LIB
 
-RC_INCLUDES = -I C:\VecEdit\VecEdit_autogen\include -I C:\VecEdit -I C:\VecEdit\app -I C:\VecEdit\common -I C:\VecEdit\database -I C:\VecEdit\migration -I C:\VecEdit\pin -I C:\VecEdit\timeset -I C:\VecEdit\vector -I C:\Qt\5.15.2\mingw81_32\include -I C:\Qt\5.15.2\mingw81_32\include\QtWidgets -I C:\Qt\5.15.2\mingw81_32\include\QtGui -I C:\Qt\5.15.2\mingw81_32\include\QtANGLE -I C:\Qt\5.15.2\mingw81_32\include\QtCore -I C:\Qt\5.15.2\mingw81_32\.\mkspecs\win32-g++ -I C:\Qt\5.15.2\mingw81_32\include\QtSql -I C:\Qt\5.15.2\mingw81_32\include\QtConcurrent -I C:\Qt\5.15.2\mingw81_32\include\QtPrintSupport
+RC_INCLUDES = -I E:\QT_project\1\VecEdit\VecEdit_autogen\include -I E:\QT_project\1\VecEdit -I E:\QT_project\1\VecEdit\app -I E:\QT_project\1\VecEdit\common -I E:\QT_project\1\VecEdit\database -I E:\QT_project\1\VecEdit\migration -I E:\QT_project\1\VecEdit\pin -I E:\QT_project\1\VecEdit\timeset -I E:\QT_project\1\VecEdit\vector -I C:\Qt\5.15.2\mingw81_32\include -I C:\Qt\5.15.2\mingw81_32\include\QtWidgets -I C:\Qt\5.15.2\mingw81_32\include\QtGui -I C:\Qt\5.15.2\mingw81_32\include\QtANGLE -I C:\Qt\5.15.2\mingw81_32\include\QtCore -I C:\Qt\5.15.2\mingw81_32\.\mkspecs\win32-g++ -I C:\Qt\5.15.2\mingw81_32\include\QtSql -I C:\Qt\5.15.2\mingw81_32\include\QtConcurrent -I C:\Qt\5.15.2\mingw81_32\include\QtPrintSupport
 
 RC_FLAGS = 
 
-# PCH options: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch_OPTIONS = -Winvalid-pch;-x;c++-header;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch_OPTIONS = -Winvalid-pch;-x;c++-header;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/VecEdit_autogen/mocs_compilation.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/app/main.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/app/main.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/app/mainwindow.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/database/databasemanager_migrator.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/database/binaryfilehelper.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/pingroupdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetedgedialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/replacetimesetdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/pinvalueedit.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/vectorpinsettingsdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/pinsettingsdialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/vectortabledelegate.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/vectordatahandler.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/deleterangevectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/fillvectordialog.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/common/logger.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/common/tablestyleperformancetester.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/common/logger.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetdataaccess.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetui.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/timeset/timesetedgemanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/pin/pinselectionmanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/migration/datamigrator.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 
-# PCH options: CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj_OPTIONS = -Winvalid-pch;-include;C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+# PCH options: CMakeFiles/VecEdit.dir/common/qcustomplot.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
+
+# PCH options: CMakeFiles/VecEdit.dir/VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp.obj_OPTIONS = -Winvalid-pch;-include;E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx
 

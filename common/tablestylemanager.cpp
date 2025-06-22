@@ -862,3 +862,173 @@ void TableStyleManager::applyColumnStyleClass(QTableWidget *table, int column, S
 
     qDebug() << funcName << " - 应用样式类" << static_cast<int>(styleClass) << "到整列 " << column;
 }
+
+// 添加QTableView版本的setPinColumnWidths实现
+void TableStyleManager::setPinColumnWidths(QTableView *tableView)
+{
+    const QString funcName = "TableStyleManager::setPinColumnWidths(QTableView*)";
+    qDebug() << funcName << " - Entry";
+
+    if (!tableView || !tableView->model())
+    {
+        qWarning() << funcName << " - 错误：表格视图对象为空或模型未设置";
+        return;
+    }
+
+    // 获取表格视图的宽度，减去垂直滚动条的宽度
+    int scrollBarWidth = tableView->verticalScrollBar()->isVisible() ? tableView->verticalScrollBar()->width() : 0;
+    int totalWidth = tableView->width() - scrollBarWidth;
+
+    // 获取列数
+    int columnCount = tableView->model()->columnCount();
+    if (columnCount == 0)
+    {
+        qDebug() << funcName << " - 表格无列，不进行调整";
+        return;
+    }
+
+    // 确定哪些列是管脚列
+    QVector<int> pinColumns;
+    QVector<int> otherColumns;
+
+    // 使用表头数据判断管脚列
+    for (int col = 0; col < columnCount; col++)
+    {
+        QVariant headerData = tableView->model()->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+        QString headerText = headerData.toString();
+
+        // 检查是否包含管脚信息（格式为"名称\nx数量\n类型"或包含"pin"）
+        if (headerText.contains("\n") || headerText.toLower().contains("pin"))
+        {
+            pinColumns.append(col);
+        }
+        else
+        {
+            otherColumns.append(col);
+        }
+    }
+
+    // 计算总体列宽
+    int totalPinWidth = 0;
+    if (!pinColumns.isEmpty())
+    {
+        // 总宽度的60%分配给管脚列，平均分配
+        totalPinWidth = static_cast<int>(totalWidth * 0.6);
+        int pinColumnWidth = pinColumns.isEmpty() ? 0 : totalPinWidth / pinColumns.size();
+
+        // 设置管脚列宽
+        for (int col : pinColumns)
+        {
+            tableView->horizontalHeader()->setSectionResizeMode(col, QHeaderView::Fixed);
+            tableView->setColumnWidth(col, pinColumnWidth);
+        }
+    }
+
+    // 其余列平均分配剩余宽度
+    int remainingWidth = totalWidth - totalPinWidth;
+    int otherColumnWidth = otherColumns.isEmpty() ? 0 : remainingWidth / otherColumns.size();
+
+    for (int col : otherColumns)
+    {
+        if (col < columnCount)
+        {
+            tableView->horizontalHeader()->setSectionResizeMode(col, QHeaderView::Interactive);
+            tableView->setColumnWidth(col, otherColumnWidth);
+        }
+    }
+
+    qDebug() << funcName << " - 完成设置管脚列宽度";
+}
+
+// 添加QTableView版本的applyBatchTableStyle实现
+void TableStyleManager::applyBatchTableStyle(QTableView *tableView)
+{
+    const QString funcName = "TableStyleManager::applyBatchTableStyle(QTableView*)";
+    QElapsedTimer timer;
+    timer.start();
+    
+    qDebug() << funcName << " - Entry";
+
+    if (!tableView)
+    {
+        qWarning() << funcName << " - 错误：表格视图对象为空";
+        return;
+    }
+
+    qDebug() << funcName << " - 开始批量设置表格样式";
+
+    // 禁用表格更新，减少重绘次数
+    tableView->setUpdatesEnabled(false);
+    tableView->viewport()->setUpdatesEnabled(false);
+    tableView->horizontalHeader()->setUpdatesEnabled(false);
+    tableView->verticalHeader()->setUpdatesEnabled(false);
+
+    // 暂时禁用滚动条更新并记录当前位置
+    QScrollBar *hScrollBar = tableView->horizontalScrollBar();
+    QScrollBar *vScrollBar = tableView->verticalScrollBar();
+    int hScrollValue = hScrollBar ? hScrollBar->value() : 0;
+    int vScrollValue = vScrollBar ? vScrollBar->value() : 0;
+
+    if (hScrollBar)
+        hScrollBar->setUpdatesEnabled(false);
+    if (vScrollBar)
+        vScrollBar->setUpdatesEnabled(false);
+
+    // 设置表格样式
+    tableView->setStyleSheet(
+        "QTableView {"
+        "   border: 1px solid #c0c0c0;"
+        "   gridline-color: #d0d0d0;"
+        "   selection-background-color: #e0e7ff;"
+        "}"
+        "QTableView::item {"
+        "   border: 0px;"
+        "   padding-left: 3px;"
+        "}"
+        "QTableView::item:selected {"
+        "   background-color: #e0e7ff;"
+        "   color: black;"
+        "}"
+        "QHeaderView::section {"
+        "   background-color: #f0f0f0;"
+        "   border: 1px solid #c0c0c0;"
+        "   font-weight: bold;"
+        "   padding: 4px;"
+        "   text-align: center;"
+        "}"
+        "QHeaderView::section:checked {"
+        "   background-color: #e0e0e0;"
+        "}");
+
+    // 设置行高
+    tableView->verticalHeader()->setDefaultSectionSize(28);  // 默认行高
+
+    // 设置表格选择模式
+    tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+    // 设置管脚列宽
+    setPinColumnWidths(tableView);
+
+    // 恢复滚动条位置
+    if (hScrollBar)
+    {
+        hScrollBar->setUpdatesEnabled(true);
+        hScrollBar->setValue(hScrollValue);
+    }
+    if (vScrollBar)
+    {
+        vScrollBar->setUpdatesEnabled(true);
+        vScrollBar->setValue(vScrollValue);
+    }
+
+    // 恢复表格更新（按顺序启用各部分的更新）
+    tableView->horizontalHeader()->setUpdatesEnabled(true);
+    tableView->verticalHeader()->setUpdatesEnabled(true);
+    tableView->viewport()->setUpdatesEnabled(true);
+    tableView->setUpdatesEnabled(true);
+
+    // 最后一次性刷新显示
+    tableView->viewport()->update();
+
+    qDebug() << funcName << " - 表格样式批量设置完成，耗时: " << timer.elapsed() << "毫秒";
+}

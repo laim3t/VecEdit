@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj: \
- C:\VecEdit\timeset\filltimesetdialog.cpp \
- C:\VecEdit\timeset\filltimesetdialog.h \
+ E:\QT_project\1\VecEdit\timeset\filltimesetdialog.cpp \
+ E:\QT_project\1\VecEdit\timeset\filltimesetdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QComboBox \
@@ -19,7 +19,7 @@ CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qformlayout.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
- C:\VecEdit\timeset\timesetdataaccess.h \
+ E:\QT_project\1\VecEdit\timeset\timesetdataaccess.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
@@ -42,7 +42,7 @@ CMakeFiles/VecEdit.dir/timeset/filltimesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \

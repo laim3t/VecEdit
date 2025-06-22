@@ -43,19 +43,19 @@ cmake_force:
 SHELL = cmd.exe
 
 # The CMake executable.
-CMAKE_COMMAND = "C:\Program Files (x86)\CMake\bin\cmake.exe"
+CMAKE_COMMAND = "C:\Program Files\CMake\bin\cmake.exe"
 
 # The command to remove a file.
-RM = "C:\Program Files (x86)\CMake\bin\cmake.exe" -E rm -f
+RM = "C:\Program Files\CMake\bin\cmake.exe" -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = C:\VecEdit
+CMAKE_SOURCE_DIR = E:\QT_project\1\VecEdit
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = C:\VecEdit
+CMAKE_BINARY_DIR = E:\QT_project\1\VecEdit
 
 # Utility rule file for VecEdit_autogen_timestamp_deps.
 
@@ -80,6 +80,6 @@ CMakeFiles/VecEdit_autogen_timestamp_deps.dir/clean:
 .PHONY : CMakeFiles/VecEdit_autogen_timestamp_deps.dir/clean
 
 CMakeFiles/VecEdit_autogen_timestamp_deps.dir/depend:
-	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" C:\VecEdit C:\VecEdit C:\VecEdit C:\VecEdit C:\VecEdit\CMakeFiles\VecEdit_autogen_timestamp_deps.dir\DependInfo.cmake "--color=$(COLOR)"
+	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit\CMakeFiles\VecEdit_autogen_timestamp_deps.dir\DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/VecEdit_autogen_timestamp_deps.dir/depend
 

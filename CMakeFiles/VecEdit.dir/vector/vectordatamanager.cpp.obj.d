@@ -1,11 +1,11 @@
 CMakeFiles/VecEdit.dir/vector/vectordatamanager.cpp.obj: \
- C:\VecEdit\vector\vectordatamanager.cpp \
- C:\VecEdit\vector\vectordatamanager.h \
+ E:\QT_project\1\VecEdit\vector\vectordatamanager.cpp \
+ E:\QT_project\1\VecEdit\vector\vectordatamanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
- C:/VecEdit/timeset/timesetdataaccess.h \
+ E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \

@@ -1,6 +1,7 @@
 CMakeFiles/VecEdit.dir/cmake_pch.hxx.gch: \
- C:\VecEdit\CMakeFiles\VecEdit.dir\cmake_pch.hxx.cxx \
- C:/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx C:/VecEdit/app/pch.h \
+ E:\QT_project\1\VecEdit\CMakeFiles\VecEdit.dir\cmake_pch.hxx.cxx \
+ E:/QT_project/1/VecEdit/CMakeFiles/VecEdit.dir/cmake_pch.hxx \
+ E:/QT_project/1/VecEdit/app/pch.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/algorithm \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/utility \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/i686-w64-mingw32/bits/c++config.h \

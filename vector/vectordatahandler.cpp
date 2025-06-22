@@ -5,6 +5,7 @@
 #include "vector/vector_data_types.h"
 #include "common/utils/pathutils.h"
 #include "common/binary_file_format.h"
+#include "vector/vectortablemodel.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -4463,3 +4464,457 @@ QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok
     ok = true;
     return rows;
 }
+
+QList<QVariant> VectorDataHandler::getRowForModel(int tableId, int rowIndex) {
+    const QString funcName = "VectorDataHandler::getRowForModel";
+    qDebug() << funcName << " - 获取表" << tableId << "的第" << rowIndex << "行数据";
+    
+    QList<QVariant> result;
+    QString errorMsg;
+
+    // 检查缓存是否存在
+    if (m_tableDataCache.contains(tableId)) {
+        // 有缓存数据，直接返回指定行
+        const QList<Vector::RowData> &cachedRows = m_tableDataCache[tableId];
+        if (rowIndex >= 0 && rowIndex < cachedRows.size()) {
+            qDebug() << funcName << " - 从缓存返回行数据";
+            return cachedRows.at(rowIndex); // 直接返回行数据，因为Vector::RowData就是QList<QVariant>
+        }
+    }
+    
+    // 解析二进制文件的绝对路径
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (absoluteBinFilePath.isEmpty()) {
+        qWarning() << funcName << " - 无法解析表" << tableId << "的二进制文件路径, 错误:" << errorMsg;
+        return result;
+    }
+
+    // 加载元数据以获取列结构和schema版本
+    QString binFileName; // 相对路径，从meta里读出来的
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int rowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount)) {
+        qWarning() << funcName << " - 无法加载表" << tableId << "的元数据";
+        return result;
+    }
+    
+    // 检查行索引是否有效
+    if (rowIndex < 0 || rowIndex >= rowCount) {
+        qWarning() << funcName << " - 无效的行索引:" << rowIndex << ", 总行数:" << rowCount;
+        return result;
+    }
+    
+    // 打开二进制文件
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << funcName << " - 无法打开文件:" << absoluteBinFilePath << ", 错误:" << file.errorString();
+        return result;
+    }
+    
+    // 读取文件头
+    BinaryFileHeader header;
+    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header)) {
+        qWarning() << funcName << " - 文件头读取失败";
+        file.close();
+        return result;
+    }
+    
+    // 版本兼容性检查
+    if (header.data_schema_version > schemaVersion) {
+        qCritical() << funcName << " - 文件版本高于数据库版本，无法加载!";
+        file.close();
+        return result;
+    }
+    
+    // 重要：不读取所有行，只读到目标行
+    QDataStream in(&file);
+    in.setByteOrder(QDataStream::LittleEndian);
+    
+    // 跳过文件头之后，逐行读取长度并跳过，直到到达目标行
+    for (int i = 0; i < rowIndex; ++i) {
+        quint32 rowLen = 0;
+        in >> rowLen;
+        if (in.status() != QDataStream::Ok || rowLen == 0) {
+            qWarning() << funcName << " - 读取第 " << i << " 行长度失败";
+            file.close();
+            return result;
+        }
+        // 跳过当前行的数据
+        if (!file.seek(file.pos() + rowLen)) {
+            qWarning() << funcName << " - 跳过第 " << i << " 行数据失败";
+            file.close();
+            return result;
+        }
+    }
+    
+    // 现在文件指针指向目标行，读取目标行的长度
+    quint32 targetRowLen = 0;
+    in >> targetRowLen;
+    if (in.status() != QDataStream::Ok || targetRowLen == 0) {
+        qWarning() << funcName << " - 读取目标行长度失败";
+        file.close();
+        return result;
+    }
+    
+    // 读取目标行数据
+    QByteArray rowBytes = file.read(targetRowLen);
+    if (rowBytes.size() != targetRowLen) {
+        qWarning() << funcName << " - 读取目标行数据失败，读取到 " << rowBytes.size() << " 字节，期望 " << targetRowLen << " 字节";
+        file.close();
+        return result;
+    }
+    
+    // 反序列化行数据
+    Vector::RowData rowData;
+    QDataStream rowDataStream(rowBytes);
+    rowDataStream.setByteOrder(QDataStream::LittleEndian);
+    
+    if (!Persistence::BinaryFileHelper::deserializeRow(rowBytes, columns, header.data_schema_version, rowData)) {
+        qWarning() << funcName << " - 反序列化行数据失败";
+        file.close();
+        return result;
+    }
+    
+    file.close();
+    return rowData; // 直接返回，因为Vector::RowData就是QList<QVariant>
+}
+
+bool VectorDataHandler::updateCellValue(int tableId, int rowIndex, int columnIndex, const QVariant &value) {
+    // TODO: 在后续步骤中实现
+    Q_UNUSED(tableId); Q_UNUSED(rowIndex); Q_UNUSED(columnIndex); Q_UNUSED(value);
+    return false;
+}
+
+bool VectorDataHandler::saveVectorTableModelData(int tableId, VectorTableModel *tableModel, int currentPage, int pageSize, int totalRows, QString &errorMessage) {
+    const QString funcName = "VectorDataHandler::saveVectorTableModelData";
+    qDebug() << funcName << " - 开始保存表格数据, 表ID:" << tableId << ", 当前页:" << currentPage << ", 页大小:" << pageSize;
+    
+    if (!tableModel) {
+        errorMessage = "无效的表格模型";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    
+    // 获取当前页在模型中的行数
+    int modelRows = tableModel->rowCount();
+    if (modelRows == 0) {
+        qDebug() << funcName << " - 模型中没有数据行，无需保存";
+        return true; // 没有数据需要保存，算作成功
+    }
+    
+    // 获取列信息
+    QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
+    if (columns.isEmpty()) {
+        errorMessage = "无法获取表格列信息";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    
+    // 将模型数据转换为行数据列表
+    QList<QList<QVariant>> modelData;
+    for (int row = 0; row < modelRows; row++) {
+        QList<QVariant> rowData;
+        for (int col = 0; col < tableModel->columnCount(); col++) {
+            QModelIndex index = tableModel->index(row, col);
+            rowData.append(tableModel->data(index, Qt::DisplayRole));
+        }
+        modelData.append(rowData);
+    }
+    
+    // 获取二进制文件路径
+    QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (binFilePath.isEmpty()) {
+        qWarning() << funcName << " - 解析二进制文件路径失败: " << errorMessage;
+        return false;
+    }
+    
+    // 打开文件进行读写
+    QFile binFile(binFilePath);
+    if (!binFile.open(QIODevice::ReadWrite)) {
+        errorMessage = "无法打开二进制文件: " + binFile.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    
+    // 读取文件头
+    BinaryFileHeader header;
+    if (!Persistence::BinaryFileHelper::readBinaryHeader(&binFile, header)) {
+        errorMessage = "读取二进制文件头失败";
+        qWarning() << funcName << " - " << errorMessage;
+        binFile.close();
+        return false;
+    }
+    
+    // 计算页面起始行的绝对行号
+    int startAbsoluteRow = currentPage * pageSize;
+    if (startAbsoluteRow >= totalRows) {
+        errorMessage = "页面起始行超出总行数范围";
+        qWarning() << funcName << " - " << errorMessage << ", 起始行:" << startAbsoluteRow << ", 总行数:" << totalRows;
+        binFile.close();
+        return false;
+    }
+    
+    // 计算页面结束行的绝对行号（不超过总行数）
+    int endAbsoluteRow = qMin(startAbsoluteRow + pageSize - 1, totalRows - 1);
+    
+    // 检查数据范围是否合法
+    if (endAbsoluteRow - startAbsoluteRow + 1 != modelRows) {
+        qWarning() << funcName << " - 警告: 模型行数 (" << modelRows << ") 与页面预期行数 (" 
+                  << (endAbsoluteRow - startAbsoluteRow + 1) << ") 不一致";
+    }
+    
+    // 创建临时文件
+    QFileInfo binFileInfo(binFilePath);
+    QString tempFilePath = binFileInfo.path() + "/" + binFileInfo.completeBaseName() + "_temp." + binFileInfo.suffix();
+    
+    QFile tempFile(tempFilePath);
+    if (!tempFile.open(QIODevice::WriteOnly)) {
+        errorMessage = "无法创建临时文件: " + tempFile.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        binFile.close();
+        return false;
+    }
+    
+    // 写入新的文件头（保持行数不变）
+    if (!Persistence::BinaryFileHelper::writeBinaryHeader(&tempFile, header)) {
+        errorMessage = "写入临时文件头失败";
+        qWarning() << funcName << " - " << errorMessage;
+        binFile.close();
+        tempFile.close();
+        tempFile.remove();
+        return false;
+    }
+    
+    // 重置文件指针到文件头之后
+    binFile.seek(sizeof(BinaryFileHeader));
+    
+    // 复制文件内容，逐行处理
+    QDataStream inStream(&binFile);
+    inStream.setByteOrder(QDataStream::LittleEndian);
+    
+    QDataStream outStream(&tempFile);
+    outStream.setByteOrder(QDataStream::LittleEndian);
+    
+    int rowIdx = 0;
+    
+    try {
+        // 1. 复制起始行之前的行
+        while (rowIdx < startAbsoluteRow) {
+            // 读取行长度
+            quint32 rowLen = 0;
+            inStream >> rowLen;
+            if (inStream.status() != QDataStream::Ok || rowLen == 0) {
+                throw std::runtime_error("读取行长度失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 读取行数据
+            QByteArray rowBytes(rowLen, 0);
+            if (inStream.readRawData(rowBytes.data(), rowLen) != rowLen) {
+                throw std::runtime_error("读取行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 写入行长度和数据
+            outStream << rowLen;
+            if (outStream.writeRawData(rowBytes.data(), rowLen) != rowLen) {
+                throw std::runtime_error("写入行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            rowIdx++;
+        }
+        
+        // 2. 处理要更新的行范围
+        int modelRowIdx = 0;
+        while (rowIdx <= endAbsoluteRow && modelRowIdx < modelRows) {
+            // 跳过原始行
+            quint32 rowLen = 0;
+            inStream >> rowLen;
+            if (inStream.status() != QDataStream::Ok || rowLen == 0) {
+                throw std::runtime_error("跳过原始行时读取行长度失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 跳过行数据
+            if (inStream.skipRawData(rowLen) != rowLen) {
+                throw std::runtime_error("跳过原始行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 序列化并写入模型行数据
+            QList<QVariant> rowData = modelData[modelRowIdx];
+            QByteArray serializedRow;
+            QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
+            Persistence::BinaryFileHelper::serializeRow(rowData, columns, serializedRow);
+            
+            quint32 newRowLen = serializedRow.size();
+            outStream << newRowLen;
+            if (outStream.writeRawData(serializedRow.data(), newRowLen) != newRowLen) {
+                throw std::runtime_error("写入新行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            rowIdx++;
+            modelRowIdx++;
+        }
+        
+        // 3. 复制剩余行
+        while (rowIdx < totalRows) {
+            // 读取行长度
+            quint32 rowLen = 0;
+            inStream >> rowLen;
+            if (inStream.status() != QDataStream::Ok || rowLen == 0) {
+                throw std::runtime_error("读取剩余行长度失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 读取行数据
+            QByteArray rowBytes(rowLen, 0);
+            if (inStream.readRawData(rowBytes.data(), rowLen) != rowLen) {
+                throw std::runtime_error("读取剩余行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            // 写入行长度和数据
+            outStream << rowLen;
+            if (outStream.writeRawData(rowBytes.data(), rowLen) != rowLen) {
+                throw std::runtime_error("写入剩余行数据失败，行索引: " + std::to_string(rowIdx));
+            }
+            
+            rowIdx++;
+        }
+    }
+    catch (const std::exception &e) {
+        errorMessage = QString("处理数据时发生错误: %1").arg(e.what());
+        qWarning() << funcName << " - " << errorMessage;
+        binFile.close();
+        tempFile.close();
+        tempFile.remove();
+        return false;
+    }
+    
+    // 关闭文件
+    binFile.close();
+    tempFile.close();
+    
+    // 替换原文件
+    if (!QFile::remove(binFilePath)) {
+        errorMessage = "无法删除原始文件: " + binFilePath;
+        qWarning() << funcName << " - " << errorMessage;
+        tempFile.remove();
+        return false;
+    }
+    
+    if (!QFile::rename(tempFilePath, binFilePath)) {
+        errorMessage = "无法重命名临时文件: " + tempFilePath + " 到 " + binFilePath;
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    
+    // 清除表数据缓存
+    clearTableDataCache(tableId);
+    
+    qDebug() << funcName << " - 成功保存表格数据, 表ID:" << tableId;
+    return true;
+}
+
+QList<Vector::ColumnInfo> VectorDataHandler::getColumnInfoForModel(int tableId) {
+    // 重用已有的方法
+    return getAllColumnInfo(tableId);
+}
+
+bool VectorDataHandler::loadVectorTablePageData(int tableId, VectorTableModel *tableModel, int pageIndex, int pageSize) {
+    const QString funcName = "VectorDataHandler::loadVectorTablePageData(Model)";
+    if (!tableModel) {
+        qWarning() << funcName << " - 提供的表格模型为空";
+        return false;
+    }
+
+    // 获取向量表元数据
+    QString binFileNameFromMeta;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileNameFromMeta, columns, schemaVersion, totalRowCount)) {
+        qWarning() << funcName << " - 元数据加载失败, 表ID:" << tableId;
+        return false;
+    }
+    
+    // 设置模型的列信息
+    tableModel->setColumnInfo(columns);
+    tableModel->setTotalRowCount(totalRowCount);
+    
+    qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", 总行数:" << totalRowCount;
+
+    // 计算分页参数
+    int totalPages = (totalRowCount + pageSize - 1) / pageSize; // 向上取整
+    if (pageIndex < 0)
+        pageIndex = 0;
+    if (pageIndex >= totalPages && totalPages > 0)
+        pageIndex = totalPages - 1;
+
+    int startRow = pageIndex * pageSize;
+    int rowsToLoad = qMin(pageSize, totalRowCount - startRow);
+
+    qDebug() << funcName << " - 分页参数: 总页数=" << totalPages
+             << ", 当前页=" << pageIndex << ", 起始行=" << startRow
+             << ", 加载行数=" << rowsToLoad;
+
+    // 如果没有数据，直接返回成功
+    if (rowsToLoad <= 0) {
+        qDebug() << funcName << " - 当前页没有数据, 直接返回";
+        return true;
+    }
+
+    // 解析二进制文件路径
+    QString errorMsg;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (absoluteBinFilePath.isEmpty()) {
+        qWarning() << funcName << " - 无法解析二进制文件路径: " << errorMsg;
+        return false;
+    }
+
+    // 检查文件是否存在
+    if (!QFile::exists(absoluteBinFilePath)) {
+        qWarning() << funcName << " - 二进制文件不存在: " << absoluteBinFilePath;
+        return false;
+    }
+
+    // 读取指定范围的数据
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << funcName << " - 无法打开二进制文件: " << absoluteBinFilePath;
+        return false;
+    }
+
+    // 跳过文件头
+    if (!file.seek(sizeof(BinaryFileHeader))) {
+        qWarning() << funcName << " - 无法跳过文件头";
+        file.close();
+        return false;
+    }
+
+    // 读取行数据
+    QList<QList<QVariant>> pageData;
+
+    // 使用二进制文件助手读取所有行
+    QList<Vector::RowData> allRows;
+    bool readSuccess = Persistence::BinaryFileHelper::readAllRowsFromBinary(
+        absoluteBinFilePath, columns, schemaVersion, allRows);
+    
+    if (!readSuccess) {
+        qWarning() << funcName << " - 读取二进制文件失败";
+        file.close();
+        return false;
+    }
+    
+    // 提取当前页的行
+    for (int i = startRow; i < startRow + rowsToLoad && i < allRows.size(); i++) {
+        pageData.append(allRows[i]);
+    }
+
+    file.close();
+    
+    // 将数据载入模型
+    tableModel->loadTable(pageData, startRow);
+    
+    return true;
+}
+
+

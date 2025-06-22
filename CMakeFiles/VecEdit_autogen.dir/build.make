@@ -43,19 +43,19 @@ cmake_force:
 SHELL = cmd.exe
 
 # The CMake executable.
-CMAKE_COMMAND = "C:\Program Files (x86)\CMake\bin\cmake.exe"
+CMAKE_COMMAND = "C:\Program Files\CMake\bin\cmake.exe"
 
 # The command to remove a file.
-RM = "C:\Program Files (x86)\CMake\bin\cmake.exe" -E rm -f
+RM = "C:\Program Files\CMake\bin\cmake.exe" -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = C:\VecEdit
+CMAKE_SOURCE_DIR = E:\QT_project\1\VecEdit
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = C:\VecEdit
+CMAKE_BINARY_DIR = E:\QT_project\1\VecEdit
 
 # Utility rule file for VecEdit_autogen.
 
@@ -70,9 +70,9 @@ CMakeFiles/VecEdit_autogen: VecEdit_autogen/timestamp
 VecEdit_autogen/timestamp: C:/Qt/5.15.2/mingw81_32/bin/moc.exe
 VecEdit_autogen/timestamp: C:/Qt/5.15.2/mingw81_32/bin/uic.exe
 VecEdit_autogen/timestamp: CMakeFiles/VecEdit_autogen.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=C:\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC and UIC for target VecEdit"
-	"C:\Program Files (x86)\CMake\bin\cmake.exe" -E cmake_autogen C:/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutogenInfo.json ""
-	"C:\Program Files (x86)\CMake\bin\cmake.exe" -E touch C:/VecEdit/VecEdit_autogen/timestamp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=E:\QT_project\1\VecEdit\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC and UIC for target VecEdit"
+	"C:\Program Files\CMake\bin\cmake.exe" -E cmake_autogen E:/QT_project/1/VecEdit/CMakeFiles/VecEdit_autogen.dir/AutogenInfo.json ""
+	"C:\Program Files\CMake\bin\cmake.exe" -E touch E:/QT_project/1/VecEdit/VecEdit_autogen/timestamp
 
 CMakeFiles/VecEdit_autogen.dir/codegen:
 .PHONY : CMakeFiles/VecEdit_autogen.dir/codegen
@@ -91,6 +91,6 @@ CMakeFiles/VecEdit_autogen.dir/clean:
 .PHONY : CMakeFiles/VecEdit_autogen.dir/clean
 
 CMakeFiles/VecEdit_autogen.dir/depend:
-	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" C:\VecEdit C:\VecEdit C:\VecEdit C:\VecEdit C:\VecEdit\CMakeFiles\VecEdit_autogen.dir\DependInfo.cmake "--color=$(COLOR)"
+	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit E:\QT_project\1\VecEdit\CMakeFiles\VecEdit_autogen.dir\DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/VecEdit_autogen.dir/depend
 

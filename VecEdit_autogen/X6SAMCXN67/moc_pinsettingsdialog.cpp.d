@@ -1,5 +1,5 @@
-C:/VecEdit/VecEdit_autogen/X6SAMCXN67/moc_pinsettingsdialog.cpp: C:/VecEdit/pin/pinsettingsdialog.h \
-  C:/VecEdit/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/VecEdit_autogen/X6SAMCXN67/moc_pinsettingsdialog.cpp: E:/QT_project/1/VecEdit/pin/pinsettingsdialog.h \
+  E:/QT_project/1/VecEdit/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QPair \

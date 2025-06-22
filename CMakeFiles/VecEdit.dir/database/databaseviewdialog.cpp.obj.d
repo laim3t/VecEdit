@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj: \
- C:\VecEdit\database\databaseviewdialog.cpp \
- C:\VecEdit\database\databaseviewdialog.h \
+ E:\QT_project\1\VecEdit\database\databaseviewdialog.cpp \
+ E:\QT_project\1\VecEdit\database\databaseviewdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTreeWidget \
@@ -36,7 +36,7 @@ CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcombobox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
@@ -45,7 +45,7 @@ CMakeFiles/VecEdit.dir/database/databaseviewdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
- C:\VecEdit\database\databasemanager.h \
+ E:\QT_project\1\VecEdit\database\databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \

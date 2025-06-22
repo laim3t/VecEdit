@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
- C:\VecEdit\common\dialogmanager.cpp C:\VecEdit\common\dialogmanager.h \
+ E:\QT_project\1\VecEdit\common\dialogmanager.cpp \
+ E:\QT_project\1\VecEdit\common\dialogmanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
@@ -10,7 +11,7 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
@@ -27,7 +28,7 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
- C:/VecEdit/database/databaseviewdialog.h \
+ E:/QT_project/1/VecEdit/database/databaseviewdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTreeWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtreewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtwidgetsglobal.h \
@@ -61,10 +62,10 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcombobox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QLineEdit \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlineedit.h \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QHash \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
- C:/VecEdit/pin/pinlistdialog.h \
+ E:/QT_project/1/VecEdit/pin/pinlistdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QStandardItemModel \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qstandarditemmodel.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QItemDelegate \
@@ -74,24 +75,27 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qpixmap.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialogButtonBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialogbuttonbox.h \
- C:/VecEdit/common/tablestylemanager.h C:/VecEdit/timeset/timesetdialog.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/timeset/timesetdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTreeWidgetItem \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qmap.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
- C:/VecEdit/timeset/timesetdataaccess.h C:/VecEdit/timeset/timesetui.h \
+ E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h \
+ E:/QT_project/1/VecEdit/timeset/timesetui.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QListWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qlistwidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QGroupBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qgroupbox.h \
- C:/VecEdit/timeset/timesetedgemanager.h \
+ E:/QT_project/1/VecEdit/timeset/timesetedgemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QBrush \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qbrush.h \
- C:/VecEdit/pin/pinselectionmanager.h \
- C:/VecEdit/timeset/timesetdataaccess.h \
- C:/VecEdit/vector/vectordatamanager.h C:/VecEdit/pin/pinvalueedit.h \
- C:/VecEdit/vector/vectordatahandler.h \
+ E:/QT_project/1/VecEdit/pin/pinselectionmanager.h \
+ E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h \
+ E:/QT_project/1/VecEdit/vector/vectordatamanager.h \
+ E:/QT_project/1/VecEdit/pin/pinvalueedit.h \
+ E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qatomic.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
@@ -99,10 +103,10 @@ CMakeFiles/VecEdit.dir/common/dialogmanager.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
- C:/VecEdit/vector/vector_data_types.h \
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
- C:/VecEdit/pin/pingroupdialog.h \
+ E:/QT_project/1/VecEdit/pin/pingroupdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QCheckBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcheckbox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QGridLayout \

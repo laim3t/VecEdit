@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/common/logger.cpp.obj: \
- C:\VecEdit\common\logger.cpp C:\VecEdit\common\logger.h \
+ E:\QT_project\1\VecEdit\common\logger.cpp \
+ E:\QT_project\1\VecEdit\common\logger.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \

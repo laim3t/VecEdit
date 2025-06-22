@@ -1,0 +1,36 @@
+CMakeFiles/VecEdit.dir/vector/vectortablemodel.cpp.obj: \
+ E:\QT_project\1\VecEdit\vector\vectortablemodel.cpp \
+ E:\QT_project\1\VecEdit\vector\vectortablemodel.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QAbstractTableModel \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qabstractitemmodel.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QSet \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
+ E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QMap \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qmap.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qatomic.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qglobal.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/QColor \
+ C:/Qt/5.15.2/mingw81_32/include/QtGui/qcolor.h

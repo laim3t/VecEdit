@@ -1,6 +1,6 @@
 CMakeFiles/VecEdit.dir/common/tablestylemanager.cpp.obj: \
- C:\VecEdit\common\tablestylemanager.cpp \
- C:\VecEdit\common\tablestylemanager.h \
+ E:\QT_project\1\VecEdit\common\tablestylemanager.cpp \
+ E:\QT_project\1\VecEdit\common\tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \

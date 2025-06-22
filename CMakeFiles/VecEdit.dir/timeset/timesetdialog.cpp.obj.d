@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
- C:\VecEdit\timeset\timesetdialog.cpp C:\VecEdit\timeset\timesetdialog.h \
+ E:\QT_project\1\VecEdit\timeset\timesetdialog.cpp \
+ E:\QT_project\1\VecEdit\timeset\timesetdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTreeWidget \
@@ -19,7 +20,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QStyledItemDelegate \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qstyleditemdelegate.h \
- C:\VecEdit\timeset\timesetdataaccess.h \
+ E:\QT_project\1\VecEdit\timeset\timesetdataaccess.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlquery.h \
  C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlError \
@@ -30,7 +31,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
- C:\VecEdit\timeset\timesetui.h \
+ E:\QT_project\1\VecEdit\timeset\timesetui.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QPushButton \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qpushbutton.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialogButtonBox \
@@ -48,18 +49,18 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHBoxLayout \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qheaderview.h \
- C:\VecEdit\timeset\timesetedgemanager.h \
+ E:\QT_project\1\VecEdit\timeset\timesetedgemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QBrush \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/qbrush.h \
- C:/VecEdit/pin/pinselectionmanager.h \
- C:/VecEdit/timeset/timesetdataaccess.h \
- C:/VecEdit/vector/vectordatamanager.h \
- C:\VecEdit\timeset\timesetedgedialog.h \
+ E:/QT_project/1/VecEdit/pin/pinselectionmanager.h \
+ E:/QT_project/1/VecEdit/timeset/timesetdataaccess.h \
+ E:/QT_project/1/VecEdit/vector/vectordatamanager.h \
+ E:\QT_project\1\VecEdit\timeset\timesetedgedialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDoubleSpinBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qspinbox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QComboBox \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qcombobox.h \
- C:/VecEdit/database/databasemanager.h \
+ E:/QT_project/1/VecEdit/database/databasemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
@@ -68,7 +69,7 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
- C:/VecEdit/app/mainwindow.h \
+ E:/QT_project/1/VecEdit/app/mainwindow.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QMainWindow \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qmainwindow.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
@@ -84,6 +85,8 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/functional \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QInputDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qinputdialog.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
+ C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QToolButton \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtoolbutton.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QToolBar \
@@ -101,10 +104,10 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDockWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdockwidget.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/stdexcept \
- C:/VecEdit/vector/vector_data_types.h \
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
- C:/VecEdit/vector/vectordatahandler.h \
+ E:/QT_project/1/VecEdit/vector/vectordatahandler.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qwidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QAtomicInt \
@@ -114,11 +117,11 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qset.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
- C:/VecEdit/vector/vector_data_types.h \
- C:/VecEdit/database/binaryfilehelper.h \
- C:/VecEdit/common/binary_file_format.h \
+ E:/QT_project/1/VecEdit/vector/vector_data_types.h \
+ E:/QT_project/1/VecEdit/database/binaryfilehelper.h \
+ E:/QT_project/1/VecEdit/common/binary_file_format.h \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/cstdint \
- C:/VecEdit/common/binary_field_lengths.h \
+ E:/QT_project/1/VecEdit/common/binary_field_lengths.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QIODevice \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qiodevice.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QByteArray \
@@ -129,12 +132,10 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/new \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/chrono \
  C:/Qt/Tools/mingw810_32/lib/gcc/i686-w64-mingw32/8.1.0/include/c++/limits \
- C:/VecEdit/common/tablestylemanager.h \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableView \
- C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtableview.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QHash \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qhash.h \
- C:/VecEdit/common/qcustomplot.h \
+ E:/QT_project/1/VecEdit/common/qcustomplot.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QPointer \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qpointer.h \
@@ -947,6 +948,8 @@ CMakeFiles/VecEdit.dir/timeset/timesetdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtPrintSupport/qtprintsupportversion.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QElapsedTimer \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QTimeZone \
+ E:/QT_project/1/VecEdit/vector/vectortablemodel.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QAbstractTableModel \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QApplication \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QColor \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QFont \

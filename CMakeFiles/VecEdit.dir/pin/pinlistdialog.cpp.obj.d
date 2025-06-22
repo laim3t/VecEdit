@@ -1,5 +1,6 @@
 CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj: \
- C:\VecEdit\pin\pinlistdialog.cpp C:\VecEdit\pin\pinlistdialog.h \
+ E:\QT_project\1\VecEdit\pin\pinlistdialog.cpp \
+ E:\QT_project\1\VecEdit\pin\pinlistdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QDialog \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialog.h \
  C:/Qt/5.15.2/mingw81_32/include/QtGui/QStandardItemModel \
@@ -19,7 +20,7 @@ CMakeFiles/VecEdit.dir/pin/pinlistdialog.cpp.obj: \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qdialogbuttonbox.h \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/QList \
  C:/Qt/5.15.2/mingw81_32/include/QtCore/qlist.h \
- C:/VecEdit/common/tablestylemanager.h \
+ E:/QT_project/1/VecEdit/common/tablestylemanager.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QTableWidget \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/qtablewidget.h \
  C:/Qt/5.15.2/mingw81_32/include/QtWidgets/QHeaderView \

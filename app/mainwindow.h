@@ -6,7 +6,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QDir>
-#include <QTableWidget>
+#include <QTableView>
 #include <QComboBox>
 #include <QPushButton>
 #include <QToolButton>
@@ -31,9 +31,10 @@
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
+#include "vector/vectortablemodel.h"
 
 // 前置声明
-class VectorTableItemDelegate;
+class VectorTableDelegate;
 class DialogManager;
 
 class MainWindow : public QMainWindow
@@ -184,8 +185,8 @@ private slots:
     // 计算16进制值并显示在向量列属性栏中
     void calculateAndDisplayHexValue(const QList<int> &selectedRows, int column);
 
-    // 处理16进制值编辑后的同步操作
-    void onHexValueEdited();
+    // 十六进制值编辑处理
+    void onHexValueEdited(int row, int column, const QString &value);
 
     // 实时验证16进制输入
     void validateHexInput(const QString &text);
@@ -207,6 +208,10 @@ private slots:
     void on_action_triggered(bool checked);
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
     void updateWindowTitle(const QString &dbPath = QString());
+
+    // 窗口和UI相关
+    void onWindowResized();
+    void onPinValueEditingFinished(); // 新增：处理管脚值编辑完成
 
 private:
     void setupUI();
@@ -271,7 +276,8 @@ private:
     QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
-    QTableWidget *m_vectorTableWidget;
+    QTableView *m_vectorTableView;
+    VectorTableModel *m_vectorTableModel;
     QComboBox *m_vectorTableSelector;
     QWidget *m_centralWidget;
     QWidget *m_welcomeWidget;
@@ -316,7 +322,7 @@ private:
     bool m_isUpdatingUI; // 防止UI更新循环的标志
 
     // 自定义代理
-    VectorTableItemDelegate *m_itemDelegate;
+    VectorTableDelegate *m_itemDelegate;
 
     // 数据处理和对话框管理器
     DialogManager *m_dialogManager;

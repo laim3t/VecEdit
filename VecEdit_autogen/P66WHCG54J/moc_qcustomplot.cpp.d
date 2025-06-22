@@ -1,5 +1,5 @@
-C:/VecEdit/VecEdit_autogen/P66WHCG54J/moc_qcustomplot.cpp: C:/VecEdit/common/qcustomplot.h \
-  C:/VecEdit/VecEdit_autogen/moc_predefs.h \
+E:/QT_project/1/VecEdit/VecEdit_autogen/P66WHCG54J/moc_qcustomplot.cpp: E:/QT_project/1/VecEdit/common/qcustomplot.h \
+  E:/QT_project/1/VecEdit/VecEdit_autogen/moc_predefs.h \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QCache \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
   C:/Qt/5.15.2/mingw81_32/include/QtCore/QDeadlineTimer \
