@@ -13,6 +13,8 @@
 #include <QColor>
 #include <QBrush>
 #include <QDateTime>
+#include <QDir>
+#include "utils/pathutils.h"
 
 VectorTableModel::VectorTableModel(QObject *parent)
     : QAbstractTableModel(parent),
@@ -441,7 +443,43 @@ bool VectorTableModel::loadBinaryFile(const QString &filePath)
     QFile file(filePath);
     if (!file.exists()) {
         qWarning() << "VectorTableModel::loadBinaryFile - 文件不存在:" << filePath;
-        return false;
+        
+        // 检查目录是否存在，如果不存在则创建
+        QFileInfo fileInfo(filePath);
+        QDir dir = fileInfo.dir();
+        if (!dir.exists()) {
+            qDebug() << "VectorTableModel::loadBinaryFile - 目录不存在，正在创建:" << dir.absolutePath();
+            if (!dir.mkpath(dir.absolutePath())) {
+                qWarning() << "VectorTableModel::loadBinaryFile - 无法创建目录:" << dir.absolutePath();
+                return false;
+            }
+            qDebug() << "VectorTableModel::loadBinaryFile - 已成功创建目录:" << dir.absolutePath();
+        }
+        
+        // 尝试创建空文件
+        qDebug() << "VectorTableModel::loadBinaryFile - 尝试创建空二进制文件:" << filePath;
+        // 创建一个空的行数据列表
+        QList<Vector::RowData> emptyRows;
+        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(filePath, m_columns, m_schemaVersion, emptyRows)) {
+            qWarning() << "VectorTableModel::loadBinaryFile - 创建空二进制文件失败";
+            return false;
+        }
+        
+        // 创建成功后，加载新的空文件
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "VectorTableModel::loadBinaryFile - 无法打开新创建的文件:" << file.errorString();
+            return false;
+        }
+        
+        // 获取文件信息
+        QFileInfo newFileInfo(file);
+        m_lastModified = newFileInfo.lastModified();
+        
+        // 加载空的行数据
+        m_rows.clear();
+        file.close();
+        qDebug() << "VectorTableModel::loadBinaryFile - 成功加载新创建的空文件";
+        return true;
     }
     
     if (!file.open(QIODevice::ReadOnly)) {
@@ -651,13 +689,37 @@ QString VectorTableModel::resolveBinaryFilePath(int tableId, QString &errorMsg)
         return QString();
     }
     
+    // 检查文件名是否包含路径分隔符 (指示旧格式或错误数据)
+    if (binFileName.contains('\\') || binFileName.contains('/'))
+    {
+        qWarning() << "VectorTableModel::resolveBinaryFilePath - 表 " << tableId << " 的二进制文件名包含路径分隔符，这可能是旧格式或错误数据。尝试提取文件名部分。";
+        // 提取文件名部分作为临时解决方案
+        QFileInfo fileInfo(binFileName);
+        binFileName = fileInfo.fileName();
+        if (binFileName.isEmpty())
+        {
+            errorMsg = QString("无法从表 %1 的记录中提取有效的文件名").arg(tableId);
+            return QString();
+        }
+    }
+
     // 获取数据库文件路径
     QString dbFilePath = db.databaseName();
-    QFileInfo dbFileInfo(dbFilePath);
-    QString dbDir = dbFileInfo.absolutePath();
     
-    // 构建二进制文件的绝对路径
-    QString binFilePath = dbDir + QDir::separator() + binFileName;
+    // 使用 PathUtils 获取项目二进制数据目录
+    QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(dbFilePath);
+    if (projectBinaryDataDir.isEmpty())
+    {
+        errorMsg = QString("无法为数据库 '%1' 生成项目二进制数据目录").arg(dbFilePath);
+        return QString();
+    }
+    
+    // 构建二进制文件的绝对路径并标准化
+    QString binFilePath = QDir::cleanPath(projectBinaryDataDir + QDir::separator() + binFileName);
+    binFilePath = QDir::toNativeSeparators(binFilePath);
+    
+    qDebug() << "VectorTableModel::resolveBinaryFilePath - 解析得到的绝对路径: " << binFilePath
+             << " (DB: " << dbFilePath << ", File: " << binFileName << ")";
     
     return binFilePath;
 }
