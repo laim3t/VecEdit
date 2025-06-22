@@ -175,29 +175,7 @@ void MainWindow::loadVectorTableWithModelView(int tableId)
     int currentTabIndex = m_vectorTabWidget->currentIndex();
     if (currentTabIndex < 0) {
         qWarning() << funcName << " - 没有活动的Tab页签";
-        
-        // 如果没有活动Tab，通过数据库查询获取表名，然后创建一个新的Tab
-        QSqlDatabase db = DatabaseManager::instance()->database();
-        if (!db.isOpen()) {
-            qWarning() << funcName << " - 数据库未打开";
-            return;
-        }
-        
-        QSqlQuery query(db);
-        query.prepare("SELECT name FROM vector_tables WHERE id = ?");
-        query.addBindValue(tableId);
-        
-        if (!query.exec() || !query.next()) {
-            qWarning() << funcName << " - 无法获取表格名称，表ID: " << tableId;
-            return;
-        }
-        
-        QString tableName = query.value("name").toString();
-        
-        // 创建一个新的Tab页签
-        addVectorTableTab(tableId, tableName);
-        currentTabIndex = m_vectorTabWidget->count() - 1;
-        m_vectorTabWidget->setCurrentIndex(currentTabIndex);
+        return; // 直接返回，不尝试创建新Tab
     }
     
     // 获取或创建当前Tab页签的内容Widget
