@@ -161,7 +161,7 @@ bool VectorTableModel::loadTable(int tableId)
     int rowCount = 0;
     
     QSqlQuery query(db);
-    query.prepare("SELECT BinaryFileName, SchemaVersion, RowCount FROM VectorTableMasterRecord WHERE ID = ?");
+    query.prepare("SELECT binary_data_filename as BinaryFileName, data_schema_version as SchemaVersion, row_count as RowCount FROM VectorTableMasterRecord WHERE id = ?");
     query.addBindValue(tableId);
     
     if (!query.exec() || !query.next()) {
@@ -175,10 +175,11 @@ bool VectorTableModel::loadTable(int tableId)
     rowCount = query.value("RowCount").toInt();
     
     // 获取列配置
-    query.prepare("SELECT ID, VectorTableID, Name, ColumnOrder, DataType, DataProperties, IsVisible "
+    query.prepare("SELECT id as ID, master_record_id as VectorTableID, column_name as Name, "
+                 "column_order as ColumnOrder, column_type as DataType, data_properties as DataProperties, IsVisible "
                  "FROM VectorTableColumnConfiguration "
-                 "WHERE VectorTableID = ? AND IsVisible = 1 "
-                 "ORDER BY ColumnOrder");
+                 "WHERE master_record_id = ? AND IsVisible = 1 "
+                 "ORDER BY column_order");
     query.addBindValue(tableId);
     
     if (!query.exec()) {
@@ -518,7 +519,7 @@ QVariant VectorTableModel::formatDisplayValue(const QVariant &value, Vector::Col
             QSqlDatabase db = DatabaseManager::instance()->database();
             if (db.isOpen()) {
                 QSqlQuery query(db);
-                query.prepare("SELECT Name FROM Instructions WHERE ID = ?");
+                query.prepare("SELECT instruction_value as Name FROM instruction_options WHERE id = ?");
                 query.addBindValue(instructionId);
                 
                 if (query.exec() && query.next()) {
@@ -535,7 +536,7 @@ QVariant VectorTableModel::formatDisplayValue(const QVariant &value, Vector::Col
             QSqlDatabase db = DatabaseManager::instance()->database();
             if (db.isOpen()) {
                 QSqlQuery query(db);
-                query.prepare("SELECT Name FROM TimeSets WHERE ID = ?");
+                query.prepare("SELECT timeset_name as Name FROM timeset_list WHERE id = ?");
                 query.addBindValue(timeSetId);
                 
                 if (query.exec() && query.next()) {
@@ -583,7 +584,7 @@ QVariant VectorTableModel::parseEditValue(const QVariant &value, Vector::ColumnD
             QSqlDatabase db = DatabaseManager::instance()->database();
             if (db.isOpen()) {
                 QSqlQuery query(db);
-                query.prepare("SELECT ID FROM Instructions WHERE Name = ?");
+                query.prepare("SELECT id as ID FROM instruction_options WHERE instruction_value = ?");
                 query.addBindValue(strValue);
                 
                 if (query.exec() && query.next()) {
@@ -605,7 +606,7 @@ QVariant VectorTableModel::parseEditValue(const QVariant &value, Vector::ColumnD
             QSqlDatabase db = DatabaseManager::instance()->database();
             if (db.isOpen()) {
                 QSqlQuery query(db);
-                query.prepare("SELECT ID FROM TimeSets WHERE Name = ?");
+                query.prepare("SELECT id as ID FROM timeset_list WHERE timeset_name = ?");
                 query.addBindValue(strValue);
                 
                 if (query.exec() && query.next()) {
@@ -636,7 +637,7 @@ QString VectorTableModel::resolveBinaryFilePath(int tableId, QString &errorMsg)
     }
     
     QSqlQuery query(db);
-    query.prepare("SELECT BinaryFileName FROM VectorTableMasterRecord WHERE ID = ?");
+    query.prepare("SELECT binary_data_filename as BinaryFileName FROM VectorTableMasterRecord WHERE id = ?");
     query.addBindValue(tableId);
     
     if (!query.exec() || !query.next()) {
