@@ -31,6 +31,7 @@
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
+#include "puppetmastertablewidget.h"
 
 // 前置声明
 class VectorTableItemDelegate;

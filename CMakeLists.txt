@@ -33,6 +33,8 @@ set(PROJECT_SOURCES
         app/main.cpp
         app/mainwindow.cpp
         app/mainwindow.h
+        app/puppetmastertablewidget.cpp
+        app/puppetmastertablewidget.h
         database/databasemanager.cpp
         database/databasemanager.h
         database/databasemanager_migrator.cpp
@@ -60,6 +62,8 @@ set(PROJECT_SOURCES
         pin/pinsettingsdialog.cpp
         vector/vectortabledelegate.h
         vector/vectortabledelegate.cpp
+        vector/vectortablemodel.cpp
+        vector/vectortablemodel.h
         vector/vectordatahandler.h
         vector/vectordatahandler.cpp
         vector/deleterangevectordialog.h

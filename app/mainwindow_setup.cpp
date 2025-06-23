@@ -384,7 +384,7 @@ void MainWindow::setupVectorTableUI()
     containerLayout->addWidget(toolBar);
 
     // 创建表格视图
-    m_vectorTableWidget = new QTableWidget(this);
+    m_vectorTableWidget = new PuppetMasterTableWidget(&VectorDataHandler::instance(), this);
     m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_vectorTableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
