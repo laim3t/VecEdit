@@ -110,29 +110,9 @@ namespace
     }
 
     // 辅助函数：从二进制文件读取所有行
-    bool readAllRowsFromBinary(const QString &binFileName, const QList<Vector::ColumnInfo> &columns, int schemaVersion, QList<Vector::RowData> &rows)
+    bool readAllRowsFromBinary(const QString &absoluteBinFilePath, const QList<Vector::ColumnInfo> &columns, int schemaVersion, QList<Vector::RowData> &rows)
     {
         const QString funcName = "readAllRowsFromBinary";
-
-        // 获取数据库路径，用于解析相对路径
-        QSqlDatabase db = DatabaseManager::instance()->database();
-        QString dbFilePath = db.databaseName();
-        QFileInfo dbFileInfo(dbFilePath);
-        QString dbDir = dbFileInfo.absolutePath();
-
-        // 确保使用正确的绝对路径
-        QString absoluteBinFilePath;
-        QFileInfo binFileInfo(binFileName);
-        if (binFileInfo.isRelative())
-        {
-            absoluteBinFilePath = dbDir + QDir::separator() + binFileName;
-            absoluteBinFilePath = QDir::toNativeSeparators(absoluteBinFilePath);
-            qDebug() << funcName << " - 相对路径转换为绝对路径:" << binFileName << " -> " << absoluteBinFilePath;
-        }
-        else
-        {
-            absoluteBinFilePath = binFileName;
-        }
 
         qDebug() << funcName << " - 打开文件:" << absoluteBinFilePath;
         QFile file(absoluteBinFilePath);
@@ -164,61 +144,59 @@ namespace
             // 后续的反序列化函数会根据fileVersion参数适配低版本数据
         }
         rows.clear();
-        
+
         // 安全检查：行数是否过大
-        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000) {
-            qCritical() << funcName << " - 文件头中的行数过大: " << header.row_count_in_file 
-                       << ", 超出安全限制或int最大值. 将限制行数处理.";
+        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000)
+        {
+            qCritical() << funcName << " - 文件头中的行数过大: " << header.row_count_in_file
+                        << ", 超出安全限制或int最大值. 将限制行数处理.";
             // 这里直接返回错误，防止巨大数据导致内存分配失败
             file.close();
             return false;
         }
-        
+
         // 安全预分配内存以提高性能
-        try {
+        try
+        {
             rows.reserve(static_cast<int>(header.row_count_in_file));
-        } catch (const std::bad_alloc&) {
+        }
+        catch (const std::bad_alloc &)
+        {
             qCritical() << funcName << " - 内存分配失败，无法为" << header.row_count_in_file << "行数据分配内存";
             file.close();
             return false;
         }
-        
+
         for (quint64 i = 0; i < header.row_count_in_file; ++i)
         {
-            QByteArray rowBytes;
             QDataStream in(&file);
             in.setByteOrder(QDataStream::LittleEndian);
-            // 先记录当前位置
-            qint64 pos = file.pos();
-            // 读取一行（假设每行长度不定，需先约定写入方式。此处假设每行前有长度）
+
             quint32 rowLen = 0;
+            in.startTransaction(); // 开始事务，确保可以安全回滚
             in >> rowLen;
-            if (in.status() != QDataStream::Ok || rowLen == 0)
+
+            // 检查行长和流状态
+            const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB
+            if (in.status() != QDataStream::Ok || rowLen == 0 || rowLen > MAX_REASONABLE_ROW_SIZE)
             {
-                qWarning() << funcName << " - 行长度读取失败, 行:" << i;
+                in.rollbackTransaction();
+                qCritical() << funcName << " - 读取行长度失败或行长度异常，行:" << i
+                            << ", 读取到的长度:" << rowLen << ", Stream状态:" << in.status();
                 return false;
             }
-            
-            // 添加对行大小的安全检查
-            const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-            if (rowLen > MAX_REASONABLE_ROW_SIZE) 
+
+            QByteArray rowBytes(rowLen, Qt::Uninitialized);
+            int bytesRead = in.readRawData(rowBytes.data(), rowLen);
+
+            if (bytesRead != static_cast<int>(rowLen))
             {
-                qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen 
-                           << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏或格式错误.";
+                in.rollbackTransaction();
+                qWarning() << funcName << " - 读取行数据失败, 期望:" << rowLen << "字节, 实际:" << bytesRead << ", 行:" << i;
                 return false;
             }
-            
-            try {
-            rowBytes.resize(rowLen);
-            } catch (const std::bad_alloc&) {
-                qCritical() << funcName << " - 内存分配失败，无法为行" << i << "分配" << rowLen << "字节的内存";
-                return false;
-            }
-            if (file.read(rowBytes.data(), rowLen) != rowLen)
-            {
-                qWarning() << funcName << " - 行数据读取失败, 行:" << i;
-                return false;
-            }
+            in.commitTransaction();
+
             Vector::RowData rowData;
             if (!Persistence::BinaryFileHelper::deserializeRow(rowBytes, columns, header.data_schema_version, rowData))
             {
@@ -246,16 +224,23 @@ QString VectorDataHandler::resolveBinaryFilePath(int tableId, QString &errorMsg)
 
     // 1. 获取该表存储的纯二进制文件名
     QString justTheFileName;
-    QList<Vector::ColumnInfo> columns; // We don't need columns here, but loadVectorTableMeta requires it
-    int schemaVersion = 0;
-    int rowCount = 0; // Not needed here either
-
-    if (!loadVectorTableMeta(tableId, justTheFileName, columns, schemaVersion, rowCount))
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
     {
-        errorMsg = QString("无法加载表 %1 的元数据以获取二进制文件名").arg(tableId);
-        qWarning() << funcName << " - " << errorMsg;
+        errorMsg = "数据库未打开。";
+        qWarning() << funcName << " -" << errorMsg;
         return QString();
     }
+    QSqlQuery query(db);
+    query.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
+    query.addBindValue(tableId);
+    if (!query.exec() || !query.next())
+    {
+        errorMsg = QString("无法从主记录中找到表ID %1 的二进制文件名。").arg(tableId);
+        qWarning() << funcName << " -" << errorMsg << "Error:" << query.lastError().text();
+        return QString();
+    }
+    justTheFileName = query.value(0).toString();
 
     // 检查获取到的文件名是否为空
     if (justTheFileName.isEmpty())
@@ -288,7 +273,6 @@ QString VectorDataHandler::resolveBinaryFilePath(int tableId, QString &errorMsg)
     }
 
     // 2. 获取当前数据库路径
-    QSqlDatabase db = DatabaseManager::instance()->database();
     QString currentDbPath = db.databaseName();
     if (currentDbPath.isEmpty())
     {
@@ -3213,18 +3197,19 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             tableWidget->setUpdatesEnabled(true);
             return false;
         }
-        
+
         // 对跳过的行大小也进行检查
         const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE) 
+        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE)
         {
-            qCritical() << funcName << " - 跳过行时检测到异常大的行大小:" << rowBlockSize 
-                       << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏.";
-            
+            qCritical() << funcName << " - 跳过行时检测到异常大的行大小:" << rowBlockSize
+                        << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏.";
+
             // 将大小重置为合理值，防止seek操作超过文件边界
             rowBlockSize = qMin(rowBlockSize, static_cast<quint32>(file.bytesAvailable()));
-            
-            if (rowBlockSize == 0) {
+
+            if (rowBlockSize == 0)
+            {
                 qWarning() << funcName << " - 文件中没有更多可用数据，无法继续跳过行";
                 file.close();
                 tableWidget->setRowCount(0);
@@ -3269,54 +3254,65 @@ bool VectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *table
             qWarning() << funcName << " - 读取块大小失败，行:" << (startRow + i);
             break;
         }
-        
+
         // 添加对行大小的安全检查
         const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE) 
+        if (rowBlockSize > MAX_REASONABLE_ROW_SIZE)
         {
-            qCritical() << funcName << " - 检测到异常大的行大小:" << rowBlockSize 
-                       << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i) << ". 可能是文件损坏.";
-                       
+            qCritical() << funcName << " - 检测到异常大的行大小:" << rowBlockSize
+                        << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i) << ". 可能是文件损坏.";
+
             // 创建一个空行，允许继续处理其他行
             Vector::RowData emptyRow;
-            for (int j = 0; j < allColumns.size(); ++j) {
+            for (int j = 0; j < allColumns.size(); ++j)
+            {
                 emptyRow.append(QVariant());
             }
             pageRows.append(emptyRow);
-            
+
             // 尝试跳过这个巨大的数据块，如果可能的话
-            if (file.bytesAvailable() >= rowBlockSize) {
+            if (file.bytesAvailable() >= rowBlockSize)
+            {
                 file.skip(rowBlockSize);
-            } else {
+            }
+            else
+            {
                 // 如果无法跳过，则中断处理
                 qWarning() << funcName << " - 无法跳过大型数据块，中断处理";
                 break;
             }
-            
+
             continue; // 跳过后面的处理，进入下一行
         }
 
         // 读取这一行的数据
         QByteArray rowDataBlock;
-        try {
-        rowDataBlock.resize(rowBlockSize);
-        } catch (const std::bad_alloc&) {
+        try
+        {
+            rowDataBlock.resize(rowBlockSize);
+        }
+        catch (const std::bad_alloc &)
+        {
             qCritical() << funcName << " - 内存分配失败，无法为行" << (startRow + i) << "分配" << rowBlockSize << "字节的内存";
-            
+
             // 创建一个空行并继续
             Vector::RowData emptyRow;
-            for (int j = 0; j < allColumns.size(); ++j) {
+            for (int j = 0; j < allColumns.size(); ++j)
+            {
                 emptyRow.append(QVariant());
             }
             pageRows.append(emptyRow);
-            
+
             // 尝试跳过这个无法分配内存的数据块
-            if (file.bytesAvailable() >= rowBlockSize) {
+            if (file.bytesAvailable() >= rowBlockSize)
+            {
                 file.skip(rowBlockSize);
-            } else {
+            }
+            else
+            {
                 break;
             }
-            
+
             continue;
         }
         qint64 bytesRead = in.readRawData(rowDataBlock.data(), rowBlockSize);
@@ -4413,53 +4409,66 @@ int VectorDataHandler::getSchemaVersion(int tableId)
 QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok)
 {
     const QString funcName = "VectorDataHandler::getAllVectorRows";
-    qDebug() << funcName << "- Getting all rows for table" << tableId;
     ok = false;
-    QString errorMsg;
+    if (m_tableDataCache.contains(tableId))
+    {
+        qDebug() << funcName << "- Cache hit for table" << tableId;
+        ok = true;
+        return m_tableDataCache.value(tableId);
+    }
 
-    // 首先，解析二进制文件的绝对路径
+    qDebug() << funcName << "- Cache miss for table" << tableId;
+
+    if (loadAllRowsIntoCache(tableId))
+    {
+        if (m_tableDataCache.contains(tableId))
+        {
+            ok = true;
+            return m_tableDataCache.value(tableId);
+        }
+    }
+
+    qWarning() << funcName << "- Failed to load rows for table" << tableId;
+    return {};
+}
+
+bool VectorDataHandler::loadAllRowsIntoCache(int tableId)
+{
+    const QString funcName = "VectorDataHandler::loadAllRowsIntoCache";
+    qDebug() << funcName << " - 开始为表" << tableId << "加载所有行到缓存";
+
+    // 步骤 1: 一次性加载所有元数据
+    QString binFileName; // 虽然这里拿到了，但后续只用它来解析绝对路径
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion;
+    int rowCount;
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
+    {
+        qWarning() << funcName << " - loadVectorTableMeta 失败，表ID:" << tableId;
+        return false;
+    }
+
+    // 步骤 2: 解析二进制文件的绝对路径
+    QString errorMsg;
     QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
     if (absoluteBinFilePath.isEmpty())
     {
-        qWarning() << funcName << "- Failed to resolve binary file path for table" << tableId << "Error:" << errorMsg;
-        return QList<Vector::RowData>();
+        qWarning() << funcName << " - resolveBinaryFilePath 失败:" << errorMsg;
+        return false;
     }
 
-    // 检查缓存是否有效
-    if (isTableDataCacheValid(tableId, absoluteBinFilePath))
-    {
-        qDebug() << funcName << "- Cache is valid, returning cached data for table" << tableId;
-        ok = true;
-        return m_tableDataCache[tableId];
-    }
-
-    // 缓存无效或不存在，从文件加载
-    qDebug() << funcName << "- Cache not valid, loading from file for table" << tableId;
-
-    // 加载元数据以获取列结构和schema版本
-    QString binFileName; // 这个是相对路径，从meta里读出来的
-    QList<Vector::ColumnInfo> columns;
-    int schemaVersion = 0;
-    int rowCount = 0; // 这个也是从meta里读出来的
-
-    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, rowCount))
-    {
-        qWarning() << funcName << "- Failed to load vector table metadata for table" << tableId;
-        return QList<Vector::RowData>();
-    }
-
-    // 从二进制文件读取所有行
+    // 步骤 3: 从二进制文件读取所有行数据，并传入元数据
     QList<Vector::RowData> rows;
-    if (!readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, rows))
+    // 注意：这里调用的是我们修改后的 readAllRowsFromBinary
+    if (!::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, rows))
     {
-        qWarning() << funcName << "- Failed to read all rows from binary for table" << tableId;
-        return QList<Vector::RowData>();
+        qWarning() << funcName << " - readAllRowsFromBinary 失败，文件:" << absoluteBinFilePath;
+        return false;
     }
 
-    // 更新缓存
+    // 步骤 4: 更新缓存
     updateTableDataCache(tableId, rows, absoluteBinFilePath);
+    qDebug() << funcName << " - 成功为表" << tableId << "加载并缓存了" << rows.count() << "行数据";
 
-    qDebug() << funcName << "- Successfully loaded" << rows.count() << "rows for table" << tableId;
-    ok = true;
-    return rows;
+    return true;
 }

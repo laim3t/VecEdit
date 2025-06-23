@@ -148,6 +148,9 @@ private:
 
     // 更新表数据缓存
     void updateTableDataCache(int tableId, const QList<Vector::RowData> &rows, const QString &binFilePath);
+
+    // 加载所有行数据到缓存
+    bool loadAllRowsIntoCache(int tableId);
 };
 
 #endif // VECTORDATAHANDLER_H
