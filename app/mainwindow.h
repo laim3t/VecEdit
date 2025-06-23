@@ -67,6 +67,9 @@ private slots:
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
 
+    // 高级视图（Model/View架构）
+    void showAdvancedView();
+
     // 显示添加管脚对话框
     bool showAddPinsDialog();
 

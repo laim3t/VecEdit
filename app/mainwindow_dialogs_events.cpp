@@ -38,6 +38,31 @@ void MainWindow::showDatabaseViewDialog()
     m_dialogManager->showDatabaseViewDialog();
 }
 
+void MainWindow::showAdvancedView()
+{
+    // 检查是否有打开的数据库
+    if (m_currentDbPath.isEmpty() || !DatabaseManager::instance()->isDatabaseConnected())
+    {
+        QMessageBox::warning(this, tr("警告"), tr("请先打开或创建一个项目数据库"));
+        return;
+    }
+
+    // 创建一个简单的对话框，说明高级视图功能即将实现
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("高级视图 - 基于Qt模型/视图架构"));
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setText(tr("高级视图功能正在开发中\n\n"
+                      "该功能将基于Qt模型/视图(Model/View)架构，\n"
+                      "提供更高性能的向量表实现，以便处理大规模数据。\n\n"
+                      "主要优势：\n"
+                      "- 显著提升大数据量下的性能\n"
+                      "- 支持高级排序与过滤\n"
+                      "- 内存占用更低\n"
+                      "- 界面响应更流畅"));
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.exec();
+}
+
 bool MainWindow::showAddPinsDialog()
 {
     // 检查是否有打开的数据库

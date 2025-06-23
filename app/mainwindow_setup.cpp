@@ -138,6 +138,10 @@ void MainWindow::setupMenu()
     QAction *viewDatabaseAction = viewMenu->addAction(tr("查看数据库(&D)"));
     connect(viewDatabaseAction, &QAction::triggered, this, &MainWindow::showDatabaseViewDialog);
 
+    // 高级视图（基于Model/View架构）
+    QAction *advancedViewAction = viewMenu->addAction(tr("高级视图(&A)"));
+    connect(advancedViewAction, &QAction::triggered, this, &MainWindow::showAdvancedView);
+
     // 分隔符
     viewMenu->addSeparator();
 
