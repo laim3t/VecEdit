@@ -27,8 +27,21 @@ DatabaseManager::DatabaseManager(QObject *parent)
     // 确保我们可以在应用程序中使用SQLite
     if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
     {
-        m_lastError = "SQLite驱动不可用";
+        m_lastError = "SQLite驱动不可用 - 这将导致应用程序无法使用数据库功能";
         qCritical() << m_lastError;
+        
+        // 尝试输出所有可用的驱动程序，以帮助诊断
+        QStringList availableDrivers = QSqlDatabase::drivers();
+        qInfo() << "可用的数据库驱动程序:" << availableDrivers.join(", ");
+        
+        if (availableDrivers.isEmpty()) {
+            qCritical() << "没有任何SQL驱动程序可用! 请确保Qt SQL模块已正确构建和链接。";
+        }
+        
+        // 尝试强制加载SQLite驱动
+        qInfo() << "尝试显式加载QSQLITE驱动...";
+    } else {
+        qInfo() << "SQLite驱动已可用。";
     }
 }
 
@@ -445,6 +458,18 @@ bool DatabaseManager::registerVersionTable()
 
 QSqlDatabase DatabaseManager::database() const
 {
+    // 检查数据库是否已连接
+    if (!m_db.isOpen()) {
+        qWarning() << "DatabaseManager::database - 数据库未连接";
+        return QSqlDatabase(); // 返回无效数据库对象
+    }
+    
+    // 输出连接信息，帮助跟踪
+    qDebug() << "DatabaseManager::database - 返回数据库连接，名称:" << m_db.connectionName() 
+             << ", 路径:" << m_db.databaseName()
+             << ", 驱动:" << m_db.driverName()
+             << ", 状态:" << (m_db.isOpen() ? "已打开" : "未打开");
+             
     return m_db;
 }
 
