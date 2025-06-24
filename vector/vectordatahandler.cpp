@@ -236,5 +236,7 @@ namespace
 #include "vectordatahandler_cache.cpp"
 #include "vectordatahandler_access.cpp"
 #include "vectordatahandler_modify_save.cpp"
-#include "vectordatahandler_modify_rowops.cpp"
+#include "vectordatahandler_modify_rowops_1.cpp"
+#include "vectordatahandler_modify_rowops_2.cpp"
 #include "vectordatahandler_utils.cpp"
+#include "vectordatahandler_pagedata.cpp"

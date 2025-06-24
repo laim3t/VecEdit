@@ -30,4 +30,5 @@
 
 
 #include "mainwindow_pins.cpp"
-#include "mainwindow_timeset_ops.cpp"
+#include "mainwindow_timeset_ops_1.cpp"
+#include "mainwindow_timeset_ops_2.cpp"

@@ -25,13 +25,15 @@
 #include "migration/datamigrator.h"
 // The compiler will merge all these files into one translation unit.
 // Do NOT add these new .cpp files to your CMakeLists.txt
-#include "mainwindow_setup.cpp"
+#include "mainwindow_setup_1.cpp"
+#include "mainwindow_setup_2.cpp"
 #include "mainwindow_project_tables.cpp"
 #include "mainwindow_pins_timeset.cpp"
 #include "mainwindow_data_operations.cpp"
 #include "mainwindow_dialogs_events.cpp"
 #include "mainwindow_datafix_helpers.cpp"
 #include "mainwindow_vector_fill.cpp"
-#include "mainwindow_waveform_view.cpp"
+#include "mainwindow_waveform_view_1.cpp"
+#include "mainwindow_waveform_view_2.cpp"
 #include "mainwindow_waveform_timeset.cpp"
 #include "mainwindow_waveform_types.cpp"
