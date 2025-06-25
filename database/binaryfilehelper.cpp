@@ -469,7 +469,8 @@ namespace Persistence
                 {
                     qWarning() << funcName << " - 反序列化TEXT字段时长度无效或过大:" << textLength << ", 列名:" << col.name;
                     textLength = qMin(qMin(textLength, fieldLength - 4), TEXT_ABSOLUTE_MAX_LENGTH);
-                    if (textLength < 0) textLength = 0;
+                    if (textLength < 0)
+                        textLength = 0;
                 }
 
                 // 读取实际文本内容
@@ -528,7 +529,8 @@ namespace Persistence
                 {
                     qWarning() << funcName << " - 反序列化JSON字段时长度无效或过大:" << jsonLength;
                     jsonLength = qMin(qMin(jsonLength, JSON_PROPERTIES_MAX_LENGTH - 4), JSON_ABSOLUTE_MAX_LENGTH);
-                    if (jsonLength < 0) jsonLength = 0;
+                    if (jsonLength < 0)
+                        jsonLength = 0;
                 }
 
                 // 读取JSON字符串
@@ -660,16 +662,19 @@ namespace Persistence
         const int LOG_INTERVAL = 5000; // 每5000行记录一次日志
         const QDateTime startTime = QDateTime::currentDateTime();
 
-        quint64 actualRowsRead = 0;                               // Use quint64 to match header type
-        
+        quint64 actualRowsRead = 0; // Use quint64 to match header type
+
         // 添加安全检查来防止不合理的预分配内存
-        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000) {
-            qCritical() << funcName << "- 错误: 文件头声明的行数(" << header.row_count_in_file 
+        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000)
+        {
+            qCritical() << funcName << "- 错误: 文件头声明的行数(" << header.row_count_in_file
                         << ")过大，超过安全限制或int最大值. 将限制预分配.";
             // 使用安全的最大值来预分配，而不是全部分配
-            rows.reserve(qMin(10000000, static_cast<int>(qMin(static_cast<quint64>(std::numeric_limits<int>::max()), 
-                                                             header.row_count_in_file))));
-        } else {
+            rows.reserve(qMin(10000000, static_cast<int>(qMin(static_cast<quint64>(std::numeric_limits<int>::max()),
+                                                              header.row_count_in_file))));
+        }
+        else
+        {
             rows.reserve(static_cast<int>(header.row_count_in_file)); // QList uses int for size/reserve
         }
 
@@ -690,14 +695,14 @@ namespace Persistence
                 qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取行大小失败. 状态:" << in.status();
                 break;
             }
-            
+
             // 增加防护措施：检测不合理的行大小
             const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-            if (rowByteSize > MAX_REASONABLE_ROW_SIZE) 
+            if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
             {
-                qCritical() << funcName << "- 检测到异常大的行大小:" << rowByteSize 
-                           << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-                
+                qCritical() << funcName << "- 检测到异常大的行大小:" << rowByteSize
+                            << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
+
                 // 限制大小到合理范围
                 rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
                 qWarning() << funcName << "- 已将行大小调整为:" << rowByteSize << "字节，尝试继续读取";
@@ -740,13 +745,13 @@ namespace Persistence
                     qWarning() << funcName << "- 错误: 在重定向位置" << redirectPosition << "读取行大小失败. 状态:" << in.status();
                     break;
                 }
-                
+
                 // 对重定向位置也进行行大小检测
-                if (rowByteSize > MAX_REASONABLE_ROW_SIZE) 
+                if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
                 {
-                    qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize 
-                               << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-                    
+                    qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize
+                                << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
+
                     // 限制大小到合理范围
                     rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
                     qWarning() << funcName << "- 已将重定向位置的行大小调整为:" << rowByteSize << "字节，尝试继续读取";

@@ -164,25 +164,29 @@ namespace
             // 后续的反序列化函数会根据fileVersion参数适配低版本数据
         }
         rows.clear();
-        
+
         // 安全检查：行数是否过大
-        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000) {
-            qCritical() << funcName << " - 文件头中的行数过大: " << header.row_count_in_file 
-                       << ", 超出安全限制或int最大值. 将限制行数处理.";
+        if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000)
+        {
+            qCritical() << funcName << " - 文件头中的行数过大: " << header.row_count_in_file
+                        << ", 超出安全限制或int最大值. 将限制行数处理.";
             // 这里直接返回错误，防止巨大数据导致内存分配失败
             file.close();
             return false;
         }
-        
+
         // 安全预分配内存以提高性能
-        try {
+        try
+        {
             rows.reserve(static_cast<int>(header.row_count_in_file));
-        } catch (const std::bad_alloc&) {
+        }
+        catch (const std::bad_alloc &)
+        {
             qCritical() << funcName << " - 内存分配失败，无法为" << header.row_count_in_file << "行数据分配内存";
             file.close();
             return false;
         }
-        
+
         for (quint64 i = 0; i < header.row_count_in_file; ++i)
         {
             QByteArray rowBytes;
@@ -198,19 +202,22 @@ namespace
                 qWarning() << funcName << " - 行长度读取失败, 行:" << i;
                 return false;
             }
-            
+
             // 添加对行大小的安全检查
             const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-            if (rowLen > MAX_REASONABLE_ROW_SIZE) 
+            if (rowLen > MAX_REASONABLE_ROW_SIZE)
             {
-                qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen 
-                           << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏或格式错误.";
+                qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen
+                            << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << i << ". 可能是文件损坏或格式错误.";
                 return false;
             }
-            
-            try {
-            rowBytes.resize(rowLen);
-            } catch (const std::bad_alloc&) {
+
+            try
+            {
+                rowBytes.resize(rowLen);
+            }
+            catch (const std::bad_alloc &)
+            {
                 qCritical() << funcName << " - 内存分配失败，无法为行" << i << "分配" << rowLen << "字节的内存";
                 return false;
             }
@@ -235,8 +242,10 @@ namespace
 #include "vectordatahandler_core.cpp"
 #include "vectordatahandler_cache.cpp"
 #include "vectordatahandler_access.cpp"
-#include "vectordatahandler_modify_save.cpp"
+#include "vectordatahandler_modify_save_1.cpp"
+#include "vectordatahandler_modify_save_2.cpp"
 #include "vectordatahandler_modify_rowops_1.cpp"
 #include "vectordatahandler_modify_rowops_2.cpp"
+#include "vectordatahandler_modify_rowops_3.cpp"
 #include "vectordatahandler_utils.cpp"
 #include "vectordatahandler_pagedata.cpp"
