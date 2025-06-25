@@ -1,3 +1,13 @@
+#include "vectordatahandler.h"
+#include "../database/databasemanager.h"
+#include "../database/binaryfilehelper.h"
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+
 QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok)
 {
     const QString funcName = "VectorDataHandler::getAllVectorRows";
@@ -207,7 +217,9 @@ int VectorDataHandler::getVectorTableRowCount(int tableId)
 
     // 如果所有方法都失败，尝试读取整个文件来计算行数
     QList<Vector::RowData> allRows;
-    if (Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, schemaVersion, allRows))
+    bool ok = false;
+    allRows = getAllVectorRows(tableId, ok);
+    if (ok)
     {
         int rowsCount = allRows.size();
         qDebug() << funcName << " - 通过读取整个文件获取的行数:" << rowsCount;
@@ -723,3 +735,338 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
     return true;
 }
 
+// 获取向量表指定页数据
+QList<Vector::RowData> VectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
+{
+    const QString funcName = "VectorDataHandler::getPageData";
+    QList<Vector::RowData> pageData;
+
+    qDebug() << funcName << " - 开始获取分页数据, 表ID:" << tableId
+             << ", 页码:" << pageIndex << ", 每页行数:" << pageSize;
+
+    // 初始化缓存（如果尚未初始化）
+    if (!m_cacheInitialized)
+    {
+        initializeCache();
+    }
+
+    // 1. 读取元数据 (需要获取列信息和总行数)
+    QString binFileNameFromMeta; // 从元数据获取的文件名
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileNameFromMeta, columns, schemaVersion, totalRowCount))
+    {
+        qWarning() << funcName << " - 元数据加载失败, 表ID:" << tableId;
+        return pageData;
+    }
+    qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", 总行数:" << totalRowCount;
+
+    // 计算分页参数
+    int totalPages = (totalRowCount + pageSize - 1) / pageSize; // 向上取整
+    if (pageIndex < 0)
+        pageIndex = 0;
+    if (pageIndex >= totalPages && totalPages > 0)
+        pageIndex = totalPages - 1;
+
+    int startRow = pageIndex * pageSize;
+    int rowsToLoad = qMin(pageSize, totalRowCount - startRow);
+
+    qDebug() << funcName << " - 分页参数: 总页数=" << totalPages
+             << ", 当前页=" << pageIndex << ", 起始行=" << startRow
+             << ", 加载行数=" << rowsToLoad;
+
+    // 如果没有数据，直接返回
+    if (rowsToLoad <= 0)
+    {
+        qDebug() << funcName << " - 当前页没有数据, 直接返回空结果";
+        return pageData;
+    }
+
+    // 如果列数为0，也无法继续
+    if (columns.isEmpty())
+    {
+        qWarning() << funcName << " - 表 " << tableId << " 没有列配置。";
+        return pageData;
+    }
+
+    // 2. 解析二进制文件路径
+    QString errorMsg;
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - 无法解析二进制文件路径: " << errorMsg;
+        return pageData;
+    }
+
+    // 检查文件是否存在
+    if (!QFile::exists(absoluteBinFilePath))
+    {
+        qWarning() << funcName << " - 二进制文件不存在: " << absoluteBinFilePath;
+        return pageData;
+    }
+
+    // 3. 读取指定范围的行数据
+    QList<Vector::ColumnInfo> allColumns;
+
+    // 获取完整列信息（包括隐藏列）
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery colQuery(db);
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    colQuery.addBindValue(tableId);
+
+    if (!colQuery.exec())
+    {
+        qWarning() << funcName << " - 查询完整列结构失败, 错误:" << colQuery.lastError().text();
+        return pageData;
+    }
+
+    while (colQuery.next())
+    {
+        Vector::ColumnInfo colInfo;
+        colInfo.id = colQuery.value(0).toInt();
+        colInfo.vector_table_id = tableId;
+        colInfo.name = colQuery.value(1).toString();
+        colInfo.order = colQuery.value(2).toInt();
+        colInfo.original_type_str = colQuery.value(3).toString();
+        colInfo.type = Vector::columnDataTypeFromString(colInfo.original_type_str);
+        colInfo.is_visible = colQuery.value(5).toBool();
+
+        // 解析JSON属性
+        QString dataPropertiesJson = colQuery.value(4).toString();
+        if (!dataPropertiesJson.isEmpty())
+        {
+            QJsonDocument doc = QJsonDocument::fromJson(dataPropertiesJson.toUtf8());
+            if (!doc.isNull() && doc.isObject())
+            {
+                colInfo.data_properties = doc.object();
+            }
+        }
+
+        allColumns.append(colInfo);
+    }
+
+    // 读取二进制文件数据
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qWarning() << funcName << " - 无法打开二进制文件: " << absoluteBinFilePath << ", 错误: " << file.errorString();
+        return pageData;
+    }
+
+    // 读取并验证头部
+    BinaryFileHeader header;
+    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
+    {
+        qWarning() << funcName << " - 二进制文件头部验证失败";
+        file.close();
+        return pageData;
+    }
+
+    // 定位到开始行
+    int rowDataSize = 0;
+    for (const auto &col : allColumns)
+    {
+        // 只考虑顺序与二进制文件中存储一致的列
+        if (col.order < header.column_count_in_file)
+        {
+            switch (col.type)
+            {
+            case Vector::ColumnDataType::TEXT:
+                rowDataSize += 256; // 使用固定的文本字段长度
+                break;
+            case Vector::ColumnDataType::TIMESET_ID:
+            case Vector::ColumnDataType::INTEGER:
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+                rowDataSize += sizeof(int);
+                break;
+            case Vector::ColumnDataType::REAL:
+                rowDataSize += sizeof(double);
+                break;
+            case Vector::ColumnDataType::PIN_STATE_ID:
+                // 管脚状态以字符形式存储，但长度固定为1
+                rowDataSize += 1;
+                break;
+            case Vector::ColumnDataType::BOOLEAN:
+                rowDataSize += sizeof(bool);
+                break;
+            case Vector::ColumnDataType::JSON_PROPERTIES:
+                rowDataSize += 512; // 使用固定的JSON字段长度
+                break;
+            default:
+                // 未知类型，跳过相应的字节
+                rowDataSize += 256; // 使用固定的文本字段长度
+                break;
+            }
+        }
+    }
+
+    // 跳过头部和开始行之前的所有行
+    qint64 headerSize = sizeof(BinaryFileHeader);
+    qint64 skipBytes = headerSize + (startRow * rowDataSize);
+    if (!file.seek(skipBytes))
+    {
+        qWarning() << funcName << " - 无法定位到行位置: " << startRow << ", skipBytes: " << skipBytes;
+        file.close();
+        return pageData;
+    }
+
+    // 读取所需行数
+    for (int rowIdx = 0; rowIdx < rowsToLoad; ++rowIdx)
+    {
+        if (m_cancelRequested.loadAcquire() == 1)
+        {
+            qDebug() << funcName << " - 操作被取消";
+            break;
+        }
+
+        // 创建一行数据容器
+        Vector::RowData rowData;
+
+        // 按列顺序读取并填充数据
+        for (const auto &col : allColumns)
+        {
+            QVariant cellData;
+
+            // 只处理在二进制文件范围内的列
+            if (col.order < header.column_count_in_file)
+            {
+                switch (col.type)
+                {
+                case Vector::ColumnDataType::TEXT:
+                {
+                    // 读取文本数据
+                    QByteArray textBytes(256, Qt::Uninitialized); // 使用固定大小
+                    if (file.read(textBytes.data(), 256) != 256)
+                    {
+                        qWarning() << funcName << " - 读取文本数据失败";
+                    }
+                    QString text = QString::fromUtf8(textBytes).trimmed();
+                    cellData = text;
+                    break;
+                }
+                case Vector::ColumnDataType::TIMESET_ID:
+                case Vector::ColumnDataType::INTEGER:
+                case Vector::ColumnDataType::INSTRUCTION_ID:
+                {
+                    int value = 0;
+                    if (file.read(reinterpret_cast<char *>(&value), sizeof(int)) != sizeof(int))
+                    {
+                        qWarning() << funcName << " - 读取整数数据失败";
+                    }
+                    cellData = value;
+                    break;
+                }
+                case Vector::ColumnDataType::REAL:
+                {
+                    double value = 0.0;
+                    if (file.read(reinterpret_cast<char *>(&value), sizeof(double)) != sizeof(double))
+                    {
+                        qWarning() << funcName << " - 读取浮点数数据失败";
+                    }
+                    cellData = value;
+                    break;
+                }
+                case Vector::ColumnDataType::PIN_STATE_ID:
+                {
+                    char pinState;
+                    if (file.read(&pinState, 1) != 1)
+                    {
+                        qWarning() << funcName << " - 读取管脚状态失败";
+                    }
+                    cellData = QString(QChar(pinState));
+                    break;
+                }
+                case Vector::ColumnDataType::BOOLEAN:
+                {
+                    bool value = false;
+                    if (file.read(reinterpret_cast<char *>(&value), sizeof(bool)) != sizeof(bool))
+                    {
+                        qWarning() << funcName << " - 读取布尔值失败";
+                    }
+                    cellData = value;
+                    break;
+                }
+                case Vector::ColumnDataType::JSON_PROPERTIES:
+                {
+                    // 读取JSON数据
+                    QByteArray jsonBytes(512, Qt::Uninitialized); // 使用固定大小
+                    if (file.read(jsonBytes.data(), 512) != 512)
+                    {
+                        qWarning() << funcName << " - 读取JSON数据失败";
+                    }
+                    QString jsonText = QString::fromUtf8(jsonBytes).trimmed();
+                    cellData = jsonText;
+                    break;
+                }
+                default:
+                    // 未知类型，跳过相应的字节
+                    file.seek(file.pos() + 256); // 使用 seek 替代 skip
+                    cellData = QVariant();
+                    break;
+                }
+            }
+            else
+            {
+                // 列配置中有，但二进制文件没有的列
+                cellData = QVariant();
+            }
+
+            // 添加到行数据
+            rowData.append(cellData);
+        }
+
+        // 将行数据添加到结果中
+        pageData.append(rowData);
+    }
+
+    file.close();
+    return pageData;
+}
+
+// 获取向量表的可见列信息
+QList<Vector::ColumnInfo> VectorDataHandler::getVisibleColumns(int tableId)
+{
+    const QString funcName = "VectorDataHandler::getVisibleColumns";
+    QList<Vector::ColumnInfo> columns;
+
+    // 查询数据库获取列信息
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery colQuery(db);
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
+    colQuery.addBindValue(tableId);
+
+    if (!colQuery.exec())
+    {
+        qWarning() << funcName << " - 查询可见列结构失败, 错误:" << colQuery.lastError().text();
+        return columns;
+    }
+
+    while (colQuery.next())
+    {
+        Vector::ColumnInfo colInfo;
+        colInfo.id = colQuery.value(0).toInt();
+        colInfo.vector_table_id = tableId;
+        colInfo.name = colQuery.value(1).toString();
+        colInfo.order = colQuery.value(2).toInt();
+        colInfo.original_type_str = colQuery.value(3).toString();
+        colInfo.type = Vector::columnDataTypeFromString(colInfo.original_type_str);
+        colInfo.is_visible = true;
+
+        // 解析JSON属性
+        QString dataPropertiesJson = colQuery.value(4).toString();
+        if (!dataPropertiesJson.isEmpty())
+        {
+            QJsonDocument doc = QJsonDocument::fromJson(dataPropertiesJson.toUtf8());
+            if (!doc.isNull() && doc.isObject())
+            {
+                colInfo.data_properties = doc.object();
+            }
+        }
+
+        columns.append(colInfo);
+    }
+
+    return columns;
+}

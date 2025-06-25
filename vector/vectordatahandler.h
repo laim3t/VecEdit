@@ -87,6 +87,12 @@ public:
     // 添加分页数据加载方法
     bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int pageIndex, int pageSize);
 
+    // 获取向量表指定页数据 - 返回数据而不是填充表格
+    QList<Vector::RowData> getPageData(int tableId, int pageIndex, int pageSize);
+
+    // 获取向量表的可见列信息
+    QList<Vector::ColumnInfo> getVisibleColumns(int tableId);
+
     // 标记行已被修改
     void markRowAsModified(int tableId, int rowIndex);
 
@@ -148,6 +154,16 @@ private:
 
     // 更新表数据缓存
     void updateTableDataCache(int tableId, const QList<Vector::RowData> &rows, const QString &binFilePath);
+
+    // 加载向量表元数据（列信息、行数等）
+    bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns,
+                             int &schemaVersion, int &totalRowCount);
+
+    // 读取二进制文件中的所有行数据
+    bool readAllRowsFromBinary(const QString &absoluteBinFilePath,
+                               const QList<Vector::ColumnInfo> &columns,
+                               int schemaVersion,
+                               QList<Vector::RowData> &rows);
 };
 
 #endif // VECTORDATAHANDLER_H
