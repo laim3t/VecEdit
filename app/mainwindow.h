@@ -115,6 +115,9 @@ private slots:
     // 为当前选中的向量表添加行
     void addRowToCurrentVectorTable();
 
+    // 为当前选中的向量表添加行(Model/View架构)
+    void addRowToCurrentVectorTableModel();
+
     // 删除当前选中的向量表
     void deleteCurrentVectorTable();
 

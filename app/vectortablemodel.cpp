@@ -573,3 +573,256 @@ int VectorTableModel::getTimeSetId(const QString &timeSetName) const
     // 如果找不到对应的ID，返回-1表示无效
     return -1;
 }
+
+// 实现表格行操作方法
+
+bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
+{
+    // 检查参数是否有效
+    if (parent.isValid() || row < 0 || count <= 0 || m_tableId <= 0)
+        return false;
+
+    const QString funcName = "VectorTableModel::insertRows";
+    qDebug() << funcName << "- 开始在位置" << row << "插入" << count << "行";
+
+    // 默认使用的TimeSet ID (可以从第一行获取或使用默认值1)
+    int timesetId = 1;
+    if (!m_pageData.isEmpty() && m_pageData.first().size() > 0) {
+        // 尝试从第一行获取TimeSet ID
+        for (int i = 0; i < m_columns.size(); i++) {
+            if (m_columns[i].type == Vector::ColumnDataType::TIMESET_ID) {
+                timesetId = m_pageData.first()[i].toInt();
+                break;
+            }
+        }
+    }
+
+    // 创建一个空的行数据结构
+    Vector::RowData emptyRow;
+    for (int i = 0; i < m_columns.size(); i++) {
+        // 根据列类型设置默认值
+        switch (m_columns[i].type) {
+            case Vector::ColumnDataType::INTEGER:
+                emptyRow.append(0);
+                break;
+            case Vector::ColumnDataType::REAL:
+                emptyRow.append(0.0);
+                break;
+            case Vector::ColumnDataType::BOOLEAN:
+                emptyRow.append(false);
+                break;
+            case Vector::ColumnDataType::PIN_STATE_ID:
+                emptyRow.append("X"); // 默认管脚状态为X
+                break;
+            case Vector::ColumnDataType::TIMESET_ID:
+                emptyRow.append(timesetId);
+                break;
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+                emptyRow.append(1); // 默认指令ID
+                break;
+            default:
+                emptyRow.append(QString());
+                break;
+        }
+    }
+
+    // 开始插入行
+    beginInsertRows(parent, row, row + count - 1);
+    
+    // 计算实际插入点
+    int actualInsertRow = qMin(row, m_pageData.size());
+    
+    // 插入空行
+    for (int i = 0; i < count; i++) {
+        m_pageData.insert(actualInsertRow, emptyRow);
+    }
+    
+    // 更新总行数
+    m_totalRows += count;
+    
+    // 结束插入行
+    endInsertRows();
+
+    // 标记为已修改
+    for (int i = 0; i < count; i++) {
+        VectorDataHandler::instance().markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
+    }
+
+    qDebug() << funcName << "- 已成功插入" << count << "行";
+    return true;
+}
+
+bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    // 检查参数是否有效
+    if (parent.isValid() || row < 0 || count <= 0 || (row + count) > m_pageData.size() || m_tableId <= 0)
+        return false;
+
+    const QString funcName = "VectorTableModel::removeRows";
+    qDebug() << funcName << "- 开始从位置" << row << "删除" << count << "行";
+
+    // 获取要删除的行的实际索引（考虑分页）
+    QList<int> rowIndexes;
+    for (int i = 0; i < count; i++) {
+        rowIndexes.append(row + i + (m_currentPage * m_pageSize));
+    }
+
+    // 调用VectorDataHandler删除行
+    QString errorMessage;
+    if (!VectorDataHandler::instance().deleteVectorRows(m_tableId, rowIndexes, errorMessage)) {
+        qWarning() << funcName << "- 删除行失败:" << errorMessage;
+        return false;
+    }
+
+    // 开始移除行
+    beginRemoveRows(parent, row, row + count - 1);
+    
+    // 从模型数据中移除行
+    for (int i = 0; i < count; i++) {
+        if (row < m_pageData.size()) {
+            m_pageData.removeAt(row);
+        }
+    }
+    
+    // 更新总行数
+    m_totalRows -= count;
+    
+    // 结束移除行
+    endRemoveRows();
+
+    qDebug() << funcName << "- 已成功删除" << count << "行";
+    return true;
+}
+
+bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString &errorMessage)
+{
+    const QString funcName = "VectorTableModel::deleteSelectedRows";
+    qDebug() << funcName << "- 开始删除选中的行，共" << rowIndexes.size() << "行";
+
+    if (rowIndexes.isEmpty() || m_tableId <= 0) {
+        errorMessage = "没有选中任何行或表ID无效";
+        return false;
+    }
+
+    // 获取绝对行索引（考虑分页）
+    QList<int> absoluteRowIndexes;
+    for (int rowIndex : rowIndexes) {
+        // 计算绝对行索引
+        int absoluteRowIndex = rowIndex;
+        absoluteRowIndexes.append(absoluteRowIndex);
+    }
+
+    // 调用VectorDataHandler删除行
+    if (!VectorDataHandler::instance().deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage)) {
+        qWarning() << funcName << "- 删除行失败:" << errorMessage;
+        return false;
+    }
+
+    // 重新加载当前页
+    loadPage(m_tableId, m_currentPage);
+
+    qDebug() << funcName << "- 已成功删除选中的行";
+    return true;
+}
+
+bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorMessage)
+{
+    const QString funcName = "VectorTableModel::deleteRowsInRange";
+    qDebug() << funcName << "- 开始删除从第" << fromRow << "行到第" << toRow << "行";
+
+    if (fromRow <= 0 || toRow <= 0 || fromRow > toRow || m_tableId <= 0) {
+        errorMessage = "无效的行范围或表ID";
+        return false;
+    }
+
+    // 调用VectorDataHandler删除行范围
+    if (!VectorDataHandler::instance().deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage)) {
+        qWarning() << funcName << "- 删除行范围失败:" << errorMessage;
+        return false;
+    }
+
+    // 重新加载当前页
+    loadPage(m_tableId, m_currentPage);
+
+    qDebug() << funcName << "- 已成功删除行范围";
+    return true;
+}
+
+bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinValues, QString &errorMessage)
+{
+    const QString funcName = "VectorTableModel::addNewRow";
+    qDebug() << funcName << "- 开始添加新行，TimesetID:" << timesetId;
+
+    if (m_tableId <= 0) {
+        errorMessage = "表ID无效";
+        return false;
+    }
+
+    // 创建临时表格用于传递数据
+    QTableWidget tempTable;
+    tempTable.setRowCount(1);
+    tempTable.setColumnCount(m_columns.size());
+
+    // 设置列
+    for (int col = 0; col < m_columns.size(); col++) {
+        const Vector::ColumnInfo &colInfo = m_columns[col];
+        
+        // 设置默认值
+        QTableWidgetItem *item = new QTableWidgetItem();
+        
+        switch (colInfo.type) {
+            case Vector::ColumnDataType::PIN_STATE_ID:
+            {
+                // 检查是否有为此管脚提供的值
+                int pinId = colInfo.data_properties.value("pin_id").toInt(-1);
+                if (pinValues.contains(pinId)) {
+                    item->setText(pinValues.value(pinId));
+                } else {
+                    item->setText("X"); // 默认值
+                }
+                break;
+            }
+            case Vector::ColumnDataType::TIMESET_ID:
+                item->setText(QString::number(timesetId));
+                break;
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+                item->setText("1"); // 默认指令ID
+                break;
+            case Vector::ColumnDataType::BOOLEAN:
+                item->setText("N");
+                break;
+            default:
+                item->setText("");
+                break;
+        }
+        
+        tempTable.setItem(0, col, item);
+    }
+
+    // 使用VectorDataHandler插入行
+    // 获取当前表最后一行的索引
+    int lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
+    
+    // 准备管脚信息列表（格式：管脚ID, <管脚名称, <通道数, 通道名称>> ）
+    QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins;
+    
+    // 调用insertVectorRows插入新行
+    if (!VectorDataHandler::instance().insertVectorRows(
+            m_tableId,          // 表ID
+            lastRowIndex,       // 开始索引
+            1,                  // 行数
+            timesetId,          // TimeSet ID
+            &tempTable,         // 数据表
+            true,               // 追加到末尾
+            selectedPins,       // 选中的管脚信息
+            errorMessage)) {
+        qWarning() << funcName << "- 添加新行失败:" << errorMessage;
+        return false;
+    }
+
+    // 重新加载当前页
+    loadPage(m_tableId, m_currentPage);
+
+    qDebug() << funcName << "- 已成功添加新行";
+    return true;
+}

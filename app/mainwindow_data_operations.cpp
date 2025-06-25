@@ -190,30 +190,117 @@ void MainWindow::addRowToCurrentVectorTable()
         return;
     }
 
+    // 根据当前视图类型选择不同的添加行方法
+    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+    {
+        // 使用Model/View架构添加行
+        addRowToCurrentVectorTableModel();
+    }
+    else
+    {
+        // 使用旧的QTableWidget方式添加行
+        // 获取当前选中的向量表ID和名称
+        int tableId = m_vectorTableSelector->currentData().toInt();
+        QString tableName = m_vectorTableSelector->currentText();
+
+        // 查询当前表中最大的排序索引
+        int maxSortIndex = -1;
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+        query.prepare("SELECT MAX(sort_index) FROM vector_table_data WHERE table_id = ?");
+        query.addBindValue(tableId);
+
+        if (query.exec() && query.next())
+        {
+            maxSortIndex = query.value(0).toInt();
+        }
+
+        // 使用对话框管理器显示向量行数据录入对话框
+        if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
+        {
+            // 刷新表格显示
+            onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+
+            // 刷新侧边栏导航树，确保Label同步
+            refreshSidebarNavigator();
+        }
+    }
+}
+
+// 为当前选中的向量表添加行(Model/View架构)
+void MainWindow::addRowToCurrentVectorTableModel()
+{
+    const QString funcName = "MainWindow::addRowToCurrentVectorTableModel";
+    qDebug() << funcName << " - 开始处理添加新行（Model/View架构）";
+
     // 获取当前选中的向量表ID和名称
     int tableId = m_vectorTableSelector->currentData().toInt();
     QString tableName = m_vectorTableSelector->currentText();
 
-    // 查询当前表中最大的排序索引
-    int maxSortIndex = -1;
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT MAX(sort_index) FROM vector_table_data WHERE table_id = ?");
-    query.addBindValue(tableId);
-
-    if (query.exec() && query.next())
+    // 确保数据模型已初始化
+    if (!m_vectorTableModel)
     {
-        maxSortIndex = query.value(0).toInt();
+        QMessageBox::warning(this, "添加失败", "数据模型未初始化");
+        qWarning() << funcName << " - 数据模型未初始化";
+        return;
     }
 
-    // 使用对话框管理器显示向量行数据录入对话框
-    if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
+    // 默认使用的TimeSet ID (可以尝试从第一行获取)
+    int timesetId = 1;
+    
+    // 尝试获取一个可用的TimeSet ID
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    
+    // 首先尝试获取最常用的TimeSet
+    query.prepare("SELECT timeset_id, COUNT(*) as usage_count "
+                  "FROM vector_table_data "
+                  "WHERE table_id = ? AND timeset_id IS NOT NULL "
+                  "GROUP BY timeset_id "
+                  "ORDER BY usage_count DESC "
+                  "LIMIT 1");
+    query.addBindValue(tableId);
+    
+    if (query.exec() && query.next())
     {
-        // 刷新表格显示
-        onVectorTableSelectionChanged(m_vectorTableSelector->currentIndex());
+        timesetId = query.value(0).toInt();
+        qDebug() << funcName << " - 找到最常用的TimeSet ID:" << timesetId;
+    }
+    else
+    {
+        // 如果找不到，尝试获取任何可用的TimeSet
+        query.prepare("SELECT id FROM timesets LIMIT 1");
+        if (query.exec() && query.next())
+        {
+            timesetId = query.value(0).toInt();
+            qDebug() << funcName << " - 找到可用的TimeSet ID:" << timesetId;
+        }
+        else
+        {
+            qDebug() << funcName << " - 未找到TimeSet，使用默认值1";
+        }
+    }
 
+    // 创建空的管脚值映射
+    QMap<int, QString> pinValues;
+    
+    // 可以在这里预设一些默认的管脚值
+    
+    // 调用模型的添加行方法
+    QString errorMessage;
+    if (m_vectorTableModel->addNewRow(timesetId, pinValues, errorMessage))
+    {
+        QMessageBox::information(this, "添加成功", "已成功添加新行");
+        qDebug() << funcName << " - 添加行成功";
+        
         // 刷新侧边栏导航树，确保Label同步
         refreshSidebarNavigator();
+    }
+    else
+    {
+        QMessageBox::critical(this, "添加失败", errorMessage);
+        qWarning() << funcName << " - 添加行失败：" << errorMessage;
+        statusBar()->showMessage("添加行失败: " + errorMessage, 5000);
     }
 }
 
@@ -237,20 +324,43 @@ void MainWindow::deleteSelectedVectorRows()
     QString tableName = m_vectorTableSelector->currentText();
     qDebug() << funcName << " - 当前选择的向量表：" << tableName << "，ID：" << tableId;
 
-    // 获取选中的行（综合两种选择模式）
+    // 获取选中的行
     QSet<int> selectedRowSet;
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
-
-    // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
-    if (selectedIndexes.isEmpty())
+    
+    // 根据当前视图类型获取选中的行
+    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
     {
-        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+        // 使用Model/View架构获取选中的行
+        QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedRows();
+        
+        // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
+        if (selectedIndexes.isEmpty())
+        {
+            selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+        }
+        
+        // 从获取到的索引中提取行号
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            selectedRowSet.insert(index.row());
+        }
     }
-
-    // 从获取到的索引中提取行号
-    foreach (const QModelIndex &index, selectedIndexes)
+    else
     {
-        selectedRowSet.insert(index.row());
+        // 使用旧的QTableWidget方式获取选中的行
+        QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+        
+        // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
+        if (selectedIndexes.isEmpty())
+        {
+            selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+        }
+        
+        // 从获取到的索引中提取行号
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            selectedRowSet.insert(index.row());
+        }
     }
 
     if (selectedRowSet.isEmpty())
@@ -276,10 +386,40 @@ void MainWindow::deleteSelectedVectorRows()
     QList<int> selectedRows = selectedRowSet.values();
     qDebug() << funcName << " - 选中的行索引：" << selectedRows;
 
-    // 使用数据处理器删除选中的行
+    // 根据当前视图类型执行删除操作
     QString errorMessage;
-    qDebug() << funcName << " - 开始调用VectorDataHandler::deleteVectorRows，参数：tableId=" << tableId << "，行数=" << selectedRows.size();
-    if (VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage))
+    bool success = false;
+    
+    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+    {
+        // 使用Model/View架构删除行
+        if (m_vectorTableModel)
+        {
+            // 添加当前页偏移以获取绝对行索引
+            QList<int> absoluteRows;
+            int pageOffset = m_vectorTableModel->currentPage() * m_vectorTableModel->pageSize();
+            for (int row : selectedRows)
+            {
+                absoluteRows.append(row + pageOffset);
+            }
+            
+            success = m_vectorTableModel->deleteSelectedRows(absoluteRows, errorMessage);
+        }
+        else
+        {
+            errorMessage = "数据模型未初始化";
+            success = false;
+        }
+    }
+    else
+    {
+        // 使用旧的方式删除行
+        qDebug() << funcName << " - 开始调用VectorDataHandler::deleteVectorRows，参数：tableId=" << tableId << "，行数=" << selectedRows.size();
+        success = VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage);
+    }
+
+    // 处理删除结果
+    if (success)
     {
         QMessageBox::information(this, "删除成功", "已成功删除 " + QString::number(selectedRows.size()) + " 行数据");
         qDebug() << funcName << " - 删除操作成功完成";
@@ -336,13 +476,29 @@ void MainWindow::deleteVectorRowsInRange()
     dialog.setMaxRow(totalRows);
 
     // 获取当前选中的行
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+    QModelIndexList selectedIndexes;
+    int pageOffset = 0;
+    
+    // 根据当前视图类型获取选中的行
+    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+    {
+        // 使用Model/View架构获取选中的行
+        selectedIndexes = m_vectorTableView->selectionModel()->selectedRows();
+        pageOffset = m_vectorTableModel->currentPage() * m_vectorTableModel->pageSize();
+    }
+    else
+    {
+        // 使用旧的QTableWidget方式获取选中的行
+        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
+        pageOffset = m_currentPage * m_pageSize;
+    }
+
     if (!selectedIndexes.isEmpty())
     {
         if (selectedIndexes.size() == 1)
         {
             // 只选中了一行
-            int row = selectedIndexes.first().row() + 1; // 将0-based转为1-based
+            int row = selectedIndexes.first().row() + 1 + pageOffset; // 将0-based转为1-based并加上页偏移
             dialog.setSelectedRange(row, row);
 
             qDebug() << "MainWindow::deleteVectorRowsInRange - 当前选中了单行：" << row;
@@ -355,7 +511,7 @@ void MainWindow::deleteVectorRowsInRange()
 
             for (const QModelIndex &index : selectedIndexes)
             {
-                int row = index.row() + 1; // 将0-based转为1-based
+                int row = index.row() + 1 + pageOffset; // 将0-based转为1-based并加上页偏移
                 minRow = qMin(minRow, row);
                 maxRow = qMax(maxRow, row);
             }
@@ -406,7 +562,28 @@ void MainWindow::deleteVectorRowsInRange()
 
         // 执行删除操作
         QString errorMessage;
-        if (VectorDataHandler::instance().deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage))
+        bool success = false;
+        
+        if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+        {
+            // 使用Model/View架构删除行范围
+            if (m_vectorTableModel)
+            {
+                success = m_vectorTableModel->deleteRowsInRange(fromRow, toRow, errorMessage);
+            }
+            else
+            {
+                errorMessage = "数据模型未初始化";
+                success = false;
+            }
+        }
+        else
+        {
+            // 使用旧的方式删除行范围
+            success = VectorDataHandler::instance().deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage);
+        }
+
+        if (success)
         {
             QMessageBox::information(this, "删除成功",
                                      QString("已成功删除第 %1 到 %2 行（共 %3 行）").arg(fromRow).arg(toRow).arg(rowCount));
