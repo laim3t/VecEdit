@@ -393,13 +393,20 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
 
+    // 创建项委托，处理单元格编辑
+    m_itemDelegate = new VectorTableDelegate(this);
+
     // 创建新的表格视图模型和视图
     m_vectorTableModel = new VectorTableModel(this);
     m_vectorTableView = new QTableView(this);
     m_vectorTableView->setAlternatingRowColors(true);
     m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableView->setModel(m_vectorTableModel);
+
+    // 设置自定义委托，处理不同类型单元格的编辑功能
+    m_vectorTableView->setItemDelegate(m_itemDelegate);
 
     // 创建QStackedWidget来容纳旧表格和新表格
     m_vectorStackedWidget = new QStackedWidget(this);
@@ -498,8 +505,7 @@ void MainWindow::setupVectorTableUI()
     connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onVectorTableSelectionChanged);
 
-    // 创建项委托，处理单元格编辑
-    m_itemDelegate = new VectorTableItemDelegate(this);
+    // 为旧表格设置委托
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
     // 创建分页控件

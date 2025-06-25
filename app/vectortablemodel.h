@@ -26,6 +26,12 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
+    // 重写flags方法，添加可编辑标志
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    // 重写setData方法，实现数据编辑
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+
     // 加载指定表格的指定页数据
     void loadPage(int tableId, int page);
 

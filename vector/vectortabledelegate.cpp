@@ -17,25 +17,25 @@
 #include "common/binary_field_lengths.h"
 
 // 定义静态成员变量
-QMap<int, QList<Vector::ColumnInfo>> VectorTableItemDelegate::s_tableColumnsCache;
+QMap<int, QList<Vector::ColumnInfo>> VectorTableDelegate::s_tableColumnsCache;
 
-VectorTableItemDelegate::VectorTableItemDelegate(QObject *parent, const QVector<int> &cellEditTypes)
+VectorTableDelegate::VectorTableDelegate(QObject *parent)
     : QStyledItemDelegate(parent),
       m_tableIdCached(false),
       m_cachedTableId(-1),
-      m_cellTypes(cellEditTypes)
+      m_cellTypes()
 {
     // 清空缓存，确保每次创建代理时都重新从数据库获取选项
     refreshCache();
 }
 
 // 刷新缓存方法实现
-void VectorTableItemDelegate::refreshCache()
+void VectorTableDelegate::refreshCache()
 {
     m_instructionOptions.clear();
     m_timeSetOptions.clear();
     m_captureOptions.clear();
-    
+
     // 清空静态列配置缓存
     s_tableColumnsCache.clear();
 
@@ -46,19 +46,19 @@ void VectorTableItemDelegate::refreshCache()
 }
 
 // 刷新表ID缓存方法实现
-void VectorTableItemDelegate::refreshTableIdCache()
+void VectorTableDelegate::refreshTableIdCache()
 {
     m_tableIdCached = false;
     m_cachedTableId = -1;
     qDebug() << "VectorTableItemDelegate::refreshTableIdCache - 表ID缓存已重置";
 }
 
-VectorTableItemDelegate::~VectorTableItemDelegate()
+VectorTableDelegate::~VectorTableDelegate()
 {
     // 析构函数
 }
 
-QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
+QWidget *VectorTableDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Function entry. Attempting to create editor for cell at row:" << index.row() << "column:" << index.column();
 
@@ -189,7 +189,7 @@ QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOpti
     return editor;
 }
 
-void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+void VectorTableDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
     int column = index.column();
 
@@ -224,7 +224,7 @@ void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &
     }
 }
 
-void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
+void VectorTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
     if (!index.isValid() || !model || !editor)
     {
@@ -243,9 +243,12 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
 
     // 使用静态缓存减少数据库查询
     QList<Vector::ColumnInfo> columns;
-    if (s_tableColumnsCache.contains(tableId)) {
+    if (s_tableColumnsCache.contains(tableId))
+    {
         columns = s_tableColumnsCache[tableId];
-    } else {
+    }
+    else
+    {
         // 缓存未命中，查询数据库
         columns = getColumnConfiguration(tableId);
         // 更新缓存
@@ -298,10 +301,13 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
     {
         // 处理TEXT、INTEGER和其他类型 - 优化：直接设置数据，避免冗余处理
         QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
-        if (lineEdit) {
+        if (lineEdit)
+        {
             // 直接设置值，跳过不必要的处理
             model->setData(index, lineEdit->text(), Qt::EditRole);
-        } else {
+        }
+        else
+        {
             // 对于不是QLineEdit的控件，回退到默认委托
             QStyledItemDelegate::setModelData(editor, model, index);
         }
@@ -309,7 +315,7 @@ void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *
 }
 
 // 辅助函数：获取当前表的ID
-int VectorTableItemDelegate::getTableIdForCurrentTable() const
+int VectorTableDelegate::getTableIdForCurrentTable() const
 {
     qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Function entry.";
 
@@ -357,7 +363,7 @@ int VectorTableItemDelegate::getTableIdForCurrentTable() const
 }
 
 // 辅助函数：通过UI索引获取列信息
-Vector::ColumnInfo VectorTableItemDelegate::getColumnInfoByIndex(int tableId, int uiColumnIndex) const
+Vector::ColumnInfo VectorTableDelegate::getColumnInfoByIndex(int tableId, int uiColumnIndex) const
 {
     Vector::ColumnInfo defaultInfo;
     if (tableId < 0 || uiColumnIndex < 0)
@@ -415,7 +421,7 @@ Vector::ColumnInfo VectorTableItemDelegate::getColumnInfoByIndex(int tableId, in
 }
 
 // 辅助函数：获取向量表选择器指针
-QObject *VectorTableItemDelegate::getVectorTableSelectorPtr() const
+QObject *VectorTableDelegate::getVectorTableSelectorPtr() const
 {
     qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Function entry.";
     QMainWindow *mainWindow = qobject_cast<QMainWindow *>(QApplication::activeWindow());
@@ -446,7 +452,7 @@ QObject *VectorTableItemDelegate::getVectorTableSelectorPtr() const
 }
 
 // 获取列配置（直接从数据库获取，供缓存使用）
-QList<Vector::ColumnInfo> VectorTableItemDelegate::getColumnConfiguration(int tableId) const
+QList<Vector::ColumnInfo> VectorTableDelegate::getColumnConfiguration(int tableId) const
 {
     QList<Vector::ColumnInfo> columns;
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -488,7 +494,7 @@ QList<Vector::ColumnInfo> VectorTableItemDelegate::getColumnConfiguration(int ta
     return columns;
 }
 
-QStringList VectorTableItemDelegate::getInstructionOptions() const
+QStringList VectorTableDelegate::getInstructionOptions() const
 {
     // 如果已缓存，则直接返回
     if (!m_instructionOptions.isEmpty())
@@ -515,7 +521,7 @@ QStringList VectorTableItemDelegate::getInstructionOptions() const
     return m_instructionOptions;
 }
 
-QStringList VectorTableItemDelegate::getTimeSetOptions() const
+QStringList VectorTableDelegate::getTimeSetOptions() const
 {
     // 如果已缓存，则直接返回
     if (!m_timeSetOptions.isEmpty())
@@ -542,7 +548,7 @@ QStringList VectorTableItemDelegate::getTimeSetOptions() const
     return m_timeSetOptions;
 }
 
-QStringList VectorTableItemDelegate::getCaptureOptions() const
+QStringList VectorTableDelegate::getCaptureOptions() const
 {
     // 如果已缓存，则直接返回
     if (!m_captureOptions.isEmpty())
@@ -554,4 +560,10 @@ QStringList VectorTableItemDelegate::getCaptureOptions() const
     m_captureOptions << "Y"
                      << "N";
     return m_captureOptions;
+}
+
+void VectorTableDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    // 暂时使用默认绘制函数
+    QStyledItemDelegate::paint(painter, option, index);
 }

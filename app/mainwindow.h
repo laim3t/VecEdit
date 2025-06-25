@@ -36,7 +36,7 @@
 #include "vectortablemodel.h"
 
 // 前置声明
-class VectorTableItemDelegate;
+class VectorTableDelegate;
 class DialogManager;
 
 class MainWindow : public QMainWindow
@@ -323,7 +323,7 @@ private:
     bool m_isUpdatingUI; // 防止UI更新循环的标志
 
     // 自定义代理
-    VectorTableItemDelegate *m_itemDelegate;
+    VectorTableDelegate *m_itemDelegate;
 
     // 数据处理和对话框管理器
     DialogManager *m_dialogManager;

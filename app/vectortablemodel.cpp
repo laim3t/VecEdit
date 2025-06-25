@@ -1,7 +1,9 @@
 #include "vectortablemodel.h"
 #include "../vector/vectordatahandler.h"
 #include "../database/binaryfilehelper.h"
+#include "../database/databasemanager.h"
 #include <QDebug>
+#include <QSqlQuery>
 
 VectorTableModel::VectorTableModel(QObject *parent)
     : QAbstractTableModel(parent),
@@ -63,14 +65,36 @@ QVariant VectorTableModel::data(const QModelIndex &index, int role) const
             case Vector::ColumnDataType::TIMESET_ID:
             {
                 int timesetId = cellData.toInt();
-                // 可以在这里返回TimeSet的名称，但目前先返回ID值
-                return timesetId;
+                if (timesetId > 0)
+                {
+                    QSqlQuery query(DatabaseManager::instance()->database());
+                    query.prepare("SELECT name FROM TimeSet WHERE id = ?");
+                    query.addBindValue(timesetId);
+                    if (query.exec() && query.next())
+                    {
+                        return query.value(0).toString();
+                    }
+                }
+                return QString("timeset_%1").arg(timesetId); // Fallback
             }
             case Vector::ColumnDataType::INSTRUCTION_ID:
             {
                 int instructionId = cellData.toInt();
-                // 可以在这里返回指令的文本，但目前先返回ID值
-                return instructionId;
+                // 假设 ID=1 是 INC，其他待定
+                // 这里需要一个更完善的Instruction管理类，暂时硬编码
+                if (instructionId == 1)
+                    return "INC";
+                return QString::number(instructionId); // Fallback
+            }
+            case Vector::ColumnDataType::PIN_STATE_ID:
+            {
+                // pin state 'X', '1', '0' etc. are stored as char
+                return cellData.toString();
+            }
+            case Vector::ColumnDataType::BOOLEAN:
+            {
+                // Capture 列
+                return cellData.toBool() ? "Y" : "N";
             }
             default:
                 // 其他类型直接返回存储的值
@@ -166,4 +190,43 @@ void VectorTableModel::loadPage(int tableId, int page)
 
     qDebug() << "VectorTableModel::loadPage - 加载完成，列数:" << m_columns.size()
              << "，当前页行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
+}
+
+Qt::ItemFlags VectorTableModel::flags(const QModelIndex &index) const
+{
+    // 检查索引是否有效
+    if (!index.isValid())
+        return Qt::NoItemFlags;
+
+    // 返回默认标志 + 可编辑标志
+    return QAbstractTableModel::flags(index) | Qt::ItemIsEditable;
+}
+
+bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    // 检查索引是否有效
+    if (!index.isValid() || index.row() >= m_pageData.size() || index.column() >= m_columns.size())
+        return false;
+
+    // 仅处理编辑角色
+    if (role != Qt::EditRole)
+        return false;
+
+    // 获取当前行数据的可修改副本
+    Vector::RowData &rowData = m_pageData[index.row()];
+
+    // 确保行数据长度至少为列数
+    while (rowData.size() <= index.column())
+        rowData.append(QVariant());
+
+    // 更新数据
+    rowData[index.column()] = value;
+
+    // 发出数据更改信号
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+
+    qDebug() << "VectorTableModel::setData - 数据已更新，行:" << index.row()
+             << "，列:" << index.column() << "，值:" << value;
+
+    return true;
 }

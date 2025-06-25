@@ -11,24 +11,47 @@
 #include "vector/vector_data_types.h"
 
 /**
- * @brief 自定义代理类，用于处理向量表中不同列的编辑器类型
+ * @brief VectorTableDelegate类为向量表提供自定义渲染和编辑功能
+ *
+ * 该类继承自QStyledItemDelegate，负责以下功能：
+ * 1. 为特殊类型的单元格（如PIN_STATE_ID）提供自定义编辑器
+ * 2. 在单元格未被编辑时，正确绘制单元格内容
+ * 3. 在编辑器和模型之间同步数据
  */
-class VectorTableItemDelegate : public QStyledItemDelegate
+class VectorTableDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 
 public:
-    explicit VectorTableItemDelegate(QObject *parent = nullptr, const QVector<int> &cellEditTypes = QVector<int>());
-    ~VectorTableItemDelegate() override;
+    explicit VectorTableDelegate(QObject *parent = nullptr);
+    ~VectorTableDelegate() override;
 
-    // 创建编辑器
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    /**
+     * @brief 为指定单元格创建适当的编辑器
+     * 该函数会根据单元格数据类型，创建并返回不同的编辑控件
+     */
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                          const QModelIndex &index) const override;
 
-    // 设置编辑器数据
+    /**
+     * @brief 将模型数据设置到编辑器中
+     * 该函数在编辑开始时调用，用于将单元格数据填充到编辑控件中
+     */
     void setEditorData(QWidget *editor, const QModelIndex &index) const override;
 
-    // 获取编辑器数据
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+    /**
+     * @brief 将编辑器中的数据更新到模型中
+     * 该函数在编辑结束时调用，用于将用户输入的数据更新回模型
+     */
+    void setModelData(QWidget *editor, QAbstractItemModel *model,
+                      const QModelIndex &index) const override;
+
+    /**
+     * @brief 自定义绘制函数
+     * 该函数负责根据单元格数据类型，使用不同样式绘制单元格内容
+     */
+    void paint(QPainter *painter, const QStyleOptionViewItem &option,
+               const QModelIndex &index) const override;
 
     // 刷新缓存数据
     void refreshCache();
@@ -51,7 +74,7 @@ private:
 
     // 辅助函数：通过UI索引获取列信息
     Vector::ColumnInfo getColumnInfoByIndex(int tableId, int uiColumnIndex) const;
-    
+
     // 辅助函数：获取表的列配置（新增）
     QList<Vector::ColumnInfo> getColumnConfiguration(int tableId) const;
 
@@ -60,7 +83,7 @@ private:
 
     // 静态缓存（新增）
     static QMap<int, QList<Vector::ColumnInfo>> s_tableColumnsCache;
-    
+
     // 缓存
     mutable QStringList m_instructionOptions;
     mutable QStringList m_timeSetOptions;
