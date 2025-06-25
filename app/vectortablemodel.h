@@ -4,6 +4,7 @@
 #include <QAbstractTableModel>
 #include <QList>
 #include <QVariant>
+#include <QMap>
 #include "../vector/vector_data_types.h"
 
 /**
@@ -50,6 +51,21 @@ public:
     // 获取总行数
     int totalRows() const { return m_totalRows; }
 
+    // 获取指令ID（根据名称）
+    int getInstructionId(const QString &instructionName) const;
+
+    // 获取TimeSet ID（根据名称）
+    int getTimeSetId(const QString &timeSetName) const;
+
+    // 获取指令名称（根据ID）
+    QString getInstructionName(int instructionId) const;
+
+    // 获取TimeSet名称（根据ID）
+    QString getTimeSetName(int timeSetId) const;
+
+    // 刷新指令和TimeSet的缓存
+    void refreshCaches() const;
+
 private:
     // 分页状态相关成员变量
     int m_tableId;     // 当前向量表ID
@@ -60,6 +76,13 @@ private:
     // 数据存储
     QList<Vector::RowData> m_pageData;   // 当前页的行数据
     QList<Vector::ColumnInfo> m_columns; // 列信息
+
+    // 缓存
+    mutable QMap<int, QString> m_instructionCache;         // 指令ID到名称的映射
+    mutable QMap<QString, int> m_instructionNameToIdCache; // 指令名称到ID的映射
+    mutable QMap<int, QString> m_timeSetCache;             // TimeSet ID到名称的映射
+    mutable QMap<QString, int> m_timeSetNameToIdCache;     // TimeSet名称到ID的映射
+    mutable bool m_cachesInitialized;                      // 缓存是否已初始化
 };
 
 #endif // VECTORTABLEMODEL_H

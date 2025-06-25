@@ -12,7 +12,8 @@ VectorTableModel::VectorTableModel(QObject *parent)
       m_tableId(0),
       m_currentPage(0),
       m_pageSize(100), // 默认每页100行
-      m_totalRows(0)
+      m_totalRows(0),
+      m_cachesInitialized(false)
 {
     // 初始化代码
 }
@@ -67,26 +68,12 @@ QVariant VectorTableModel::data(const QModelIndex &index, int role) const
             case Vector::ColumnDataType::TIMESET_ID:
             {
                 int timesetId = cellData.toInt();
-                if (timesetId > 0)
-                {
-                    QSqlQuery query(DatabaseManager::instance()->database());
-                    query.prepare("SELECT name FROM TimeSet WHERE id = ?");
-                    query.addBindValue(timesetId);
-                    if (query.exec() && query.next())
-                    {
-                        return query.value(0).toString();
-                    }
-                }
-                return QString("timeset_%1").arg(timesetId); // Fallback
+                return getTimeSetName(timesetId);
             }
             case Vector::ColumnDataType::INSTRUCTION_ID:
             {
                 int instructionId = cellData.toInt();
-                // 假设 ID=1 是 INC，其他待定
-                // 这里需要一个更完善的Instruction管理类，暂时硬编码
-                if (instructionId == 1)
-                    return "INC";
-                return QString::number(instructionId); // Fallback
+                return getInstructionName(instructionId);
             }
             case Vector::ColumnDataType::PIN_STATE_ID:
             {
@@ -175,6 +162,9 @@ void VectorTableModel::loadPage(int tableId, int page)
     m_tableId = tableId;
     m_currentPage = page;
 
+    // 刷新指令和TimeSet的缓存
+    refreshCaches();
+
     // 告诉视图我们要开始修改数据了
     beginResetModel();
 
@@ -260,9 +250,12 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
         }
         break;
     case Vector::ColumnDataType::INSTRUCTION_ID:
+        // 将指令名称转换为ID
+        convertedValue = getInstructionId(value.toString());
+        break;
     case Vector::ColumnDataType::TIMESET_ID:
-        // 这些可能需要从显示文本转换为ID
-        // 暂时保持原样，后续可以添加转换逻辑
+        // 将TimeSet名称转换为ID
+        convertedValue = getTimeSetId(value.toString());
         break;
     default:
         // 其他类型保持原样
@@ -356,6 +349,14 @@ bool VectorTableModel::saveData(QString &errorMessage)
                     item->setText(pinState);
                 }
                 break;
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+                // 将指令ID转换为名称
+                item->setText(getInstructionName(cellData.toInt()));
+                break;
+            case Vector::ColumnDataType::TIMESET_ID:
+                // 将TimeSet ID转换为名称
+                item->setText(getTimeSetName(cellData.toInt()));
+                break;
             default:
                 item->setText(cellData.toString());
                 break;
@@ -379,4 +380,196 @@ bool VectorTableModel::saveData(QString &errorMessage)
     }
 
     return success;
+}
+
+// 刷新指令和TimeSet的缓存
+void VectorTableModel::refreshCaches() const
+{
+    // 清空现有缓存
+    m_instructionCache.clear();
+    m_instructionNameToIdCache.clear();
+    m_timeSetCache.clear();
+    m_timeSetNameToIdCache.clear();
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << "VectorTableModel::refreshCaches - 数据库未打开";
+        return;
+    }
+
+    // 加载指令缓存
+    QSqlQuery instructionQuery(db);
+    instructionQuery.prepare("SELECT id, instruction_value FROM instruction_options ORDER BY id");
+    if (instructionQuery.exec())
+    {
+        while (instructionQuery.next())
+        {
+            int id = instructionQuery.value(0).toInt();
+            QString name = instructionQuery.value(1).toString();
+            m_instructionCache[id] = name;
+            m_instructionNameToIdCache[name] = id;
+        }
+    }
+    else
+    {
+        qWarning() << "VectorTableModel::refreshCaches - 加载指令缓存失败:" << instructionQuery.lastError().text();
+    }
+
+    // 加载TimeSet缓存
+    QSqlQuery timeSetQuery(db);
+    timeSetQuery.prepare("SELECT id, timeset_name FROM timeset_list ORDER BY id");
+    if (timeSetQuery.exec())
+    {
+        while (timeSetQuery.next())
+        {
+            int id = timeSetQuery.value(0).toInt();
+            QString name = timeSetQuery.value(1).toString();
+            m_timeSetCache[id] = name;
+            m_timeSetNameToIdCache[name] = id;
+        }
+    }
+    else
+    {
+        qWarning() << "VectorTableModel::refreshCaches - 加载TimeSet缓存失败:" << timeSetQuery.lastError().text();
+    }
+
+    m_cachesInitialized = true;
+}
+
+// 获取指令名称（根据ID）
+QString VectorTableModel::getInstructionName(int instructionId) const
+{
+    // 如果缓存未初始化，则初始化缓存
+    if (!m_cachesInitialized)
+    {
+        refreshCaches();
+    }
+
+    // 检查缓存中是否有该ID
+    if (m_instructionCache.contains(instructionId))
+    {
+        return m_instructionCache[instructionId];
+    }
+
+    // 如果缓存中没有，尝试从数据库获取
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT instruction_value FROM instruction_options WHERE id = ?");
+    query.addBindValue(instructionId);
+
+    if (query.exec() && query.next())
+    {
+        QString name = query.value(0).toString();
+        // 更新缓存
+        m_instructionCache[instructionId] = name;
+        m_instructionNameToIdCache[name] = instructionId;
+        return name;
+    }
+
+    // 如果找不到对应的名称，返回ID的字符串形式
+    return QString::number(instructionId);
+}
+
+// 获取TimeSet名称（根据ID）
+QString VectorTableModel::getTimeSetName(int timeSetId) const
+{
+    // 如果缓存未初始化，则初始化缓存
+    if (!m_cachesInitialized)
+    {
+        refreshCaches();
+    }
+
+    // 检查缓存中是否有该ID
+    if (m_timeSetCache.contains(timeSetId))
+    {
+        return m_timeSetCache[timeSetId];
+    }
+
+    // 如果缓存中没有，尝试从数据库获取
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT timeset_name FROM timeset_list WHERE id = ?");
+    query.addBindValue(timeSetId);
+
+    if (query.exec() && query.next())
+    {
+        QString name = query.value(0).toString();
+        // 更新缓存
+        m_timeSetCache[timeSetId] = name;
+        m_timeSetNameToIdCache[name] = timeSetId;
+        return name;
+    }
+
+    // 如果找不到对应的名称，返回格式化的字符串
+    return QString("timeset_%1").arg(timeSetId);
+}
+
+// 获取指令ID（根据名称）
+int VectorTableModel::getInstructionId(const QString &instructionName) const
+{
+    // 如果缓存未初始化，则初始化缓存
+    if (!m_cachesInitialized)
+    {
+        refreshCaches();
+    }
+
+    // 检查缓存中是否有该名称
+    if (m_instructionNameToIdCache.contains(instructionName))
+    {
+        return m_instructionNameToIdCache[instructionName];
+    }
+
+    // 如果缓存中没有，尝试从数据库获取
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT id FROM instruction_options WHERE instruction_value = ?");
+    query.addBindValue(instructionName);
+
+    if (query.exec() && query.next())
+    {
+        int id = query.value(0).toInt();
+        // 更新缓存
+        m_instructionCache[id] = instructionName;
+        m_instructionNameToIdCache[instructionName] = id;
+        return id;
+    }
+
+    // 如果找不到对应的ID，返回-1表示无效
+    return -1;
+}
+
+// 获取TimeSet ID（根据名称）
+int VectorTableModel::getTimeSetId(const QString &timeSetName) const
+{
+    // 如果缓存未初始化，则初始化缓存
+    if (!m_cachesInitialized)
+    {
+        refreshCaches();
+    }
+
+    // 检查缓存中是否有该名称
+    if (m_timeSetNameToIdCache.contains(timeSetName))
+    {
+        return m_timeSetNameToIdCache[timeSetName];
+    }
+
+    // 如果缓存中没有，尝试从数据库获取
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("SELECT id FROM timeset_list WHERE timeset_name = ?");
+    query.addBindValue(timeSetName);
+
+    if (query.exec() && query.next())
+    {
+        int id = query.value(0).toInt();
+        // 更新缓存
+        m_timeSetCache[id] = timeSetName;
+        m_timeSetNameToIdCache[timeSetName] = id;
+        return id;
+    }
+
+    // 如果找不到对应的ID，返回-1表示无效
+    return -1;
 }
