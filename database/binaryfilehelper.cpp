@@ -2639,4 +2639,95 @@ namespace Persistence
         // 下次读取时，如果发现内存缓存中有timestamp=0的行，
         // 将触发仅对这些行的重新扫描，而不是整个文件
     }
+
+    bool BinaryFileHelper::seekToRow(QFile *file, int rowIndex)
+    {
+        const QString funcName = "BinaryFileHelper::seekToRow";
+
+        if (!file || !file->isOpen() || !file->isReadable())
+        {
+            qWarning() << funcName << " - 文件无效或未打开";
+            return false;
+        }
+
+        // 读取文件头
+        BinaryFileHeader header;
+        qint64 originalPos = file->pos();
+        file->seek(0); // 回到文件开头
+
+        QDataStream headerStream(file);
+        headerStream.setByteOrder(QDataStream::LittleEndian);
+
+        if (!readBinaryHeader(file, header))
+        {
+            qWarning() << funcName << " - 读取文件头失败";
+            file->seek(originalPos); // 恢复原始位置
+            return false;
+        }
+
+        // 检查行索引是否有效
+        if (rowIndex < 0 || rowIndex >= header.row_count_in_file)
+        {
+            qWarning() << funcName << " - 行索引超出范围:" << rowIndex << "总行数:" << header.row_count_in_file;
+            file->seek(originalPos); // 恢复原始位置
+            return false;
+        }
+
+        // 获取文件路径，用于缓存查找
+        QString filePath = file->fileName();
+        QFileInfo fileInfo(filePath);
+        QDateTime lastModified = fileInfo.lastModified();
+
+        // 尝试从缓存获取行偏移信息
+        RowOffsetCache rowOffsets = getRowOffsetCache(filePath, lastModified);
+
+        // 如果缓存有效且包含目标行
+        if (!rowOffsets.isEmpty() && rowIndex < rowOffsets.size())
+        {
+            // 直接定位到缓存中记录的偏移位置
+            file->seek(rowOffsets[rowIndex].offset);
+            return true;
+        }
+
+        // 缓存无效或不完整，需要从文件头后开始扫描
+        file->seek(sizeof(BinaryFileHeader));
+
+        // 逐行扫描直到目标行
+        for (int i = 0; i < rowIndex; ++i)
+        {
+            quint32 rowSize = 0;
+            QDataStream stream(file);
+            stream.setByteOrder(QDataStream::LittleEndian);
+
+            // 读取行大小
+            stream >> rowSize;
+
+            if (stream.status() != QDataStream::Ok || rowSize == 0)
+            {
+                qWarning() << funcName << " - 读取行大小失败，行:" << i;
+                file->seek(originalPos); // 恢复原始位置
+                return false;
+            }
+
+            // 检查行大小是否合理
+            const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB
+            if (rowSize > MAX_REASONABLE_ROW_SIZE)
+            {
+                qWarning() << funcName << " - 行大小异常:" << rowSize << "字节，行:" << i;
+                file->seek(originalPos); // 恢复原始位置
+                return false;
+            }
+
+            // 跳过当前行数据
+            if (!file->seek(file->pos() + rowSize))
+            {
+                qWarning() << funcName << " - 跳过行数据失败，行:" << i;
+                file->seek(originalPos); // 恢复原始位置
+                return false;
+            }
+        }
+
+        // 现在文件指针已经位于目标行的起始位置
+        return true;
+    }
 } // namespace Persistence

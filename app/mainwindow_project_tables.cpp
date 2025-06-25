@@ -590,8 +590,17 @@ void MainWindow::addNewVectorTable()
                 m_vectorTableSelector->setCurrentIndex(newIndex);
             }
 
-            // 显示管脚选择对话框
-            showPinSelectionDialog(newTableId, tableName);
+            // 使用延迟显示管脚选择对话框，确保UI已经完全准备好
+            QTimer::singleShot(100, this, [this, newTableId, tableName]()
+                               {
+                try {
+                    qDebug() << "MainWindow::addNewVectorTable - 延迟显示管脚选择对话框";
+                    showPinSelectionDialog(newTableId, tableName);
+                } catch (const std::exception &e) {
+                    qWarning() << "显示管脚选择对话框时出现异常: " << e.what();
+                } catch (...) {
+                    qWarning() << "显示管脚选择对话框时出现未知异常";
+                } });
 
             // 更新UI显示
             if (m_welcomeWidget->isVisible())
@@ -600,10 +609,17 @@ void MainWindow::addNewVectorTable()
                 m_vectorTableContainer->setVisible(true);
             }
 
-            // 在成功创建向量表后添加代码，在执行成功后刷新导航栏
-            // 查找类似于 "QMessageBox::information(this, "成功", "成功创建向量表");" 这样的代码之后添加刷新
-            // 示例位置
-            refreshSidebarNavigator();
+            // 在成功创建向量表后延迟刷新导航栏，避免可能的闪退
+            QTimer::singleShot(300, this, [this]()
+                               {
+                try {
+                    qDebug() << "MainWindow::addNewVectorTable - 延迟刷新侧边栏";
+                    refreshSidebarNavigator();
+                } catch (const std::exception &e) {
+                    qWarning() << "刷新侧边栏时出现异常: " << e.what();
+                } catch (...) {
+                    qWarning() << "刷新侧边栏时出现未知异常";
+                } });
         }
         else
         {
@@ -710,8 +726,10 @@ void MainWindow::openVectorTable(int tableId, const QString &tableName)
 
     // 检查表是否已经打开
     int existingTabIndex = -1;
-    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-        if (it.value() == tableId) {
+    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+    {
+        if (it.value() == tableId)
+        {
             existingTabIndex = it.key();
             break;
         }

@@ -7,6 +7,7 @@
 #include <QInputDialog>
 #include <QDir>
 #include <QTableWidget>
+#include <QTableView>
 #include <QComboBox>
 #include <QPushButton>
 #include <QToolButton>
@@ -28,6 +29,7 @@
 #include <stdexcept>
 #include "../vector/vector_data_types.h"
 #include "../vector/vectordatahandler.h"
+#include "../vector/vectortablemodel.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
@@ -162,6 +164,7 @@ private slots:
 
     // 表格数据变更监听
     void onTableCellChanged(int row, int column);
+    void onModelDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);
     void onTableRowModified(int row);
 
     // 显示管脚列的右键菜单
@@ -180,6 +183,7 @@ private slots:
 
     // 向量列属性栏相关槽
     void updateVectorColumnProperties(int row, int column);
+    void updateVectorColumnPropertiesModel(const QModelIndex &current, const QModelIndex &previous);
 
     // 计算16进制值并显示在向量列属性栏中
     void calculateAndDisplayHexValue(const QList<int> &selectedRows, int column);
@@ -209,6 +213,165 @@ private slots:
     void updateWindowTitle(const QString &dbPath = QString());
 
 private:
+    // 项目相关
+    QString m_currentDbPath;  // 当前数据库路径
+    bool m_hasUnsavedChanges; // 是否有未保存的更改
+
+    // 对话框管理器
+    DialogManager *m_dialogManager; // 对话框管理器
+
+    // UI组件
+    QWidget *m_centralWidget;        // 中央部件
+    QWidget *m_welcomeWidget;        // 欢迎页面
+    QWidget *m_vectorTableContainer; // 向量表容器
+    QLabel *m_windowSizeLabel;       // 窗口大小标签
+    QLabel *m_pageInfoLabel;         // 页面信息标签
+    QSpinBox *m_pageJumper;          // 页面跳转器
+    QPushButton *m_jumpButton;       // 跳转按钮
+
+    // 菜单项
+    QAction *m_newProjectAction;     // 新建项目动作
+    QAction *m_openProjectAction;    // 打开项目动作
+    QAction *m_closeProjectAction;   // 关闭项目动作
+    QMenu *m_viewMenu;               // 视图菜单
+    QAction *m_toggleWaveformAction; // 切换波形视图动作
+
+    // 侧边栏
+    QTreeWidget *m_sidebarTree; // 侧边栏树形控件
+
+    // 列属性面板
+    QDockWidget *m_columnPropertiesDock;   // 列属性停靠窗口
+    QWidget *m_columnPropertiesWidget;     // 列属性窗口
+    QLabel *m_columnNamePinLabel;          // 列名管脚标签
+    QLabel *m_pinNameLabel;                // 管脚名称标签
+    QLineEdit *m_pinValueField;            // 管脚值输入框
+    QLineEdit *m_errorCountField;          // 错误计数输入框
+    QCheckBox *m_continuousSelectCheckBox; // 连续选择复选框
+
+    // 波形点数据
+    struct WavePoint
+    {
+        int rowIndex;        // 行索引
+        double timePosition; // 时间位置
+        char state;          // 状态值 (0/1/X/L/H/Z)
+        int pinId;           // 管脚ID
+        QString pinName;     // 管脚名称
+    };
+
+    // 波形图类型定义
+    struct R0WavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
+    };
+
+    // 波形图类型定义
+    struct RZWavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
+    };
+
+    // 波形图类型定义
+    struct SbcWavePoint
+    {
+        int cycleIndex;  // 区间索引
+        double t1fXPos;  // T1F点位置
+        bool isOne;      // 原始数据是否为'1'
+        double highY;    // 高电平Y坐标
+        double lowY;     // 低电平Y坐标
+        int pinId;       // 管脚ID
+        QString pinName; // 管脚名称
+        double t1rRatio; // T1R比例
+    };
+
+    // 波形视图
+    QWidget *m_waveformContainer;      // 波形容器
+    QLineEdit *m_waveformValueEditor;  // 波形值编辑器
+    int m_selectedWaveformPoint;       // 选中的波形点
+    bool m_showAllPins;                // 是否显示所有管脚
+    QCheckBox *m_showAllPinsCheckBox;  // 显示所有管脚复选框
+    double m_currentPeriod;            // 当前周期
+    double m_currentXOffset;           // 当前X偏移
+    QMap<int, double> m_pinT1rRatios;  // 管脚T1R比例
+    QVector<R0WavePoint> m_r0Points;   // R0波形点
+    QVector<RZWavePoint> m_rzPoints;   // RZ波形点
+    QVector<SbcWavePoint> m_sbcPoints; // SBC波形点
+    int m_editingRow;                  // 正在编辑的行
+    int m_editingPinColumn;            // 正在编辑的管脚列
+
+    // 选择相关
+    QList<int> m_currentSelectedRows; // 当前选中的行
+    int m_currentHexValueColumn;      // 当前16进制值列
+
+    // 向量表UI组件
+    QComboBox *m_vectorTableSelector;        // 向量表选择器
+    QTabWidget *m_vectorTabWidget;           // 向量表Tab页签
+    QTableWidget *m_vectorTableWidget;       // 向量表格（旧的，将逐步替换为QTableView）
+    QTableView *m_vectorTableView;           // 向量表视图（新的，基于模型/视图架构）
+    VectorTableModel *m_vectorTableModel;    // 向量表数据模型
+    VectorTableItemDelegate *m_itemDelegate; // 表格委托
+    QMap<int, int> m_tabToTableId;           // Tab索引到表ID的映射
+
+    // 激活标志，防止循环调用
+    bool m_isUpdatingUI;
+
+    // 分页相关
+    int m_currentPage;
+    int m_pageSize;
+    int m_totalRows;
+    int m_totalPages;
+    QLabel *m_paginationInfoLabel;
+    QPushButton *m_prevPageButton;
+    QPushButton *m_nextPageButton;
+    QSpinBox *m_pageJumpSpinBox;
+    QComboBox *m_pageSizeSelector;
+
+    // 侧边栏导航
+    QTreeWidget *m_sidebarNavigator;
+    QDockWidget *m_sidebarDock;
+
+    // 向量列属性栏
+    QDockWidget *m_vectorColumnPropertiesDock;
+    QWidget *m_vectorColumnPropertiesPanel;
+    QLabel *m_selectedCellInfoLabel;
+    QLabel *m_hexValueLabel;
+    QLineEdit *m_hexValueEdit;
+    QPushButton *m_applyHexValueButton;
+    QLabel *m_selectedRowsLabel;
+    QLabel *m_selectedColumnsLabel;
+    int m_lastClickedRow;
+    int m_lastClickedColumn;
+
+    // 波形图
+    bool m_isWaveformVisible;
+    QCustomPlot *m_waveformPlot;
+    QDockWidget *m_waveformDock;
+    QComboBox *m_waveformPinSelector;
+    QCheckBox *m_showAllPinsCheckbox;
+    QPushButton *m_updateWaveformButton;
+    QList<QCPGraph *> m_waveformGraphs;
+    QVector<double> m_waveformXData;            // 时间点
+    QMap<int, QVector<double>> m_waveformYData; // pinId -> 波形点
+    double m_waveformMaxY;
+    double m_waveformMinY;
+
+    // 波形图信息缓存
+    QMap<int, QMap<int, QPair<double, double>>> m_timesetPinT1RCache; // timesetId -> pinId -> {t1r, period}
+    QMap<int, QMap<int, int>> m_timesetPinWaveTypeCache;              // timesetId -> pinId -> waveTypeId
+
     void setupUI();
     void setupMenu();
     void setupVectorTableUI();
@@ -252,170 +415,76 @@ private:
     // 辅助函数：重新加载并刷新向量表
     void reloadAndRefreshVectorTable(int tableId);
 
-    // 辅助函数：检查Label值是否重复
+    // 辅助函数：检查标签是否重复
     bool isLabelDuplicate(int tableId, const QString &labelValue, int currentRow, int &duplicateRow);
 
-    // 辅助函数：获取特定行的TimeSet ID
+    // 辅助函数：获取指定行的TimeSet ID
     int getTimeSetIdForRow(int tableId, int rowIndex);
+
+    // 辅助函数：获取TimeSet的T1R和Period
     bool getTimeSetT1RAndPeriod(int timeSetId, int pinId, double &t1r, double &period);
+
+    // 辅助函数：根据管脚名获取ID
     int getPinIdByName(const QString &pinName);
+
+    // 辅助函数：根据ID获取管脚名
     QString getPinNameById(int pinId);
 
-    // 当前项目的数据库路径
-    QString m_currentDbPath;
+    // 辅助函数：构建波形图点数据
+    void buildWaveformPoints(int timesetId, const QList<int> &selectedPinIds, int maxRowCount);
 
-    // 菜单项
-    QMenu *m_viewMenu; // "视图"菜单
-    QAction *m_newProjectAction;
-    QAction *m_openProjectAction;
-    QAction *m_closeProjectAction;
+    // 辅助函数：创建波形图对象
+    QCPGraph *createWaveformGraph(QCustomPlot *plot, const QString &name);
 
-    // 向量表显示相关的UI组件
-    QTableWidget *m_vectorTableWidget;
-    QComboBox *m_vectorTableSelector;
-    QWidget *m_centralWidget;
-    QWidget *m_welcomeWidget;
-    QWidget *m_vectorTableContainer;
-    QAction *m_fillVectorAction;
-    QAction *m_fillTimeSetAction;
-    QAction *m_replaceTimeSetAction;
-    QAction *m_refreshAction;
-    QAction *m_timeSetSettingsAction;
-    QAction *m_setupPinsAction;   // 设置向量表管脚按钮
-    QAction *m_pinSettingsAction; // 管脚设置按钮
-    QAction *m_addPinAction;      // 添加管脚按钮
-    QAction *m_deletePinAction;   // 删除管脚按钮
-    QAction *m_deleteRangeAction; // 删除指定范围内的向量行按钮
-    QAction *m_gotoLineAction;    // 跳转到某行按钮
-    QAction *m_addGroupAction;    // 添加管脚分组按钮
+    // 辅助函数：获取当前向量表的ID
+    int getCurrentVectorTableId() const;
 
-    // 分页相关UI组件
-    QWidget *m_paginationWidget;   // 分页控件容器
-    QPushButton *m_prevPageButton; // 上一页按钮
-    QPushButton *m_nextPageButton; // 下一页按钮
-    QLabel *m_pageInfoLabel;       // 页码信息标签
-    QComboBox *m_pageSizeSelector; // 每页行数选择器
-    QSpinBox *m_pageJumper;        // 页码跳转输入框
-    QPushButton *m_jumpButton;     // 跳转按钮
+    // 辅助函数：获取当前向量表的选中行
+    QList<int> getSelectedRows() const;
 
-    // 分页相关数据
-    int m_currentPage;    // 当前页码（从0开始）
-    int m_pageSize;       // 每页显示的行数
-    int m_totalPages;     // 总页数
-    int m_totalRows;      // 总行数
-    bool m_pagingEnabled; // 是否启用分页
+    // 辅助函数：从模型中获取选中行
+    QList<int> getSelectedRowsFromModel() const;
 
-    // 数据修改状态
-    bool m_hasUnsavedChanges; // 跟踪是否有未保存的内容
-
-    // 判断是否有未保存的内容
-    bool hasUnsavedChanges() const;
-
-    // Tab页签组件
-    QTabWidget *m_vectorTabWidget;
-    bool m_isUpdatingUI; // 防止UI更新循环的标志
-
-    // 自定义代理
-    VectorTableItemDelegate *m_itemDelegate;
-
-    // 数据处理和对话框管理器
-    DialogManager *m_dialogManager;
-
-    // 存储Tab页与TableId的映射关系
-    QMap<int, int> m_tabToTableId;
-
-    // 窗口大小信息标签
-    QLabel *m_windowSizeLabel;
-
-    // 侧边导航栏组件
-    QDockWidget *m_sidebarDock;
-    QTreeWidget *m_sidebarTree;
-
-    // 向量列属性栏组件
-    QDockWidget *m_columnPropertiesDock;   // 向量列属性栏容器
-    QWidget *m_columnPropertiesWidget;     // 向量列属性内容区域
-    QLabel *m_columnNamePinLabel;          // 列名称旁的管脚标签
-    QLabel *m_pinNameLabel;                // 管脚名称标签
-    QLineEdit *m_pinValueField;            // 16进制值字段
-    QLineEdit *m_errorCountField;          // 错误个数字段
-    QCheckBox *m_continuousSelectCheckBox; // 连续选择勾选框
-
-    // 当前选中的用于16进制值显示和编辑的信息
-    int m_currentHexValueColumn;      // 当前16进制值对应的列
-    QList<int> m_currentSelectedRows; // 当前选中的行
-
+    // 辅助函数：获取当前向量表的配置
     QList<Vector::ColumnInfo> getCurrentColumnConfiguration(int tableId);
+
+    // 辅助函数：比较两个列配置是否不同（简化版）
     bool areColumnConfigurationsDifferentSimplified(const QList<Vector::ColumnInfo> &config1, const QList<Vector::ColumnInfo> &config2);
+
+    // 辅助函数：将原有行数据适配到新的列配置
     QList<Vector::RowData> adaptRowDataToNewColumns(const QList<Vector::RowData> &oldRowData,
                                                     const QList<Vector::ColumnInfo> &oldColumns,
                                                     const QList<Vector::ColumnInfo> &newColumns);
 
-    // 波形图视图相关UI组件
-    QDockWidget *m_waveformDock = nullptr;
-    QWidget *m_waveformContainer = nullptr;
-    QCustomPlot *m_waveformPlot = nullptr;
-    QComboBox *m_waveformPinSelector = nullptr;
-    QCheckBox *m_showAllPinsCheckBox = nullptr;
-    bool m_showAllPins = false; // 是否显示所有管脚
-    QAction *m_toggleWaveformAction;
-    bool m_isWaveformVisible = false;
-    int m_selectedWaveformPoint = -1;
-    double m_currentXOffset = 0.0; // [DEPRECATED] To be replaced by pin-specific ratios
-    double m_currentPeriod;
-    QMap<int, double> m_pinT1rRatios;
-    int m_editingRow = -1;       // 波形图编辑行
-    int m_editingPinColumn = -1; // 波形图编辑管脚列
+    // 辅助函数：检查是否使用QTableView还是QTableWidget
+    bool isUsingTableView(int tableId) const;
 
-    // R0波形点结构 (需要保存原始电平信息)
-    struct R0WavePoint
-    {
-        int cycleIndex;  // 区间索引
-        double t1fXPos;  // T1F点位置
-        bool isOne;      // 原始数据是否为'1'
-        double highY;    // 高电平Y坐标
-        double lowY;     // 低电平Y坐标
-        int pinId;       // 管脚ID
-        QString pinName; // 管脚名称
-        double t1rRatio; // T1R比例
-    };
+    // 辅助函数：从QTableWidget转换到QTableView（过渡期使用）
+    void convertToTableView(int tableId);
 
-    // RZ波形点结构 (需要保存原始电平信息)
-    struct RZWavePoint
-    {
-        int cycleIndex;  // 区间索引
-        double t1fXPos;  // T1F点位置
-        bool isOne;      // 原始数据是否为'1'
-        double highY;    // 高电平Y坐标
-        double lowY;     // 低电平Y坐标
-        int pinId;       // 管脚ID
-        QString pinName; // 管脚名称
-        double t1rRatio; // T1R比例
-    };
+    // 辅助函数：设置选中的行
+    void setSelectedRows(const QList<int> &rows);
 
-    // SBC波形点结构 (需要保存原始电平信息)
-    struct SbcWavePoint
-    {
-        int cycleIndex;  // 区间索引
-        double t1fXPos;  // T1F点位置
-        bool isOne;      // 原始数据是否为'1'
-        double highY;    // 高电平Y坐标
-        double lowY;     // 低电平Y坐标
-        int pinId;       // 管脚ID
-        QString pinName; // 管脚名称
-        double t1rRatio; // T1R比例
-    };
+    // 辅助函数：获取单元格数据
+    QVariant getCellData(int row, int column) const;
 
-    // 波形图类型相关
+    // 辅助函数：设置单元格数据
+    void setCellData(int row, int column, const QVariant &value);
+
+    // 辅助函数：获取波形类型和T1F
     bool getWaveTypeAndT1F(int timeSetId, int pinId, int &waveId, double &t1f);
-    QString getWaveTypeName(int waveId);
-    void applyWaveformPattern(int timeSetId, int pinId, const QVector<double> &xData, QVector<double> &yData, double t1rRatio, double period);
-    void drawWaveformPatterns();
-    QList<R0WavePoint> m_r0Points;   // 存储R0点信息
-    QList<RZWavePoint> m_rzPoints;   // 存储RZ点信息
-    QList<SbcWavePoint> m_sbcPoints; // 存储SBC点信息
 
-    // 波形图在线编辑
-    QLineEdit *m_waveformValueEditor = nullptr;
+    // 辅助函数：获取波形类型名称
+    QString getWaveTypeName(int waveId);
+
+    // 辅助函数：应用波形模式
+    void applyWaveformPattern(int timeSetId, int pinId, const QVector<double> &xData, QVector<double> &yData, double t1rRatio, double period);
+
+    // 辅助函数：绘制波形模式
+    void drawWaveformPatterns();
+
+    // 辅助函数：检查是否有未保存的更改
+    bool hasUnsavedChanges() const;
 };
 
 #endif // MAINWINDOW_H

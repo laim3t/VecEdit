@@ -15,6 +15,14 @@
 #include <QIntValidator>
 #include <QDoubleValidator>
 #include "common/binary_field_lengths.h"
+#include <QApplication>
+#include <QTableView>
+#include <QHeaderView>
+#include <QPainter>
+#include <QTableWidget>
+#include <QSqlDatabase>
+#include <QCoreApplication>
+#include <QMainWindow>
 
 // 定义静态成员变量
 QMap<int, QList<Vector::ColumnInfo>> VectorTableItemDelegate::s_tableColumnsCache;
@@ -35,7 +43,7 @@ void VectorTableItemDelegate::refreshCache()
     m_instructionOptions.clear();
     m_timeSetOptions.clear();
     m_captureOptions.clear();
-    
+
     // 清空静态列配置缓存
     s_tableColumnsCache.clear();
 
@@ -58,302 +66,258 @@ VectorTableItemDelegate::~VectorTableItemDelegate()
     // 析构函数
 }
 
+// 自定义绘制实现
+void VectorTableItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    // 获取列信息
+    Vector::ColumnInfo colInfo = getColumnInfoFromModel(index.model(), index.column());
+
+    // 绘制背景
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+
+    // 获取数据
+    QString displayText = getDisplayText(index);
+
+    // 根据列类型绘制不同的样式
+    switch (colInfo.type)
+    {
+    case Vector::ColumnDataType::PIN_STATE_ID:
+        // 绘制管脚状态（例如不同颜色的背景）
+        {
+            QStyle *style = QApplication::style();
+            style->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+
+            // 居中绘制文本
+            QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &opt);
+            painter->save();
+            painter->setClipRect(textRect);
+
+            // 根据管脚状态设置颜色
+            QString value = displayText.trimmed();
+            QColor textColor = Qt::black;
+            QColor bgColor = Qt::white;
+
+            if (value == "1")
+            {
+                bgColor = QColor(200, 255, 200); // 浅绿色表示1
+                textColor = Qt::darkGreen;
+            }
+            else if (value == "0")
+            {
+                bgColor = QColor(255, 230, 230); // 浅红色表示0
+                textColor = Qt::darkRed;
+            }
+            else if (value == "X" || value == "Z" || value == "L" || value == "H")
+            {
+                bgColor = QColor(230, 230, 255); // 浅蓝色表示其他特殊状态
+                textColor = Qt::darkBlue;
+            }
+
+            // 绘制背景和文本
+            painter->fillRect(textRect, bgColor);
+            painter->setPen(textColor);
+            painter->drawText(textRect, Qt::AlignCenter, value);
+            painter->restore();
+        }
+        break;
+
+    default:
+        // 默认绘制
+        QStyledItemDelegate::paint(painter, option, index);
+        break;
+    }
+}
+
 QWidget *VectorTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Function entry. Attempting to create editor for cell at row:" << index.row() << "column:" << index.column();
+    Q_UNUSED(option);
 
-    int column = index.column();
-    QWidget *editor = nullptr;
+    // 获取列信息
+    Vector::ColumnInfo colInfo = getColumnInfoFromModel(index.model(), index.column());
 
-    // 获取当前列的类型信息
-    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Calling getTableIdForCurrentTable() for column:" << column;
-    int tableId = getTableIdForCurrentTable();
-    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Received tableId:" << tableId;
-
-    if (tableId < 0) // Assuming -1 or other negative values indicate an error or invalid table
+    // 根据列类型创建不同的编辑器
+    switch (colInfo.type)
     {
-        qWarning() << "[Debug] VectorTableItemDelegate::createEditor - Invalid tableId (" << tableId << ") received. Falling back to default editor.";
-        return QStyledItemDelegate::createEditor(parent, option, index);
-    }
+    case Vector::ColumnDataType::TEXT:
+        return new QLineEdit(parent);
 
-    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Calling getColumnInfoByIndex() for tableId:" << tableId << "and uiColumnIndex:" << column;
-    Vector::ColumnInfo colInfo = getColumnInfoByIndex(tableId, column);
-    qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Received ColumnInfo - Name:" << colInfo.name << "Type String:" << colInfo.original_type_str << "Resolved Type Enum:" << static_cast<int>(colInfo.type) << "Order:" << colInfo.order;
-
-    // 根据列类型创建合适的编辑器
-    if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
+    case Vector::ColumnDataType::PIN_STATE_ID:
     {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected INSTRUCTION_ID type for column:" << column << ". Creating QComboBox.";
-        // 创建指令下拉框
+        // 创建管脚状态下拉框
         QComboBox *comboBox = new QComboBox(parent);
-        comboBox->addItems(getInstructionOptions());
-        comboBox->setEditable(false);
-        editor = comboBox;
-        qDebug() << "VectorTableDelegate::createEditor - 创建指令下拉框编辑器";
+        comboBox->addItems(QStringList() << "0" << "1" << "X" << "Z" << "L" << "H");
+        return comboBox;
     }
-    else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
+
+    case Vector::ColumnDataType::TIMESET_ID:
     {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected TIMESET_ID type for column:" << column << ". Creating QComboBox.";
         // 创建TimeSet下拉框
         QComboBox *comboBox = new QComboBox(parent);
         comboBox->addItems(getTimeSetOptions());
-        comboBox->setEditable(false);
-        editor = comboBox;
-        qDebug() << "VectorTableDelegate::createEditor - 创建TimeSet下拉框编辑器";
+        return comboBox;
     }
-    else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
+
+    case Vector::ColumnDataType::INSTRUCTION_ID:
     {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected BOOLEAN type for column:" << column << ". Creating QComboBox.";
-        // 创建Capture下拉框（Y/N）
+        // 创建指令下拉框
         QComboBox *comboBox = new QComboBox(parent);
-        comboBox->addItem("False");
-        comboBox->addItem("True");
-        editor = comboBox;
-        qDebug() << "VectorTableDelegate::createEditor - 创建布尔值下拉框编辑器";
-    }
-    else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
-    {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Detected PIN_STATE_ID type for column:" << column << ". Creating PinValueLineEdit for pin state.";
-        // 使用自定义的PinValueLineEdit作为编辑器
-        PinValueLineEdit *lineEdit = new PinValueLineEdit(parent);
-        lineEdit->setAlignment(Qt::AlignCenter); // 文本居中显示
-        editor = lineEdit;
-        qDebug() << "VectorTableDelegate::createEditor - 创建管脚状态编辑器";
-    }
-    else if (colInfo.type == Vector::ColumnDataType::INTEGER)
-    {
-        QLineEdit *lineEdit = new QLineEdit(parent);
-        QIntValidator *validator = new QIntValidator(lineEdit);
-        lineEdit->setValidator(validator);
-        lineEdit->setMaxLength(10); // INT32范围的最大位数
-        editor = lineEdit;
-        qDebug() << "VectorTableDelegate::createEditor - 创建整数编辑器";
-    }
-    else if (colInfo.type == Vector::ColumnDataType::REAL)
-    {
-        QLineEdit *lineEdit = new QLineEdit(parent);
-        QDoubleValidator *validator = new QDoubleValidator(-1000000, 1000000, 6, lineEdit);
-        validator->setNotation(QDoubleValidator::StandardNotation);
-        lineEdit->setValidator(validator);
-        lineEdit->setMaxLength(20); // 包含小数点和正负号的双精度浮点数
-        editor = lineEdit;
-        qDebug() << "VectorTableDelegate::createEditor - 创建浮点数编辑器";
-    }
-    else if (colInfo.type == Vector::ColumnDataType::TEXT)
-    {
-        QLineEdit *lineEdit = new QLineEdit(parent);
-
-        // 根据字段名称设置不同的长度限制
-        if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
-        {
-            // Label字段限制为15个字节
-            lineEdit->setMaxLength(15);
-            qDebug() << "创建Label字段编辑器，限制长度为15字节";
-        }
-        else if (colInfo.name.compare("Comment", Qt::CaseInsensitive) == 0)
-        {
-            // Comment字段限制为30个字节
-            lineEdit->setMaxLength(30);
-            qDebug() << "创建Comment字段编辑器，限制长度为30字节";
-        }
-        else if (colInfo.name.compare("EXT", Qt::CaseInsensitive) == 0)
-        {
-            // EXT字段限制为5个字节
-            lineEdit->setMaxLength(5);
-            qDebug() << "创建EXT字段编辑器，限制长度为5字节";
-        }
-        else
-        {
-            // 其他文本字段默认限制为255个字符
-            lineEdit->setMaxLength(255);
-            qDebug() << "创建普通文本字段编辑器，限制长度为255字符";
-        }
-
-        editor = lineEdit;
-    }
-    else if (colInfo.type == Vector::ColumnDataType::JSON_PROPERTIES)
-    {
-        QLineEdit *lineEdit = new QLineEdit(parent);
-        // JSON属性限制最大长度
-        lineEdit->setMaxLength(Persistence::JSON_PROPERTIES_MAX_LENGTH / 2 - 50); // 留一些空间给JSON格式化和内部存储
-        editor = lineEdit;
-        qDebug() << "VectorTableDelegate::createEditor - 创建JSON属性编辑器, 最大长度:" << lineEdit->maxLength();
-    }
-    else
-    {
-        qDebug() << "[Debug] VectorTableItemDelegate::createEditor - Column type is" << static_cast<int>(colInfo.type) << "or not specifically handled. Falling back to default editor for column:" << column;
-        // 默认使用基类创建
-        editor = QStyledItemDelegate::createEditor(parent, option, index);
+        comboBox->addItems(getInstructionOptions());
+        return comboBox;
     }
 
-    return editor;
+    case Vector::ColumnDataType::BOOLEAN:
+    {
+        // 创建布尔值下拉框
+        QComboBox *comboBox = new QComboBox(parent);
+        comboBox->addItems(getCaptureOptions());
+        return comboBox;
+    }
+
+    default:
+        return new QLineEdit(parent);
+    }
 }
 
 void VectorTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
-    int column = index.column();
+    // 获取列信息
+    Vector::ColumnInfo colInfo = getColumnInfoFromModel(index.model(), index.column());
 
-    // 获取当前列的类型信息
-    int tableId = getTableIdForCurrentTable();
-    Vector::ColumnInfo colInfo = getColumnInfoByIndex(tableId, column);
+    // 获取模型数据
+    QVariant value = index.data(Qt::EditRole);
 
-    if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID ||
-        colInfo.type == Vector::ColumnDataType::TIMESET_ID ||
-        colInfo.type == Vector::ColumnDataType::BOOLEAN)
+    // 根据编辑器类型设置数据
+    switch (colInfo.type)
     {
-        // 设置下拉框的当前值
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-        QString value = index.model()->data(index, Qt::EditRole).toString();
-        int idx = comboBox->findText(value);
+    case Vector::ColumnDataType::PIN_STATE_ID:
+    case Vector::ColumnDataType::TIMESET_ID:
+    case Vector::ColumnDataType::INSTRUCTION_ID:
+    case Vector::ColumnDataType::BOOLEAN:
+    {
+        QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
+        if (!comboBox)
+            return;
+
+        QString text = index.data(Qt::DisplayRole).toString();
+        int idx = comboBox->findText(text);
         if (idx >= 0)
-        {
             comboBox->setCurrentIndex(idx);
-        }
+        else if (comboBox->count() > 0)
+            comboBox->setCurrentIndex(0);
+        break;
     }
-    else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
+
+    default:
     {
-        // 设置编辑器数据时，目标是PinValueLineEdit
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
-        QString value = index.model()->data(index, Qt::EditRole).toString();
-        lineEdit->setText(value);
+        QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
+        if (!lineEdit)
+            return;
+        lineEdit->setText(value.toString());
+        break;
     }
-    else
-    {
-        // 默认使用基类设置
-        QStyledItemDelegate::setEditorData(editor, index);
     }
 }
 
 void VectorTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-    if (!index.isValid() || !model || !editor)
-    {
-        QStyledItemDelegate::setModelData(editor, model, index);
-        return;
-    }
+    // 获取列信息
+    Vector::ColumnInfo colInfo = getColumnInfoFromModel(model, index.column());
 
-    // 获取单元格所在的列索引
-    int tableId = getTableIdForCurrentTable();
-    if (tableId < 0)
+    // 根据编辑器类型获取数据
+    switch (colInfo.type)
     {
-        // 如果无法获取表ID，回退到默认委托
-        QStyledItemDelegate::setModelData(editor, model, index);
-        return;
-    }
+    case Vector::ColumnDataType::PIN_STATE_ID:
+    case Vector::ColumnDataType::TIMESET_ID:
+    case Vector::ColumnDataType::INSTRUCTION_ID:
+    case Vector::ColumnDataType::BOOLEAN:
+    {
+        QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
+        if (!comboBox)
+            return;
 
-    // 使用静态缓存减少数据库查询
-    QList<Vector::ColumnInfo> columns;
-    if (s_tableColumnsCache.contains(tableId)) {
-        columns = s_tableColumnsCache[tableId];
-    } else {
-        // 缓存未命中，查询数据库
-        columns = getColumnConfiguration(tableId);
-        // 更新缓存
-        s_tableColumnsCache[tableId] = columns;
-    }
-
-    // 如果无法获取列信息或列索引越界，回退到默认委托
-    int columnIndex = index.column();
-    if (columns.isEmpty() || columnIndex >= columns.size())
-    {
-        QStyledItemDelegate::setModelData(editor, model, index);
-        return;
-    }
-
-    const Vector::ColumnInfo &colInfo = columns[columnIndex];
-
-    if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
-    {
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
-    }
-    else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
-    {
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
-    }
-    else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
-    {
-        QComboBox *comboBox = static_cast<QComboBox *>(editor);
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
-    }
-    else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
-    {
-        // 从PinValueLineEdit获取数据
-        PinValueLineEdit *lineEdit = static_cast<PinValueLineEdit *>(editor);
-        QString value = lineEdit->text();
-        // 如果为空，默认使用X
-        if (value.isEmpty())
+        // 处理特殊情况：如果是TimeSet ID或指令ID，需要转换为ID
+        if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
         {
-            value = "X";
+            // 提取ID，假设格式为"TS123"
+            QString text = comboBox->currentText();
+            if (text.startsWith("TS"))
+            {
+                bool ok;
+                int id = text.mid(2).toInt(&ok);
+                if (ok)
+                    model->setData(index, id, Qt::EditRole);
+                else
+                    model->setData(index, text, Qt::EditRole);
+            }
+            else
+            {
+                model->setData(index, text, Qt::EditRole);
+            }
         }
-        // 简单转换大写，但不进行严格验证
-        value = value.toUpper();
-        model->setData(index, value, Qt::EditRole);
+        else if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
+        {
+            // 提取ID，假设格式为"Instr123"
+            QString text = comboBox->currentText();
+            if (text.startsWith("Instr"))
+            {
+                bool ok;
+                int id = text.mid(5).toInt(&ok);
+                if (ok)
+                    model->setData(index, id, Qt::EditRole);
+                else
+                    model->setData(index, text, Qt::EditRole);
+            }
+            else
+            {
+                model->setData(index, text, Qt::EditRole);
+            }
+        }
+        else
+        {
+            // 其他类型直接设置文本值
+            model->setData(index, comboBox->currentText(), Qt::EditRole);
+        }
+        break;
     }
-    else
+
+    default:
     {
-        // 处理TEXT、INTEGER和其他类型 - 优化：直接设置数据，避免冗余处理
         QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
-        if (lineEdit) {
-            // 直接设置值，跳过不必要的处理
-            model->setData(index, lineEdit->text(), Qt::EditRole);
-        } else {
-            // 对于不是QLineEdit的控件，回退到默认委托
-            QStyledItemDelegate::setModelData(editor, model, index);
-        }
+        if (!lineEdit)
+            return;
+        model->setData(index, lineEdit->text(), Qt::EditRole);
+        break;
     }
+    }
+}
+
+void VectorTableItemDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    Q_UNUSED(index);
+    editor->setGeometry(option.rect);
 }
 
 // 辅助函数：获取当前表的ID
 int VectorTableItemDelegate::getTableIdForCurrentTable() const
 {
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Function entry.";
-
-    // 如果已经缓存了表ID，直接返回
     if (m_tableIdCached)
-    {
-        qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - 使用缓存的表ID:" << m_cachedTableId;
         return m_cachedTableId;
-    }
 
-    // 否则执行正常的查找流程
-    QComboBox *vectorTableSelector = qobject_cast<QComboBox *>(getVectorTableSelectorPtr());
-    if (!vectorTableSelector)
+    QObject *selectorPtr = getVectorTableSelectorPtr();
+    if (selectorPtr)
     {
-        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Failed to get QComboBox* from getVectorTableSelectorPtr().";
-        return -1;
-    }
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Successfully got vectorTableSelector. ObjectName:" << vectorTableSelector->objectName();
-
-    int currentIndex = vectorTableSelector->currentIndex();
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Current index of vectorTableSelector:" << currentIndex;
-    if (currentIndex < 0)
-    {
-        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - vectorTableSelector current index is invalid (" << currentIndex << ").";
-        return -1;
+        // 使用元对象系统获取当前数据
+        QVariant currentData = selectorPtr->property("currentData");
+        if (currentData.isValid())
+        {
+            m_cachedTableId = currentData.toInt();
+            m_tableIdCached = true;
+            return m_cachedTableId;
+        }
     }
 
-    QVariant itemData = vectorTableSelector->itemData(currentIndex);
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Item data for current index:" << itemData;
-    bool conversionOk = false;
-    int tableId = itemData.toInt(&conversionOk);
-    if (!conversionOk)
-    {
-        qWarning() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Failed to convert itemData to int. Original data:" << itemData;
-        return -1;
-    }
-
-    // 缓存结果
-    m_tableIdCached = true;
-    m_cachedTableId = tableId;
-
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - 缓存表ID:" << tableId;
-    qDebug() << "[Debug] VectorTableItemDelegate::getTableIdForCurrentTable - Returning tableId:" << tableId;
-    return tableId;
+    return -1;
 }
 
 // 辅助函数：通过UI索引获取列信息
@@ -417,74 +381,74 @@ Vector::ColumnInfo VectorTableItemDelegate::getColumnInfoByIndex(int tableId, in
 // 辅助函数：获取向量表选择器指针
 QObject *VectorTableItemDelegate::getVectorTableSelectorPtr() const
 {
-    qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Function entry.";
-    QMainWindow *mainWindow = qobject_cast<QMainWindow *>(QApplication::activeWindow());
-    if (!mainWindow)
-    {
-        qWarning() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - QApplication::activeWindow() is not a QMainWindow or is null.";
-        return nullptr;
-    }
-    qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Successfully got QMainWindow. Attempting to find child QComboBox 'm_vectorTableSelector'.";
+    // 查找MainWindow对象
+    QList<QWidget *> topLevelWidgets = QApplication::topLevelWidgets();
+    QMainWindow *mainWindow = nullptr;
 
+    // 遍历顶层窗口查找QMainWindow实例
+    foreach (QWidget *widget, topLevelWidgets)
+    {
+        mainWindow = qobject_cast<QMainWindow *>(widget);
+        if (mainWindow)
+            break;
+    }
+
+    if (!mainWindow)
+        return nullptr;
+
+    // 查找名为"m_vectorTableSelector"的QComboBox
     QComboBox *selector = mainWindow->findChild<QComboBox *>("m_vectorTableSelector");
-    if (!selector)
-    {
-        qWarning() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Did not find QComboBox with object name 'm_vectorTableSelector' in mainWindow.";
-        // Let's list all QComboBox children of mainWindow to help debug
-        QList<QComboBox *> comboBoxes = mainWindow->findChildren<QComboBox *>();
-        qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Found QComboBoxes in mainWindow:";
-        for (QComboBox *cb : comboBoxes)
-        {
-            qDebug() << "[Debug]   - ComboBox Name:" << cb->objectName() << "Visible:" << cb->isVisible();
-        }
-    }
-    else
-    {
-        qDebug() << "[Debug] VectorTableItemDelegate::getVectorTableSelectorPtr - Found 'm_vectorTableSelector'. ObjectName:" << selector->objectName();
-    }
     return selector;
 }
 
 // 获取列配置（直接从数据库获取，供缓存使用）
 QList<Vector::ColumnInfo> VectorTableItemDelegate::getColumnConfiguration(int tableId) const
 {
+    if (tableId < 0)
+        return QList<Vector::ColumnInfo>();
+
+    // 检查缓存是否已存在
+    if (s_tableColumnsCache.contains(tableId))
+        return s_tableColumnsCache[tableId];
+
     QList<Vector::ColumnInfo> columns;
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
         return columns;
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible "
-                  "FROM VectorTableColumnConfiguration "
-                  "WHERE master_record_id = ? ORDER BY column_order");
+    query.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
     query.addBindValue(tableId);
 
-    if (!query.exec())
-        return columns;
-
-    while (query.next())
+    if (query.exec())
     {
-        Vector::ColumnInfo col;
-        col.id = query.value(0).toInt();
-        col.vector_table_id = tableId;
-        col.name = query.value(1).toString();
-        col.order = query.value(2).toInt();
-        col.original_type_str = query.value(3).toString();
-        col.type = Vector::columnDataTypeFromString(col.original_type_str);
-        col.is_visible = query.value(5).toBool();
-
-        QString propStr = query.value(4).toString();
-        if (!propStr.isEmpty())
+        while (query.next())
         {
-            QJsonParseError err;
-            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-                col.data_properties = doc.object();
-        }
+            Vector::ColumnInfo col;
+            col.id = query.value(0).toInt();
+            col.vector_table_id = tableId;
+            col.name = query.value(1).toString();
+            col.order = query.value(2).toInt();
+            col.original_type_str = query.value(3).toString();
+            col.type = Vector::columnDataTypeFromString(col.original_type_str);
+            col.is_visible = query.value(5).toBool();
 
-        columns.append(col);
+            QString propStr = query.value(4).toString();
+            if (!propStr.isEmpty())
+            {
+                QJsonParseError err;
+                QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+                if (err.error == QJsonParseError::NoError && doc.isObject())
+                {
+                    col.data_properties = doc.object();
+                }
+            }
+            columns.append(col);
+        }
     }
 
+    // 添加到缓存
+    s_tableColumnsCache[tableId] = columns;
     return columns;
 }
 
@@ -554,4 +518,65 @@ QStringList VectorTableItemDelegate::getCaptureOptions() const
     m_captureOptions << "Y"
                      << "N";
     return m_captureOptions;
+}
+
+Vector::ColumnInfo VectorTableItemDelegate::getColumnInfoFromModel(const QAbstractItemModel *model, int column) const
+{
+    // 尝试从VectorTableModel中获取列信息
+    const VectorTableModel *vectorModel = qobject_cast<const VectorTableModel *>(model);
+    if (vectorModel)
+    {
+        return vectorModel->getColumnInfo(column);
+    }
+
+    // 回退到旧方法
+    int tableId = getTableIdForCurrentTable();
+    return getColumnInfoByIndex(tableId, column);
+}
+
+QString VectorTableItemDelegate::getDisplayText(const QModelIndex &index) const
+{
+    // 获取列信息
+    Vector::ColumnInfo colInfo = getColumnInfoFromModel(index.model(), index.column());
+
+    // 获取原始数据
+    QVariant data = index.data(Qt::DisplayRole);
+
+    // 根据列类型格式化显示
+    switch (colInfo.type)
+    {
+    case Vector::ColumnDataType::TIMESET_ID:
+        // 如果是TimeSet ID，尝试查询对应的名称
+        {
+            int timesetId = data.toInt();
+            // 暂时使用简单格式
+            return QString("TS%1").arg(timesetId);
+        }
+
+    case Vector::ColumnDataType::INSTRUCTION_ID:
+        // 如果是指令ID，尝试查询对应的名称
+        {
+            int instrId = data.toInt();
+            // 暂时使用简单格式
+            return QString("Instr%1").arg(instrId);
+        }
+
+    default:
+        return data.toString();
+    }
+}
+
+int VectorTableItemDelegate::getEditorType(Vector::ColumnDataType columnType) const
+{
+    switch (columnType)
+    {
+    case Vector::ColumnDataType::PIN_STATE_ID:
+    case Vector::ColumnDataType::TIMESET_ID:
+    case Vector::ColumnDataType::INSTRUCTION_ID:
+    case Vector::ColumnDataType::BOOLEAN:
+        return 1; // 下拉框
+
+    default:
+        return 0; // 文本框
+    }
 }

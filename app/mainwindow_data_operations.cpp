@@ -626,25 +626,252 @@ void MainWindow::saveCurrentTableData()
 // 判断是否有未保存的内容
 bool MainWindow::hasUnsavedChanges() const
 {
-    // 如果没有打开的数据库或没有选中的向量表，则没有未保存的内容
-    if (m_currentDbPath.isEmpty() || m_vectorTableSelector->count() == 0)
+    return m_hasUnsavedChanges;
+}
+
+// 模型数据变更事件处理
+void MainWindow::onModelDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)
+{
+    Q_UNUSED(roles);
+
+    if (!topLeft.isValid() || !bottomRight.isValid())
+        return;
+
+    // 标记表格数据已修改
+    int tableId = m_vectorTableModel->getTableId();
+
+    // 处理单行或多行数据变更
+    for (int row = topLeft.row(); row <= bottomRight.row(); ++row)
     {
-        return false;
+        // 标记行已被修改
+        m_vectorTableModel->markRowAsModified(row);
+
+        // 如果列是Label列，检查Label值是否重复
+        if (topLeft.column() <= 0 && bottomRight.column() >= 0) // 假设Label列是第一列
+        {
+            QVariant labelValue = m_vectorTableModel->data(m_vectorTableModel->index(row, 0));
+            int duplicateRow;
+            if (isLabelDuplicate(tableId, labelValue.toString(), row, duplicateRow))
+            {
+                QMessageBox::warning(this, "警告",
+                                     QString("标签值 '%1' 在行 %2 已存在").arg(labelValue.toString()).arg(duplicateRow + 1));
+            }
+        }
     }
+}
+
+// 更新模型视图中的向量列属性
+void MainWindow::updateVectorColumnPropertiesModel(const QModelIndex &current, const QModelIndex &previous)
+{
+    Q_UNUSED(previous);
+
+    if (!current.isValid())
+        return;
+
+    int row = current.row();
+    int column = current.column();
+
+    // 保存最后点击的单元格位置
+    m_lastClickedRow = row;
+    m_lastClickedColumn = column;
 
     // 获取当前选中的向量表ID
-    int tableId = -1;
-    int currentIdx = m_vectorTableSelector->currentIndex();
-    if (currentIdx >= 0)
+    int tableId = m_vectorTableModel->getTableId();
+    if (tableId < 0)
+        return;
+
+    // 更新选中单元格信息标签
+    m_selectedCellInfoLabel->setText(QString("选中单元格: 行 %1, 列 %2 (%3)")
+                                         .arg(row + 1)
+                                         .arg(column + 1)
+                                         .arg(m_vectorTableModel->headerData(column, Qt::Horizontal).toString()));
+
+    // 获取列信息
+    Vector::ColumnInfo colInfo = m_vectorTableModel->getColumnInfo(column);
+
+    // 更新选中行列信息
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+    QSet<int> uniqueRows, uniqueColumns;
+
+    for (const QModelIndex &idx : selectedIndexes)
     {
-        tableId = m_vectorTableSelector->currentData().toInt();
+        uniqueRows.insert(idx.row());
+        uniqueColumns.insert(idx.column());
+    }
+
+    m_selectedRowsLabel->setText(QString("选中行数: %1").arg(uniqueRows.size()));
+    m_selectedColumnsLabel->setText(QString("选中列数: %1").arg(uniqueColumns.size()));
+
+    // 如果是管脚列，显示16进制值
+    if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
+    {
+        QList<int> selectedRows;
+        for (int r : uniqueRows)
+            selectedRows.append(r);
+
+        calculateAndDisplayHexValue(selectedRows, column);
     }
     else
     {
-        return false;
+        // 对于非管脚列，隐藏16进制值编辑器
+        m_hexValueLabel->setVisible(false);
+        m_hexValueEdit->setVisible(false);
+        m_applyHexValueButton->setVisible(false);
+    }
+}
+
+// 检查是否应该使用TableView而不是TableWidget
+bool MainWindow::isUsingTableView(int tableId) const
+{
+    // 获取表格的行数
+    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+
+    // 如果行数超过阈值，使用TableView模式
+    const int MODEL_VIEW_THRESHOLD = 1000; // 设置一个阈值，超过该值使用模型/视图架构
+
+    return rowCount > MODEL_VIEW_THRESHOLD;
+}
+
+// 从旧的QTableWidget转换到新的QTableView
+void MainWindow::convertToTableView(int tableId)
+{
+    if (tableId < 0)
+        return;
+
+    // 加载数据模型
+    bool success = m_vectorTableModel->loadTable(tableId);
+    if (!success)
+    {
+        qWarning() << "MainWindow::convertToTableView - 加载表ID" << tableId << "到模型失败";
+        return;
     }
 
-    // 检查VectorDataHandler中是否有该表的修改行
-    // 任何一行被修改，就表示有未保存的内容
-    return VectorDataHandler::instance().isRowModified(tableId, -1);
+    // 设置模型到视图
+    m_vectorTableView->setModel(m_vectorTableModel);
+
+    // 隐藏旧视图，显示新视图
+    m_vectorTableWidget->setVisible(false);
+    m_vectorTableView->setVisible(true);
+
+    // 应用列宽设置
+    for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
+    {
+        // 获取原表格的列宽
+        int width = m_vectorTableWidget->columnWidth(col);
+        if (width > 0)
+            m_vectorTableView->setColumnWidth(col, width);
+        else
+            m_vectorTableView->setColumnWidth(col, 100); // 默认宽度
+    }
+
+    // 更新状态栏提示
+    QString tableName = m_vectorTableSelector->currentText();
+    statusBar()->showMessage(QString("已加载向量表（模型/视图模式）: %1，行数: %2，列数: %3")
+                                 .arg(tableName)
+                                 .arg(m_vectorTableModel->rowCount())
+                                 .arg(m_vectorTableModel->columnCount()));
+}
+
+// 设置选中的行
+void MainWindow::setSelectedRows(const QList<int> &rows)
+{
+    // 清除当前选择
+    if (isUsingTableView(m_vectorTableModel->getTableId()))
+    {
+        // 对于QTableView
+        m_vectorTableView->selectionModel()->clearSelection();
+
+        // 选择指定的行
+        QItemSelectionModel *selectionModel = m_vectorTableView->selectionModel();
+        for (int row : rows)
+        {
+            QModelIndex idx = m_vectorTableModel->index(row, 0);
+            selectionModel->select(QItemSelection(idx,
+                                                  m_vectorTableModel->index(row, m_vectorTableModel->columnCount() - 1)),
+                                   QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        }
+    }
+    else
+    {
+        // 对于QTableWidget
+        m_vectorTableWidget->clearSelection();
+
+        // 选择指定的行
+        for (int row : rows)
+        {
+            m_vectorTableWidget->selectRow(row);
+        }
+    }
+}
+
+// 获取选中行
+QList<int> MainWindow::getSelectedRows() const
+{
+    if (isUsingTableView(m_vectorTableModel->getTableId()))
+    {
+        return getSelectedRowsFromModel();
+    }
+    else
+    {
+        QList<int> rows;
+        QList<QTableWidgetItem *> selectedItems = m_vectorTableWidget->selectedItems();
+        for (QTableWidgetItem *item : selectedItems)
+        {
+            int row = item->row();
+            if (!rows.contains(row))
+                rows.append(row);
+        }
+        return rows;
+    }
+}
+
+// 从模型中获取选中行
+QList<int> MainWindow::getSelectedRowsFromModel() const
+{
+    QList<int> rows;
+    if (!m_vectorTableView || !m_vectorTableView->selectionModel())
+        return rows;
+
+    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+    for (const QModelIndex &idx : selectedIndexes)
+    {
+        int row = idx.row();
+        if (!rows.contains(row))
+            rows.append(row);
+    }
+
+    return rows;
+}
+
+// 获取单元格数据
+QVariant MainWindow::getCellData(int row, int column) const
+{
+    if (isUsingTableView(m_vectorTableModel->getTableId()))
+    {
+        return m_vectorTableModel->data(m_vectorTableModel->index(row, column), Qt::DisplayRole);
+    }
+    else
+    {
+        QTableWidgetItem *item = m_vectorTableWidget->item(row, column);
+        return item ? item->data(Qt::DisplayRole) : QVariant();
+    }
+}
+
+// 设置单元格数据
+void MainWindow::setCellData(int row, int column, const QVariant &value)
+{
+    if (isUsingTableView(m_vectorTableModel->getTableId()))
+    {
+        m_vectorTableModel->setData(m_vectorTableModel->index(row, column), value, Qt::EditRole);
+    }
+    else
+    {
+        QTableWidgetItem *item = m_vectorTableWidget->item(row, column);
+        if (!item)
+        {
+            item = new QTableWidgetItem();
+            m_vectorTableWidget->setItem(row, column, item);
+        }
+        item->setData(Qt::EditRole, value);
+    }
 }

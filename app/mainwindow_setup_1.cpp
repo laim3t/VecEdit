@@ -11,6 +11,10 @@
 #include "common/tablestylemanager.h"
 #include "vector/vectortabledelegate.h"
 #include "pin/pinvalueedit.h"
+#include "vector/vectortablemodel.h"
+#include "timeset/timesetdialog.h"
+#include "database/databasemanager.h"
+#include "common/logger.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
@@ -234,143 +238,34 @@ void MainWindow::setupVectorTableUI()
     QVBoxLayout *containerLayout = new QVBoxLayout(m_vectorTableContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 创建顶部工具栏
+    // 创建工具栏
     QToolBar *toolBar = new QToolBar(this);
-    toolBar->setObjectName("vectorTableToolBar"); // 给工具栏一个对象名，方便查找
-    toolBar->setIconSize(QSize(18, 18));
-    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); // 默认样式
-    toolBar->setStyleSheet("QToolBar { spacing: 1px; } QToolButton { padding: 2px; font-size: 9pt; }");
+    toolBar->setObjectName("vectorTableToolBar");
     toolBar->setMovable(false);
+    toolBar->setIconSize(QSize(24, 24));
 
-    // 刷新按钮
-    m_refreshAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_BrowserReload), tr("刷新"), this);
-    connect(m_refreshAction, &QAction::triggered, this, &MainWindow::refreshVectorTableData);
-    toolBar->addAction(m_refreshAction);
-
-    // 保存按钮
-    QAction *saveAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), tr("保存"), this);
-    connect(saveAction, &QAction::triggered, this, &MainWindow::saveVectorTableData);
-    toolBar->addAction(saveAction);
-
-    // 新建向量表按钮
-    QAction *addTableAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileIcon), tr("新建向量表"), this);
-    connect(addTableAction, &QAction::triggered, this, &MainWindow::addNewVectorTable);
-    toolBar->addAction(addTableAction);
-
-    toolBar->addSeparator();
-
-    // 向量表选择下拉框 (保持 QWidget 嵌入 QToolBar)
-    QLabel *selectLabel = new QLabel(tr("选择向量表:"), this);
+    // 创建向量表选择下拉框
     m_vectorTableSelector = new QComboBox(this);
-    m_vectorTableSelector->setObjectName(QStringLiteral("m_vectorTableSelector"));
-    m_vectorTableSelector->setMinimumWidth(150);
+    m_vectorTableSelector->setObjectName("m_vectorTableSelector");
+    m_vectorTableSelector->setMinimumWidth(200);
+    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onVectorTableSelectionChanged);
 
-    QWidget *selectorWidget = new QWidget(toolBar);
-    QHBoxLayout *selectorLayout = new QHBoxLayout(selectorWidget);
-    selectorLayout->setContentsMargins(5, 0, 5, 0);
-    selectorLayout->setSpacing(5);
-    selectorLayout->addWidget(selectLabel);
-    selectorLayout->addWidget(m_vectorTableSelector);
-    toolBar->addWidget(selectorWidget); // QComboBox 作为 widget 添加
-
-    toolBar->addSeparator();
-
-    // 设置向量表管脚按钮
-    m_setupPinsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogDetailedView), tr("设置向量表"), this);
-    connect(m_setupPinsAction, &QAction::triggered, this, &MainWindow::setupVectorTablePins);
-    toolBar->addAction(m_setupPinsAction);
-
-    // 管脚设置按钮
-    m_pinSettingsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogContentsView), tr("管脚设置"), this);
-    connect(m_pinSettingsAction, &QAction::triggered, this, &MainWindow::openPinSettingsDialog);
-    toolBar->addAction(m_pinSettingsAction);
-
-    // 添加"添加管脚"按钮
-    m_addPinAction = new QAction(QIcon(":/resources/icons/plus-circle.svg"), tr("添加管脚"), this);
-    connect(m_addPinAction, &QAction::triggered, this, &MainWindow::addSinglePin);
-    toolBar->addAction(m_addPinAction);
-
-    // 添加"删除管脚"按钮
-    m_deletePinAction = new QAction(QIcon(":/resources/icons/x-circle.svg"), tr("删除管脚"), this);
-    connect(m_deletePinAction, &QAction::triggered, this, &MainWindow::deletePins);
-    toolBar->addAction(m_deletePinAction);
-
-    // 添加"添加分组"按钮
-    m_addGroupAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogYesToAllButton), tr("添加分组"), this);
-    connect(m_addGroupAction, &QAction::triggered, this, &MainWindow::showPinGroupDialog);
-    toolBar->addAction(m_addGroupAction);
-
-    toolBar->addSeparator();
-
-    // TimeSet设置按钮
-    m_timeSetSettingsAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon), tr("TimeSet设置"), this);
-    connect(m_timeSetSettingsAction, &QAction::triggered, this, &MainWindow::openTimeSetSettingsDialog);
-    toolBar->addAction(m_timeSetSettingsAction);
-
-    // 向量填充按钮
-    m_fillVectorAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogListView), tr("向量填充"), this);
-    connect(m_fillVectorAction, &QAction::triggered, this, &MainWindow::showFillVectorDialog);
-    toolBar->addAction(m_fillVectorAction);
-
-    // 填充TimeSet按钮
-    m_fillTimeSetAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ArrowRight), tr("填充TimeSet"), this);
-    connect(m_fillTimeSetAction, &QAction::triggered, this, &MainWindow::showFillTimeSetDialog);
-    toolBar->addAction(m_fillTimeSetAction);
-
-    // 替换TimeSet按钮
-    m_replaceTimeSetAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_BrowserReload), tr("替换TimeSet"), this); // 图标可能需要调整，原SP_BrowserReload与刷新重复
-    connect(m_replaceTimeSetAction, &QAction::triggered, this, &MainWindow::showReplaceTimeSetDialog);
-    toolBar->addAction(m_replaceTimeSetAction);
-
-    toolBar->addSeparator();
-
-    // 添加向量行按钮
-    QAction *addRowAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_FileDialogNewFolder), tr("添加向量行"), this);
-    connect(addRowAction, &QAction::triggered, this, &MainWindow::addRowToCurrentVectorTable);
-    toolBar->addAction(addRowAction);
-
-    // 删除向量行按钮 - 只显示图标模式
-    QAction *deleteRowAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton), tr("删除向量行"), this);
-    deleteRowAction->setToolTip(tr("删除向量行"));
-    connect(deleteRowAction, &QAction::triggered, this, &MainWindow::deleteSelectedVectorRows);
-    toolBar->addAction(deleteRowAction);
-    // 设置永久IconOnly
-    if (!deleteRowAction->associatedWidgets().isEmpty())
+    // 创建新增向量表按钮
+    QAction *newTableAction = new QAction(QIcon(":/icons/plus-circle.svg"), "新增向量表", this);
+    connect(newTableAction, &QAction::triggered, this, &MainWindow::addNewVectorTable);
+    toolBar->addAction(newTableAction);
+    if (!newTableAction->associatedWidgets().isEmpty())
     {
-        QToolButton *button = qobject_cast<QToolButton *>(deleteRowAction->associatedWidgets().first());
+        QToolButton *button = qobject_cast<QToolButton *>(newTableAction->associatedWidgets().first());
         if (button)
             button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
 
-    // 删除指定范围内的向量行按钮 - 只显示图标模式
-    m_deleteRangeAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_TrashIcon), tr("删除范围"), this);
-    m_deleteRangeAction->setToolTip(tr("删除范围"));
-    connect(m_deleteRangeAction, &QAction::triggered, this, &MainWindow::deleteVectorRowsInRange);
-    toolBar->addAction(m_deleteRangeAction);
-    if (!m_deleteRangeAction->associatedWidgets().isEmpty())
-    {
-        QToolButton *button = qobject_cast<QToolButton *>(m_deleteRangeAction->associatedWidgets().first());
-        if (button)
-            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    }
+    // 添加向量表选择器到工具栏
+    toolBar->addWidget(m_vectorTableSelector);
 
-    // 跳转到行按钮 - 只显示图标模式
-    m_gotoLineAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_ArrowForward), tr("跳转到行"), this);
-    m_gotoLineAction->setToolTip(tr("跳转到行"));
-    connect(m_gotoLineAction, &QAction::triggered, this, &MainWindow::gotoLine);
-    toolBar->addAction(m_gotoLineAction);
-    if (!m_gotoLineAction->associatedWidgets().isEmpty())
-    {
-        QToolButton *button = qobject_cast<QToolButton *>(m_gotoLineAction->associatedWidgets().first());
-        if (button)
-            button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    }
-
-    toolBar->addSeparator();
-
-    // 删除向量表按钮 - 只显示图标模式
-    QAction *deleteTableAction = new QAction(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton), tr("删除向量表"), this);
-    deleteTableAction->setToolTip(tr("删除向量表"));
+    // 创建删除向量表按钮
+    QAction *deleteTableAction = new QAction(QIcon(":/icons/x-circle.svg"), "删除向量表", this);
     connect(deleteTableAction, &QAction::triggered, this, &MainWindow::deleteCurrentVectorTable);
     toolBar->addAction(deleteTableAction);
     if (!deleteTableAction->associatedWidgets().isEmpty())
@@ -383,7 +278,7 @@ void MainWindow::setupVectorTableUI()
     // 将工具栏添加到容器布局的顶部
     containerLayout->addWidget(toolBar);
 
-    // 创建表格视图
+    // 创建表格视图（旧版QTableWidget，保留一段时间用于兼容）
     m_vectorTableWidget = new QTableWidget(this);
     m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -405,158 +300,89 @@ void MainWindow::setupVectorTableUI()
     connect(m_vectorTableWidget, &QTableWidget::cellClicked, this, &MainWindow::updateVectorColumnProperties);
 
     // 连接自定义单元格编辑器的值修改信号 (使用于PinValueLineEdit等)
-    connect(m_vectorTableWidget, &QTableWidget::cellWidget, [this](int row, int column)
-            {
-        QWidget *widget = m_vectorTableWidget->cellWidget(row, column);
-        if (PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit*>(widget)) {
-            connect(pinEdit, &PinValueLineEdit::textChanged, [this, row]() {
-                onTableRowModified(row);
-            });
-        } });
-
-    // 添加选择变更事件处理，更新16进制值
-    connect(m_vectorTableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
-            [this](const QItemSelection &selected, const QItemSelection &deselected)
-            {
-                // 获取当前选中的列
-                QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
-                if (selectedIndexes.isEmpty())
-                    return;
-
-                // 检查是否所有选择都在同一列
-                int column = selectedIndexes.first().column();
-                bool sameColumn = true;
-
-                for (const QModelIndex &idx : selectedIndexes)
-                {
-                    if (idx.column() != column)
-                    {
-                        sameColumn = false;
-                        break;
-                    }
-                }
-
-                // 只有当所有选择都在同一列时才更新16进制值
-                if (sameColumn)
-                {
-                    QList<int> selectedRows;
-                    for (const QModelIndex &idx : selectedIndexes)
-                    {
-                        if (!selectedRows.contains(idx.row()))
-                            selectedRows.append(idx.row());
-                    }
-
-                    // 获取当前表的列配置信息
-                    if (m_vectorTabWidget && m_vectorTabWidget->currentIndex() >= 0)
-                    {
-                        int currentTableId = m_tabToTableId[m_vectorTabWidget->currentIndex()];
-                        QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-
-                        // 检查列索引是否有效
-                        if (column >= 0 && column < columns.size())
-                        {
-                            // 获取列类型
-                            Vector::ColumnDataType colType = columns[column].type;
-
-                            // 只处理管脚列
-                            if (colType == Vector::ColumnDataType::PIN_STATE_ID)
-                            {
-                                // 更新管脚名称和16进制值
-                                updateVectorColumnProperties(selectedRows.first(), column);
-                            }
-                        }
-                    }
-                }
-            });
-
-    // 连接向量表选择器信号
-    connect(m_vectorTableSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onVectorTableSelectionChanged);
-
-    // 创建项委托，处理单元格编辑
+    // 创建自定义委托（旧版，用于QTableWidget）
     m_itemDelegate = new VectorTableItemDelegate(this);
     m_vectorTableWidget->setItemDelegate(m_itemDelegate);
 
-    // 创建分页控件
-    m_paginationWidget = new QWidget(this);
-    QHBoxLayout *paginationLayout = new QHBoxLayout(m_paginationWidget);
-    paginationLayout->setContentsMargins(5, 5, 5, 5);
+    // 创建新的视图（基于模型/视图架构的QTableView）
+    m_vectorTableView = new QTableView(this);
+    m_vectorTableView->setVisible(false); // 默认隐藏，在需要时显示
+    m_vectorTableView->setAlternatingRowColors(true);
+    m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
+    m_vectorTableView->verticalHeader()->setVisible(true);
+    m_vectorTableView->setItemDelegate(m_itemDelegate); // 重用委托
+    m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    // 上一页按钮
-    m_prevPageButton = new QPushButton(tr("上一页"), this);
-    m_prevPageButton->setFixedWidth(80);
-    connect(m_prevPageButton, &QPushButton::clicked, this, &MainWindow::loadPrevPage);
+    // 创建模型
+    m_vectorTableModel = new VectorTableModel(this);
+
+    // 连接模型数据变更信号
+    connect(m_vectorTableModel, &QAbstractItemModel::dataChanged, this, &MainWindow::onModelDataChanged);
+
+    // 连接选择变更信号
+    connect(m_vectorTableView->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &MainWindow::updateVectorColumnPropertiesModel);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget(this);
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(5, 2, 5, 2);
+
+    m_prevPageButton = new QPushButton("上一页", paginationWidget);
+    m_nextPageButton = new QPushButton("下一页", paginationWidget);
+    m_paginationInfoLabel = new QLabel("页码: 0/0 (总行数: 0)", paginationWidget);
+    QLabel *pageSizeLabel = new QLabel("每页行数:", paginationWidget);
+    m_pageSizeSelector = new QComboBox(paginationWidget);
+    m_pageSizeSelector->addItems(QStringList() << "100" << "200" << "500" << "1000");
+    m_pageSizeSelector->setCurrentText("200");
+    QLabel *jumpToPageLabel = new QLabel("跳转到:", paginationWidget);
+    m_pageJumpSpinBox = new QSpinBox(paginationWidget);
+    m_pageJumpSpinBox->setMinimum(1);
+    m_pageJumpSpinBox->setMaximum(1);
+    QPushButton *jumpButton = new QPushButton("跳转", paginationWidget);
+
     paginationLayout->addWidget(m_prevPageButton);
-
-    // 页码信息标签
-    m_pageInfoLabel = new QLabel(tr("第 0/0 页，共 0 行"), this);
-    paginationLayout->addWidget(m_pageInfoLabel);
-
-    // 下一页按钮
-    m_nextPageButton = new QPushButton(tr("下一页"), this);
-    m_nextPageButton->setFixedWidth(80);
-    connect(m_nextPageButton, &QPushButton::clicked, this, &MainWindow::loadNextPage);
+    paginationLayout->addWidget(m_paginationInfoLabel);
     paginationLayout->addWidget(m_nextPageButton);
-
-    // 每页行数选择
-    QLabel *pageSizeLabel = new QLabel(tr("每页行数:"), this);
+    paginationLayout->addSpacing(20);
     paginationLayout->addWidget(pageSizeLabel);
-
-    m_pageSizeSelector = new QComboBox(this);
-    m_pageSizeSelector->addItem("100", 100);
-    m_pageSizeSelector->addItem("500", 500);
-    m_pageSizeSelector->addItem("1000", 1000);
-    m_pageSizeSelector->addItem("5000", 5000);
-    m_pageSizeSelector->setCurrentIndex(0);
-    connect(m_pageSizeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            [this](int index)
-            {
-                int newPageSize = m_pageSizeSelector->itemData(index).toInt();
-                this->changePageSize(newPageSize);
-            });
     paginationLayout->addWidget(m_pageSizeSelector);
-
-    // 页码跳转
-    QLabel *jumpLabel = new QLabel(tr("跳转到:"), this);
-    paginationLayout->addWidget(jumpLabel);
-
-    m_pageJumper = new QSpinBox(this);
-    m_pageJumper->setMinimum(1);
-    m_pageJumper->setMaximum(1);
-    m_pageJumper->setFixedWidth(60);
-    paginationLayout->addWidget(m_pageJumper);
-
-    m_jumpButton = new QPushButton(tr("确定"), this);
-    m_jumpButton->setFixedWidth(50);
-    connect(m_jumpButton, &QPushButton::clicked, [this]()
-            {
-        int pageNum = m_pageJumper->value() - 1; // 转换为0-based索引
-        this->jumpToPage(pageNum); });
-    paginationLayout->addWidget(m_jumpButton);
-
-    // 添加伸缩项
+    paginationLayout->addSpacing(20);
+    paginationLayout->addWidget(jumpToPageLabel);
+    paginationLayout->addWidget(m_pageJumpSpinBox);
+    paginationLayout->addWidget(jumpButton);
     paginationLayout->addStretch();
 
-    // 初始化分页相关变量
+    // 连接分页控件信号
+    connect(m_prevPageButton, &QPushButton::clicked, this, &MainWindow::loadPrevPage);
+    connect(m_nextPageButton, &QPushButton::clicked, this, &MainWindow::loadNextPage);
+    connect(m_pageSizeSelector, &QComboBox::currentTextChanged, [this](const QString &text)
+            {
+        int newSize = text.toInt();
+        if (newSize > 0)
+        {
+            changePageSize(newSize);
+        } });
+    connect(jumpButton, &QPushButton::clicked, [this]()
+            {
+                int pageNum = m_pageJumpSpinBox->value();
+                jumpToPage(pageNum - 1); // 转换为0-based索引
+            });
+
+    // 设置分页初始值
+    m_pageSize = 200;
     m_currentPage = 0;
-    m_pageSize = 100; // 默认每页100行
-    m_totalPages = 0;
     m_totalRows = 0;
+    m_totalPages = 0;
 
-    // 创建Tab栏
-    setupTabBar();
-
-    // 将布局添加到容器
+    // 将表格控件放入布局中
     containerLayout->addWidget(m_vectorTableWidget);
-    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
-    containerLayout->addWidget(m_vectorTabWidget);
-
-    // 将容器添加到主布局
-    QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout *>(m_centralWidget->layout());
-    if (mainLayout)
-    {
-        mainLayout->addWidget(m_vectorTableContainer);
-    }
+    containerLayout->addWidget(m_vectorTableView);
+    containerLayout->addWidget(paginationWidget);
 }
 
 void MainWindow::setupTabBar()
@@ -790,5 +616,3 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         emit windowResized();
     }
 }
-
-

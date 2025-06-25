@@ -11,7 +11,6 @@ void MainWindow::showDatabaseViewDialog()
     m_dialogManager->showDatabaseViewDialog();
 }
 
-
 bool MainWindow::showAddPinsDialog()
 {
     // 检查是否有打开的数据库
@@ -96,26 +95,66 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
         return;
     }
 
-    // Corrected: use m_dialogManager instance
-    bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
-
-    if (success)
+    try
     {
-        qInfo() << funcName << " - 管脚配置成功完成 for table ID:" << tableId;
+        // Corrected: use m_dialogManager instance
+        bool success = m_dialogManager->showPinSelectionDialog(tableId, tableName);
 
-        // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
-        updateBinaryHeaderColumnCount(tableId);
+        if (success)
+        {
+            qInfo() << funcName << " - 管脚配置成功完成 for table ID:" << tableId;
 
-        // 重新加载并刷新向量表视图以反映更改
-        reloadAndRefreshVectorTable(tableId); // Implementation will be added
+            // 使用延迟更新二进制文件头的列计数，避免可能的闪退
+            QTimer::singleShot(100, this, [this, tableId]()
+                               {
+                try {
+                    qDebug() << "MainWindow::showPinSelectionDialog - 延迟更新二进制文件头";
+                    updateBinaryHeaderColumnCount(tableId);
+                } catch (const std::exception &e) {
+                    qWarning() << "更新二进制文件头时出现异常: " << e.what();
+                } catch (...) {
+                    qWarning() << "更新二进制文件头时出现未知异常";
+                } });
+
+            // 使用延迟重新加载并刷新向量表视图以反映更改，避免可能的闪退
+            QTimer::singleShot(200, this, [this, tableId]()
+                               {
+                try {
+                    qDebug() << "MainWindow::showPinSelectionDialog - 延迟刷新向量表";
+                    reloadAndRefreshVectorTable(tableId);
+                } catch (const std::exception &e) {
+                    qWarning() << "刷新向量表时出现异常: " << e.what();
+                } catch (...) {
+                    qWarning() << "刷新向量表时出现未知异常";
+                } });
+        }
+        else
+        {
+            qWarning() << funcName << " - 管脚配置被取消或失败 for table ID:" << tableId;
+            // 如果这是新表创建流程的一部分，并且管脚配置失败/取消，
+            // 可能需要考虑是否回滚表的创建或进行其他清理。
+            // 使用延迟重新加载以确保UI与DB（可能部分配置的）状态一致。
+            QTimer::singleShot(200, this, [this, tableId]()
+                               {
+                try {
+                    qDebug() << "MainWindow::showPinSelectionDialog - 延迟刷新向量表（取消情况）";
+                    reloadAndRefreshVectorTable(tableId);
+                } catch (const std::exception &e) {
+                    qWarning() << "刷新向量表时出现异常: " << e.what();
+                } catch (...) {
+                    qWarning() << "刷新向量表时出现未知异常";
+                } });
+        }
     }
-    else
+    catch (const std::exception &e)
     {
-        qWarning() << funcName << " - 管脚配置被取消或失败 for table ID:" << tableId;
-        // 如果这是新表创建流程的一部分，并且管脚配置失败/取消，
-        // 可能需要考虑是否回滚表的创建或进行其他清理。
-        // 目前，我们只重新加载以确保UI与DB（可能部分配置的）状态一致。
-        reloadAndRefreshVectorTable(tableId); // Implementation will be added
+        qWarning() << funcName << " - 显示管脚选择对话框过程中出现异常: " << e.what();
+        QMessageBox::critical(this, "错误", QString("无法显示管脚选择对话框: %1").arg(e.what()));
+    }
+    catch (...)
+    {
+        qWarning() << funcName << " - 显示管脚选择对话框过程中出现未知异常";
+        QMessageBox::critical(this, "错误", "无法显示管脚选择对话框: 发生未知错误");
     }
 }
 

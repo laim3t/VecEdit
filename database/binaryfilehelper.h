@@ -187,6 +187,18 @@ namespace Persistence
                                          const QSet<int> &modifiedRows,
                                          bool preserveIndex = true);
 
+        /**
+         * @brief 定位到二进制文件中的指定行
+         *
+         * 此方法将文件指针定位到指定行的起始位置，方便后续读取操作
+         * 会使用行偏移缓存提高性能，如果缓存不存在则会逐行扫描
+         *
+         * @param file 已打开的文件对象，必须有读取权限
+         * @param rowIndex 要定位的行索引（从0开始）
+         * @return bool 定位成功返回true，失败返回false
+         */
+        static bool seekToRow(QFile *file, int rowIndex);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度
