@@ -35,6 +35,21 @@ public:
     // 加载指定表格的指定页数据
     void loadPage(int tableId, int page);
 
+    // 保存当前修改的数据
+    bool saveData(QString &errorMessage);
+
+    // 获取当前表ID
+    int tableId() const { return m_tableId; }
+
+    // 获取当前页码
+    int currentPage() const { return m_currentPage; }
+
+    // 获取每页行数
+    int pageSize() const { return m_pageSize; }
+
+    // 获取总行数
+    int totalRows() const { return m_totalRows; }
+
 private:
     // 分页状态相关成员变量
     int m_tableId;     // 当前向量表ID

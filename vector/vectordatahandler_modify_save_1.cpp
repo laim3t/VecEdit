@@ -1,5 +1,3 @@
-
-
 // 实现优化版本的保存分页数据函数
 bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *currentPageTable,
                                                  int currentPage, int pageSize, int totalRows,
@@ -336,40 +334,20 @@ bool VectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *curr
             // 处理单元格内容 - 特殊处理管脚列（单元格控件）
             if (visibleColumn.type == Vector::ColumnDataType::PIN_STATE_ID)
             {
-                // 对于管脚列，优先从单元格控件获取值
-                PinValueLineEdit *pinEdit = qobject_cast<PinValueLineEdit *>(currentPageTable->cellWidget(rowInPage, tableCol));
-                if (pinEdit)
-                {
-                    QString pinStateText = pinEdit->text();
-                    if (pinStateText.isEmpty())
-                    {
-                        pinStateText = "X"; // 默认值
-                    }
-
-                    // 检查数据是否有变更
-                    if (oldValue.toString() != pinStateText)
-                    {
-                        rowData[originalColIdx] = pinStateText;
-                        rowModified = true;
-                    }
-
-                    continue; // 已处理，跳过下面的处理
-                }
-
-                // 如果没有找到编辑控件，尝试从QTableWidgetItem获取值
+                // 直接从QTableWidgetItem获取值，不再尝试使用PinValueLineEdit
                 QTableWidgetItem *item = currentPageTable->item(rowInPage, tableCol);
+                QString pinStateText = "X"; // 默认值
+
                 if (item && !item->text().isEmpty())
                 {
-                    QString pinStateText = item->text();
+                    pinStateText = item->text();
+                }
 
-                    // 检查数据是否有变更
-                    if (oldValue.toString() != pinStateText)
-                    {
-                        rowData[originalColIdx] = pinStateText;
-                        rowModified = true;
-                    }
-
-                    continue;
+                // 检查数据是否有变更
+                if (oldValue.toString() != pinStateText)
+                {
+                    rowData[originalColIdx] = pinStateText;
+                    rowModified = true;
                 }
             }
             else

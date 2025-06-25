@@ -764,7 +764,7 @@ QList<Vector::RowData> VectorDataHandler::getPageData(int tableId, int pageIndex
 
     // 重置取消操作标志
 // ... existing code ...
-    qDebug() << funcName << " - 操作被取消";
+            qDebug() << funcName << " - 操作被取消";
             break;
         }
 

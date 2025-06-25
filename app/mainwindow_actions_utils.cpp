@@ -10,6 +10,9 @@ void MainWindow::jumpToPage(int pageNum)
         return;
     }
 
+    // 在切换页面前自动保存当前页面的修改
+    saveCurrentTableData();
+
     m_currentPage = pageNum;
     loadCurrentPage();
 }
@@ -96,7 +99,6 @@ void MainWindow::gotoLine()
         qDebug() << funcName << " - 无效的行号:" << targetLine << ", 页内索引:" << rowInPage;
     }
 }
-
 
 // 关闭Tab页签
 void MainWindow::closeTab(int index)
@@ -825,7 +827,6 @@ void MainWindow::calculateAndDisplayHexValue(const QList<int> &selectedRows, int
         m_pinValueField->setText(hexResult);
     }
 }
-
 
 void MainWindow::updateWindowTitle(const QString &dbPath)
 {
