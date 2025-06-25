@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLineEdit>
+#include <QTableWidget>
 
 QList<Vector::RowData> VectorDataHandler::getAllVectorRows(int tableId, bool &ok)
 {
@@ -251,12 +253,6 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
     tableWidget->setUpdatesEnabled(false);
     tableWidget->horizontalHeader()->setUpdatesEnabled(false);
     tableWidget->verticalHeader()->setUpdatesEnabled(false);
-
-    // 保存当前滚动条位置
-    QScrollBar *vScrollBar = tableWidget->verticalScrollBar();
-    QScrollBar *hScrollBar = tableWidget->horizontalScrollBar();
-    int vScrollValue = vScrollBar ? vScrollBar->value() : 0;
-    int hScrollValue = hScrollBar ? hScrollBar->value() : 0;
 
     // 阻止信号以避免不必要的更新
     tableWidget->blockSignals(true);
@@ -582,9 +578,13 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
                     pinStateText = originalValue.toString();
                 }
 
-                // 创建PinValueLineEdit作为单元格控件
-                PinValueLineEdit *pinEdit = new PinValueLineEdit(tableWidget);
+                // 创建QLineEdit作为单元格控件，使用标准的QLineEdit替代PinValueLineEdit
+                QLineEdit *pinEdit = new QLineEdit(tableWidget);
                 pinEdit->setText(pinStateText);
+                pinEdit->setMaxLength(1);
+                pinEdit->setAlignment(Qt::AlignCenter);
+                pinEdit->setFrame(false);
+                pinEdit->setStyleSheet("QLineEdit { border: none; }");
                 tableWidget->setCellWidget(row, visibleColIdx, pinEdit);
                 qDebug() << funcName << " - 行" << row << ", 列" << visibleColIdx
                          << " 设置管脚状态为:" << pinStateText;
@@ -711,16 +711,6 @@ bool VectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidg
 
     // 在函数结束前恢复更新和信号
     tableWidget->blockSignals(false);
-
-    // 恢复滚动条位置
-    if (vScrollBar)
-    {
-        vScrollBar->setValue(vScrollValue);
-    }
-    if (hScrollBar)
-    {
-        hScrollBar->setValue(hScrollValue);
-    }
 
     // 恢复UI更新
     tableWidget->verticalHeader()->setUpdatesEnabled(true);
