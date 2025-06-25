@@ -37,3 +37,4 @@
 #include "mainwindow_waveform_view_2.cpp"
 #include "mainwindow_waveform_timeset.cpp"
 #include "mainwindow_waveform_types.cpp"
+#include "mainwindow_column_properties_view.cpp"

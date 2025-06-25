@@ -195,6 +195,22 @@ private slots:
 
     // 实时验证16进制输入
     void validateHexInput(const QString &text);
+    
+    // === 新视图中向量列属性栏相关槽 ===
+    // 处理新视图选择变化
+    void onNewViewSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
+    
+    // 新视图中更新向量列属性栏
+    void updateVectorColumnPropertiesForModel(const QList<int> &selectedRows, int column);
+    
+    // 新视图中计算16进制值并显示在向量列属性栏中
+    void calculateAndDisplayHexValueForModel(const QList<int> &selectedRows, int column);
+    
+    // 新视图中计算并更新错误个数显示
+    void updateErrorCountForModel(const QList<int> &selectedRows, int column);
+    
+    // 新视图中处理16进制值编辑后的同步操作
+    void onHexValueEditedForModel();
 
     // 波形图相关槽函数
     void setupWaveformView();

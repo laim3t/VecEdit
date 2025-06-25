@@ -404,9 +404,60 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableView->setModel(m_vectorTableModel);
+    
+    // 设置新视图表头和样式，与老视图保持一致
+    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
+    m_vectorTableView->verticalHeader()->setVisible(true);
+    
+    // 应用跟旧视图相同的样式设置
+    QString tableStyle = "QTableView { "
+                       "   gridline-color: #C0C0C0; "
+                       "   selection-background-color: #CCE8FF; "
+                       "   selection-color: black; "
+                       "} "
+                       "QHeaderView::section { "
+                       "   background-color: #E0E0E0; "
+                       "   padding: 3px; "
+                       "   border: 1px solid #C0C0C0; "
+                       "   font-weight: bold; "
+                       "} "
+                       "QTableView::item { "
+                       "   padding: 2px; "
+                       "} ";
+    m_vectorTableView->setStyleSheet(tableStyle);
 
     // 设置自定义委托，处理不同类型单元格的编辑功能
     m_vectorTableView->setItemDelegate(m_itemDelegate);
+
+    // 连接新视图的选择模型变化信号到对应的槽函数
+    connect(m_vectorTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::onNewViewSelectionChanged);
+
+    // 连接模型数据变化的信号，以便在数据更新时刷新属性栏
+    connect(m_vectorTableModel, &QAbstractItemModel::dataChanged,
+            [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles) {
+                // 如果当前是新视图并且有选中的数据，更新属性栏
+                if (m_vectorStackedWidget->currentIndex() == 1 && 
+                    m_vectorTableView->selectionModel()->hasSelection()) {
+                    QModelIndexList indexes = m_vectorTableView->selectionModel()->selectedIndexes();
+                    if (!indexes.isEmpty()) {
+                        // 提取所选单元格的行和列
+                        QList<int> selectedRows;
+                        int column = indexes.first().column();
+                        
+                        // 收集所有选中的行
+                        for (const QModelIndex &index : indexes) {
+                            if (index.column() == column && !selectedRows.contains(index.row())) {
+                                selectedRows.append(index.row());
+                            }
+                        }
+                        
+                        // 更新属性栏
+                        updateVectorColumnPropertiesForModel(selectedRows, column);
+                    }
+                }
+            });
 
     // 创建QStackedWidget来容纳旧表格和新表格
     m_vectorStackedWidget = new QStackedWidget(this);
@@ -423,12 +474,55 @@ void MainWindow::setupVectorTableUI()
             {
         // 切换当前显示的视图
         int nextIndex = (m_vectorStackedWidget->currentIndex() + 1) % 2;
-        m_vectorStackedWidget->setCurrentIndex(nextIndex); });
+        m_vectorStackedWidget->setCurrentIndex(nextIndex); 
+        
+        // 在视图切换后更新向量列属性栏
+        if (nextIndex == 0) {
+            // 切换到旧视图 (QTableWidget)
+            QList<QTableWidgetItem*> selectedItems = m_vectorTableWidget->selectedItems();
+            if (!selectedItems.isEmpty()) {
+                // 有选中的单元格，更新属性栏
+                updateVectorColumnProperties(selectedItems.first()->row(), selectedItems.first()->column());
+            }
+        } else {
+            // 切换到新视图 (QTableView)
+            if (m_vectorTableView->selectionModel()->hasSelection()) {
+                QModelIndexList indexes = m_vectorTableView->selectionModel()->selectedIndexes();
+                if (!indexes.isEmpty()) {
+                    // 提取所选单元格的行和列
+                    QList<int> selectedRows;
+                    int column = indexes.first().column();
+                    
+                    // 收集所有选中的行
+                    for (const QModelIndex &index : indexes) {
+                        if (index.column() == column && !selectedRows.contains(index.row())) {
+                            selectedRows.append(index.row());
+                        }
+                    }
+                    
+                    // 更新属性栏
+                    updateVectorColumnPropertiesForModel(selectedRows, column);
+                }
+            }
+        }
+    });
 
     // 设置表格右键菜单和信号/槽连接
     m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_vectorTableWidget, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showPinColumnContextMenu);
+
+    // 为新视图也设置相同的右键菜单功能
+    m_vectorTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_vectorTableView, &QTableView::customContextMenuRequested,
+            [this](const QPoint &pos) {
+                // 获取位置对应的模型索引
+                QModelIndex index = m_vectorTableView->indexAt(pos);
+                if (index.isValid()) {
+                    // 调用相同的上下文菜单函数，但使用模型索引的行和列
+                    showPinColumnContextMenu(pos);
+                }
+            });
 
     // 监听单元格变更事件
     connect(m_vectorTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
