@@ -703,3 +703,4 @@ bool MainWindow::hasUnsavedChanges() const
     // 任何一行被修改，就表示有未保存的内容
     return VectorDataHandler::instance().isRowModified(tableId, -1);
 }
+
