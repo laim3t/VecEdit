@@ -33,6 +33,8 @@ set(PROJECT_SOURCES
         app/main.cpp
         app/mainwindow.cpp
         app/mainwindow.h
+        app/vectortablemodel.cpp
+        app/vectortablemodel.h
         database/databasemanager.cpp
         database/databasemanager.h
         database/databasemanager_migrator.cpp
