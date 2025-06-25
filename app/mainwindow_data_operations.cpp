@@ -245,62 +245,32 @@ void MainWindow::addRowToCurrentVectorTableModel()
         return;
     }
 
-    // 默认使用的TimeSet ID (可以尝试从第一行获取)
-    int timesetId = 1;
-    
-    // 尝试获取一个可用的TimeSet ID
+    // 查询当前表中最大的排序索引
+    int maxSortIndex = -1;
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
-    
-    // 首先尝试获取最常用的TimeSet
-    query.prepare("SELECT timeset_id, COUNT(*) as usage_count "
-                  "FROM vector_table_data "
-                  "WHERE table_id = ? AND timeset_id IS NOT NULL "
-                  "GROUP BY timeset_id "
-                  "ORDER BY usage_count DESC "
-                  "LIMIT 1");
+    query.prepare("SELECT MAX(sort_index) FROM vector_table_data WHERE table_id = ?");
     query.addBindValue(tableId);
-    
+
     if (query.exec() && query.next())
     {
-        timesetId = query.value(0).toInt();
-        qDebug() << funcName << " - 找到最常用的TimeSet ID:" << timesetId;
-    }
-    else
-    {
-        // 如果找不到，尝试获取任何可用的TimeSet
-        query.prepare("SELECT id FROM timesets LIMIT 1");
-        if (query.exec() && query.next())
-        {
-            timesetId = query.value(0).toInt();
-            qDebug() << funcName << " - 找到可用的TimeSet ID:" << timesetId;
-        }
-        else
-        {
-            qDebug() << funcName << " - 未找到TimeSet，使用默认值1";
-        }
+        maxSortIndex = query.value(0).toInt();
     }
 
-    // 创建空的管脚值映射
-    QMap<int, QString> pinValues;
-    
-    // 可以在这里预设一些默认的管脚值
-    
-    // 调用模型的添加行方法
-    QString errorMessage;
-    if (m_vectorTableModel->addNewRow(timesetId, pinValues, errorMessage))
+    // 使用对话框管理器显示向量行数据录入对话框（与老视图保持一致）
+    if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
     {
-        QMessageBox::information(this, "添加成功", "已成功添加新行");
-        qDebug() << funcName << " - 添加行成功";
+        // 刷新表格显示 - 使用Model/View方式
+        m_vectorTableModel->loadPage(tableId, m_vectorTableModel->currentPage());
         
         // 刷新侧边栏导航树，确保Label同步
         refreshSidebarNavigator();
+        
+        qDebug() << funcName << " - 通过对话框成功添加新行";
     }
     else
     {
-        QMessageBox::critical(this, "添加失败", errorMessage);
-        qWarning() << funcName << " - 添加行失败：" << errorMessage;
-        statusBar()->showMessage("添加行失败: " + errorMessage, 5000);
+        qDebug() << funcName << " - 用户取消了添加行操作";
     }
 }
 

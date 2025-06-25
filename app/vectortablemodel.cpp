@@ -758,42 +758,70 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
         return false;
     }
 
+    // 从数据库获取已选择的管脚 - 提前获取管脚信息，这样可以正确设置表格列数
+    QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins; // pinId, <pinName, <channelCount, typeName>>
+    
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    
+    // 查询此表关联的管脚信息
+    query.prepare("SELECT p.id, pl.pin_name, p.pin_channel_count, t.type_name, p.pin_type "
+                  "FROM vector_table_pins p "
+                  "JOIN pin_list pl ON p.pin_id = pl.id "
+                  "JOIN type_options t ON p.pin_type = t.id "
+                  "WHERE p.table_id = ?");
+    query.addBindValue(m_tableId);
+    
+    if (query.exec()) {
+        while (query.next()) {
+            int pinId = query.value(0).toInt();
+            QString pinName = query.value(1).toString();
+            int channelCount = query.value(2).toInt();
+            QString typeName = query.value(3).toString();
+            int typeId = query.value(4).toInt();
+            
+            selectedPins.append(qMakePair(pinId, qMakePair(pinName, qMakePair(channelCount, typeName))));
+        }
+    } else {
+        errorMessage = "获取管脚信息失败：" + query.lastError().text();
+        qWarning() << funcName << "- " << errorMessage;
+        return false;
+    }
+    
+    // 确保selectedPins不为空
+    if (selectedPins.isEmpty()) {
+        errorMessage = "此表没有关联的管脚，请先设置管脚";
+        qWarning() << funcName << "- " << errorMessage;
+        return false;
+    }
+    
+    qDebug() << funcName << "- 找到" << selectedPins.size() << "个管脚关联到表ID:" << m_tableId;
+    
     // 创建临时表格用于传递数据
+    // 修正：将列数设置为selectedPins的数量，而不是模型的列数
     QTableWidget tempTable;
     tempTable.setRowCount(1);
-    tempTable.setColumnCount(m_columns.size());
+    tempTable.setColumnCount(selectedPins.size());
 
-    // 设置列
-    for (int col = 0; col < m_columns.size(); col++) {
-        const Vector::ColumnInfo &colInfo = m_columns[col];
+    // 设置列 - 只设置管脚列的值（因为这是insertVectorRows期望的格式）
+    for (int col = 0; col < selectedPins.size(); col++) {
+        const auto &pinInfo = selectedPins[col];
+        const int pinId = pinInfo.first;
+        const QString &pinName = pinInfo.second.first;
+        
+        // 设置表格表头，确保与管脚名称匹配
+        QTableWidgetItem *headerItem = new QTableWidgetItem(pinName);
+        tempTable.setHorizontalHeaderItem(col, headerItem);
         
         // 设置默认值
         QTableWidgetItem *item = new QTableWidgetItem();
         
-        switch (colInfo.type) {
-            case Vector::ColumnDataType::PIN_STATE_ID:
-            {
-                // 检查是否有为此管脚提供的值
-                int pinId = colInfo.data_properties.value("pin_id").toInt(-1);
-                if (pinValues.contains(pinId)) {
-                    item->setText(pinValues.value(pinId));
-                } else {
-                    item->setText("X"); // 默认值
-                }
-                break;
-            }
-            case Vector::ColumnDataType::TIMESET_ID:
-                item->setText(QString::number(timesetId));
-                break;
-            case Vector::ColumnDataType::INSTRUCTION_ID:
-                item->setText("1"); // 默认指令ID
-                break;
-            case Vector::ColumnDataType::BOOLEAN:
-                item->setText("N");
-                break;
-            default:
-                item->setText("");
-                break;
+        // 检查是否有为此管脚提供的值
+        if (pinValues.contains(pinId)) {
+            item->setText(pinValues.value(pinId));
+        } else {
+            item->setText("X"); // 默认值
         }
         
         tempTable.setItem(0, col, item);
@@ -802,9 +830,6 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
     // 使用VectorDataHandler插入行
     // 获取当前表最后一行的索引
     int lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
-    
-    // 准备管脚信息列表（格式：管脚ID, <管脚名称, <通道数, 通道名称>> ）
-    QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins;
     
     // 调用insertVectorRows插入新行
     if (!VectorDataHandler::instance().insertVectorRows(

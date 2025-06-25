@@ -68,7 +68,7 @@ QWidget *VectorTableDelegate::createEditor(QWidget *parent, const QStyleOptionVi
 
     // 获取当前列的类型信息
     int tableId = getTableIdForCurrentTable();
-    
+
     if (tableId < 0)
     {
         qWarning() << "VectorTableDelegate::createEditor - 无效的表ID:" << tableId << "，使用默认编辑器";
@@ -177,7 +177,7 @@ void VectorTableDelegate::setEditorData(QWidget *editor, const QModelIndex &inde
             QString strValue = value.toString();
             int idx = comboBox->findText(strValue);
             if (idx >= 0) {
-                comboBox->setCurrentIndex(idx);
+            comboBox->setCurrentIndex(idx);
             }
         }
     }
@@ -223,39 +223,39 @@ void VectorTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *mode
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
         if (comboBox) {
-            QString value = comboBox->currentText();
-            model->setData(index, value, Qt::EditRole);
+        QString value = comboBox->currentText();
+        model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
         if (comboBox) {
-            QString value = comboBox->currentText();
-            model->setData(index, value, Qt::EditRole);
+        QString value = comboBox->currentText();
+        model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
         if (comboBox) {
-            QString value = comboBox->currentText();
-            model->setData(index, value, Qt::EditRole);
+        QString value = comboBox->currentText();
+        model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
         PinValueLineEdit *lineEdit = qobject_cast<PinValueLineEdit *>(editor);
         if (lineEdit) {
-            QString value = lineEdit->text();
-            // 如果为空，默认使用X
+        QString value = lineEdit->text();
+        // 如果为空，默认使用X
             if (value.isEmpty()) {
-                value = "X";
-            }
-            // 简单转换大写，但不进行严格验证
-            value = value.toUpper();
-            model->setData(index, value, Qt::EditRole);
+            value = "X";
         }
+        // 简单转换大写，但不进行严格验证
+        value = value.toUpper();
+        model->setData(index, value, Qt::EditRole);
+    }
     }
     else if (colInfo.type == Vector::ColumnDataType::INTEGER ||
              colInfo.type == Vector::ColumnDataType::REAL ||
@@ -266,11 +266,11 @@ void VectorTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *mode
         if (lineEdit) {
             model->setData(index, lineEdit->text(), Qt::EditRole);
         }
-    }
-    else
-    {
+        }
+        else
+        {
         // 默认使用基类方法
-        QStyledItemDelegate::setModelData(editor, model, index);
+            QStyledItemDelegate::setModelData(editor, model, index);
     }
 }
 
