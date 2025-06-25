@@ -101,6 +101,10 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
 
         statusBar()->showMessage(QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableWidget->columnCount()));
+
+        // 步骤1.3：加载新模型数据
+        qDebug() << funcName << " - 加载新表格模型数据，表ID:" << tableId;
+        m_vectorTableModel->loadPage(tableId, 0);
     }
     else
     {

@@ -7,6 +7,8 @@
 #include <QInputDialog>
 #include <QDir>
 #include <QTableWidget>
+#include <QTableView>
+#include <QStackedWidget>
 #include <QComboBox>
 #include <QPushButton>
 #include <QToolButton>
@@ -31,6 +33,7 @@
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
+#include "vectortablemodel.h"
 
 // 前置声明
 class VectorTableItemDelegate;
@@ -271,7 +274,10 @@ private:
     QAction *m_closeProjectAction;
 
     // 向量表显示相关的UI组件
-    QTableWidget *m_vectorTableWidget;
+    QStackedWidget *m_vectorStackedWidget; // 用于切换旧表格和新表格的堆栈窗口
+    QTableWidget *m_vectorTableWidget;     // 旧的表格组件
+    QTableView *m_vectorTableView;         // 新的表格视图组件
+    VectorTableModel *m_vectorTableModel;  // 新的表格数据模型
     QComboBox *m_vectorTableSelector;
     QWidget *m_centralWidget;
     QWidget *m_welcomeWidget;
@@ -281,13 +287,14 @@ private:
     QAction *m_replaceTimeSetAction;
     QAction *m_refreshAction;
     QAction *m_timeSetSettingsAction;
-    QAction *m_setupPinsAction;   // 设置向量表管脚按钮
-    QAction *m_pinSettingsAction; // 管脚设置按钮
-    QAction *m_addPinAction;      // 添加管脚按钮
-    QAction *m_deletePinAction;   // 删除管脚按钮
-    QAction *m_deleteRangeAction; // 删除指定范围内的向量行按钮
-    QAction *m_gotoLineAction;    // 跳转到某行按钮
-    QAction *m_addGroupAction;    // 添加管脚分组按钮
+    QAction *m_setupPinsAction;       // 设置向量表管脚按钮
+    QAction *m_pinSettingsAction;     // 管脚设置按钮
+    QAction *m_addPinAction;          // 添加管脚按钮
+    QAction *m_deletePinAction;       // 删除管脚按钮
+    QAction *m_deleteRangeAction;     // 删除指定范围内的向量行按钮
+    QAction *m_gotoLineAction;        // 跳转到某行按钮
+    QAction *m_addGroupAction;        // 添加管脚分组按钮
+    QAction *m_toggleTableViewAction; // 切换新旧表格视图按钮
 
     // 分页相关UI组件
     QWidget *m_paginationWidget;   // 分页控件容器

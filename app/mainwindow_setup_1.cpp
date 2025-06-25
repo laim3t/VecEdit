@@ -383,7 +383,7 @@ void MainWindow::setupVectorTableUI()
     // 将工具栏添加到容器布局的顶部
     containerLayout->addWidget(toolBar);
 
-    // 创建表格视图
+    // 创建旧的表格视图
     m_vectorTableWidget = new QTableWidget(this);
     m_vectorTableWidget->setAlternatingRowColors(true);
     m_vectorTableWidget->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -392,6 +392,31 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableWidget->horizontalHeader()->setStretchLastSection(true);
     m_vectorTableWidget->verticalHeader()->setDefaultSectionSize(25);
     m_vectorTableWidget->verticalHeader()->setVisible(true);
+
+    // 创建新的表格视图模型和视图
+    m_vectorTableModel = new VectorTableModel(this);
+    m_vectorTableView = new QTableView(this);
+    m_vectorTableView->setAlternatingRowColors(true);
+    m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
+    m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_vectorTableView->setModel(m_vectorTableModel);
+
+    // 创建QStackedWidget来容纳旧表格和新表格
+    m_vectorStackedWidget = new QStackedWidget(this);
+    m_vectorStackedWidget->addWidget(m_vectorTableWidget); // 索引0 - 旧表格
+    m_vectorStackedWidget->addWidget(m_vectorTableView);   // 索引1 - 新表格
+
+    // 添加"切换视图"按钮到工具栏
+    QAction *toggleViewAction = new QAction(tr("切换新旧视图"), this);
+    toolBar->addAction(toggleViewAction);
+    m_toggleTableViewAction = toggleViewAction;
+
+    // 连接"切换视图"按钮的信号
+    connect(toggleViewAction, &QAction::triggered, [this]()
+            {
+        // 切换当前显示的视图
+        int nextIndex = (m_vectorStackedWidget->currentIndex() + 1) % 2;
+        m_vectorStackedWidget->setCurrentIndex(nextIndex); });
 
     // 设置表格右键菜单和信号/槽连接
     m_vectorTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -547,8 +572,8 @@ void MainWindow::setupVectorTableUI()
     setupTabBar();
 
     // 将布局添加到容器
-    containerLayout->addWidget(m_vectorTableWidget);
-    containerLayout->addWidget(m_paginationWidget); // 添加分页控件
+    containerLayout->addWidget(m_vectorStackedWidget); // 使用堆栈窗口替代直接添加表格
+    containerLayout->addWidget(m_paginationWidget);    // 添加分页控件
     containerLayout->addWidget(m_vectorTabWidget);
 
     // 将容器添加到主布局
@@ -790,5 +815,3 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         emit windowResized();
     }
 }
-
-
