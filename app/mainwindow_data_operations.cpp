@@ -263,10 +263,15 @@ void MainWindow::addRowToCurrentVectorTableModel()
         // 刷新表格显示 - 使用Model/View方式
         m_vectorTableModel->loadPage(tableId, m_vectorTableModel->currentPage());
         
+        // 更新总行数和分页信息 - 与老视图保持一致
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+        m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+        updatePaginationInfo();
+        
         // 刷新侧边栏导航树，确保Label同步
         refreshSidebarNavigator();
         
-        qDebug() << funcName << " - 通过对话框成功添加新行";
+        qDebug() << funcName << " - 通过对话框成功添加新行，总行数更新为: " << m_totalRows;
     }
     else
     {
@@ -595,6 +600,22 @@ void MainWindow::refreshVectorTableData()
     // 清除当前表的数据缓存
     VectorDataHandler::instance().clearTableDataCache(tableId);
 
+    // 重新获取总行数
+    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    
+    // 重新计算总页数
+    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+    
+    // 确保当前页码在有效范围内
+    if (m_currentPage < 0)
+        m_currentPage = 0;
+    if (m_currentPage >= m_totalPages && m_totalPages > 0)
+        m_currentPage = m_totalPages - 1;
+        
+    qDebug() << funcName << " - 刷新后总行数:" << m_totalRows 
+             << ", 总页数:" << m_totalPages 
+             << ", 当前页:" << m_currentPage;
+
     // 重新加载当前页面数据
     loadCurrentPage();
 
@@ -668,6 +689,14 @@ void MainWindow::loadCurrentPage()
         qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
         if (m_vectorTableModel)
         {
+            // 确保模型使用与MainWindow相同的页面大小
+            if (m_vectorTableModel->pageSize() != m_pageSize)
+            {
+                qDebug() << funcName << " - 更新模型的页面大小从" << m_vectorTableModel->pageSize() << "到" << m_pageSize;
+                // 使用新添加的setPageSize方法
+                m_vectorTableModel->setPageSize(m_pageSize);
+            }
+            
             m_vectorTableModel->loadPage(tableId, m_currentPage);
             success = true; // 假设loadPage总是成功
             qDebug() << funcName << " - 新表格模型数据加载完成";
@@ -757,6 +786,28 @@ void MainWindow::changePageSize(int newSize)
 
     // 计算新的页码
     m_currentPage = currentFirstRow / m_pageSize;
+
+    // 获取当前选中的向量表ID
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        qWarning() << funcName << " - 没有选中有效的向量表";
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 重新计算总页数
+    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
+
+    // 确保当前页码在有效范围内
+    if (m_currentPage < 0)
+        m_currentPage = 0;
+    if (m_currentPage >= m_totalPages && m_totalPages > 0)
+        m_currentPage = m_totalPages - 1;
+
+    qDebug() << funcName << " - 更新后总行数:" << m_totalRows << "，总页数:" << m_totalPages << "，当前页:" << m_currentPage;
 
     // 重新加载当前页
     loadCurrentPage();

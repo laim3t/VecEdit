@@ -751,10 +751,17 @@ QList<Vector::RowData> VectorDataHandler::getPageData(int tableId, int pageIndex
 
     if (startRow < 0 || startRow >= totalRowCount)
     {
+        qWarning() << funcName << " - 请求的起始行 " << startRow << " 超出了总行数 " << totalRowCount;
         return QList<Vector::RowData>();
     }
 
     int rowsToLoad = qMin(pageSize, totalRowCount - startRow);
+    qDebug() << funcName << " - 总行数:" << totalRowCount 
+             << ", 起始行:" << startRow 
+             << ", 加载行数:" << rowsToLoad
+             << ", 页码:" << pageIndex
+             << ", 每页行数:" << pageSize;
+    
     return allRows.mid(startRow, rowsToLoad);
     // --- END: TEMPORARY FIX ---
 

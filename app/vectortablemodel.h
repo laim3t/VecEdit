@@ -45,6 +45,9 @@ public:
     // 加载指定表格的指定页数据
     void loadPage(int tableId, int page);
 
+    // 设置每页行数
+    void setPageSize(int pageSize) { m_pageSize = pageSize; }
+
     // 保存当前修改的数据
     bool saveData(QString &errorMessage);
 
