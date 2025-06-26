@@ -403,6 +403,10 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
 
         // 设置编辑器位置和大小
         m_waveformValueEditor->setGeometry(x, y, width, height);
+
+        // 设置工具提示，提示用户有效的输入值
+        m_waveformValueEditor->setToolTip(tr("有效输入: 0, 1, H, L, X, M, V, S (自动转大写)"));
+
         m_waveformValueEditor->setVisible(true);
         m_waveformValueEditor->setFocus();  // 激活输入框
         m_waveformValueEditor->selectAll(); // 全选内容方便直接替换
@@ -420,6 +424,24 @@ void MainWindow::onWaveformValueEdited()
     // 获取编辑后的值
     QString newValue = m_waveformValueEditor->text();
     m_waveformValueEditor->setVisible(false);
+
+    // 验证输入值是否有效，有效值：0, 1, H, L, X, M, V, S (不区分大小写)
+    const QString validChars = "01HLXMVS";
+    if (newValue.isEmpty() || newValue.length() > 1)
+    {
+        // 无效的输入，不更新值
+        return;
+    }
+
+    // 自动将小写字母转换为大写
+    newValue = newValue.toUpper();
+
+    // 检查是否为有效字符
+    if (!validChars.contains(newValue))
+    {
+        // 无效的输入，不更新值
+        return;
+    }
 
     // 判断当前使用的视图类型
     bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
