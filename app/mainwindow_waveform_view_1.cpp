@@ -237,24 +237,53 @@ void MainWindow::updateWaveformView()
     // 2.1 获取所有管脚信息
     QList<QPair<QString, int>> pinColumns; // 存储管脚名称和对应的列索引
 
-    if (m_waveformPinSelector->count() == 0 && m_vectorTableWidget)
+    // 判断当前使用的视图类型
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
+
+    if (m_waveformPinSelector->count() == 0)
     {
         // 清空现有的选择项
         m_waveformPinSelector->clear();
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+
+        if (isUsingNewView && m_vectorTableModel)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem)
+            // 从模型获取管脚列信息
+            for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
             {
-                QString headerText = headerItem->text();
-                int currentTableId = m_vectorTableSelector->currentData().toInt();
-                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+                if (headerData.isValid())
                 {
-                    QString displayName = headerText.split('\n').first();
-                    m_waveformPinSelector->addItem(displayName, headerText);
-                    // 同时收集所有管脚信息
-                    pinColumns.append(qMakePair(displayName, col));
+                    QString headerText = headerData.toString();
+                    int currentTableId = m_vectorTableSelector->currentData().toInt();
+                    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        m_waveformPinSelector->addItem(displayName, headerText);
+                        // 同时收集所有管脚信息
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
+                }
+            }
+        }
+        else if (m_vectorTableWidget)
+        {
+            // 从旧视图获取管脚列信息
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+            {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem)
+                {
+                    QString headerText = headerItem->text();
+                    int currentTableId = m_vectorTableSelector->currentData().toInt();
+                    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        m_waveformPinSelector->addItem(displayName, headerText);
+                        // 同时收集所有管脚信息
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
                 }
             }
         }
@@ -262,18 +291,41 @@ void MainWindow::updateWaveformView()
     else
     {
         // 如果选择器已经有项目，收集所有管脚信息
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        if (isUsingNewView && m_vectorTableModel)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem)
+            // 从模型获取管脚列信息
+            for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
             {
-                QString headerText = headerItem->text();
-                int currentTableId = m_vectorTableSelector->currentData().toInt();
-                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
-                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+                if (headerData.isValid())
                 {
-                    QString displayName = headerText.split('\n').first();
-                    pinColumns.append(qMakePair(displayName, col));
+                    QString headerText = headerData.toString();
+                    int currentTableId = m_vectorTableSelector->currentData().toInt();
+                    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
+                }
+            }
+        }
+        else if (m_vectorTableWidget)
+        {
+            // 从旧视图获取管脚列信息
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+            {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem)
+                {
+                    QString headerText = headerItem->text();
+                    int currentTableId = m_vectorTableSelector->currentData().toInt();
+                    QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                    if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                    {
+                        QString displayName = headerText.split('\n').first();
+                        pinColumns.append(qMakePair(displayName, col));
+                    }
                 }
             }
         }
@@ -290,13 +342,30 @@ void MainWindow::updateWaveformView()
         pinColumns.clear();
 
         // 查找当前选中管脚的列索引
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        if (isUsingNewView && m_vectorTableModel)
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem && headerItem->text() == pinFullName)
+            // 在模型中查找管脚
+            for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
             {
-                pinColumns.append(qMakePair(pinName, col));
-                break;
+                QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+                if (headerData.isValid() && (headerData.toString() == pinFullName || headerData.toString().startsWith(pinName + "\n")))
+                {
+                    pinColumns.append(qMakePair(pinName, col));
+                    break;
+                }
+            }
+        }
+        else if (m_vectorTableWidget)
+        {
+            // 在旧视图中查找管脚
+            for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+            {
+                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+                if (headerItem && headerItem->text() == pinFullName)
+                {
+                    pinColumns.append(qMakePair(pinName, col));
+                    break;
+                }
             }
         }
     }
@@ -318,9 +387,32 @@ void MainWindow::updateWaveformView()
     }
 
     // [新增] 使用当前页面中已修改的、最新的数据"覆盖"从数据处理器获取的基础数据
-    if (m_vectorTableWidget)
+    int firstRowOfPage = m_currentPage * m_pageSize;
+
+    if (isUsingNewView && m_vectorTableModel)
     {
-        int firstRowOfPage = m_currentPage * m_pageSize;
+        // 从模型获取当前页的数据
+        for (int pinIndex = 0; pinIndex < pinColumns.size(); ++pinIndex)
+        {
+            int pinColumnIndex = pinColumns[pinIndex].second;
+            for (int i = 0; i < m_vectorTableModel->rowCount(); ++i)
+            {
+                int actualRowIndex = firstRowOfPage + i;
+                if (actualRowIndex < allRows.count())
+                {
+                    QModelIndex index = m_vectorTableModel->index(i, pinColumnIndex);
+                    if (index.isValid())
+                    {
+                        // 使用模型当前的值更新 allRows 对应位置的值
+                        allRows[actualRowIndex][pinColumnIndex] = m_vectorTableModel->data(index, Qt::DisplayRole).toString();
+                    }
+                }
+            }
+        }
+    }
+    else if (m_vectorTableWidget)
+    {
+        // 从旧视图获取当前页的数据
         for (int pinIndex = 0; pinIndex < pinColumns.size(); ++pinIndex)
         {
             int pinColumnIndex = pinColumns[pinIndex].second;
@@ -438,7 +530,7 @@ void MainWindow::updateWaveformView()
             if (periodQuery.exec() && periodQuery.next())
             {
                 m_currentPeriod = periodQuery.value(0).toDouble();
-                qDebug() << "updateWaveformView - 直接查询到的周期值:" << m_currentPeriod << "ns";
+                qDebug() << "updateWaveformView - 获取到周期值:" << m_currentPeriod;
             }
         }
     }
@@ -893,4 +985,3 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
 
     contextMenu.exec(m_waveformPlot->mapToGlobal(pos));
 }
-
