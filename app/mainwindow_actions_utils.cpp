@@ -145,36 +145,119 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
         toggleWaveformView(true);
     }
 
-    // 选择正确的管脚
-    for (int i = 0; i < m_waveformPinSelector->count(); i++)
+    // 判断当前使用的视图类型
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
+    int selectedPinIndex = -1;
+    QString simplePinName = pinName.split('\n').first(); // 处理可能的多行标题
+
+    // 1. 收集所有管脚列信息 (无论是"全部"模式还是单管脚模式都需要用到)
+    QList<QPair<QString, int>> allPinColumns;
+    if (isUsingNewView && m_vectorTableModel)
     {
-        if (m_waveformPinSelector->itemData(i).toString() == pinName)
+        // 从模型获取管脚列信息
+        for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
         {
-            if (m_waveformPinSelector->currentIndex() != i)
+            QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+            if (headerData.isValid())
             {
-                m_waveformPinSelector->setCurrentIndex(i);
-                // onWaveformPinSelectionChanged 会自动更新波形图
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    QString colName = headerData.toString().split('\n').first();
+                    allPinColumns.append(qMakePair(colName, col));
+                }
             }
-            else
+        }
+    }
+    else if (m_vectorTableWidget)
+    {
+        // 从旧视图获取管脚列信息
+        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        {
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            if (headerItem)
             {
-                // 如果已经是当前选中的管脚，手动更新波形图
-                updateWaveformView();
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    QString colName = headerItem->text().split('\n').first();
+                    allPinColumns.append(qMakePair(colName, col));
+                }
             }
-            break;
         }
     }
 
-    // 确保rowIndex在可见范围内
+    // 2. 处理两种模式：单管脚模式和全部管脚模式
+    if (m_showAllPins)
+    {
+        // "全部"模式 - 在所有管脚中查找匹配的管脚名称
+        for (int i = 0; i < allPinColumns.size(); ++i)
+        {
+            if (allPinColumns[i].first == simplePinName)
+            {
+                selectedPinIndex = i;
+                break;
+            }
+        }
+    }
+    else
+    {
+        // 单管脚模式 - 选择正确的管脚并更新波形图
+        for (int i = 0; i < m_waveformPinSelector->count(); i++)
+        {
+            QString itemText = m_waveformPinSelector->itemText(i);
+            QString itemData = m_waveformPinSelector->itemData(i).toString().split('\n').first();
+
+            if (itemText == simplePinName || itemData == simplePinName)
+            {
+                if (m_waveformPinSelector->currentIndex() != i)
+                {
+                    m_waveformPinSelector->setCurrentIndex(i);
+                    // onWaveformPinSelectionChanged 会自动更新波形图
+                }
+                else
+                {
+                    // 如果已经是当前选中的管脚，手动更新波形图
+                    updateWaveformView();
+                }
+                selectedPinIndex = 0; // 在单管脚模式下，选中的管脚索引始终为0
+                break;
+            }
+        }
+    }
+
+    // 如果没有找到匹配的管脚，不进行高亮
+    if (selectedPinIndex < 0)
+    {
+        return;
+    }
+
+    // 3. 确保rowIndex在可见范围内并高亮显示
     if (m_waveformPlot)
     {
-        // 考虑m_currentXOffset，计算实际的X坐标
-        double adjustedRowIndex = rowIndex + m_currentXOffset;
+        // 获取管脚特定的T1R偏移
+        QString selectedPinName;
+        if (m_showAllPins && selectedPinIndex < allPinColumns.size())
+        {
+            selectedPinName = allPinColumns[selectedPinIndex].first;
+        }
+        else
+        {
+            selectedPinName = m_waveformPinSelector->currentText();
+        }
 
+        // 获取管脚ID和对应的T1R比例
+        int pinId = getPinIdByName(selectedPinName);
+        double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
+        double adjustedRowIndex = rowIndex + pin_t1rRatio;
+
+        // 调整视图范围确保点可见
         double currentMin = m_waveformPlot->xAxis->range().lower;
         double currentMax = m_waveformPlot->xAxis->range().upper;
         double rangeSize = currentMax - currentMin;
 
-        // 如果点不在当前可见范围内，调整范围
         if (adjustedRowIndex < currentMin || adjustedRowIndex > currentMax)
         {
             // 计算新的范围，使调整后的rowIndex在中间
@@ -182,9 +265,12 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
             double newMax = newMin + rangeSize;
 
             // 确保不超过数据范围
-            if (newMax > m_vectorTableWidget->rowCount())
+            int totalRows = VectorDataHandler::instance().getVectorTableRowCount(
+                m_vectorTableSelector->currentData().toInt());
+
+            if (newMax > totalRows)
             {
-                newMax = m_vectorTableWidget->rowCount();
+                newMax = totalRows;
                 newMin = qMax(0.0, newMax - rangeSize);
             }
 
@@ -195,7 +281,7 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
         }
 
         // 高亮显示选中的点
-        highlightWaveformPoint(rowIndex);
+        highlightWaveformPoint(rowIndex, selectedPinIndex);
     }
 }
 
