@@ -610,9 +610,29 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             // 清除当前表的数据缓存，但不改变页码
             VectorDataHandler::instance().clearTableDataCache(tableId);
 
-            // 直接加载当前页数据，而不是调用refreshVectorTableData
-            qDebug() << "替换TimeSet - 刷新当前页数据，保持在页码:" << m_currentPage;
-            VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            // 判断当前使用的视图类型
+            bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
+            bool refreshSuccess = false;
+
+            if (isUsingNewView && m_vectorTableModel)
+            {
+                // 新视图 (QTableView)
+                qDebug() << "替换TimeSet - 使用新视图刷新当前页数据，保持在页码:" << m_currentPage;
+                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
+                    tableId, m_vectorTableModel, m_currentPage, m_pageSize);
+            }
+            else
+            {
+                // 旧视图 (QTableWidget)
+                qDebug() << "替换TimeSet - 使用旧视图刷新当前页数据，保持在页码:" << m_currentPage;
+                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
+                    tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            }
+
+            if (!refreshSuccess)
+            {
+                qWarning() << "替换TimeSet - 刷新表格数据失败";
+            }
 
             // 更新分页信息显示
             updatePaginationInfo();
