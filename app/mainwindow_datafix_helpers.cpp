@@ -586,6 +586,13 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
 
     // 2. Refresh the sidebar (in case table names or other project components changed)
     refreshSidebarNavigator();
+
+    // 3. 确保波形图视图也被更新，特别是管脚选择器下拉框
+    if (m_isWaveformVisible && m_waveformPlot && m_waveformPinSelector)
+    {
+        qDebug() << funcName << "- 显式更新波形图视图";
+        updateWaveformView();
+    }
 }
 
 // Add this new function implementation
