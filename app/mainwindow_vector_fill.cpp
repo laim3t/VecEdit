@@ -40,8 +40,38 @@ void MainWindow::showFillVectorDialog()
         return;
     }
 
-    // 获取选中的单元格
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    // 根据当前使用的视图类型获取选中的单元格
+    QModelIndexList selectedIndexes;
+    int targetColumn = -1;
+    QString headerText;
+
+    // 检查当前使用的是旧视图(QTableWidget)还是新视图(QTableView)
+    if (m_vectorStackedWidget->currentIndex() == 0)
+    {
+        // 使用旧视图 (QTableWidget)
+        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+
+        if (!selectedIndexes.isEmpty())
+        {
+            targetColumn = selectedIndexes.first().column();
+            // 获取列标题
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
+            headerText = headerItem ? headerItem->text() : "";
+        }
+    }
+    else
+    {
+        // 使用新视图 (QTableView)
+        selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+
+        if (!selectedIndexes.isEmpty())
+        {
+            targetColumn = selectedIndexes.first().column();
+            // 获取列标题 (从模型获取)
+            headerText = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
+        }
+    }
+
     if (selectedIndexes.isEmpty())
     {
         QMessageBox::warning(this, "操作失败", "请先选择要填充的单元格");
@@ -81,18 +111,40 @@ void MainWindow::showFillVectorDialog()
 
     // 将选中的单元格按行号排序
     QMap<int, QString> sortedValues;
-    foreach (const QModelIndex &index, selectedIndexes)
+
+    // 根据当前视图模式获取单元格值
+    if (m_vectorStackedWidget->currentIndex() == 0)
     {
-        int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
-        minRow = qMin(minRow, rowIdx);
-        maxRow = qMax(maxRow, rowIdx);
+        // 旧视图模式 (QTableWidget)
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
+            minRow = qMin(minRow, rowIdx);
+            maxRow = qMax(maxRow, rowIdx);
 
-        // 获取单元格值
-        QTableWidgetItem *item = m_vectorTableWidget->item(index.row(), index.column());
-        QString cellValue = item ? item->text() : "";
+            // 获取单元格值
+            QTableWidgetItem *item = m_vectorTableWidget->item(index.row(), index.column());
+            QString cellValue = item ? item->text() : "";
 
-        // 保存到排序map
-        sortedValues[rowIdx] = cellValue;
+            // 保存到排序map
+            sortedValues[rowIdx] = cellValue;
+        }
+    }
+    else
+    {
+        // 新视图模式 (QTableView)
+        foreach (const QModelIndex &index, selectedIndexes)
+        {
+            int rowIdx = pageOffset + index.row() + 1; // 转换为1-based的绝对行号
+            minRow = qMin(minRow, rowIdx);
+            maxRow = qMax(maxRow, rowIdx);
+
+            // 从模型获取单元格值
+            QString cellValue = m_vectorTableModel->data(index, Qt::DisplayRole).toString();
+
+            // 保存到排序map
+            sortedValues[rowIdx] = cellValue;
+        }
     }
 
     // 按顺序添加到列表
@@ -201,8 +253,22 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
     QString tableName = m_vectorTableSelector->currentText();
     qDebug() << "向量填充 - 当前向量表ID:" << tableId << ", 名称:" << tableName;
 
-    // 获取选中的列
-    QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    // 获取选中的列 - 根据当前使用的视图
+    QModelIndexList selectedIndexes;
+    int targetColumn = -1;
+    bool isUsingNewView = (m_vectorStackedWidget->currentIndex() == 1);
+
+    if (isUsingNewView)
+    {
+        // 新视图 (QTableView)
+        selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+    }
+    else
+    {
+        // 旧视图 (QTableWidget)
+        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+    }
+
     if (selectedIndexes.isEmpty())
     {
         QMessageBox::warning(this, tr("警告"), tr("请选择要填充的单元格"));
@@ -211,7 +277,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
     }
 
     // 确保所有选中的单元格在同一列
-    int targetColumn = selectedIndexes.first().column();
+    targetColumn = selectedIndexes.first().column();
     bool sameColumn = true;
     for (const QModelIndex &index : selectedIndexes)
     {
@@ -329,9 +395,23 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 
         // 记录UI表头列名和实际二进制文件列之间的映射关系
         int targetBinaryColumn = -1;
-        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
-        QString headerText = headerItem ? headerItem->text() : "";
-        QString targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
+        QString targetColumnName;
+
+        // 根据当前视图获取列标题
+        if (isUsingNewView)
+        {
+            // 新视图 (QTableView)
+            targetColumnName = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
+            // 如果是多行列标题，只取第一行
+            targetColumnName = targetColumnName.section('\n', 0, 0);
+        }
+        else
+        {
+            // 旧视图 (QTableWidget)
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
+            QString headerText = headerItem ? headerItem->text() : "";
+            targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
+        }
 
         qDebug() << "向量填充 - 目标列名 (处理后):" << targetColumnName;
 
@@ -346,7 +426,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 
         if (targetBinaryColumn < 0)
         {
-            qWarning() << "向量填充 - 找不到对应列:" << targetColumnName << "(原始列头: " << headerText << ")";
+            qWarning() << "向量填充 - 找不到对应列:" << targetColumnName;
             throw std::runtime_error(("找不到对应列: " + targetColumnName).toStdString());
         }
 
@@ -401,7 +481,22 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
 
         // 刷新表格显示
         int currentPage = m_currentPage;
-        bool refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, currentPage, m_pageSize);
+
+        // 根据当前视图刷新表格
+        bool refreshSuccess = false;
+        if (isUsingNewView)
+        {
+            // 新视图 (QTableView)
+            refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
+                tableId, m_vectorTableModel, currentPage, m_pageSize);
+        }
+        else
+        {
+            // 旧视图 (QTableWidget)
+            refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
+                tableId, m_vectorTableWidget, currentPage, m_pageSize);
+        }
+
         if (!refreshSuccess)
         {
             qWarning() << "向量填充 - 刷新表格数据失败";
@@ -419,11 +514,24 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
             {
                 // 将数据库索引转换为UI表格索引
                 int uiRowIdx = rowIdx - pageOffset;
-                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
+
+                if (isUsingNewView)
                 {
-                    // 选中行和列
-                    QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
-                    m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
+                    // 新视图选中行和列
+                    if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableModel->rowCount())
+                    {
+                        QModelIndex index = m_vectorTableModel->index(uiRowIdx, targetColumn);
+                        m_vectorTableView->selectionModel()->select(index, QItemSelectionModel::Select);
+                    }
+                }
+                else
+                {
+                    // 旧视图选中行和列
+                    if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
+                    {
+                        QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
+                        m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
+                    }
                 }
             }
         }

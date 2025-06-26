@@ -12,6 +12,8 @@
 #include <QDateTime>
 #include "vector/vector_data_types.h"
 
+class VectorTableModel;
+
 class VectorDataHandler : public QObject
 {
     Q_OBJECT
@@ -86,6 +88,9 @@ public:
 
     // 添加分页数据加载方法
     bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int pageIndex, int pageSize);
+
+    // 为Model/View架构添加分页数据加载方法
+    bool loadVectorTablePageDataForModel(int tableId, VectorTableModel *model, int pageIndex, int pageSize);
 
     // 获取向量表指定页数据 - 返回数据而不是填充表格
     QList<Vector::RowData> getPageData(int tableId, int pageIndex, int pageSize);

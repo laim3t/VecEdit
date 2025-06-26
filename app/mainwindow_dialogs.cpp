@@ -11,7 +11,6 @@ void MainWindow::showDatabaseViewDialog()
     m_dialogManager->showDatabaseViewDialog();
 }
 
-
 bool MainWindow::showAddPinsDialog()
 {
     // 检查是否有打开的数据库
@@ -211,16 +210,44 @@ void MainWindow::openTimeSetSettingsDialog()
 // 显示管脚列的右键菜单
 void MainWindow::showPinColumnContextMenu(const QPoint &pos)
 {
-    if (!m_vectorTableWidget)
-        return;
+    // 判断当前使用的视图类型
+    bool isUsingNewView = (m_vectorStackedWidget->currentIndex() == 1);
 
-    // 获取右键点击的单元格位置
-    QTableWidgetItem *item = m_vectorTableWidget->itemAt(pos);
-    if (!item)
-        return;
+    int row = -1;
+    int col = -1;
+    QString pinName;
 
-    int row = item->row();
-    int col = item->column();
+    // 获取右键点击的单元格位置（根据当前使用的视图）
+    if (isUsingNewView)
+    {
+        // 新视图 (QTableView) - 从QTableView获取索引
+        QModelIndex index = m_vectorTableView->indexAt(pos);
+        if (!index.isValid())
+            return;
+
+        row = index.row();
+        col = index.column();
+
+        // 获取列标题（管脚名称）
+        pinName = m_vectorTableModel->headerData(col, Qt::Horizontal).toString();
+    }
+    else
+    {
+        // 旧视图 (QTableWidget) - 从QTableWidget获取单元格
+        if (!m_vectorTableWidget)
+            return;
+
+        QTableWidgetItem *item = m_vectorTableWidget->itemAt(pos);
+        if (!item)
+            return;
+
+        row = item->row();
+        col = item->column();
+
+        // 获取列标题（管脚名称）
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+        pinName = headerItem ? headerItem->text() : "";
+    }
 
     // 获取当前表ID
     int currentTableId = m_vectorTableSelector->currentData().toInt();
@@ -242,7 +269,6 @@ void MainWindow::showPinColumnContextMenu(const QPoint &pos)
     // 添加"跳转至波形图"选项
     if (m_isWaveformVisible)
     {
-        QString pinName = m_vectorTableWidget->horizontalHeaderItem(col)->text();
         QAction *jumpToWaveformAction = contextMenu.addAction(tr("跳转至波形图"));
         connect(jumpToWaveformAction, &QAction::triggered, this, [this, row, pinName]()
                 { jumpToWaveformPoint(row, pinName); });
@@ -257,5 +283,13 @@ void MainWindow::showPinColumnContextMenu(const QPoint &pos)
         // 直接调用MainWindow的showFillVectorDialog方法
         this->showFillVectorDialog(); });
 
-    contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
+    // 根据当前视图执行菜单
+    if (isUsingNewView)
+    {
+        contextMenu.exec(m_vectorTableView->viewport()->mapToGlobal(pos));
+    }
+    else
+    {
+        contextMenu.exec(m_vectorTableWidget->viewport()->mapToGlobal(pos));
+    }
 }

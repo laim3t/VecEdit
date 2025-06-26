@@ -64,6 +64,7 @@ set(PROJECT_SOURCES
         vector/vectortabledelegate.cpp
         vector/vectordatahandler.h
         vector/vectordatahandler.cpp
+        vector/vectordatahandler_pagedata_model.cpp
         vector/deleterangevectordialog.h
         vector/deleterangevectordialog.cpp
         vector/fillvectordialog.h
