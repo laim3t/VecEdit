@@ -1,5 +1,6 @@
 #include "vectortablemodel.h"
 #include "../vector/vectordatahandler.h"
+#include "../vector/robustvectordatahandler.h"  // 添加新数据处理器头文件
 #include "../database/binaryfilehelper.h"
 #include "../database/databasemanager.h"
 #include <QDebug>
@@ -7,13 +8,15 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 
-VectorTableModel::VectorTableModel(QObject *parent)
+VectorTableModel::VectorTableModel(QObject *parent, bool useNewDataHandler, RobustVectorDataHandler* robustDataHandler)
     : QAbstractTableModel(parent),
       m_tableId(0),
       m_currentPage(0),
       m_pageSize(100), // 默认每页100行
       m_totalRows(0),
-      m_cachesInitialized(false)
+      m_cachesInitialized(false),
+      m_useNewDataHandler(useNewDataHandler),
+      m_robustDataHandler(robustDataHandler)
 {
     // 初始化代码
 }
@@ -169,13 +172,25 @@ void VectorTableModel::loadPage(int tableId, int page)
     beginResetModel();
 
     // 获取列信息
-    m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    if (m_useNewDataHandler) {
+        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+    } else {
+        m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    }
 
     // 获取总行数
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (m_useNewDataHandler) {
+        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+    } else {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
 
     // 获取当前页数据
-    m_pageData = VectorDataHandler::instance().getPageData(tableId, page, m_pageSize);
+    if (m_useNewDataHandler) {
+        m_pageData = m_robustDataHandler->getPageData(tableId, page, m_pageSize);
+    } else {
+        m_pageData = VectorDataHandler::instance().getPageData(tableId, page, m_pageSize);
+    }
 
     // 告诉视图我们已经修改完数据
     endResetModel();
@@ -269,9 +284,13 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
     // 更新数据
     rowData[index.column()] = convertedValue;
 
-    // 标记行为已修改
+    // 标记为已修改
     int globalRowIndex = m_currentPage * m_pageSize + index.row();
-    VectorDataHandler::instance().markRowAsModified(m_tableId, globalRowIndex);
+    if (m_useNewDataHandler) {
+        m_robustDataHandler->markRowAsModified(m_tableId, globalRowIndex);
+    } else {
+        VectorDataHandler::instance().markRowAsModified(m_tableId, globalRowIndex);
+    }
 
     // 发出数据更改信号
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
@@ -290,7 +309,14 @@ bool VectorTableModel::saveData(QString &errorMessage)
     qDebug() << "VectorTableModel::saveData - 开始保存表ID:" << m_tableId << "的修改数据";
 
     // 检查是否有任何修改
-    if (!VectorDataHandler::instance().isRowModified(m_tableId, -1))
+    bool hasModifications;
+    if (m_useNewDataHandler) {
+        hasModifications = m_robustDataHandler->isRowModified(m_tableId, -1);
+    } else {
+        hasModifications = VectorDataHandler::instance().isRowModified(m_tableId, -1);
+    }
+    
+    if (!hasModifications)
     {
         errorMessage = "没有检测到数据变更，跳过保存";
         qDebug() << "VectorTableModel::saveData - " << errorMessage;
@@ -367,8 +393,14 @@ bool VectorTableModel::saveData(QString &errorMessage)
     }
 
     // 调用VectorDataHandler保存数据
-    bool success = VectorDataHandler::instance().saveVectorTableDataPaged(
-        m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
+    bool success;
+    if (m_useNewDataHandler) {
+        success = m_robustDataHandler->saveVectorTableDataPaged(
+            m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
+    } else {
+        success = VectorDataHandler::instance().saveVectorTableDataPaged(
+            m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
+    }
 
     if (success)
     {
@@ -645,7 +677,11 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
 
     // 标记为已修改
     for (int i = 0; i < count; i++) {
-        VectorDataHandler::instance().markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
+        if (m_useNewDataHandler) {
+            m_robustDataHandler->markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
+        } else {
+            VectorDataHandler::instance().markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
+        }
     }
 
     qDebug() << funcName << "- 已成功插入" << count << "行";
@@ -669,7 +705,13 @@ bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
 
     // 调用VectorDataHandler删除行
     QString errorMessage;
-    if (!VectorDataHandler::instance().deleteVectorRows(m_tableId, rowIndexes, errorMessage)) {
+    bool deleteSuccess;
+    if (m_useNewDataHandler) {
+        deleteSuccess = m_robustDataHandler->deleteVectorRows(m_tableId, rowIndexes, errorMessage);
+    } else {
+        deleteSuccess = VectorDataHandler::instance().deleteVectorRows(m_tableId, rowIndexes, errorMessage);
+    }
+    if (!deleteSuccess) {
         qWarning() << funcName << "- 删除行失败:" << errorMessage;
         return false;
     }
@@ -713,7 +755,13 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
     }
 
     // 调用VectorDataHandler删除行
-    if (!VectorDataHandler::instance().deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage)) {
+    bool deleteSuccess;
+    if (m_useNewDataHandler) {
+        deleteSuccess = m_robustDataHandler->deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage);
+    } else {
+        deleteSuccess = VectorDataHandler::instance().deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage);
+    }
+    if (!deleteSuccess) {
         qWarning() << funcName << "- 删除行失败:" << errorMessage;
         return false;
     }
@@ -736,7 +784,13 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
     }
 
     // 调用VectorDataHandler删除行范围
-    if (!VectorDataHandler::instance().deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage)) {
+    bool deleteSuccess;
+    if (m_useNewDataHandler) {
+        deleteSuccess = m_robustDataHandler->deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage);
+    } else {
+        deleteSuccess = VectorDataHandler::instance().deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage);
+    }
+    if (!deleteSuccess) {
         qWarning() << funcName << "- 删除行范围失败:" << errorMessage;
         return false;
     }
@@ -829,10 +883,17 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
 
     // 使用VectorDataHandler插入行
     // 获取当前表最后一行的索引
-    int lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
+    int lastRowIndex;
+    if (m_useNewDataHandler) {
+        lastRowIndex = m_robustDataHandler->getVectorTableRowCount(m_tableId);
+    } else {
+        lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
+    }
     
     // 调用insertVectorRows插入新行
-    if (!VectorDataHandler::instance().insertVectorRows(
+    bool insertSuccess;
+    if (m_useNewDataHandler) {
+        insertSuccess = m_robustDataHandler->insertVectorRows(
             m_tableId,          // 表ID
             lastRowIndex,       // 开始索引
             1,                  // 行数
@@ -840,7 +901,19 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
             &tempTable,         // 数据表
             true,               // 追加到末尾
             selectedPins,       // 选中的管脚信息
-            errorMessage)) {
+            errorMessage);
+    } else {
+        insertSuccess = VectorDataHandler::instance().insertVectorRows(
+            m_tableId,          // 表ID
+            lastRowIndex,       // 开始索引
+            1,                  // 行数
+            timesetId,          // TimeSet ID
+            &tempTable,         // 数据表
+            true,               // 追加到末尾
+            selectedPins,       // 选中的管脚信息
+            errorMessage);
+    }
+    if (!insertSuccess) {
         qWarning() << funcName << "- 添加新行失败:" << errorMessage;
         return false;
     }

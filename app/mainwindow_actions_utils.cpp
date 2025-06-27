@@ -41,7 +41,12 @@ void MainWindow::gotoLine()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取表的总行数
-    int totalRowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int totalRowCount;
+    if (m_useNewDataHandler) {
+        totalRowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
+    } else {
+        totalRowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
 
     if (totalRowCount <= 0)
     {
@@ -265,8 +270,14 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
             double newMax = newMin + rangeSize;
 
             // 确保不超过数据范围
-            int totalRows = VectorDataHandler::instance().getVectorTableRowCount(
-                m_vectorTableSelector->currentData().toInt());
+            int totalRows;
+            if (m_useNewDataHandler) {
+                totalRows = m_robustDataHandler->getVectorTableRowCount(
+                    m_vectorTableSelector->currentData().toInt());
+            } else {
+                totalRows = VectorDataHandler::instance().getVectorTableRowCount(
+                    m_vectorTableSelector->currentData().toInt());
+            }
 
             if (newMax > totalRows)
             {
@@ -498,7 +509,12 @@ void MainWindow::refreshSidebarNavigator()
 
                     // 获取当前表的所有行数据（包括其他页的数据）
                     bool ok = false;
-                    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+                    QList<Vector::RowData> allRows;
+                    if (m_useNewDataHandler) {
+                        allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+                    } else {
+                        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+                    }
 
                     if (ok && !allRows.isEmpty())
                     {
@@ -581,7 +597,12 @@ void MainWindow::refreshSidebarNavigator()
                 {
                     // 使用VectorDataHandler::getAllVectorRows读取所有行数据
                     bool ok = false;
-                    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+                    QList<Vector::RowData> allRows;
+                    if (m_useNewDataHandler) {
+                        allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
+                    } else {
+                        allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+                    }
 
                     if (ok && !allRows.isEmpty())
                     {

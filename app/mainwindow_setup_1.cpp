@@ -398,7 +398,7 @@ void MainWindow::setupVectorTableUI()
     m_itemDelegate = new VectorTableDelegate(this);
 
     // 创建新的表格视图模型和视图
-    m_vectorTableModel = new VectorTableModel(this);
+    m_vectorTableModel = new VectorTableModel(this, m_useNewDataHandler, m_robustDataHandler);
     m_vectorTableView = new QTableView(this);
     m_vectorTableView->setAlternatingRowColors(true);
     m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
