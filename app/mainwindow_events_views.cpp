@@ -1,3 +1,14 @@
+#include "mainwindow.h"
+#include "../database/databasemanager.h"
+#include "../vector/vectordatahandler.h"
+#include "../vector/robustvectordatahandler.h"
+#include "../ui/tablestylemanager.h"
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
+#include <QMessageBox>
+
 void MainWindow::onVectorTableSelectionChanged(int index)
 {
     if (index < 0 || m_isUpdatingUI)
@@ -54,8 +65,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     // 获取总行数并更新页面信息
     if (m_useNewDataHandler)
     {
-        qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
-        m_totalRows = 0;
+        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
     }
     else
     {
@@ -90,8 +100,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         bool loadSuccess;
         if (m_useNewDataHandler)
         {
-            qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
-            loadSuccess = false;
+            loadSuccess = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
         }
         else
         {
@@ -120,8 +129,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
                 // 重新加载表格（使用分页）
                 if (m_useNewDataHandler)
                 {
-                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
-                    loadSuccess = false;
+                    loadSuccess = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
                 }
                 else
                 {
@@ -238,8 +246,7 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 // 获取总行数并更新页面信息
                 if (m_useNewDataHandler)
                 {
-                    qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
-                    m_totalRows = 0;
+                    m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
                 }
                 else
                 {
@@ -254,8 +261,7 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 bool loadSuccess;
                 if (m_useNewDataHandler)
                 {
-                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
-                    loadSuccess = false;
+                    loadSuccess = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
                 }
                 else
                 {
@@ -388,7 +394,7 @@ void MainWindow::onTableRowModified(int row)
     // 标记行为已修改
     if (m_useNewDataHandler)
     {
-        qWarning() << "RobustVectorDataHandler::markRowAsModified is not implemented yet.";
+        m_robustDataHandler->markRowAsModified(tableId, actualRowIndex);
     }
     else
     {

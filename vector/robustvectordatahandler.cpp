@@ -103,3 +103,20 @@ bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessa
     qWarning() << "RobustVectorDataHandler::deleteVectorTable is not implemented yet.";
     return false;
 }
+
+int RobustVectorDataHandler::getVectorTableRowCount(int tableId)
+{
+    qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
+    return 0;
+}
+
+bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int page, int pageSize)
+{
+    qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
+    return false;
+}
+
+void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex)
+{
+    qWarning() << "RobustVectorDataHandler::markRowAsModified is not implemented yet.";
+}

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QTableWidget>
 
 class RobustVectorDataHandler : public QObject
 {
@@ -20,6 +21,10 @@ public:
 
     // 向量表操作
     bool deleteVectorTable(int tableId, QString &errorMessage);
+    int getVectorTableRowCount(int tableId);
+    bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int page, int pageSize);
+    void markRowAsModified(int tableId, int rowIndex);
+    QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
 
     // 基本数据访问
     int getRowCount() const;
