@@ -378,7 +378,15 @@ void MainWindow::updateWaveformView()
 
     int currentTableId = m_vectorTableSelector->currentData().toInt();
     bool ok = false;
-    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+    QList<Vector::RowData> allRows;
+    if (m_useNewDataHandler)
+    {
+        allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+    }
+    else
+    {
+        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+    }
     if (!ok)
     {
         qWarning() << "updateWaveformView - Failed to get all vector rows.";
