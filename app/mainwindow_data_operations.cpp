@@ -107,26 +107,46 @@ void MainWindow::saveVectorTableData()
             qDebug() << funcName << " - 检测到分页模式，准备保存数据";
 
             // 优化：直接传递分页信息到VectorDataHandler，避免创建临时表格
-            saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-                tableId,
-                targetTableWidget,
-                currentPage,
-                pageSize,
-                m_totalRows,
-                errorMessage);
+            if (m_useNewDataHandler)
+            {
+                // TODO: 实现保存功能
+                qWarning() << "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
+                saveSuccess = false;
+                errorMessage = "新数据处理器尚未实现保存功能";
+            }
+            else
+            {
+                saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
+                    tableId,
+                    targetTableWidget,
+                    currentPage,
+                    pageSize,
+                    m_totalRows,
+                    errorMessage);
+            }
         }
         else
         {
             // 非分页模式，统一使用 saveVectorTableDataPaged 进行保存
             qDebug() << funcName << " - 非分页模式，但仍调用 saveVectorTableDataPaged 以启用增量更新尝试";
             int currentRowCount = targetTableWidget ? targetTableWidget->rowCount() : 0;
-            saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-                tableId,
-                targetTableWidget,
-                0,               // currentPage 设为 0
-                currentRowCount, // pageSize 设为当前行数
-                currentRowCount, // totalRows 设为当前行数
-                errorMessage);
+            if (m_useNewDataHandler)
+            {
+                // TODO: 实现保存功能
+                qWarning() << "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
+                saveSuccess = false;
+                errorMessage = "新数据处理器尚未实现保存功能";
+            }
+            else
+            {
+                saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
+                    tableId,
+                    targetTableWidget,
+                    0,               // currentPage 设为 0
+                    currentRowCount, // pageSize 设为当前行数
+                    currentRowCount, // totalRows 设为当前行数
+                    errorMessage);
+            }
         }
     }
 
@@ -153,7 +173,15 @@ void MainWindow::saveVectorTableData()
             m_hasUnsavedChanges = false;
 
             // 清除所有修改行的标记
-            VectorDataHandler::instance().clearModifiedRows(tableId);
+            if (m_useNewDataHandler)
+            {
+                // TODO: 实现清除修改行标记功能
+                qWarning() << "RobustVectorDataHandler::clearModifiedRows is not implemented yet.";
+            }
+            else
+            {
+                VectorDataHandler::instance().clearModifiedRows(tableId);
+            }
 
             // 更新窗口标题
             updateWindowTitle(m_currentDbPath);
@@ -262,15 +290,22 @@ void MainWindow::addRowToCurrentVectorTableModel()
     {
         // 刷新表格显示 - 使用Model/View方式
         m_vectorTableModel->loadPage(tableId, m_vectorTableModel->currentPage());
-        
+
         // 更新总行数和分页信息 - 与老视图保持一致
-        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+        if (m_useNewDataHandler)
+        {
+            m_totalRows = m_robustDataHandler->getRowCount();
+        }
+        else
+        {
+            m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+        }
         m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
         updatePaginationInfo();
-        
+
         // 刷新侧边栏导航树，确保Label同步
         refreshSidebarNavigator();
-        
+
         qDebug() << funcName << " - 通过对话框成功添加新行，总行数更新为: " << m_totalRows;
     }
     else
@@ -301,19 +336,19 @@ void MainWindow::deleteSelectedVectorRows()
 
     // 获取选中的行
     QSet<int> selectedRowSet;
-    
+
     // 根据当前视图类型获取选中的行
     if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
     {
         // 使用Model/View架构获取选中的行
         QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedRows();
-        
+
         // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
         if (selectedIndexes.isEmpty())
         {
             selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
         }
-        
+
         // 从获取到的索引中提取行号
         foreach (const QModelIndex &index, selectedIndexes)
         {
@@ -324,13 +359,13 @@ void MainWindow::deleteSelectedVectorRows()
     {
         // 使用旧的QTableWidget方式获取选中的行
         QModelIndexList selectedIndexes = m_vectorTableWidget->selectionModel()->selectedRows();
-        
+
         // 如果selectedRows()没有返回结果，则尝试selectedIndexes()
         if (selectedIndexes.isEmpty())
         {
             selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
         }
-        
+
         // 从获取到的索引中提取行号
         foreach (const QModelIndex &index, selectedIndexes)
         {
@@ -364,7 +399,7 @@ void MainWindow::deleteSelectedVectorRows()
     // 根据当前视图类型执行删除操作
     QString errorMessage;
     bool success = false;
-    
+
     if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
     {
         // 使用Model/View架构删除行
@@ -377,7 +412,7 @@ void MainWindow::deleteSelectedVectorRows()
             {
                 absoluteRows.append(row + pageOffset);
             }
-            
+
             success = m_vectorTableModel->deleteSelectedRows(absoluteRows, errorMessage);
         }
         else
@@ -390,7 +425,17 @@ void MainWindow::deleteSelectedVectorRows()
     {
         // 使用旧的方式删除行
         qDebug() << funcName << " - 开始调用VectorDataHandler::deleteVectorRows，参数：tableId=" << tableId << "，行数=" << selectedRows.size();
-        success = VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage);
+        if (m_useNewDataHandler)
+        {
+            // TODO: 实现删除行功能
+            qWarning() << "RobustVectorDataHandler::deleteVectorRows is not implemented yet.";
+            success = false;
+            errorMessage = "新数据处理器尚未实现删除行功能";
+        }
+        else
+        {
+            success = VectorDataHandler::instance().deleteVectorRows(tableId, selectedRows, errorMessage);
+        }
     }
 
     // 处理删除结果
@@ -437,7 +482,15 @@ void MainWindow::deleteVectorRowsInRange()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表总行数
-    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int totalRows;
+    if (m_useNewDataHandler)
+    {
+        totalRows = m_robustDataHandler->getRowCount();
+    }
+    else
+    {
+        totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
     if (totalRows <= 0)
     {
         QMessageBox::warning(this, "警告", "当前向量表没有行数据");
@@ -453,7 +506,7 @@ void MainWindow::deleteVectorRowsInRange()
     // 获取当前选中的行
     QModelIndexList selectedIndexes;
     int pageOffset = 0;
-    
+
     // 根据当前视图类型获取选中的行
     if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
     {
@@ -538,7 +591,7 @@ void MainWindow::deleteVectorRowsInRange()
         // 执行删除操作
         QString errorMessage;
         bool success = false;
-        
+
         if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
         {
             // 使用Model/View架构删除行范围
@@ -555,7 +608,17 @@ void MainWindow::deleteVectorRowsInRange()
         else
         {
             // 使用旧的方式删除行范围
-            success = VectorDataHandler::instance().deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage);
+            if (m_useNewDataHandler)
+            {
+                // TODO: 实现删除行范围功能
+                qWarning() << "RobustVectorDataHandler::deleteVectorRowsInRange is not implemented yet.";
+                success = false;
+                errorMessage = "新数据处理器尚未实现删除行范围功能";
+            }
+            else
+            {
+                success = VectorDataHandler::instance().deleteVectorRowsInRange(tableId, fromRow, toRow, errorMessage);
+            }
         }
 
         if (success)
@@ -598,22 +661,37 @@ void MainWindow::refreshVectorTableData()
     int tableId = m_tabToTableId[tabIndex];
 
     // 清除当前表的数据缓存
-    VectorDataHandler::instance().clearTableDataCache(tableId);
+    if (m_useNewDataHandler)
+    {
+        // TODO: 实现清除数据缓存功能
+        qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+    }
+    else
+    {
+        VectorDataHandler::instance().clearTableDataCache(tableId);
+    }
 
     // 重新获取总行数
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-    
+    if (m_useNewDataHandler)
+    {
+        m_totalRows = m_robustDataHandler->getRowCount();
+    }
+    else
+    {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
+
     // 重新计算总页数
     m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-    
+
     // 确保当前页码在有效范围内
     if (m_currentPage < 0)
         m_currentPage = 0;
     if (m_currentPage >= m_totalPages && m_totalPages > 0)
         m_currentPage = m_totalPages - 1;
-        
-    qDebug() << funcName << " - 刷新后总行数:" << m_totalRows 
-             << ", 总页数:" << m_totalPages 
+
+    qDebug() << funcName << " - 刷新后总行数:" << m_totalRows
+             << ", 总页数:" << m_totalPages
              << ", 当前页:" << m_currentPage;
 
     // 重新加载当前页面数据
@@ -668,7 +746,14 @@ void MainWindow::loadCurrentPage()
     qDebug() << funcName << " - 当前向量表ID:" << tableId;
 
     // 获取向量表总行数
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (m_useNewDataHandler)
+    {
+        m_totalRows = m_robustDataHandler->getRowCount();
+    }
+    else
+    {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
 
     // 计算总页数
     m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
@@ -696,7 +781,7 @@ void MainWindow::loadCurrentPage()
                 // 使用新添加的setPageSize方法
                 m_vectorTableModel->setPageSize(m_pageSize);
             }
-            
+
             m_vectorTableModel->loadPage(tableId, m_currentPage);
             success = true; // 假设loadPage总是成功
             qDebug() << funcName << " - 新表格模型数据加载完成";
@@ -711,7 +796,16 @@ void MainWindow::loadCurrentPage()
     {
         // 使用旧的QTableWidget方式加载数据
         qDebug() << funcName << " - 使用QTableWidget加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
-        success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        if (m_useNewDataHandler)
+        {
+            // TODO: 实现加载页面数据功能
+            qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
+            success = false;
+        }
+        else
+        {
+            success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        }
     }
 
     if (!success)
@@ -798,7 +892,14 @@ void MainWindow::changePageSize(int newSize)
     int tableId = m_tabToTableId[tabIndex];
 
     // 重新计算总页数
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (m_useNewDataHandler)
+    {
+        m_totalRows = m_robustDataHandler->getRowCount();
+    }
+    else
+    {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
     m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
 
     // 确保当前页码在有效范围内
@@ -856,13 +957,23 @@ void MainWindow::saveCurrentTableData()
         }
 
         // 使用分页保存模式
-        saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
-            tableId,
-            m_vectorTableWidget,
-            m_currentPage,
-            m_pageSize,
-            m_totalRows,
-            errorMessage);
+        if (m_useNewDataHandler)
+        {
+            // TODO: 实现分页保存功能
+            qWarning() << "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
+            saveSuccess = false;
+            errorMessage = "新数据处理器尚未实现分页保存功能";
+        }
+        else
+        {
+            saveSuccess = VectorDataHandler::instance().saveVectorTableDataPaged(
+                tableId,
+                m_vectorTableWidget,
+                m_currentPage,
+                m_pageSize,
+                m_totalRows,
+                errorMessage);
+        }
     }
 
     if (!saveSuccess)
@@ -899,6 +1010,14 @@ bool MainWindow::hasUnsavedChanges() const
 
     // 检查VectorDataHandler中是否有该表的修改行
     // 任何一行被修改，就表示有未保存的内容
-    return VectorDataHandler::instance().isRowModified(tableId, -1);
+    if (m_useNewDataHandler)
+    {
+        // TODO: 实现检查行修改状态功能
+        qWarning() << "RobustVectorDataHandler::isRowModified is not implemented yet.";
+        return false;
+    }
+    else
+    {
+        return VectorDataHandler::instance().isRowModified(tableId, -1);
+    }
 }
-
