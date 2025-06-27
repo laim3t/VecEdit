@@ -304,7 +304,15 @@ void MainWindow::setupVectorTablePins()
     qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
 
     // 1. 获取更改前的完整列配置
-    QList<Vector::ColumnInfo> oldColumns = VectorDataHandler::instance().getAllColumnInfo(tableId);
+    QList<Vector::ColumnInfo> oldColumns;
+    if (m_useNewDataHandler)
+    {
+        qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
+    }
+    else
+    {
+        oldColumns = VectorDataHandler::instance().getAllColumnInfo(tableId);
+    }
 
     // 2. 创建并显示管脚设置对话框
     VectorPinSettingsDialog dialog(tableId, tableName, this);
@@ -536,7 +544,14 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
     file.close();
 
     // Corrected cache invalidation method name
-    VectorDataHandler::instance().clearTableDataCache(tableId);
+    if (m_useNewDataHandler)
+    {
+        qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+    }
+    else
+    {
+        VectorDataHandler::instance().clearTableDataCache(tableId);
+    }
     // Clearing data cache is often sufficient. If specific metadata cache for columns/schema
     // exists and needs explicit invalidation, that would require a specific method in VectorDataHandler.
     // For now, assuming clearTableDataCache() and subsequent reloads handle it.
