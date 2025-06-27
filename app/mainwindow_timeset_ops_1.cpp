@@ -498,7 +498,14 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             int tableId = m_tabToTableId[currentIndex];
 
             // 清除当前表的数据缓存，但不改变页码
-            VectorDataHandler::instance().clearTableDataCache(tableId);
+            if (m_useNewDataHandler)
+            {
+                qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+            }
+            else
+            {
+                VectorDataHandler::instance().clearTableDataCache(tableId);
+            }
 
             // 判断当前使用的视图类型
             bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
@@ -508,15 +515,31 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             {
                 // 新视图 (QTableView)
                 qDebug() << "填充TimeSet - 使用新视图刷新当前页数据，保持在页码:" << m_currentPage;
-                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
-                    tableId, m_vectorTableModel, m_currentPage, m_pageSize);
+                if (m_useNewDataHandler)
+                {
+                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageDataForModel is not implemented yet.";
+                    refreshSuccess = false;
+                }
+                else
+                {
+                    refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
+                        tableId, m_vectorTableModel, m_currentPage, m_pageSize);
+                }
             }
             else
             {
                 // 旧视图 (QTableWidget)
                 qDebug() << "填充TimeSet - 使用旧视图刷新当前页数据，保持在页码:" << m_currentPage;
-                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
-                    tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                if (m_useNewDataHandler)
+                {
+                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
+                    refreshSuccess = false;
+                }
+                else
+                {
+                    refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
+                        tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
             }
 
             if (!refreshSuccess)
@@ -583,7 +606,16 @@ void MainWindow::showFillTimeSetDialog()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int rowCount;
+    if (m_useNewDataHandler)
+    {
+        qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
+        rowCount = 0;
+    }
+    else
+    {
+        rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
     if (rowCount <= 0)
     {
         QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
