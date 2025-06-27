@@ -561,7 +561,15 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     qDebug() << funcName << "- Reloading and refreshing UI for table ID:" << tableId;
 
     // 首先清除表格数据缓存，确保获取最新数据
-    VectorDataHandler::instance().clearTableDataCache(tableId);
+    if (m_useNewDataHandler)
+    {
+        // TODO: 实现清除数据缓存功能
+        qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+    }
+    else
+    {
+        VectorDataHandler::instance().clearTableDataCache(tableId);
+    }
 
     // 1. Ensure the table is selected in the ComboBox and TabWidget
     int comboBoxIndex = m_vectorTableSelector->findData(tableId);
@@ -753,7 +761,18 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
 
     // 获取表的所有行数据
     bool ok = false;
-    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+    QList<Vector::RowData> allRows;
+    if (m_useNewDataHandler)
+    {
+        // TODO: 实现获取所有行数据功能
+        qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
+        ok = false;
+        allRows = QList<Vector::RowData>();
+    }
+    else
+    {
+        allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+    }
 
     if (!ok)
     {
@@ -762,7 +781,17 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
     }
 
     // 获取表的列配置
-    QList<Vector::ColumnInfo> columns = VectorDataHandler::instance().getAllColumnInfo(tableId);
+    QList<Vector::ColumnInfo> columns;
+    if (m_useNewDataHandler)
+    {
+        // TODO: 实现获取列配置功能
+        qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
+        return false;
+    }
+    else
+    {
+        columns = VectorDataHandler::instance().getAllColumnInfo(tableId);
+    }
 
     // 查找Label列的索引
     int labelColumnIndex = -1;
