@@ -500,7 +500,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             // 清除当前表的数据缓存，但不改变页码
             if (m_useNewDataHandler)
             {
-                qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+                m_robustDataHandler->clearTableDataCache(tableId);
             }
             else
             {
@@ -517,8 +517,8 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
                 qDebug() << "填充TimeSet - 使用新视图刷新当前页数据，保持在页码:" << m_currentPage;
                 if (m_useNewDataHandler)
                 {
-                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageDataForModel is not implemented yet.";
-                    refreshSuccess = false;
+                    refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
+                        tableId, m_vectorTableModel, m_currentPage, m_pageSize);
                 }
                 else
                 {
@@ -532,8 +532,8 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
                 qDebug() << "填充TimeSet - 使用旧视图刷新当前页数据，保持在页码:" << m_currentPage;
                 if (m_useNewDataHandler)
                 {
-                    qWarning() << "RobustVectorDataHandler::loadVectorTablePageData is not implemented yet.";
-                    refreshSuccess = false;
+                    refreshSuccess = m_robustDataHandler->loadVectorTablePageData(
+                        tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
                 }
                 else
                 {
@@ -609,8 +609,7 @@ void MainWindow::showFillTimeSetDialog()
     int rowCount;
     if (m_useNewDataHandler)
     {
-        qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
-        rowCount = 0;
+        rowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
     }
     else
     {

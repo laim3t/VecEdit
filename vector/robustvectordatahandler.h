@@ -5,6 +5,7 @@
 #include <QString>
 #include <QList>
 #include <QTableWidget>
+#include <QAbstractItemModel>
 
 class RobustVectorDataHandler : public QObject
 {
@@ -25,6 +26,12 @@ public:
     bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int page, int pageSize);
     void markRowAsModified(int tableId, int rowIndex);
     QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
+    void clearTableDataCache(int tableId);
+    bool loadVectorTablePageDataForModel(int tableId, QAbstractItemModel *model, int page, int pageSize);
+    QList<Vector::ColumnInfo> getAllColumnInfo(int tableId);
+    bool loadVectorTableData(int tableId, QTableWidget *tableWidget);
+    bool saveVectorTableDataPaged(int tableId, QTableWidget *tableWidget, int currentPage, int pageSize, int totalRows, QString &errorMessage);
+    void clearModifiedRows(int tableId);
 
     // 基本数据访问
     int getRowCount() const;

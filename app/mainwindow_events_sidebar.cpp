@@ -341,8 +341,7 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
         QList<Vector::RowData> allRows;
         if (m_useNewDataHandler)
         {
-            qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
-            ok = false;
+            allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
         }
         else
         {

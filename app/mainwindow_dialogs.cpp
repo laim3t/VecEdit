@@ -147,9 +147,7 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
                 bool loadSuccess;
                 if (m_useNewDataHandler)
                 {
-                    // TODO: 实现加载表格数据功能
-                    qWarning() << "RobustVectorDataHandler::loadVectorTableData is not implemented yet.";
-                    loadSuccess = false;
+                    loadSuccess = m_robustDataHandler->loadVectorTableData(tableId, m_vectorTableWidget);
                 }
                 else
                 {

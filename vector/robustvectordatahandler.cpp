@@ -120,3 +120,45 @@ void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex)
 {
     qWarning() << "RobustVectorDataHandler::markRowAsModified is not implemented yet.";
 }
+
+QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bool &ok)
+{
+    qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
+    ok = false;
+    return QList<Vector::RowData>();
+}
+
+void RobustVectorDataHandler::clearTableDataCache(int tableId)
+{
+    qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+}
+
+bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, QAbstractItemModel *model, int page, int pageSize)
+{
+    qWarning() << "RobustVectorDataHandler::loadVectorTablePageDataForModel is not implemented yet.";
+    return false;
+}
+
+QList<Vector::ColumnInfo> RobustVectorDataHandler::getAllColumnInfo(int tableId)
+{
+    qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
+    return QList<Vector::ColumnInfo>();
+}
+
+bool RobustVectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
+{
+    qWarning() << "RobustVectorDataHandler::loadVectorTableData is not implemented yet.";
+    return false;
+}
+
+bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *tableWidget, int currentPage, int pageSize, int totalRows, QString &errorMessage)
+{
+    qWarning() << "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
+    errorMessage = "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
+    return false;
+}
+
+void RobustVectorDataHandler::clearModifiedRows(int tableId)
+{
+    qWarning() << "RobustVectorDataHandler::clearModifiedRows is not implemented yet.";
+}

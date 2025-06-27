@@ -211,12 +211,16 @@ void MainWindow::setupWaveformClickHandling()
             
             // 检查索引是否有效（只响应正坐标）
             int totalRows;
-            if (m_useNewDataHandler) {
+            if (m_useNewDataHandler)
+            {
                 totalRows = m_robustDataHandler->getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
-            } else {
+            }
+            else
+            {
                 totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
             }
-            if (rowIndex >= 0 && rowIndex < totalRows) {
+            if (rowIndex >= 0 && rowIndex < totalRows)
+            {
                 // 高亮显示选中的点
                 highlightWaveformPoint(rowIndex, pinIndex);
             }

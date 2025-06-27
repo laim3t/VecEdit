@@ -303,11 +303,11 @@ void MainWindow::setupVectorTablePins()
 
     qDebug() << "MainWindow::setupVectorTablePins - 打开管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
 
-    // 1. 获取更改前的完整列配置
+    // 1. 获取当前列配置
     QList<Vector::ColumnInfo> oldColumns;
     if (m_useNewDataHandler)
     {
-        qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
+        oldColumns = m_robustDataHandler->getAllColumnInfo(tableId);
     }
     else
     {

@@ -1076,8 +1076,16 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
                 
                 // 加载新页面
                 int tableId = m_vectorTableSelector->currentData().toInt();
-                VectorDataHandler::instance().loadVectorTablePageData(
-                    tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                if (m_useNewDataHandler)
+                {
+                    m_robustDataHandler->loadVectorTablePageData(
+                        tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
+                else
+                {
+                    VectorDataHandler::instance().loadVectorTablePageData(
+                        tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
             }
             
             // Jump to the cell - 使用页内行索引
