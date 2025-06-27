@@ -6,6 +6,12 @@
 #include <QList>
 #include <QTableWidget>
 #include <QAbstractItemModel>
+#include <QMap>
+#include <QVector>
+#include "vector_data_types.h"
+#include "robust_binary_helper.h"
+
+using namespace Vector; // 添加命名空间引用
 
 class RobustVectorDataHandler : public QObject
 {
@@ -22,13 +28,16 @@ public:
 
     // 向量表操作
     bool deleteVectorTable(int tableId, QString &errorMessage);
+    bool deleteVectorRows(int tableId, const QList<int> &rows, QString &errorMessage);
+    bool deleteVectorRowsInRange(int tableId, int startRow, int endRow, QString &errorMessage);
     int getVectorTableRowCount(int tableId);
     bool loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int page, int pageSize);
     void markRowAsModified(int tableId, int rowIndex);
-    QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
+    bool isRowModified(int tableId, int rowIndex) const;
+    QList<RowData> getAllVectorRows(int tableId, bool &ok);
     void clearTableDataCache(int tableId);
     bool loadVectorTablePageDataForModel(int tableId, QAbstractItemModel *model, int page, int pageSize);
-    QList<Vector::ColumnInfo> getAllColumnInfo(int tableId);
+    QList<ColumnInfo> getAllColumnInfo(int tableId);
     bool loadVectorTableData(int tableId, QTableWidget *tableWidget);
     bool saveVectorTableDataPaged(int tableId, QTableWidget *tableWidget, int currentPage, int pageSize, int totalRows, QString &errorMessage);
     void clearModifiedRows(int tableId);
@@ -54,6 +63,25 @@ private:
     ~RobustVectorDataHandler() = default;
     RobustVectorDataHandler(const RobustVectorDataHandler &) = delete;
     RobustVectorDataHandler &operator=(const RobustVectorDataHandler &) = delete;
+
+    // 项目状态
+    QString m_currentProjectPath;
+    bool m_isProjectOpen;
+
+    // 数据缓存
+    struct TableCache
+    {
+        QMap<int, QList<QVariant>> modifiedRows; // 已修改的行
+        QMap<int, QList<QVariant>> rowCache;     // 行数据缓存
+        int rowCount;                            // 表格总行数
+        int columnCount;                         // 表格列数
+    };
+    QMap<int, TableCache> m_tableCache; // tableId -> TableCache映射
+
+    // 辅助方法
+    void clearCache();
+    bool ensureTableCacheExists(int tableId);
+    bool loadTableMetadata(int tableId);
 };
 
 #endif // ROBUSTVECTORDATAHANDLER_H

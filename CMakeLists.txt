@@ -42,6 +42,10 @@ set(PROJECT_SOURCES
         database/databaseviewdialog.h
         database/binaryfilehelper.h
         database/binaryfilehelper.cpp
+        robust_binary_helper.h
+        robust_binary_helper.cpp
+        vector/robustvectordatahandler.h
+        vector/robustvectordatahandler.cpp
         pin/pinlistdialog.cpp
         pin/pinlistdialog.h
         pin/pingroupdialog.h

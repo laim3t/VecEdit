@@ -444,7 +444,7 @@ private:
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
 
-    // 新增：数据处理器切换控制
+    // 新旧数据处理器切换控制
     bool m_useNewDataHandler;
     RobustVectorDataHandler *m_robustDataHandler;
 };

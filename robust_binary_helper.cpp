@@ -7,6 +7,44 @@
 namespace Persistence
 {
 
+    // QDataStream操作符实现
+    QDataStream &operator<<(QDataStream &out, const IndexEntry &entry)
+    {
+        out << entry.rowId << entry.chunkOffset << entry.chunkPayloadSize;
+        return out;
+    }
+
+    QDataStream &operator>>(QDataStream &in, IndexEntry &entry)
+    {
+        in >> entry.rowId >> entry.chunkOffset >> entry.chunkPayloadSize;
+        return in;
+    }
+
+    QDataStream &operator<<(QDataStream &out, const QMap<unsigned int, IndexEntry> &map)
+    {
+        out << map.size();
+        for (auto it = map.begin(); it != map.end(); ++it)
+        {
+            out << it.key() << it.value();
+        }
+        return out;
+    }
+
+    QDataStream &operator>>(QDataStream &in, QMap<unsigned int, IndexEntry> &map)
+    {
+        int size;
+        in >> size;
+        map.clear();
+        for (int i = 0; i < size; ++i)
+        {
+            unsigned int key;
+            IndexEntry value;
+            in >> key >> value;
+            map.insert(key, value);
+        }
+        return in;
+    }
+
     // 初始化静态成员变量
     QFile RobustBinaryHelper::m_file;
     RobustFileHeader RobustBinaryHelper::m_header;

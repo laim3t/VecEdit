@@ -2,7 +2,8 @@
 #include "../database/databasemanager.h"
 #include "../vector/vectordatahandler.h"
 #include "../vector/robustvectordatahandler.h"
-#include "../ui/tablestylemanager.h"
+#include "../common/tablestylemanager.h"
+#include "../vector/vectortabledelegate.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>

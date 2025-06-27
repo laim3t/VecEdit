@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QMap>
 #include <QMutex>
+#include <QDataStream>
 
 namespace Persistence
 {
@@ -57,6 +58,12 @@ namespace Persistence
 
     // 为简化，行数据类型别名
     using RowData = QList<QVariant>;
+
+    // 声明QDataStream操作符
+    QDataStream &operator<<(QDataStream &out, const IndexEntry &entry);
+    QDataStream &operator>>(QDataStream &in, IndexEntry &entry);
+    QDataStream &operator<<(QDataStream &out, const QMap<unsigned int, IndexEntry> &map);
+    QDataStream &operator>>(QDataStream &in, QMap<unsigned int, IndexEntry> &map);
 
     class RobustBinaryHelper
     {
