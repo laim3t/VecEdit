@@ -97,3 +97,9 @@ QString RobustVectorDataHandler::getCurrentProjectPath() const
     qWarning() << "RobustVectorDataHandler::getCurrentProjectPath is not implemented yet.";
     return QString();
 }
+
+bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessage)
+{
+    qWarning() << "RobustVectorDataHandler::deleteVectorTable is not implemented yet.";
+    return false;
+}

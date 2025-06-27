@@ -563,8 +563,7 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     // 首先清除表格数据缓存，确保获取最新数据
     if (m_useNewDataHandler)
     {
-        // TODO: 实现清除数据缓存功能
-        qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
+        m_robustDataHandler->clearTableDataCache(tableId);
     }
     else
     {
@@ -764,10 +763,7 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
     QList<Vector::RowData> allRows;
     if (m_useNewDataHandler)
     {
-        // TODO: 实现获取所有行数据功能
-        qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
-        ok = false;
-        allRows = QList<Vector::RowData>();
+        allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
     }
     else
     {
@@ -784,9 +780,7 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
     QList<Vector::ColumnInfo> columns;
     if (m_useNewDataHandler)
     {
-        // TODO: 实现获取列配置功能
-        qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
-        return false;
+        columns = m_robustDataHandler->getAllColumnInfo(tableId);
     }
     else
     {

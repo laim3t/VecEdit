@@ -44,7 +44,7 @@ void MainWindow::gotoLine()
     int totalRowCount;
     if (m_useNewDataHandler)
     {
-        totalRowCount = m_robustDataHandler->getRowCount();
+        totalRowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
     }
     else
     {
@@ -276,12 +276,11 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
             int totalRows;
             if (m_useNewDataHandler)
             {
-                totalRows = m_robustDataHandler->getRowCount();
+                totalRows = m_robustDataHandler->getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
             }
             else
             {
-                totalRows = VectorDataHandler::instance().getVectorTableRowCount(
-                    m_vectorTableSelector->currentData().toInt());
+                totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
             }
 
             if (newMax > totalRows)
@@ -517,10 +516,7 @@ void MainWindow::refreshSidebarNavigator()
                     QList<Vector::RowData> allRows;
                     if (m_useNewDataHandler)
                     {
-                        // TODO: 实现 getAllRows 方法
-                        qWarning() << "RobustVectorDataHandler::getAllRows is not implemented yet.";
-                        allRows = QList<Vector::RowData>();
-                        ok = false;
+                        allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
                     }
                     else
                     {
@@ -611,10 +607,7 @@ void MainWindow::refreshSidebarNavigator()
                     QList<Vector::RowData> allRows;
                     if (m_useNewDataHandler)
                     {
-                        // TODO: 实现 getAllRows 方法
-                        qWarning() << "RobustVectorDataHandler::getAllRows is not implemented yet.";
-                        allRows = QList<Vector::RowData>();
-                        ok = false;
+                        allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
                     }
                     else
                     {

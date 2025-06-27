@@ -18,6 +18,9 @@ public:
     bool saveProject();
     bool saveProjectAs(const QString &filePath);
 
+    // 向量表操作
+    bool deleteVectorTable(int tableId, QString &errorMessage);
+
     // 基本数据访问
     int getRowCount() const;
     int getColumnCount() const;
