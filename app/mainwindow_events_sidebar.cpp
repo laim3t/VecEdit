@@ -336,7 +336,12 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 
         // 从二进制文件中读取所有行数据
         bool ok = false;
-        QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        QList<Vector::RowData> allRows;
+        if (m_useNewDataHandler) {
+            allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+        } else {
+            allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        }
 
         if (ok && !allRows.isEmpty())
         {

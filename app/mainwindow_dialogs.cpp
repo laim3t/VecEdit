@@ -144,7 +144,14 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
                 m_vectorTableSelector->setCurrentIndex(currentIndex);
 
                 // 强制调用loadVectorTableData而不是依赖信号槽，确保正确加载所有列
-                if (VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget))
+                bool loadSuccess;
+                if (m_useNewDataHandler) {
+                    loadSuccess = m_robustDataHandler->loadVectorTableData(tableId, m_vectorTableWidget);
+                } else {
+                    loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
+                }
+                
+                if (loadSuccess)
                 {
                     qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();
                     // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）

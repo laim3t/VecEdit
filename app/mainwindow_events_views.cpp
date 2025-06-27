@@ -52,7 +52,11 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     m_currentPage = 0;
 
     // 获取总行数并更新页面信息
-    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    if (m_useNewDataHandler) {
+        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+    } else {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
     m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
 
     // 更新分页信息显示
@@ -79,12 +83,17 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     {
         // 使用旧的QTableWidget方式加载数据
         qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
-        bool loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-        qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadSuccess
+        bool loadResult;
+        if (m_useNewDataHandler) {
+            loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        } else {
+            loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+        }
+        qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadResult
                  << "，表ID:" << tableId
                  << "，列数:" << m_vectorTableWidget->columnCount();
 
-        if (loadSuccess)
+        if (loadResult)
         {
             qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
 
@@ -101,8 +110,12 @@ void MainWindow::onVectorTableSelectionChanged(int index)
                            << "），可能缺少标准列。尝试修复...";
                 fixExistingTableWithoutColumns(tableId);
                 // 重新加载表格（使用分页）
-                loadSuccess = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                qDebug() << funcName << " - 修复后重新加载，结果:" << loadSuccess
+                if (m_useNewDataHandler) {
+                    loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                } else {
+                    loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
+                qDebug() << funcName << " - 修复后重新加载，结果:" << loadResult
                          << "，列数:" << m_vectorTableWidget->columnCount();
             }
 
@@ -211,14 +224,25 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
                 m_currentPage = 0;
 
                 // 获取总行数并更新页面信息
-                m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+                if (m_useNewDataHandler) {
+                    m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+                } else {
+                    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+                }
                 m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
 
                 // 更新分页信息显示
                 updatePaginationInfo();
 
                 // 使用分页方式加载数据
-                if (VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize))
+                bool loadResult;
+                if (m_useNewDataHandler) {
+                    loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                } else {
+                    loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
+
+                if (loadResult)
                 {
                     qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，页码:" << m_currentPage
                              << "，每页行数:" << m_pageSize << "，列数:" << m_vectorTableWidget->columnCount();
@@ -343,7 +367,11 @@ void MainWindow::onTableRowModified(int row)
     qDebug() << "MainWindow::onTableRowModified - 标记表ID:" << tableId << "的行:" << actualRowIndex << "为已修改";
 
     // 标记行为已修改
-    VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
+    if (m_useNewDataHandler) {
+        m_robustDataHandler->markRowAsModified(tableId, actualRowIndex);
+    } else {
+        VectorDataHandler::instance().markRowAsModified(tableId, actualRowIndex);
+    }
 
     // 更新修改标志和窗口标题
     m_hasUnsavedChanges = true;
