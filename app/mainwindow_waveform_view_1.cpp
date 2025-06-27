@@ -378,7 +378,12 @@ void MainWindow::updateWaveformView()
 
     int currentTableId = m_vectorTableSelector->currentData().toInt();
     bool ok = false;
-    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+    QList<Vector::RowData> allRows;
+    if (m_useNewDataHandler) {
+        allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+    } else {
+        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+    }
     if (!ok)
     {
         qWarning() << "updateWaveformView - Failed to get all vector rows.";
@@ -1068,8 +1073,13 @@ void MainWindow::onWaveformContextMenuRequested(const QPoint &pos)
                 
                 // 加载新页面
                 int tableId = m_vectorTableSelector->currentData().toInt();
-                VectorDataHandler::instance().loadVectorTablePageData(
-                    tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                if (m_useNewDataHandler) {
+                    m_robustDataHandler->loadVectorTablePageData(
+                        tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                } else {
+                    VectorDataHandler::instance().loadVectorTablePageData(
+                        tableId, isUsingNewView ? nullptr : m_vectorTableWidget, m_currentPage, m_pageSize);
+                }
             }
             
             // Jump to the cell - 使用页内行索引
