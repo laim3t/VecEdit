@@ -188,11 +188,11 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 
     const QString funcName = "MainWindow::onLabelItemClicked";
     QString labelText = item->data(0, Qt::UserRole).toString();
-    
+
     // 获取标签所属的表ID和行索引（如果存在）
     int labelTableId = item->data(0, Qt::UserRole + 1).toInt();
     int labelRowIndex = item->data(0, Qt::UserRole + 2).toInt();
-    
+
     qDebug() << funcName << " - 点击标签:" << labelText << "，所属表ID:" << labelTableId << "，行索引:" << labelRowIndex;
 
     // 获取当前表ID
@@ -210,16 +210,18 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
     if (labelTableId > 0 && labelTableId != currentTableId)
     {
         qDebug() << funcName << " - 标签来自不同的表，需要先切换表";
-        
+
         // 查找表ID对应的索引
         int targetTabIndex = -1;
-        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-            if (it.value() == labelTableId) {
+        for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+        {
+            if (it.value() == labelTableId)
+            {
                 targetTabIndex = it.key();
                 break;
             }
         }
-        
+
         if (targetTabIndex >= 0 && targetTabIndex < m_vectorTabWidget->count())
         {
             // 切换到目标表
@@ -234,15 +236,15 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
             QSqlQuery query(DatabaseManager::instance()->database());
             query.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
             query.addBindValue(labelTableId);
-            
+
             if (query.exec() && query.next())
             {
                 QString tableName = query.value(0).toString();
                 qDebug() << funcName << " - 表未打开，正在打开表:" << tableName << "，ID:" << labelTableId;
-                
+
                 // 打开表
                 openVectorTable(labelTableId, tableName);
-                
+
                 // 更新当前表ID
                 tabIndex = m_vectorTabWidget->currentIndex();
                 if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex))
@@ -262,7 +264,7 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
     if (labelRowIndex >= 0)
     {
         qDebug() << funcName << " - 使用已知行索引直接跳转:" << labelRowIndex;
-        
+
         // 计算目标行所在的页码
         int targetPage = labelRowIndex / m_pageSize;
         int rowInPage = labelRowIndex % m_pageSize;
@@ -336,7 +338,16 @@ void MainWindow::onLabelItemClicked(QTreeWidgetItem *item, int column)
 
         // 从二进制文件中读取所有行数据
         bool ok = false;
-        QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        QList<Vector::RowData> allRows;
+        if (m_useNewDataHandler)
+        {
+            qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
+            ok = false;
+        }
+        else
+        {
+            allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        }
 
         if (ok && !allRows.isEmpty())
         {
