@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include "../vector/vector_data_types.h"
 #include "../vector/vectordatahandler.h"
+#include "../vector/robustvectordatahandler.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
 #include "qcustomplot.h"
@@ -442,6 +443,10 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
+
+    // 新增：数据处理器切换控制
+    bool m_useNewDataHandler;
+    RobustVectorDataHandler *m_robustDataHandler;
 };
 
 #endif // MAINWINDOW_H

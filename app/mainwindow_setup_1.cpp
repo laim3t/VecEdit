@@ -13,7 +13,8 @@
 #include "pin/pinvalueedit.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
+    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
+      m_useNewDataHandler(false), m_robustDataHandler(&RobustVectorDataHandler::instance())
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -137,6 +138,17 @@ void MainWindow::setupMenu()
     // 查看数据库
     QAction *viewDatabaseAction = viewMenu->addAction(tr("查看数据库(&D)"));
     connect(viewDatabaseAction, &QAction::triggered, this, &MainWindow::showDatabaseViewDialog);
+
+    // 分隔符
+    viewMenu->addSeparator();
+
+    // 添加临时的切换数据处理器的动作（用于测试）
+    QAction *toggleDataHandlerAction = viewMenu->addAction(tr("切换数据处理器(&T)"));
+    connect(toggleDataHandlerAction, &QAction::triggered, [this]()
+            {
+        m_useNewDataHandler = !m_useNewDataHandler;
+        QString handlerName = m_useNewDataHandler ? "新数据处理器" : "旧数据处理器";
+        statusBar()->showMessage(tr("已切换到%1").arg(handlerName), 3000); });
 
     // 分隔符
     viewMenu->addSeparator();
