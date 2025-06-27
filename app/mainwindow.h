@@ -35,6 +35,8 @@
 #include "../vector/robustvectordatahandler.h"
 #include "qcustomplot.h"
 #include "vectortablemodel.h"
+#include "vector/vectordatahandler.h"
+#include "vector/vectortabledelegate.h"
 
 // 前置声明
 class VectorTableDelegate;
@@ -65,6 +67,7 @@ signals:
 private slots:
     // 数据库操作
     void createNewProject();
+    void createNewProjectWithNewArch(); // 使用新架构创建项目
     void openExistingProject();
     void closeCurrentProject();
 
@@ -445,8 +448,8 @@ private:
     QLineEdit *m_waveformValueEditor = nullptr;
     
     // 数据处理器切换控制
-    bool m_useNewDataHandler; // 控制开关
-    RobustVectorDataHandler* m_robustDataHandler; // 指向新处理器的指针
+    bool m_useNewDataHandler = false;
+    RobustVectorDataHandler* m_robustDataHandler = nullptr;
 };
 
 #endif // MAINWINDOW_H

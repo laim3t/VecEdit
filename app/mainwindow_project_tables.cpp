@@ -116,6 +116,107 @@ void MainWindow::createNewProject()
     }
 }
 
+void MainWindow::createNewProjectWithNewArch()
+{
+    // 先关闭当前项目
+    closeCurrentProject();
+
+    // 使用QSettings获取上次使用的路径
+    QSettings settings(QDir::homePath() + "/.vecedit/settings.ini", QSettings::IniFormat);
+    QString lastPath = settings.value("lastUsedPath", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+    QDir dir(lastPath);
+    if (!dir.exists())
+    {
+        lastPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+
+    // 选择保存位置和文件名
+    QString dbPath = QFileDialog::getSaveFileName(this, tr("保存项目数据库"),
+                                                  lastPath + "/VecEditProject_NewArch.db",
+                                                  tr("SQLite数据库 (*.db)"));
+    if (dbPath.isEmpty())
+    {
+        return;
+    }
+
+    // 保存本次使用的路径
+    settings.setValue("lastUsedPath", QFileInfo(dbPath).absolutePath());
+
+    // 获取schema.sql文件路径（与可执行文件同目录）
+    QString schemaPath = ":/db/schema.sql";
+
+    // 使用DatabaseManager初始化数据库
+    if (DatabaseManager::instance()->initializeNewDatabase(dbPath, schemaPath))
+    {
+        m_currentDbPath = dbPath;
+        setWindowTitle(QString("VecEdit - 矢量测试编辑器 [新架构] [%1]").arg(QFileInfo(dbPath).fileName()));
+        statusBar()->showMessage(tr("数据库创建成功(新架构): %1").arg(dbPath));
+
+        // 设置使用新的数据处理器架构
+        m_useNewDataHandler = true;
+        
+        // 显示管脚添加对话框
+        bool pinsAdded = showAddPinsDialog();
+
+        // 如果成功添加了管脚，则显示TimeSet对话框
+        bool timeSetAdded = false;
+        if (pinsAdded)
+        {
+            timeSetAdded = showTimeSetDialog(true);
+        }
+
+        // 检查是否有向量表，如果没有，自动弹出创建向量表对话框
+        QSqlDatabase db = DatabaseManager::instance()->database();
+        QSqlQuery query(db);
+        bool hasVectorTable = false;
+
+        if (query.exec("SELECT COUNT(*) FROM vector_tables"))
+        {
+            if (query.next())
+            {
+                int count = query.value(0).toInt();
+                hasVectorTable = (count > 0);
+                qDebug() << "MainWindow::createNewProjectWithNewArch - 检查向量表数量:" << count;
+            }
+        }
+
+        if (!hasVectorTable && timeSetAdded)
+        {
+            qDebug() << "MainWindow::createNewProjectWithNewArch - 未找到向量表，自动显示创建向量表对话框";
+            addNewVectorTable();
+        }
+
+        // 显示创建成功的消息
+        QString message;
+        if (pinsAdded && timeSetAdded)
+        {
+            message = tr("项目数据库创建成功(新架构)！管脚和TimeSet已添加。\n您可以通过\"查看\"菜单打开数据库查看器");
+        }
+        else if (pinsAdded)
+        {
+            message = tr("项目数据库创建成功(新架构)！管脚已添加。\n您可以通过\"查看\"菜单打开数据库查看器");
+        }
+        else
+        {
+            message = tr("项目数据库创建成功(新架构)！\n您可以通过\"查看\"菜单打开数据库查看器");
+        }
+
+        // 加载向量表数据
+        loadVectorTable();
+
+        // 更新菜单状态
+        updateMenuState();
+
+        QMessageBox::information(this, tr("成功"), tr("已使用新架构创建项目，将使用RobustVectorDataHandler进行数据处理"));
+    }
+    else
+    {
+        statusBar()->showMessage(tr("错误: %1").arg(DatabaseManager::instance()->lastError()));
+        QMessageBox::critical(this, tr("错误"),
+                              tr("创建项目数据库失败：\n%1").arg(DatabaseManager::instance()->lastError()));
+    }
+}
+
 void MainWindow::openExistingProject()
 {
     // 先关闭当前项目

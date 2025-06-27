@@ -113,6 +113,10 @@ void MainWindow::setupMenu()
     // 新建项目
     m_newProjectAction = fileMenu->addAction(tr("新建项目(&N)"));
     connect(m_newProjectAction, &QAction::triggered, this, &MainWindow::createNewProject);
+    
+    // 新建项目(新架构)
+    QAction *newProjectNewArchAction = fileMenu->addAction(tr("新建项目(新架构)"));
+    connect(newProjectNewArchAction, &QAction::triggered, this, &MainWindow::createNewProjectWithNewArch);
 
     // 打开项目
     m_openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
