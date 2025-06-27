@@ -210,7 +210,13 @@ void MainWindow::setupWaveformClickHandling()
             int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
             
             // 检查索引是否有效（只响应正坐标）
-            int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+            int totalRows;
+            if (m_useNewDataHandler) {
+                totalRows = m_robustDataHandler->getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+            } else {
+                totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+            }
+            
             if (rowIndex >= 0 && rowIndex < totalRows) {
                 // 高亮显示选中的点
                 highlightWaveformPoint(rowIndex, pinIndex);
@@ -304,7 +310,12 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
     // 在计算行索引时考虑该管脚的特定偏移量
     int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
 
-    int totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    int totalRows;
+    if (m_useNewDataHandler) {
+        totalRows = m_robustDataHandler->getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    } else {
+        totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
+    }
 
     if (rowIndex < 0 || rowIndex >= totalRows)
         return;

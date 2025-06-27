@@ -13,7 +13,8 @@
 #include "pin/pinvalueedit.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false)
+    : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
+      m_useNewDataHandler(false), m_robustDataHandler(&RobustVectorDataHandler::instance())
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock

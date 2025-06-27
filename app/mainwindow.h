@@ -32,6 +32,7 @@
 #include "../vector/vectordatahandler.h"
 #include "../database/binaryfilehelper.h"
 #include "../common/tablestylemanager.h"
+#include "../vector/robustvectordatahandler.h"
 #include "qcustomplot.h"
 #include "vectortablemodel.h"
 
@@ -442,6 +443,10 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
+    
+    // 数据处理器切换控制
+    bool m_useNewDataHandler; // 控制开关
+    RobustVectorDataHandler* m_robustDataHandler; // 指向新处理器的指针
 };
 
 #endif // MAINWINDOW_H
