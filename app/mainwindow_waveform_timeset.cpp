@@ -55,7 +55,12 @@ int MainWindow::getTimeSetIdForRow(int tableId, int rowIndex)
     
     // 获取所有行数据
     bool ok = false;
-    QList<Vector::RowData> allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+    QList<Vector::RowData> allRows;
+    if (m_useNewDataHandler) {
+        allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
+    } else {
+        allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
+    }
     
     if (!ok || allRows.isEmpty() || rowIndex >= allRows.size())
     {
