@@ -645,7 +645,14 @@ void MainWindow::deleteCurrentVectorTable()
 
     // 使用数据处理器删除向量表
     QString errorMessage;
-    if (VectorDataHandler::instance().deleteVectorTable(tableId, errorMessage))
+    bool deleteSuccess;
+    if (m_useNewDataHandler) {
+        deleteSuccess = m_robustDataHandler->deleteVectorTable(tableId, errorMessage);
+    } else {
+        deleteSuccess = VectorDataHandler::instance().deleteVectorTable(tableId, errorMessage);
+    }
+    
+    if (deleteSuccess)
     {
         // 记录当前选中的索引
         int previousIndex = m_vectorTableSelector->currentIndex();
