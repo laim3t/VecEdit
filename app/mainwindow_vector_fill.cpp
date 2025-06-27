@@ -33,7 +33,12 @@ void MainWindow::showFillVectorDialog()
     int tableId = m_vectorTableSelector->currentData().toInt();
 
     // 获取向量表行数
-    int rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    int rowCount;
+    if (m_useNewDataHandler) {
+        rowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
+    } else {
+        rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
     if (rowCount <= 0)
     {
         QMessageBox::warning(this, "操作失败", "当前向量表没有数据行");
@@ -487,14 +492,24 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
         if (isUsingNewView)
         {
             // 新视图 (QTableView)
-            refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
-                tableId, m_vectorTableModel, currentPage, m_pageSize);
+            if (m_useNewDataHandler) {
+                refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
+                    tableId, m_vectorTableModel, currentPage, m_pageSize);
+            } else {
+                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
+                    tableId, m_vectorTableModel, currentPage, m_pageSize);
+            }
         }
         else
         {
             // 旧视图 (QTableWidget)
-            refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
-                tableId, m_vectorTableWidget, currentPage, m_pageSize);
+            if (m_useNewDataHandler) {
+                refreshSuccess = m_robustDataHandler->loadVectorTablePageData(
+                    tableId, m_vectorTableWidget, currentPage, m_pageSize);
+            } else {
+                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
+                    tableId, m_vectorTableWidget, currentPage, m_pageSize);
+            }
         }
 
         if (!refreshSuccess)
