@@ -1,4 +1,3 @@
-
     void BinaryFileHelper::clearRowOffsetCache(const QString &binFilePath)
     {
         const QString funcName = "BinaryFileHelper::clearRowOffsetCache";
@@ -129,9 +128,9 @@
             return false;
         }
 
-        if (startRow < 0 || startRow > header.rowCount)
+        if (startRow < 0 || startRow > header.row_count_in_file)
         {
-            errorMessage = QString("Insert position out of bounds. StartRow: %1, TotalRows: %2").arg(startRow).arg(header.rowCount);
+            errorMessage = QString("Insert position out of bounds. StartRow: %1, TotalRows: %2").arg(startRow).arg(header.row_count_in_file);
             qWarning() << funcName << "-" << errorMessage;
             file.close();
             tempFile.close();
@@ -141,8 +140,8 @@
 
         // 更新文件头并写入临时文件
         BinaryFileHeader newHeader = header;
-        newHeader.rowCount += rowsToInsert.size();
-        newHeader.updatedAt = QDateTime::currentDateTimeUtc();
+        newHeader.row_count_in_file += rowsToInsert.size();
+        newHeader.timestamp_updated = QDateTime::currentDateTimeUtc().toSecsSinceEpoch();
         if (!writeBinaryHeader(&tempFile, newHeader))
         {
             errorMessage = "Failed to write header to temp file.";
@@ -161,7 +160,9 @@
         for (int i = 0; i < startRow; ++i)
         {
             quint32 rowSize;
-            if (!readRowSizeWithValidation(file, file, std::numeric_limits<quint32>::max(), rowSize))
+            QDataStream stream(&file);
+            stream.setByteOrder(QDataStream::LittleEndian);
+            if (!readRowSizeWithValidation(stream, file, std::numeric_limits<quint32>::max(), rowSize))
             {
                 errorMessage = QString("Failed to read size of row %1").arg(i);
                 qWarning() << funcName << "-" << errorMessage;
@@ -227,10 +228,10 @@
         return true;
     }
 
-    bool BinaryFileHelper::updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+    bool BinaryFileHelper::updateRowsInBinary_v4(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                               int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate)
     {
-        const char *funcName = "BinaryFileHelper::updateRowsInBinary"; // Use char* for BFH_LOG_STDERR
+        const char *funcName = "BinaryFileHelper::updateRowsInBinary_v4"; // Use char* for BFH_LOG_STDERR
         BFH_LOG_STDERR(funcName, "ENTERED. File: %s, Modified rows: %d, SchemaVersion: %d",
                        binFilePath.toStdString().c_str(), rowsToUpdate.size(), schemaVersion);
         // Original qDebug:

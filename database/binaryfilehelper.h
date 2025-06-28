@@ -136,6 +136,10 @@ namespace Persistence
         static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                        int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
 
+        // 第4版更新二进制文件中的行实现（仅内部使用）
+        static bool updateRowsInBinary_v4(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                        int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
+
         /**
          * @brief 强健的增量更新实现，能够处理文件损坏和异常大小情况
          *
@@ -191,10 +195,6 @@ namespace Persistence
         static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                        int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
                                        QString &errorMessage);
-
-        // 更新二进制文件中的特定行
-        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                       int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
 
     private:
         /**
