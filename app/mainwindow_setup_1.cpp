@@ -474,13 +474,12 @@ void MainWindow::setupVectorTableUI()
     m_vectorStackedWidget->addWidget(m_vectorTableWidget); // 索引0 - 旧表格
     m_vectorStackedWidget->addWidget(m_vectorTableView);   // 索引1 - 新表格
 
-    // 添加"切换视图"按钮到工具栏
-    QAction *toggleViewAction = new QAction(tr("切换新旧视图"), this);
-    toolBar->addAction(toggleViewAction);
-    m_toggleTableViewAction = toggleViewAction;
+    // 默认显示新表格视图
+    m_vectorStackedWidget->setCurrentIndex(1);
 
-    // 连接"切换视图"按钮的信号
-    connect(toggleViewAction, &QAction::triggered, [this]()
+    // 设置切换视图的快捷方式 (例如 F12)
+    QShortcut *shortcut = new QShortcut(QKeySequence(Qt::Key_F12), this);
+    connect(shortcut, &QShortcut::activated, this, [=]()
             {
         // 切换当前显示的视图
         int nextIndex = (m_vectorStackedWidget->currentIndex() + 1) % 2;
