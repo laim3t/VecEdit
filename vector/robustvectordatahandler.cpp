@@ -118,61 +118,94 @@ QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bo
 bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage)
 {
     const QString funcName = "RobustVectorDataHandler::insertVectorRows";
-    qDebug() << funcName << " - [NEW] 开始插入向量行，表ID:" << tableId
-             << "，起始索引:" << startIndex << "，行数:" << rows.size();
+    qDebug() << funcName << " - [NEW/DYNAMIC] 开始插入向量行，表ID:" << tableId
+             << "，起始逻辑行号:" << startIndex << "，行数:" << rows.size();
 
-    if (rows.isEmpty())
-    {
-        qDebug() << funcName << " - [NEW] 插入行数为空，操作提前结束。";
+    if (rows.isEmpty()) {
         return true;
     }
 
-    // 1. 加载表元数据
+    // 1. 获取元数据和二进制文件路径
     QString binFileName;
     QList<Vector::ColumnInfo> columns;
     int schemaVersion = 0;
     int totalRowCount = 0;
-
-    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
-    {
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount)) {
         errorMessage = "无法加载表元数据";
-        qWarning() << funcName << " - [NEW] " << errorMessage;
         return false;
     }
 
-    // 2. 获取二进制文件路径
     QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (absoluteBinFilePath.isEmpty())
-    {
-        qWarning() << funcName << " - [NEW] " << errorMessage;
+    if (absoluteBinFilePath.isEmpty()) {
         return false;
     }
 
-    // 3. 调用BinaryFileHelper执行插入操作
-    using Persistence::BinaryFileHelper;
-    if (!BinaryFileHelper::insertRowsInBinary(absoluteBinFilePath, columns, schemaVersion, startIndex, rows, errorMessage))
-    {
-        qWarning() << funcName << " - [NEW] BinaryFileHelper插入行失败: " << errorMessage;
+    // 2. 打开文件准备追加
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::Append)) {
+        errorMessage = "无法以追加模式打开二进制文件: " + file.errorString();
         return false;
     }
 
-    // 4. 更新数据库中的元数据行数
-    int newTotalRowCount = totalRowCount + rows.size();
     QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
-    query.addBindValue(newTotalRowCount);
-    query.addBindValue(tableId);
+    db.transaction(); // 开始事务以确保原子性
 
-    if (!query.exec())
-    {
-        errorMessage = "更新数据库行数失败: " + query.lastError().text();
-        qWarning() << funcName << " - [NEW] " << errorMessage;
-        // 注意：即使这里失败，二进制文件也已经修改，可能需要回滚或标记为不一致状态
+    QSqlQuery indexQuery(db);
+    indexQuery.prepare(
+        "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_number, physical_offset, physical_size) "
+        "VALUES (?, ?, ?, ?)");
+
+    // 3. 循环处理每一行，序列化并写入索引
+    for (int i = 0; i < rows.size(); ++i) {
+        const Vector::RowData &rowData = rows[i];
+        
+        // a. 序列化
+        QByteArray rowBytes = Persistence::BinaryFileHelper::serializeRowDynamic(rowData, columns);
+        if (rowBytes.isEmpty()) {
+            errorMessage = QString("序列化第 %1 行数据失败").arg(i);
+            db.rollback();
+            return false;
+        }
+
+        // b. 获取 offset 和 size
+        qint64 offset = file.size();
+        qint64 size = rowBytes.size();
+
+        // c. 写入文件
+        if (file.write(rowBytes) != size) {
+            errorMessage = "写入二进制文件失败: " + file.errorString();
+            db.rollback();
+            return false;
+        }
+
+        // d. 写入索引数据库
+        indexQuery.bindValue(0, tableId);
+        indexQuery.bindValue(1, startIndex + i); // 逻辑行号
+        indexQuery.bindValue(2, offset);
+        indexQuery.bindValue(3, size);
+        if (!indexQuery.exec()) {
+            errorMessage = "插入行索引失败: " + indexQuery.lastError().text();
+            db.rollback();
+            return false;
+        }
+    }
+
+    file.close();
+
+    // 4. 更新主记录表中的总行数
+    int newTotalRowCount = totalRowCount + rows.size();
+    QSqlQuery masterUpdateQuery(db);
+    masterUpdateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
+    masterUpdateQuery.addBindValue(newTotalRowCount);
+    masterUpdateQuery.addBindValue(tableId);
+    if (!masterUpdateQuery.exec()) {
+        errorMessage = "更新主记录行数失败: " + masterUpdateQuery.lastError().text();
+        db.rollback();
         return false;
     }
 
-    qDebug() << funcName << " - [NEW] 向量行数据操作成功完成，新总行数:" << newTotalRowCount;
+    db.commit(); // 提交事务
+    qDebug() << funcName << " - [NEW/DYNAMIC] 成功插入" << rows.size() << "行，新总行数:" << newTotalRowCount;
     return true;
 }
 
@@ -581,46 +614,74 @@ bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, Vecto
 QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
 {
     const QString funcName = "RobustVectorDataHandler::getPageData";
-    QString errorMessage;
+    // 注意：根据您的要求，此函数现在忽略 pageIndex 和 pageSize，始终读取所有数据。
+    qDebug() << funcName << " - [INDEXED READ - FULL] 开始读取所有数据，表ID:" << tableId;
 
-    // 1. 加载元数据
+    QList<Vector::RowData> allRows;
+    
+    // 1. 获取元数据和二进制文件路径
     QString binFileName;
     QList<Vector::ColumnInfo> columns;
     int schemaVersion = 0;
     int totalRowCount = 0;
-    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
-    {
-        qWarning() << funcName << " - Failed to load meta for table" << tableId;
-        return {};
+    QString errorMessageForGetPageData; 
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount)) {
+        qWarning() << funcName << "- 无法加载表元数据";
+        return allRows;
     }
 
-    // 2. 计算分页参数
-    int startRow = pageIndex * pageSize;
-    if (startRow >= totalRowCount)
-    {
-        return {}; // 页码超出范围，返回空列表
-    }
-    int numRows = std::min(pageSize, totalRowCount - startRow);
-
-    // 3. 获取二进制文件路径
-    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (absoluteBinFilePath.isEmpty())
-    {
-        qWarning() << funcName << " - " << errorMessage;
-        return {};
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessageForGetPageData);
+    if (absoluteBinFilePath.isEmpty()) {
+        qWarning() << funcName << "- 无法解析二进制文件路径:" << errorMessageForGetPageData;
+        return allRows;
     }
 
-    // 4. 从二进制文件读取数据
-    QList<Vector::RowData> pageRows;
-    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, numRows, pageRows))
-    {
-        qWarning() << funcName << " - Failed to read page data from binary file for table" << tableId;
-        return {};
+    // 2. 查询行索引表以获取 *所有* 活动行的 offset 和 size
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery indexQuery(db);
+    indexQuery.prepare(
+        "SELECT physical_offset, physical_size FROM VectorTableRowIndex "
+        "WHERE master_record_id = :id AND is_active = 1 "
+        "ORDER BY logical_row_number"); // 移除 LIMIT 和 OFFSET
+    indexQuery.bindValue(":id", tableId);
+
+    if (!indexQuery.exec()) {
+        qWarning() << funcName << "- 查询所有行索引失败:" << indexQuery.lastError().text();
+        return allRows;
     }
 
-    qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows for table" << tableId << "page" << pageIndex;
+    // 3. 打开文件，并根据索引逐行读取
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << funcName << "- 无法以只读模式打开二进制文件:" << file.errorString();
+        return allRows;
+    }
 
-    return pageRows;
+    while (indexQuery.next()) {
+        qint64 offset = indexQuery.value(0).toLongLong();
+        qint64 size = indexQuery.value(1).toLongLong();
+
+        if (!file.seek(offset)) {
+            qWarning() << funcName << "- seek到位置" << offset << "失败";
+            continue;
+        }
+
+        QByteArray rowBytes = file.read(size);
+        if (rowBytes.size() != size) {
+            qWarning() << funcName << "- 从位置" << offset << "读取" << size << "字节失败";
+            continue;
+        }
+
+        Vector::RowData rowData;
+        if (Persistence::BinaryFileHelper::deserializeRowDynamic(rowBytes, columns, rowData)) {
+            allRows.append(rowData);
+        } else {
+            qWarning() << funcName << "- 在位置" << offset << "反序列化数据失败";
+        }
+    }
+
+    qDebug() << funcName << "[INDEXED READ - FULL] 成功读取" << allRows.size() << "行数据";
+    return allRows;
 }
 
 QList<Vector::ColumnInfo> RobustVectorDataHandler::getVisibleColumns(int tableId)

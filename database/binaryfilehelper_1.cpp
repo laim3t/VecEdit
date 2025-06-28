@@ -1,3 +1,8 @@
+#include "binaryfilehelper.h"
+#include <QDataStream>
+#include <QFile>
+#include <QDebug>
+#include "common/binary_file_format.h"
 
     bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow)
     {
@@ -708,4 +713,75 @@
 
         return rowsWritten == static_cast<quint64>(rows.size());
     }
+
+// =========================================================================================
+// 新增实现：动态序列化与反序列化 (支持变长字段)
+// =========================================================================================
+
+QByteArray Persistence::BinaryFileHelper::serializeRowDynamic(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns)
+{
+    QByteArray rowBytes;
+    QDataStream stream(&rowBytes, QIODevice::WriteOnly);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    if (rowData.size() != columns.size()) {
+        qWarning() << "serializeRowDynamic: Mismatch between value count and column count. Cannot serialize.";
+        return QByteArray();
+    }
+
+    for (int i = 0; i < columns.size(); ++i) {
+        // 将QVariant转换为适合存储的QByteArray
+        QByteArray valueBytes;
+        QDataStream valueStream(&valueBytes, QIODevice::WriteOnly);
+        valueStream << rowData[i];
+
+        // 写入长度前缀 (使用quint32，最大支持4GB的字段)
+        stream << (quint32)valueBytes.size();
+        // 写入实际数据
+        stream.writeRawData(valueBytes.constData(), valueBytes.size());
+    }
+
+    return rowBytes;
+}
+
+bool Persistence::BinaryFileHelper::deserializeRowDynamic(const QByteArray &rowDataBytes, const QList<Vector::ColumnInfo> &columns, Vector::RowData &outRowData)
+{
+    outRowData.clear();
+    QDataStream stream(rowDataBytes);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    for (int i = 0; i < columns.size(); ++i) {
+        if (stream.atEnd()) {
+            qWarning() << "deserializeRowDynamic: Stream ended prematurely. Expected" << columns.size() << "fields, got" << i;
+            return false;
+        }
+
+        quint32 valueSize = 0;
+        stream >> valueSize;
+        
+        if (stream.status() != QDataStream::Ok) {
+             qWarning() << "deserializeRowDynamic: Failed to read size for field" << i;
+             return false;
+        }
+
+        QByteArray valueBytes(valueSize, Qt::Uninitialized);
+        if (stream.readRawData(valueBytes.data(), valueSize) != valueSize) {
+             qWarning() << "deserializeRowDynamic: Failed to read data for field" << i << ". Expected" << valueSize << "bytes";
+             return false;
+        }
+
+        QDataStream valueStream(valueBytes);
+        QVariant value;
+        valueStream >> value;
+        
+        if (valueStream.status() != QDataStream::Ok) {
+            qWarning() << "deserializeRowDynamic: Failed to deserialize variant from data for field" << i;
+            return false;
+        }
+
+        outRowData.append(value);
+    }
+
+    return true;
+}
 

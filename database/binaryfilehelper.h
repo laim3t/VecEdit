@@ -11,6 +11,10 @@
 #include <QMap>   // 添加QMap用于缓存结构
 #include <QMutex> // 添加QMutex用于线程安全
 #include "vector/vector_data_types.h"
+#include <QBuffer>
+#include <QElapsedTimer>
+#include <QMutexLocker>
+#include <QWaitCondition>
 
 // Forward declarations for placeholder types (replace with actual types later)
 // class MemoryRowObject; // Placeholder for the actual C++ data structure for a row
@@ -195,6 +199,12 @@ namespace Persistence
         static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                        int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
                                        QString &errorMessage);
+
+        // 新增：动态序列化函数，支持变长字段
+        static QByteArray serializeRowDynamic(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns);
+
+        // 新增：动态反序列化函数，支持变长字段
+        static bool deserializeRowDynamic(const QByteArray &rowDataBytes, const QList<Vector::ColumnInfo> &columns, Vector::RowData &outRowData);
 
     private:
         /**
