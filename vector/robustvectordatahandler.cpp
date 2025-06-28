@@ -2,6 +2,7 @@
 #include "database/databasemanager.h"
 #include "pin/pinvalueedit.h"
 #include "vector/vectordatahandler.h"
+#include "common/utils/pathutils.h"
 #include <QDebug>
 #include <QFile>
 #include <QScrollBar>
@@ -678,7 +679,7 @@ QString RobustVectorDataHandler::resolveBinaryFilePath(int tableId, QString &err
         return QString();
     }
 
-    // 查询二进制文件名
+    // 1. 查询二进制文件名
     QSqlQuery query(db);
     query.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
     query.addBindValue(tableId);
@@ -688,7 +689,6 @@ QString RobustVectorDataHandler::resolveBinaryFilePath(int tableId, QString &err
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-
     QString binFileName = query.value(0).toString();
     if (binFileName.isEmpty())
     {
@@ -697,39 +697,36 @@ QString RobustVectorDataHandler::resolveBinaryFilePath(int tableId, QString &err
         return QString();
     }
 
-    // 构建包含完整路径的文件名
-    // 使用DatabaseManager的m_dbFilePath来获取数据库所在目录
-    QSqlQuery pathQuery(db);
-    pathQuery.prepare("PRAGMA database_list");
-    if (!pathQuery.exec() || !pathQuery.next())
+    // 2. 获取数据库文件路径
+    QString dbPath = db.databaseName();
+    if (dbPath.isEmpty() || dbPath == ":memory:")
     {
-        errorMsg = "无法获取数据库文件路径";
+        errorMsg = "无法确定数据库文件路径";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
 
-    QString dbPath = pathQuery.value(2).toString();
-    QFileInfo dbFileInfo(dbPath);
-    QString projectDir = dbFileInfo.absolutePath();
-
-    if (projectDir.isEmpty())
+    // 3. 使用PathUtils获取正确的二进制数据目录
+    QString binaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(dbPath);
+    if (binaryDataDir.isEmpty())
     {
-        errorMsg = "当前项目目录未设置";
+        errorMsg = "无法生成项目二进制数据目录";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
 
-    QDir dir(projectDir);
+    // 4. 构建并返回最终的绝对路径
+    QDir dir(binaryDataDir);
     QString fullPath = dir.absoluteFilePath(binFileName);
 
-    QFileInfo fileInfo(fullPath);
-    if (!fileInfo.exists())
-    {
-        qWarning() << funcName << " - 警告: 二进制文件不存在: " << fullPath;
-        // 我们返回路径但发出警告 - 可能是新创建的表
-    }
+    // 文件存在性检查是可选的，因为在创建新表时文件可能尚不存在
+    // QFileInfo fileInfo(fullPath);
+    // if (!fileInfo.exists())
+    // {
+    //     qWarning() << funcName << " - 警告: 二进制文件不存在: " << fullPath;
+    // }
 
-    qDebug() << funcName << " - 找到二进制文件: " << fullPath;
+    qDebug() << funcName << " - 解析后的二进制文件路径: " << fullPath;
     return fullPath;
 }
 
