@@ -446,10 +446,10 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
-    
+
     // 数据处理器切换控制
     bool m_useNewDataHandler = false;
-    RobustVectorDataHandler* m_robustDataHandler = nullptr;
+    RobustVectorDataHandler *m_robustDataHandler = nullptr;
 };
 
 #endif // MAINWINDOW_H

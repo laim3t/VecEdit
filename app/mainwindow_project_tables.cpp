@@ -20,6 +20,13 @@
 
 void MainWindow::createNewProject()
 {
+    // 确保使用旧的数据处理器架构
+    m_useNewDataHandler = false;
+    if (m_vectorTableModel)
+    {
+        m_vectorTableModel->setUseNewDataHandler(false);
+    }
+
     // 先关闭当前项目
     closeCurrentProject();
 
@@ -154,7 +161,11 @@ void MainWindow::createNewProjectWithNewArch()
 
         // 设置使用新的数据处理器架构
         m_useNewDataHandler = true;
-        
+        if (m_vectorTableModel)
+        {
+            m_vectorTableModel->setUseNewDataHandler(true);
+        }
+
         // 显示管脚添加对话框
         bool pinsAdded = showAddPinsDialog();
 
@@ -747,12 +758,15 @@ void MainWindow::deleteCurrentVectorTable()
     // 使用数据处理器删除向量表
     QString errorMessage;
     bool deleteSuccess;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         deleteSuccess = m_robustDataHandler->deleteVectorTable(tableId, errorMessage);
-    } else {
+    }
+    else
+    {
         deleteSuccess = VectorDataHandler::instance().deleteVectorTable(tableId, errorMessage);
     }
-    
+
     if (deleteSuccess)
     {
         // 记录当前选中的索引
@@ -818,8 +832,10 @@ void MainWindow::openVectorTable(int tableId, const QString &tableName)
 
     // 检查表是否已经打开
     int existingTabIndex = -1;
-    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it) {
-        if (it.value() == tableId) {
+    for (auto it = m_tabToTableId.begin(); it != m_tabToTableId.end(); ++it)
+    {
+        if (it.value() == tableId)
+        {
             existingTabIndex = it.key();
             break;
         }

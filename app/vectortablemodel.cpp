@@ -26,6 +26,12 @@ VectorTableModel::~VectorTableModel()
     // 清理代码
 }
 
+void VectorTableModel::setUseNewDataHandler(bool useNew)
+{
+    m_useNewDataHandler = useNew;
+    qDebug() << "VectorTableModel::setUseNewDataHandler - Switched to useNewDataHandler:" << useNew;
+}
+
 int VectorTableModel::rowCount(const QModelIndex &parent) const
 {
     // 父索引有效时意味着是树形结构中的子项，表格模型中不应该有子项

@@ -21,10 +21,13 @@ class VectorTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    explicit VectorTableModel(QObject *parent = nullptr, bool useNewDataHandler = false, RobustVectorDataHandler* robustDataHandler = nullptr);
+    VectorTableModel(QObject *parent = nullptr, bool useNewDataHandler = false, RobustVectorDataHandler *robustDataHandler = nullptr);
     ~VectorTableModel() override;
 
-    // 必须实现的QAbstractTableModel核心虚函数
+    // 设置数据处理器架构
+    void setUseNewDataHandler(bool useNew);
+
+    // 获取行数和列数
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -98,10 +101,10 @@ private:
     mutable QMap<int, QString> m_timeSetCache;             // TimeSet ID到名称的映射
     mutable QMap<QString, int> m_timeSetNameToIdCache;     // TimeSet名称到ID的映射
     mutable bool m_cachesInitialized;                      // 缓存是否已初始化
-    
+
     // 新数据处理器相关
-    bool m_useNewDataHandler;                           // 是否使用新的数据处理器
-    RobustVectorDataHandler* m_robustDataHandler;       // 指向新数据处理器的指针
+    bool m_useNewDataHandler;                     // 是否使用新的数据处理器
+    RobustVectorDataHandler *m_robustDataHandler; // 指向新数据处理器的指针
 };
 
 #endif // VECTORTABLEMODEL_H
