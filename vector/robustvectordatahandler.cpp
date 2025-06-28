@@ -820,166 +820,26 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
                                                      QList<Vector::RowData> &pageRows)
 {
     const QString funcName = "RobustVectorDataHandler::readPageDataFromBinary";
-    qDebug() << funcName << " - 开始读取二进制数据, 文件:" << absoluteBinFilePath
-             << ", 起始行:" << startRow << ", 行数:" << numRows;
+    // 根据您的新需求，新轨道不需要分页，因此我们忽略 startRow 和 numRows，始终读取所有数据。
+    qDebug() << funcName << " - [Full Read Mode] Reading all data from:" << absoluteBinFilePath;
 
-    QFile file(absoluteBinFilePath);
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        qWarning() << funcName << " - 无法打开文件:" << absoluteBinFilePath << ", 错误:" << file.errorString();
-        return false;
-    }
-
-    BinaryFileHeader header;
-    if (!Persistence::BinaryFileHelper::readBinaryHeader(&file, header))
-    {
-        qWarning() << funcName << " - 文件头读取失败";
-        file.close();
-        return false;
-    }
-
-    // 版本兼容性检查
-    if (header.data_schema_version != schemaVersion)
-    {
-        qWarning() << funcName << " - 文件schema版本与数据库不一致! 文件:" << header.data_schema_version << ", DB:" << schemaVersion;
-
-        if (header.data_schema_version > schemaVersion)
-        {
-            qCritical() << funcName << " - 文件版本高于数据库版本，无法加载!";
-            file.close();
-            return false;
-        }
-    }
-
-    // 数据范围检查
-    quint64 rowCount = header.row_count_in_file;
-    if (rowCount == 0)
-    {
-        qDebug() << funcName << " - 文件中没有数据行";
-        file.close();
-        return true; // 没有数据，返回true并清空结果集
-    }
-
-    // 安全检查：防止整数溢出
-    if (rowCount > static_cast<quint64>(std::numeric_limits<int>::max()))
-    {
-        qCritical() << funcName << " - 文件中的行数超过int类型最大值, 无法处理";
-        file.close();
-        return false;
-    }
-
-    // 请求的数据范围检查
-    int totalRows = static_cast<int>(rowCount);
-    if (startRow < 0 || startRow >= totalRows)
-    {
-        qWarning() << funcName << " - 请求的起始行超出范围: " << startRow << ", 总行数: " << totalRows;
-        file.close();
-        return false;
-    }
-
-    // 调整请求的行数
-    numRows = std::min(numRows, totalRows - startRow);
-    if (numRows <= 0)
-    {
-        qDebug() << funcName << " - 没有可读取的行";
-        file.close();
-        return true; // 清空结果集并返回成功
-    }
-
-    // 清空结果集
+    // 清空输出列表，以防有旧数据
     pageRows.clear();
 
-    // 尝试预分配内存
-    try
-    {
-        pageRows.reserve(numRows);
-    }
-    catch (const std::bad_alloc &)
-    {
-        qCritical() << funcName << " - 内存分配失败，无法为" << numRows << "行数据预分配内存";
-        file.close();
+    // 直接调用 BinaryFileHelper 的静态方法来读取所有行
+    // 这个方法封装了打开文件、读取头部、循环读取所有行数据的全部逻辑
+    bool success = Persistence::BinaryFileHelper::readAllRowsFromBinary(
+        absoluteBinFilePath,
+        columns,
+        schemaVersion, // 传递 schemaVersion 以进行版本兼容性检查
+        pageRows       // 这是输出参数
+    );
+
+    if (!success) {
+        qWarning() << funcName << " - Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
         return false;
     }
 
-    // 手动计算每一行的位置，而不是使用readRowPositions
-    QDataStream in(&file);
-    in.setByteOrder(QDataStream::LittleEndian);
-
-    // 跳过头部
-    file.seek(sizeof(BinaryFileHeader));
-
-    // 跳过前面的行
-    for (int i = 0; i < startRow; ++i)
-    {
-        quint32 rowLen = 0;
-        in >> rowLen;
-        if (in.status() != QDataStream::Ok)
-        {
-            qWarning() << funcName << " - 行长度读取失败, 行:" << i;
-            file.close();
-            return false;
-        }
-
-        // 跳过这一行的数据
-        file.seek(file.pos() + rowLen);
-    }
-
-    // 读取请求的行
-    for (int i = 0; i < numRows; ++i)
-    {
-        // 读取行数据长度
-        quint32 rowLen = 0;
-        in >> rowLen;
-        if (in.status() != QDataStream::Ok || rowLen == 0)
-        {
-            qWarning() << funcName << " - 行长度读取失败, 行索引:" << (startRow + i);
-            file.close();
-            return false;
-        }
-
-        // 检查行长度是否异常
-        const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-        if (rowLen > MAX_REASONABLE_ROW_SIZE)
-        {
-            qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen
-                        << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i);
-            file.close();
-            return false;
-        }
-
-        // 读取行数据
-        QByteArray rowBytes;
-        try
-        {
-            rowBytes.resize(rowLen);
-        }
-        catch (const std::bad_alloc &)
-        {
-            qCritical() << funcName << " - 内存分配失败，无法为行" << (startRow + i) << "分配" << rowLen << "字节的内存";
-            file.close();
-            return false;
-        }
-
-        if (file.read(rowBytes.data(), rowLen) != rowLen)
-        {
-            qWarning() << funcName << " - 行数据读取失败, 行索引:" << (startRow + i);
-            file.close();
-            return false;
-        }
-
-        // 反序列化行数据
-        Vector::RowData rowData;
-        if (!Persistence::BinaryFileHelper::deserializeRow(rowBytes, columns, header.data_schema_version, rowData))
-        {
-            qWarning() << funcName << " - 行反序列化失败, 行索引:" << (startRow + i);
-            file.close();
-            return false;
-        }
-
-        pageRows.append(rowData);
-    }
-
-    qDebug() << funcName << " - 成功读取" << pageRows.size() << "行数据";
-    file.close();
+    qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows.";
     return true;
 }
