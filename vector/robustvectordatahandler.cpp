@@ -21,117 +21,289 @@
 #include <limits>
 #include <algorithm>
 #include <QDataStream>
+#include <QSqlDatabase>
 
-RobustVectorDataHandler& RobustVectorDataHandler::instance() {
+RobustVectorDataHandler &RobustVectorDataHandler::instance()
+{
     static RobustVectorDataHandler inst;
     return inst;
 }
 
-RobustVectorDataHandler::RobustVectorDataHandler(QObject* parent) : QObject(parent) {}
+RobustVectorDataHandler::RobustVectorDataHandler(QObject *parent) : QObject(parent) {}
 
 RobustVectorDataHandler::~RobustVectorDataHandler() = default;
 
-bool RobustVectorDataHandler::loadVectorTableData(int tableId, QTableWidget* tableWidget) {
+bool RobustVectorDataHandler::loadVectorTableData(int tableId, QTableWidget *tableWidget)
+{
     qWarning() << "RobustVectorDataHandler::loadVectorTableData is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::saveVectorTableData(int tableId, QTableWidget* tableWidget, QString& errorMessage) {
+bool RobustVectorDataHandler::saveVectorTableData(int tableId, QTableWidget *tableWidget, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::saveVectorTableData is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget* currentPageTable, int currentPage, int pageSize, int totalRows, QString& errorMessage) {
+bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget *currentPageTable, int currentPage, int pageSize, int totalRows, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::saveVectorTableDataPaged is not implemented yet.";
     return false;
 }
 
-void RobustVectorDataHandler::addVectorRow(QTableWidget* table, const QStringList& pinOptions, int rowIdx) {
+void RobustVectorDataHandler::addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx)
+{
     qWarning() << "RobustVectorDataHandler::addVectorRow is not implemented yet.";
 }
 
-void RobustVectorDataHandler::addVectorRows(QTableWidget* table, const QStringList& pinOptions, int startRowIdx, int count) {
+void RobustVectorDataHandler::addVectorRows(QTableWidget *table, const QStringList &pinOptions, int startRowIdx, int count)
+{
     qWarning() << "RobustVectorDataHandler::addVectorRows is not implemented yet.";
 }
 
-bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString& errorMessage) {
+bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::deleteVectorTable is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int>& rowIndexes, QString& errorMessage) {
+bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndexes, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::deleteVectorRows is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString& errorMessage) {
+bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::deleteVectorRowsInRange is not implemented yet.";
     return false;
 }
 
-int RobustVectorDataHandler::getVectorTableRowCount(int tableId) {
+int RobustVectorDataHandler::getVectorTableRowCount(int tableId)
+{
     qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
     return 0;
 }
 
-QList<Vector::ColumnInfo> RobustVectorDataHandler::getAllColumnInfo(int tableId) {
+QList<Vector::ColumnInfo> RobustVectorDataHandler::getAllColumnInfo(int tableId)
+{
     qWarning() << "RobustVectorDataHandler::getAllColumnInfo is not implemented yet.";
     return {};
 }
 
-int RobustVectorDataHandler::getSchemaVersion(int tableId) {
+int RobustVectorDataHandler::getSchemaVersion(int tableId)
+{
     qWarning() << "RobustVectorDataHandler::getSchemaVersion is not implemented yet.";
     return 0;
 }
 
-QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bool& ok) {
+QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bool &ok)
+{
     qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
     ok = false;
     return {};
 }
 
-bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId, QTableWidget* dataTable, bool appendToEnd, const QList<QPair<int, QPair<QString, QPair<int, QString>>>>& selectedPins, QString& errorMessage) {
-    qWarning() << "RobustVectorDataHandler::insertVectorRows is not implemented yet.";
+bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage)
+{
+    const QString funcName = "RobustVectorDataHandler::insertVectorRows";
+    qDebug() << funcName << " - 开始插入向量行，表ID:" << tableId
+             << "，起始索引:" << startIndex << "，行数:" << rows.size()
+             << "，TimesetID:" << timesetId;
+
+    // 1. 加载表元数据
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
+    {
+        errorMessage = "无法加载表元数据";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 元数据加载成功. BinFile:" << binFileName
+             << "SchemaVersion:" << schemaVersion << "Columns:" << columns.size()
+             << "ExistingRows:" << totalRowCount;
+
+    // 2. 获取二进制文件路径
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 二进制文件绝对路径:" << absoluteBinFilePath;
+
+    // 3. 打开文件进行写入
+    QFile file(absoluteBinFilePath);
+    if (!file.open(QIODevice::ReadWrite))
+    {
+        errorMessage = "无法打开二进制文件: " + file.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 4. 读取文件头
+    QDataStream stream(&file);
+    stream.setVersion(QDataStream::Qt_5_15);
+
+    // 读取文件头
+    qint32 fileVersion;
+    qint32 existingRows;
+    stream >> fileVersion >> existingRows;
+
+    if (stream.status() != QDataStream::Ok)
+    {
+        errorMessage = "读取文件头失败";
+        qWarning() << funcName << " - " << errorMessage;
+        file.close();
+        return false;
+    }
+
+    // 5. 验证插入位置
+    if (startIndex < 0 || startIndex > existingRows)
+    {
+        errorMessage = QString("插入位置无效: %1 (总行数: %2)").arg(startIndex).arg(existingRows);
+        qWarning() << funcName << " - " << errorMessage;
+        file.close();
+        return false;
+    }
+
+    // 6. 创建临时文件
+    QString tempFilePath = absoluteBinFilePath + ".tmp";
+    QFile tempFile(tempFilePath);
+    if (!tempFile.open(QIODevice::WriteOnly))
+    {
+        errorMessage = "无法创建临时文件: " + tempFile.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        file.close();
+        return false;
+    }
+
+    QDataStream outStream(&tempFile);
+    outStream.setVersion(QDataStream::Qt_5_15);
+
+    // 写入新的文件头
+    outStream << fileVersion << (existingRows + rows.size());
+
+    // 7. 复制前半部分数据
+    if (startIndex > 0)
+    {
+        QByteArray buffer;
+        qint64 bytesToCopy = file.pos(); // 获取当前位置（文件头之后）
+        buffer = file.read(bytesToCopy);
+        outStream.writeRawData(buffer.constData(), buffer.size());
+    }
+
+    // 8. 写入新数据
+    for (const Vector::RowData &rowData : rows)
+    {
+        // 写入每一行的数据
+        outStream << rowData;
+    }
+
+    // 9. 复制剩余数据
+    if (startIndex < existingRows)
+    {
+        QByteArray buffer;
+        buffer = file.readAll();
+        outStream.writeRawData(buffer.constData(), buffer.size());
+    }
+
+    // 10. 关闭文件
+    file.close();
+    tempFile.close();
+
+    // 11. 替换原文件
+    if (!QFile::remove(absoluteBinFilePath))
+    {
+        errorMessage = "无法删除原文件";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (!QFile::rename(tempFilePath, absoluteBinFilePath))
+    {
+        errorMessage = "无法重命名临时文件";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 12. 更新数据库中的行数
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    QSqlQuery query(db);
+    query.prepare("UPDATE vector_table_master_record SET total_rows = ? WHERE id = ?");
+    query.addBindValue(existingRows + rows.size());
+    query.addBindValue(tableId);
+
+    if (!query.exec())
+    {
+        errorMessage = "更新数据库行数失败: " + query.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << " - 向量行数据操作成功完成。";
+    return true;
+}
+
+bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const Vector::RowData &rowData, QString &errorMessage)
+{
+    qWarning() << "RobustVectorDataHandler::updateVectorRow is not implemented yet.";
+    errorMessage = "Function not implemented.";
     return false;
 }
 
-bool RobustVectorDataHandler::gotoLine(int tableId, int lineNumber) {
+bool RobustVectorDataHandler::gotoLine(int tableId, int lineNumber)
+{
     qWarning() << "RobustVectorDataHandler::gotoLine is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::hideVectorTableColumn(int tableId, const QString& columnName, QString& errorMessage) {
+bool RobustVectorDataHandler::hideVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::hideVectorTableColumn is not implemented yet.";
     return false;
 }
 
-bool RobustVectorDataHandler::showVectorTableColumn(int tableId, const QString& columnName, QString& errorMessage) {
+bool RobustVectorDataHandler::showVectorTableColumn(int tableId, const QString &columnName, QString &errorMessage)
+{
     qWarning() << "RobustVectorDataHandler::showVectorTableColumn is not implemented yet.";
     return false;
 }
 
-void RobustVectorDataHandler::cancelOperation() {
+void RobustVectorDataHandler::cancelOperation()
+{
     qWarning() << "RobustVectorDataHandler::cancelOperation is not implemented yet.";
 }
 
-void RobustVectorDataHandler::clearCache() {
+void RobustVectorDataHandler::clearCache()
+{
     qWarning() << "RobustVectorDataHandler::clearCache is not implemented yet.";
 }
 
-void RobustVectorDataHandler::clearTableDataCache(int tableId) {
+void RobustVectorDataHandler::clearTableDataCache(int tableId)
+{
     qWarning() << "RobustVectorDataHandler::clearTableDataCache is not implemented yet.";
 }
 
-void RobustVectorDataHandler::clearAllTableDataCache() {
+void RobustVectorDataHandler::clearAllTableDataCache()
+{
     qWarning() << "RobustVectorDataHandler::clearAllTableDataCache is not implemented yet.";
 }
 
-bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget* tableWidget, int pageIndex, int pageSize) {
+bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget *tableWidget, int pageIndex, int pageSize)
+{
     const QString funcName = "RobustVectorDataHandler::loadVectorTablePageData";
     qDebug() << funcName << " - 开始加载分页数据, 表ID:" << tableId
              << ", 页码:" << pageIndex << ", 每页行数:" << pageSize;
 
-    if (!tableWidget) {
+    if (!tableWidget)
+    {
         qWarning() << funcName << " - tableWidget 为空";
         return false;
     }
@@ -153,16 +325,18 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
     // 清理现有内容，但保留表头
     tableWidget->clearContents();
 
-    try {
+    try
+    {
         // 1. 使用新的独立方法获取列信息和总行数
         QString binFileName;
         QList<Vector::ColumnInfo> columns;
         int schemaVersion = 0;
         int totalRowCount = 0;
-        
-        if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount)) {
+
+        if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
+        {
             qWarning() << funcName << " - 无法加载表元数据";
-            
+
             // 恢复更新和信号
             tableWidget->blockSignals(false);
             tableWidget->verticalHeader()->setUpdatesEnabled(true);
@@ -170,22 +344,25 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
             tableWidget->setUpdatesEnabled(true);
             return false;
         }
-        
+
         qDebug() << funcName << " - 元数据加载成功, 列数:" << columns.size() << ", 总行数:" << totalRowCount;
 
         // 过滤仅保留可见的列
         QList<Vector::ColumnInfo> visibleColumns;
-        for (const auto &col : columns) {
-            if (col.is_visible) {
+        for (const auto &col : columns)
+        {
+            if (col.is_visible)
+            {
                 visibleColumns.append(col);
             }
         }
-        
-        if (visibleColumns.isEmpty()) {
+
+        if (visibleColumns.isEmpty())
+        {
             qWarning() << funcName << " - 表 " << tableId << " 没有可见的列";
             tableWidget->setRowCount(0);
             tableWidget->setColumnCount(0);
-            
+
             // 恢复更新和信号
             tableWidget->blockSignals(false);
             tableWidget->verticalHeader()->setUpdatesEnabled(true);
@@ -205,14 +382,15 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
         int rowsToLoad = qMin(pageSize, totalRowCount - startRow);
 
         qDebug() << funcName << " - 分页参数: 总页数=" << totalPages
-                << ", 当前页=" << pageIndex << ", 起始行=" << startRow
-                << ", 加载行数=" << rowsToLoad;
+                 << ", 当前页=" << pageIndex << ", 起始行=" << startRow
+                 << ", 加载行数=" << rowsToLoad;
 
         // 设置表格行数
         tableWidget->setRowCount(rowsToLoad);
 
         // 如果没有数据，直接返回成功
-        if (rowsToLoad <= 0) {
+        if (rowsToLoad <= 0)
+        {
             qDebug() << funcName << " - 当前页没有数据, 直接返回";
 
             // 恢复更新和信号
@@ -228,9 +406,11 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
 
         // 设置表头
         QStringList headers;
-        for (const auto &col : visibleColumns) {
+        for (const auto &col : visibleColumns)
+        {
             // 根据列类型设置表头
-            if (col.type == Vector::ColumnDataType::PIN_STATE_ID && !col.data_properties.isEmpty()) {
+            if (col.type == Vector::ColumnDataType::PIN_STATE_ID && !col.data_properties.isEmpty())
+            {
                 // 获取管脚属性
                 int channelCount = col.data_properties["channel_count"].toInt(1);
                 int typeId = col.data_properties["type_id"].toInt(1);
@@ -240,14 +420,17 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
                 QSqlQuery typeQuery(DatabaseManager::instance()->database());
                 typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
                 typeQuery.addBindValue(typeId);
-                if (typeQuery.exec() && typeQuery.next()) {
+                if (typeQuery.exec() && typeQuery.next())
+                {
                     typeName = typeQuery.value(0).toString();
                 }
 
                 // 创建带有管脚信息的表头
                 QString headerText = col.name + "\nx" + QString::number(channelCount) + "\n" + typeName;
                 headers << headerText;
-            } else {
+            }
+            else
+            {
                 // 标准列，直接使用列名
                 headers << col.name;
             }
@@ -256,9 +439,11 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
         tableWidget->setHorizontalHeaderLabels(headers);
 
         // 设置表头居中对齐
-        for (int i = 0; i < tableWidget->columnCount(); ++i) {
+        for (int i = 0; i < tableWidget->columnCount(); ++i)
+        {
             QTableWidgetItem *headerItem = tableWidget->horizontalHeaderItem(i);
-            if (headerItem) {
+            if (headerItem)
+            {
                 headerItem->setTextAlignment(Qt::AlignCenter);
             }
         }
@@ -266,9 +451,10 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
         // 3. 解析二进制文件路径
         QString errorMsg;
         QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMsg);
-        if (absoluteBinFilePath.isEmpty()) {
+        if (absoluteBinFilePath.isEmpty())
+        {
             qWarning() << funcName << " - 无法解析二进制文件路径: " << errorMsg;
-            
+
             // 恢复更新和信号
             tableWidget->blockSignals(false);
             tableWidget->verticalHeader()->setUpdatesEnabled(true);
@@ -276,12 +462,13 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
             tableWidget->setUpdatesEnabled(true);
             return false;
         }
-        
+
         // 4. 读取页面数据
         QList<Vector::RowData> pageRows;
-        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, rowsToLoad, pageRows)) {
+        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, rowsToLoad, pageRows))
+        {
             qWarning() << funcName << " - 无法读取二进制文件数据";
-            
+
             // 恢复更新和信号
             tableWidget->blockSignals(false);
             tableWidget->verticalHeader()->setUpdatesEnabled(true);
@@ -289,11 +476,12 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
             tableWidget->setUpdatesEnabled(true);
             return false;
         }
-        
-        if (pageRows.isEmpty() && totalRowCount > 0) {
+
+        if (pageRows.isEmpty() && totalRowCount > 0)
+        {
             qWarning() << funcName << " - 无法获取页面数据";
             tableWidget->setRowCount(0);
-            
+
             // 恢复更新和信号
             tableWidget->blockSignals(false);
             tableWidget->verticalHeader()->setUpdatesEnabled(true);
@@ -304,74 +492,85 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
 
         // 5. 填充表格数据
         QSqlDatabase db = DatabaseManager::instance()->database();
-        for (int row = 0; row < pageRows.size(); ++row) {
+        for (int row = 0; row < pageRows.size(); ++row)
+        {
             const auto &rowData = pageRows[row];
             int visibleColIdx = 0;
-            
-            for (int colIndex = 0; colIndex < columns.size(); ++colIndex) {
+
+            for (int colIndex = 0; colIndex < columns.size(); ++colIndex)
+            {
                 const auto &column = columns[colIndex];
-                
+
                 // 跳过不可见的列
-                if (!column.is_visible) {
+                if (!column.is_visible)
+                {
                     continue;
                 }
-                
-                if (rowData.size() <= colIndex) {
+
+                if (rowData.size() <= colIndex)
+                {
                     qWarning() << funcName << " - 行数据不足，跳过剩余列, 行:" << row;
                     break;
                 }
-                
+
                 const QVariant &cellValue = rowData[colIndex];
-                
+
                 // 根据列类型创建表格项
                 QTableWidgetItem *item = nullptr;
-                
-                switch (column.type) {
-                case Vector::ColumnDataType::INSTRUCTION_ID: {
+
+                switch (column.type)
+                {
+                case Vector::ColumnDataType::INSTRUCTION_ID:
+                {
                     int instructionId = cellValue.toInt();
                     QString instructionText = "Unknown";
-                    
+
                     // 获取指令文本
                     QSqlQuery instructionQuery(db);
                     instructionQuery.prepare("SELECT instruction_text FROM instructions WHERE id = ?");
                     instructionQuery.addBindValue(instructionId);
-                    if (instructionQuery.exec() && instructionQuery.next()) {
+                    if (instructionQuery.exec() && instructionQuery.next())
+                    {
                         instructionText = instructionQuery.value(0).toString();
                     }
-                    
+
                     item = new QTableWidgetItem(instructionText);
                     item->setData(Qt::UserRole, instructionId); // 保存原始ID
                     break;
                 }
-                case Vector::ColumnDataType::TIMESET_ID: {
+                case Vector::ColumnDataType::TIMESET_ID:
+                {
                     int timesetId = cellValue.toInt();
                     QString timesetName = "Unknown";
-                    
+
                     // 获取TimeSet名称
                     QSqlQuery timesetQuery(db);
                     timesetQuery.prepare("SELECT timeset_name FROM timeset WHERE id = ?");
                     timesetQuery.addBindValue(timesetId);
-                    if (timesetQuery.exec() && timesetQuery.next()) {
+                    if (timesetQuery.exec() && timesetQuery.next())
+                    {
                         timesetName = timesetQuery.value(0).toString();
                     }
-                    
+
                     item = new QTableWidgetItem(timesetName);
                     item->setData(Qt::UserRole, timesetId); // 保存原始ID
                     break;
                 }
-                case Vector::ColumnDataType::PIN_STATE_ID: {
+                case Vector::ColumnDataType::PIN_STATE_ID:
+                {
                     // 创建自定义的管脚状态编辑器
                     PinValueLineEdit *pinEdit = new PinValueLineEdit(tableWidget);
                     pinEdit->setAlignment(Qt::AlignCenter);
                     pinEdit->setText(cellValue.toString());
                     tableWidget->setCellWidget(row, visibleColIdx, pinEdit);
-                    
+
                     // 创建一个隐藏项来保存值，以便于后续访问
                     item = new QTableWidgetItem(cellValue.toString());
                     item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
                     break;
                 }
-                case Vector::ColumnDataType::BOOLEAN: {
+                case Vector::ColumnDataType::BOOLEAN:
+                {
                     bool isChecked = cellValue.toBool();
                     item = new QTableWidgetItem();
                     item->setCheckState(isChecked ? Qt::Checked : Qt::Unchecked);
@@ -384,30 +583,35 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
                     item = new QTableWidgetItem(cellValue.toString());
                     break;
                 }
-                
-                if (item) {
+
+                if (item)
+                {
                     tableWidget->setItem(row, visibleColIdx, item);
-                    
+
                     // 设置文本居中对齐
-                    if (column.type != Vector::ColumnDataType::PIN_STATE_ID) {
+                    if (column.type != Vector::ColumnDataType::PIN_STATE_ID)
+                    {
                         item->setTextAlignment(Qt::AlignCenter);
                     }
                 }
-                
+
                 visibleColIdx++;
             }
         }
 
         // 6. 设置行标题为行号
         QStringList rowLabels;
-        for (int i = 0; i < rowsToLoad; ++i) {
+        for (int i = 0; i < rowsToLoad; ++i)
+        {
             rowLabels << QString::number(startRow + i + 1); // 显示1-based的行号
         }
         tableWidget->setVerticalHeaderLabels(rowLabels);
 
         // 恢复滚动条位置
-        if (vScrollBar) vScrollBar->setValue(vScrollValue);
-        if (hScrollBar) hScrollBar->setValue(hScrollValue);
+        if (vScrollBar)
+            vScrollBar->setValue(vScrollValue);
+        if (hScrollBar)
+            hScrollBar->setValue(hScrollValue);
 
         // 恢复信号和更新
         tableWidget->blockSignals(false);
@@ -416,149 +620,169 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget*
         tableWidget->setUpdatesEnabled(true);
 
         return true;
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         qCritical() << funcName << " - 加载失败，异常:" << e.what();
-        
+
         // 恢复信号和更新
         tableWidget->blockSignals(false);
         tableWidget->verticalHeader()->setUpdatesEnabled(true);
         tableWidget->horizontalHeader()->setUpdatesEnabled(true);
         tableWidget->setUpdatesEnabled(true);
-        
+
         return false;
-    } catch (...) {
+    }
+    catch (...)
+    {
         qCritical() << funcName << " - 加载失败，未知异常";
-        
+
         // 恢复信号和更新
         tableWidget->blockSignals(false);
         tableWidget->verticalHeader()->setUpdatesEnabled(true);
         tableWidget->horizontalHeader()->setUpdatesEnabled(true);
         tableWidget->setUpdatesEnabled(true);
-        
+
         return false;
     }
 }
 
-bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, VectorTableModel* model, int pageIndex, int pageSize) {
+bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, VectorTableModel *model, int pageIndex, int pageSize)
+{
     qWarning() << "RobustVectorDataHandler::loadVectorTablePageDataForModel is not implemented yet.";
     return false;
 }
 
-QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize) {
+QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
+{
     qWarning() << "RobustVectorDataHandler::getPageData is not implemented yet.";
     return {};
 }
 
-QList<Vector::ColumnInfo> RobustVectorDataHandler::getVisibleColumns(int tableId) {
+QList<Vector::ColumnInfo> RobustVectorDataHandler::getVisibleColumns(int tableId)
+{
     const QString funcName = "RobustVectorDataHandler::getVisibleColumns";
     QList<Vector::ColumnInfo> result;
-    
+
     // 获取所有列信息
     QString binFileName;
     QList<Vector::ColumnInfo> allColumns;
     int schemaVersion = 0;
     int totalRowCount = 0;
-    
-    if (!loadVectorTableMeta(tableId, binFileName, allColumns, schemaVersion, totalRowCount)) {
+
+    if (!loadVectorTableMeta(tableId, binFileName, allColumns, schemaVersion, totalRowCount))
+    {
         qWarning() << funcName << " - 无法加载表元数据";
         return result;
     }
-    
+
     // 过滤出可见的列
-    for (const auto &column : allColumns) {
-        if (column.is_visible) {
+    for (const auto &column : allColumns)
+    {
+        if (column.is_visible)
+        {
             result.append(column);
         }
     }
-    
+
     return result;
 }
 
-void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex) {
+void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex)
+{
     qWarning() << "RobustVectorDataHandler::markRowAsModified is not implemented yet.";
 }
 
-void RobustVectorDataHandler::clearModifiedRows(int tableId) {
+void RobustVectorDataHandler::clearModifiedRows(int tableId)
+{
     qWarning() << "RobustVectorDataHandler::clearModifiedRows is not implemented yet.";
 }
 
-bool RobustVectorDataHandler::isRowModified(int tableId, int rowIndex) {
+bool RobustVectorDataHandler::isRowModified(int tableId, int rowIndex)
+{
     qWarning() << "RobustVectorDataHandler::isRowModified is not implemented yet.";
     return false;
 }
 
-QString RobustVectorDataHandler::resolveBinaryFilePath(int tableId, QString& errorMsg) {
+QString RobustVectorDataHandler::resolveBinaryFilePath(int tableId, QString &errorMsg)
+{
     const QString funcName = "RobustVectorDataHandler::resolveBinaryFilePath";
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         errorMsg = "数据库未打开";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-    
+
     // 查询二进制文件名
     QSqlQuery query(db);
     query.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
     query.addBindValue(tableId);
-    if (!query.exec() || !query.next()) {
+    if (!query.exec() || !query.next())
+    {
         errorMsg = "无法获取表 " + QString::number(tableId) + " 的记录: " + query.lastError().text();
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-    
+
     QString binFileName = query.value(0).toString();
-    if (binFileName.isEmpty()) {
+    if (binFileName.isEmpty())
+    {
         errorMsg = "表 " + QString::number(tableId) + " 没有关联的二进制文件";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-    
+
     // 构建包含完整路径的文件名
     // 使用DatabaseManager的m_dbFilePath来获取数据库所在目录
     QSqlQuery pathQuery(db);
     pathQuery.prepare("PRAGMA database_list");
-    if (!pathQuery.exec() || !pathQuery.next()) {
+    if (!pathQuery.exec() || !pathQuery.next())
+    {
         errorMsg = "无法获取数据库文件路径";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-    
+
     QString dbPath = pathQuery.value(2).toString();
     QFileInfo dbFileInfo(dbPath);
     QString projectDir = dbFileInfo.absolutePath();
-    
-    if (projectDir.isEmpty()) {
+
+    if (projectDir.isEmpty())
+    {
         errorMsg = "当前项目目录未设置";
         qWarning() << funcName << " - " << errorMsg;
         return QString();
     }
-    
+
     QDir dir(projectDir);
     QString fullPath = dir.absoluteFilePath(binFileName);
-    
+
     QFileInfo fileInfo(fullPath);
-    if (!fileInfo.exists()) {
+    if (!fileInfo.exists())
+    {
         qWarning() << funcName << " - 警告: 二进制文件不存在: " << fullPath;
         // 我们返回路径但发出警告 - 可能是新创建的表
     }
-    
+
     qDebug() << funcName << " - 找到二进制文件: " << fullPath;
     return fullPath;
 }
 
-bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns, 
-                                                int &schemaVersion, int &totalRowCount)
+bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns,
+                                                  int &schemaVersion, int &totalRowCount)
 {
     const QString funcName = "RobustVectorDataHandler::loadVectorTableMeta";
     qDebug() << funcName << " - 查询表ID:" << tableId;
-    
+
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
         qWarning() << funcName << " - 数据库未打开";
         return false;
     }
-    
+
     // 1. 查询主记录表
     QSqlQuery metaQuery(db);
     metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
@@ -568,7 +792,7 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
         qWarning() << funcName << " - 查询主记录失败, 表ID:" << tableId << ", 错误:" << metaQuery.lastError().text();
         return false;
     }
-    
+
     binFileName = metaQuery.value(0).toString();
     schemaVersion = metaQuery.value(1).toInt();
     totalRowCount = metaQuery.value(2).toInt();
@@ -602,10 +826,10 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
             QJsonParseError err;
             QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
             qDebug().nospace() << funcName << " - JSON Parsing Details for Column: '" << col.name
-                              << "', Input: '" << propStr
-                              << "', ErrorCode: " << err.error
-                              << " (ErrorStr: \"" << err.errorString()
-                              << "\"), IsObject: " << doc.isObject();
+                               << "', Input: '" << propStr
+                               << "', ErrorCode: " << err.error
+                               << " (ErrorStr: \"" << err.errorString()
+                               << "\"), IsObject: " << doc.isObject();
 
             if (err.error == QJsonParseError::NoError && doc.isObject())
             {
@@ -614,26 +838,26 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
             else
             {
                 qWarning().nospace() << funcName << " - 列属性JSON解析失败, 列: '" << col.name
-                                    << "', Input: '" << propStr
-                                    << "', ErrorCode: " << err.error
-                                    << " (ErrorStr: \"" << err.errorString()
-                                    << "\"), IsObject: " << doc.isObject();
+                                     << "', Input: '" << propStr
+                                     << "', ErrorCode: " << err.error
+                                     << " (ErrorStr: \"" << err.errorString()
+                                     << "\"), IsObject: " << doc.isObject();
             }
         }
-        
+
         col.logDetails(funcName);
         columns.append(col);
     }
-    
+
     return true;
 }
 
 bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinFilePath,
-                                                  const QList<Vector::ColumnInfo> &columns,
-                                                  int schemaVersion,
-                                                  int startRow,
-                                                  int numRows,
-                                                  QList<Vector::RowData> &pageRows)
+                                                     const QList<Vector::ColumnInfo> &columns,
+                                                     int schemaVersion,
+                                                     int startRow,
+                                                     int numRows,
+                                                     QList<Vector::RowData> &pageRows)
 {
     const QString funcName = "RobustVectorDataHandler::readPageDataFromBinary";
     qDebug() << funcName << " - 开始读取二进制数据, 文件:" << absoluteBinFilePath
@@ -675,7 +899,7 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
         file.close();
         return true; // 没有数据，返回true并清空结果集
     }
-    
+
     // 安全检查：防止整数溢出
     if (rowCount > static_cast<quint64>(std::numeric_limits<int>::max()))
     {
@@ -720,20 +944,22 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
     // 手动计算每一行的位置，而不是使用readRowPositions
     QDataStream in(&file);
     in.setByteOrder(QDataStream::LittleEndian);
-    
+
     // 跳过头部
     file.seek(sizeof(BinaryFileHeader));
-    
+
     // 跳过前面的行
-    for (int i = 0; i < startRow; ++i) {
+    for (int i = 0; i < startRow; ++i)
+    {
         quint32 rowLen = 0;
         in >> rowLen;
-        if (in.status() != QDataStream::Ok) {
+        if (in.status() != QDataStream::Ok)
+        {
             qWarning() << funcName << " - 行长度读取失败, 行:" << i;
             file.close();
             return false;
         }
-        
+
         // 跳过这一行的数据
         file.seek(file.pos() + rowLen);
     }
@@ -756,7 +982,7 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
         if (rowLen > MAX_REASONABLE_ROW_SIZE)
         {
             qCritical() << funcName << " - 检测到异常大的行大小:" << rowLen
-                       << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i);
+                        << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节，行:" << (startRow + i);
             file.close();
             return false;
         }
@@ -796,4 +1022,4 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
     qDebug() << funcName << " - 成功读取" << pageRows.size() << "行数据";
     file.close();
     return true;
-} 
+}

@@ -59,11 +59,11 @@ public:
     // 获取指定表的所有行数据
     QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
 
-    // 插入向量行数据
-    bool insertVectorRows(int tableId, int startIndex, int rowCount, int timesetId,
-                          QTableWidget *dataTable, bool appendToEnd,
-                          const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins,
-                          QString &errorMessage);
+    // 插入多行向量数据
+    bool insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage);
+
+    // 更新单个向量行
+    bool updateVectorRow(int tableId, int rowIndex, const Vector::RowData &rowData, QString &errorMessage);
 
     // 跳转到指定行
     bool gotoLine(int tableId, int lineNumber);
@@ -115,24 +115,24 @@ signals:
     void progressUpdated(int percentage);
 
 private:
-    RobustVectorDataHandler(QObject* parent = nullptr);
+    RobustVectorDataHandler(QObject *parent = nullptr);
     ~RobustVectorDataHandler();
 
     // 禁止拷贝和赋值
     RobustVectorDataHandler(const RobustVectorDataHandler &) = delete;
     RobustVectorDataHandler &operator=(const RobustVectorDataHandler &) = delete;
-    
+
     // 加载向量表元数据（列信息、行数等）
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns,
-                           int &schemaVersion, int &totalRowCount);
-                           
+                             int &schemaVersion, int &totalRowCount);
+
     // 从二进制文件读取页面数据
-    bool readPageDataFromBinary(const QString &absoluteBinFilePath, 
-                              const QList<Vector::ColumnInfo> &columns,
-                              int schemaVersion, 
-                              int startRow, 
-                              int numRows,
-                              QList<Vector::RowData> &pageRows);
+    bool readPageDataFromBinary(const QString &absoluteBinFilePath,
+                                const QList<Vector::ColumnInfo> &columns,
+                                int schemaVersion,
+                                int startRow,
+                                int numRows,
+                                QList<Vector::RowData> &pageRows);
 };
 
-#endif // ROBUSTVECTORDATAHANDLER_H 
+#endif // ROBUSTVECTORDATAHANDLER_H

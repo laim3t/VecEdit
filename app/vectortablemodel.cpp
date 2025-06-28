@@ -862,39 +862,6 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
 
     qDebug() << funcName << "- 找到" << selectedPins.size() << "个管脚关联到表ID:" << m_tableId;
 
-    // 创建临时表格用于传递数据
-    // 修正：将列数设置为selectedPins的数量，而不是模型的列数
-    QTableWidget tempTable;
-    tempTable.setRowCount(1);
-    tempTable.setColumnCount(selectedPins.size());
-
-    // 设置列 - 只设置管脚列的值（因为这是insertVectorRows期望的格式）
-    for (int col = 0; col < selectedPins.size(); col++)
-    {
-        const auto &pinInfo = selectedPins[col];
-        const int pinId = pinInfo.first;
-        const QString &pinName = pinInfo.second.first;
-
-        // 设置表格表头，确保与管脚名称匹配
-        QTableWidgetItem *headerItem = new QTableWidgetItem(pinName);
-        tempTable.setHorizontalHeaderItem(col, headerItem);
-
-        // 设置默认值
-        QTableWidgetItem *item = new QTableWidgetItem();
-
-        // 检查是否有为此管脚提供的值
-        if (pinValues.contains(pinId))
-        {
-            item->setText(pinValues.value(pinId));
-        }
-        else
-        {
-            item->setText("X"); // 默认值
-        }
-
-        tempTable.setItem(0, col, item);
-    }
-
     // 使用VectorDataHandler插入行
     // 获取当前表最后一行的索引
     int lastRowIndex;
@@ -911,26 +878,81 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
     bool insertSuccess;
     if (m_useNewDataHandler)
     {
+        // --- 新架构路径 ---
+        // 1. 准备纯数据结构
+        Vector::RowData newRowData;
+        // 注意：这里的列顺序需要与 getVisibleColumns 的顺序严格对应
+        // 此处我们仅为示例，实际应根据 m_columns 构建
+        newRowData.append(QString("Label_%1").arg(lastRowIndex + 1)); // Label
+        newRowData.append(1);                                         // Instruction
+        newRowData.append(timesetId);                                 // TimeSet
+        newRowData.append(false);                                     // Capture
+        newRowData.append("");                                        // Ext
+        newRowData.append("");                                        // Comment
+
+        // 填充管脚数据
+        for (const auto &pin : selectedPins)
+        {
+            int pinId = pin.first;
+            if (pinValues.contains(pinId))
+            {
+                newRowData.append(pinValues.value(pinId));
+            }
+            else
+            {
+                newRowData.append("X"); // 默认值
+            }
+        }
+
+        QList<Vector::RowData> rowsToInsert;
+        rowsToInsert.append(newRowData);
+
+        // 2. 调用新接口
         insertSuccess = m_robustDataHandler->insertVectorRows(
-            m_tableId,    // 表ID
-            lastRowIndex, // 开始索引
-            1,            // 行数
-            timesetId,    // TimeSet ID
-            &tempTable,   // 数据表
-            true,         // 追加到末尾
-            selectedPins, // 选中的管脚信息
+            m_tableId,
+            lastRowIndex,
+            rowsToInsert,
+            timesetId,
+            selectedPins,
             errorMessage);
     }
     else
     {
+        // --- 旧架构路径 (保持不变) ---
+        // 创建临时表格用于传递数据
+        QTableWidget tempTable;
+        tempTable.setRowCount(1);
+        tempTable.setColumnCount(selectedPins.size());
+
+        for (int col = 0; col < selectedPins.size(); col++)
+        {
+            const auto &pinInfo = selectedPins[col];
+            const int pinId = pinInfo.first;
+            const QString &pinName = pinInfo.second.first;
+
+            QTableWidgetItem *headerItem = new QTableWidgetItem(pinName);
+            tempTable.setHorizontalHeaderItem(col, headerItem);
+
+            QTableWidgetItem *item = new QTableWidgetItem();
+            if (pinValues.contains(pinId))
+            {
+                item->setText(pinValues.value(pinId));
+            }
+            else
+            {
+                item->setText("X");
+            }
+            tempTable.setItem(0, col, item);
+        }
+
         insertSuccess = VectorDataHandler::instance().insertVectorRows(
-            m_tableId,    // 表ID
-            lastRowIndex, // 开始索引
-            1,            // 行数
-            timesetId,    // TimeSet ID
-            &tempTable,   // 数据表
-            true,         // 追加到末尾
-            selectedPins, // 选中的管脚信息
+            m_tableId,
+            lastRowIndex,
+            1,
+            timesetId,
+            &tempTable,
+            true,
+            selectedPins,
             errorMessage);
     }
     if (!insertSuccess)

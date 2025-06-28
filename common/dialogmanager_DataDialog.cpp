@@ -1,3 +1,26 @@
+#include "dialogmanager.h"
+#include "vector/vector_data_types.h"
+#include "vector/robustvectordatahandler.h"
+#include "vector/vectordatahandler.h"
+#include "timeset/timesetdialog.h"
+#include "database/databasemanager.h"
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QLineEdit>
+#include <QCheckBox>
+#include <QGroupBox>
+#include <QFormLayout>
+#include <QMessageBox>
+#include <QProgressDialog>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
+#include <QSet>
+#include <algorithm>
+
 bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
     // 创建向量行数据录入对话框
@@ -431,13 +454,31 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
         if (m_useNewDataHandler)
         {
             if (m_robustDataHandler) {
+                // 从 QTableWidget 提取数据并复制指定的次数
+                QList<Vector::RowData> rowDataList;
+                int repeatCount = totalRowCount / vectorTable->rowCount();
+                
+                // 首先收集一份基础数据
+                for (int row = 0; row < vectorTable->rowCount(); ++row) {
+                    Vector::RowData rowData;
+                    for (int col = 0; col < vectorTable->columnCount(); ++col) {
+                        QTableWidgetItem* item = vectorTable->item(row, col);
+                        rowData.append(item ? item->data(Qt::DisplayRole) : QVariant());
+                    }
+                    rowDataList.append(rowData);
+                }
+                
+                // 复制数据达到所需的总行数
+                QList<Vector::RowData> originalData = rowDataList;
+                for (int i = 1; i < repeatCount; ++i) {
+                    rowDataList.append(originalData);
+                }
+
                 success = m_robustDataHandler->insertVectorRows(
                     tableId,
                     actualStartIndex,
-                    totalRowCount,
+                    rowDataList,
                     timesetCombo->currentData().toInt(),
-                    vectorTable,
-                    appendToEndCheckbox->isChecked(),
                     selectedPins,
                     errorMessage);
             } else {
