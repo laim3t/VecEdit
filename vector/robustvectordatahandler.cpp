@@ -81,7 +81,17 @@ bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, 
 
 int RobustVectorDataHandler::getVectorTableRowCount(int tableId)
 {
-    qWarning() << "RobustVectorDataHandler::getVectorTableRowCount is not implemented yet.";
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+
+    if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
+    {
+        return totalRowCount;
+    }
+
+    qWarning() << "Failed to get row count for table" << tableId;
     return 0;
 }
 
@@ -107,9 +117,14 @@ QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bo
 bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage)
 {
     const QString funcName = "RobustVectorDataHandler::insertVectorRows";
-    qDebug() << funcName << " - 开始插入向量行，表ID:" << tableId
-             << "，起始索引:" << startIndex << "，行数:" << rows.size()
-             << "，TimesetID:" << timesetId;
+    qDebug() << funcName << " - [NEW] 开始插入向量行，表ID:" << tableId
+             << "，起始索引:" << startIndex << "，行数:" << rows.size();
+
+    if (rows.isEmpty())
+    {
+        qDebug() << funcName << " - [NEW] 插入行数为空，操作提前结束。";
+        return true;
+    }
 
     // 1. 加载表元数据
     QString binFileName;
@@ -120,134 +135,43 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, cons
     if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
     {
         errorMessage = "无法加载表元数据";
-        qWarning() << funcName << " - " << errorMessage;
+        qWarning() << funcName << " - [NEW] " << errorMessage;
         return false;
     }
-
-    qDebug() << funcName << " - 元数据加载成功. BinFile:" << binFileName
-             << "SchemaVersion:" << schemaVersion << "Columns:" << columns.size()
-             << "ExistingRows:" << totalRowCount;
 
     // 2. 获取二进制文件路径
     QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
     if (absoluteBinFilePath.isEmpty())
     {
-        qWarning() << funcName << " - " << errorMessage;
+        qWarning() << funcName << " - [NEW] " << errorMessage;
         return false;
     }
 
-    qDebug() << funcName << " - 二进制文件绝对路径:" << absoluteBinFilePath;
-
-    // 3. 打开文件进行写入
-    QFile file(absoluteBinFilePath);
-    if (!file.open(QIODevice::ReadWrite))
+    // 3. 调用BinaryFileHelper执行插入操作
+    using Persistence::BinaryFileHelper;
+    if (!BinaryFileHelper::insertRowsInBinary(absoluteBinFilePath, columns, schemaVersion, startIndex, rows, errorMessage))
     {
-        errorMessage = "无法打开二进制文件: " + file.errorString();
-        qWarning() << funcName << " - " << errorMessage;
+        qWarning() << funcName << " - [NEW] BinaryFileHelper插入行失败: " << errorMessage;
         return false;
     }
 
-    // 4. 读取文件头
-    QDataStream stream(&file);
-    stream.setVersion(QDataStream::Qt_5_15);
-
-    // 读取文件头
-    qint32 fileVersion;
-    qint32 existingRows;
-    stream >> fileVersion >> existingRows;
-
-    if (stream.status() != QDataStream::Ok)
-    {
-        errorMessage = "读取文件头失败";
-        qWarning() << funcName << " - " << errorMessage;
-        file.close();
-        return false;
-    }
-
-    // 5. 验证插入位置
-    if (startIndex < 0 || startIndex > existingRows)
-    {
-        errorMessage = QString("插入位置无效: %1 (总行数: %2)").arg(startIndex).arg(existingRows);
-        qWarning() << funcName << " - " << errorMessage;
-        file.close();
-        return false;
-    }
-
-    // 6. 创建临时文件
-    QString tempFilePath = absoluteBinFilePath + ".tmp";
-    QFile tempFile(tempFilePath);
-    if (!tempFile.open(QIODevice::WriteOnly))
-    {
-        errorMessage = "无法创建临时文件: " + tempFile.errorString();
-        qWarning() << funcName << " - " << errorMessage;
-        file.close();
-        return false;
-    }
-
-    QDataStream outStream(&tempFile);
-    outStream.setVersion(QDataStream::Qt_5_15);
-
-    // 写入新的文件头
-    outStream << fileVersion << (existingRows + rows.size());
-
-    // 7. 复制前半部分数据
-    if (startIndex > 0)
-    {
-        QByteArray buffer;
-        qint64 bytesToCopy = file.pos(); // 获取当前位置（文件头之后）
-        buffer = file.read(bytesToCopy);
-        outStream.writeRawData(buffer.constData(), buffer.size());
-    }
-
-    // 8. 写入新数据
-    for (const Vector::RowData &rowData : rows)
-    {
-        // 写入每一行的数据
-        outStream << rowData;
-    }
-
-    // 9. 复制剩余数据
-    if (startIndex < existingRows)
-    {
-        QByteArray buffer;
-        buffer = file.readAll();
-        outStream.writeRawData(buffer.constData(), buffer.size());
-    }
-
-    // 10. 关闭文件
-    file.close();
-    tempFile.close();
-
-    // 11. 替换原文件
-    if (!QFile::remove(absoluteBinFilePath))
-    {
-        errorMessage = "无法删除原文件";
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
-    if (!QFile::rename(tempFilePath, absoluteBinFilePath))
-    {
-        errorMessage = "无法重命名临时文件";
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
-    // 12. 更新数据库中的行数
+    // 4. 更新数据库中的元数据行数
+    int newTotalRowCount = totalRowCount + rows.size();
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
-    query.prepare("UPDATE vector_table_master_record SET total_rows = ? WHERE id = ?");
-    query.addBindValue(existingRows + rows.size());
+    query.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
+    query.addBindValue(newTotalRowCount);
     query.addBindValue(tableId);
 
     if (!query.exec())
     {
         errorMessage = "更新数据库行数失败: " + query.lastError().text();
-        qWarning() << funcName << " - " << errorMessage;
+        qWarning() << funcName << " - [NEW] " << errorMessage;
+        // 注意：即使这里失败，二进制文件也已经修改，可能需要回滚或标记为不一致状态
         return false;
     }
 
-    qDebug() << funcName << " - 向量行数据操作成功完成。";
+    qDebug() << funcName << " - [NEW] 向量行数据操作成功完成，新总行数:" << newTotalRowCount;
     return true;
 }
 
@@ -655,8 +579,47 @@ bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, Vecto
 
 QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
 {
-    qWarning() << "RobustVectorDataHandler::getPageData is not implemented yet.";
-    return {};
+    const QString funcName = "RobustVectorDataHandler::getPageData";
+    QString errorMessage;
+
+    // 1. 加载元数据
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
+    {
+        qWarning() << funcName << " - Failed to load meta for table" << tableId;
+        return {};
+    }
+
+    // 2. 计算分页参数
+    int startRow = pageIndex * pageSize;
+    if (startRow >= totalRowCount)
+    {
+        return {}; // 页码超出范围，返回空列表
+    }
+    int numRows = std::min(pageSize, totalRowCount - startRow);
+
+    // 3. 获取二进制文件路径
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - " << errorMessage;
+        return {};
+    }
+
+    // 4. 从二进制文件读取数据
+    QList<Vector::RowData> pageRows;
+    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, numRows, pageRows))
+    {
+        qWarning() << funcName << " - Failed to read page data from binary file for table" << tableId;
+        return {};
+    }
+
+    qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows for table" << tableId << "page" << pageIndex;
+
+    return pageRows;
 }
 
 QList<Vector::ColumnInfo> RobustVectorDataHandler::getVisibleColumns(int tableId)

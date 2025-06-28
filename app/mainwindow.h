@@ -448,7 +448,7 @@ private:
     QLineEdit *m_waveformValueEditor = nullptr;
 
     // 数据处理器切换控制
-    bool m_useNewDataHandler = false;
+    bool m_useNewDataHandler = true;
     RobustVectorDataHandler *m_robustDataHandler = nullptr;
 };
 

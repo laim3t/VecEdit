@@ -187,6 +187,15 @@ namespace Persistence
                                          const QSet<int> &modifiedRows,
                                          bool preserveIndex = true);
 
+        // [NEW] 插入多行到二进制文件
+        static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                       int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
+                                       QString &errorMessage);
+
+        // 更新二进制文件中的特定行
+        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                       int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
+
     private:
         /**
          * @brief 获取列数据类型对应的固定长度
