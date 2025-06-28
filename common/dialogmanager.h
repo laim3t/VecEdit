@@ -7,10 +7,12 @@
 #include <QDialog>
 #include <QTableWidget>
 
+class RobustVectorDataHandler; // 前向声明
+
 class DialogManager
 {
 public:
-    DialogManager(QWidget *parent = nullptr);
+    DialogManager(QWidget *parent, bool useNewDataHandler, RobustVectorDataHandler *robustDataHandler);
 
     // 显示管脚选择对话框
     bool showPinSelectionDialog(int tableId, const QString &tableName);
@@ -32,6 +34,8 @@ public:
 
 private:
     QWidget *m_parent;
+    bool m_useNewDataHandler;
+    RobustVectorDataHandler *m_robustDataHandler;
 };
 
 #endif // DIALOGMANAGER_H

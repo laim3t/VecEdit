@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupMenu();
 
     // 创建对话框管理器
-    m_dialogManager = new DialogManager(this);
+    m_dialogManager = new DialogManager(this, m_useNewDataHandler, m_robustDataHandler);
 
     // 设置窗口标题和大小
     setWindowTitle("向量编辑器");
@@ -113,7 +113,7 @@ void MainWindow::setupMenu()
     // 新建项目
     m_newProjectAction = fileMenu->addAction(tr("新建项目(&N)"));
     connect(m_newProjectAction, &QAction::triggered, this, &MainWindow::createNewProject);
-    
+
     // 新建项目(新架构)
     QAction *newProjectNewArchAction = fileMenu->addAction(tr("新建项目(新架构)"));
     connect(newProjectNewArchAction, &QAction::triggered, this, &MainWindow::createNewProjectWithNewArch);

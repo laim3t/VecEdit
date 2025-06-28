@@ -5,6 +5,7 @@
 #include "timeset/timesetdialog.h"
 #include "pin/pinvalueedit.h"
 #include "vector/vectordatahandler.h"
+#include "vector/robustvectordatahandler.h"
 #include "pin/pingroupdialog.h"
 #include <QObject>
 
@@ -37,8 +38,10 @@ struct PinDataFromDialog
     bool isChecked;
 };
 
-DialogManager::DialogManager(QWidget *parent)
-    : m_parent(parent)
+DialogManager::DialogManager(QWidget *parent, bool useNewDataHandler, RobustVectorDataHandler *robustDataHandler)
+    : m_parent(parent),
+      m_useNewDataHandler(useNewDataHandler),
+      m_robustDataHandler(robustDataHandler)
 {
 }
 

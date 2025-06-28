@@ -1,4 +1,3 @@
-
 bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, int startIndex)
 {
     // 创建向量行数据录入对话框
@@ -426,11 +425,38 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                  << "，起始索引:" << actualStartIndex << "，总行数:" << totalRowCount
                  << "，追加模式:" << appendToEndCheckbox->isChecked();
         
-        // 传递实际的向量表和正确的追加标志
-        bool success = dataHandler.insertVectorRows(
-            tableId, actualStartIndex, totalRowCount, timesetCombo->currentData().toInt(),
-            vectorTable, appendToEndCheckbox->isChecked(), selectedPins, errorMessage
-        );
+        // 调用VectorDataHandler插入行
+        bool success = false;
+
+        if (m_useNewDataHandler)
+        {
+            if (m_robustDataHandler) {
+                success = m_robustDataHandler->insertVectorRows(
+                    tableId,
+                    actualStartIndex,
+                    totalRowCount,
+                    timesetCombo->currentData().toInt(),
+                    vectorTable,
+                    appendToEndCheckbox->isChecked(),
+                    selectedPins,
+                    errorMessage);
+            } else {
+                errorMessage = "RobustVectorDataHandler is not initialized.";
+                qCritical() << "DialogManager::showVectorDataDialog - " << errorMessage;
+            }
+        }
+        else
+        {
+            success = VectorDataHandler::instance().insertVectorRows(
+                tableId,
+                actualStartIndex,
+                totalRowCount,
+                timesetCombo->currentData().toInt(),
+                vectorTable,
+                appendToEndCheckbox->isChecked(),
+                selectedPins,
+                errorMessage);
+        }
         
         // 恢复按钮状态
         saveButton->setEnabled(true);

@@ -1,6 +1,6 @@
 #include "vectortablemodel.h"
 #include "../vector/vectordatahandler.h"
-#include "../vector/robustvectordatahandler.h"  // 添加新数据处理器头文件
+#include "../vector/robustvectordatahandler.h" // 添加新数据处理器头文件
 #include "../database/binaryfilehelper.h"
 #include "../database/databasemanager.h"
 #include <QDebug>
@@ -8,7 +8,7 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 
-VectorTableModel::VectorTableModel(QObject *parent, bool useNewDataHandler, RobustVectorDataHandler* robustDataHandler)
+VectorTableModel::VectorTableModel(QObject *parent, bool useNewDataHandler, RobustVectorDataHandler *robustDataHandler)
     : QAbstractTableModel(parent),
       m_tableId(0),
       m_currentPage(0),
@@ -172,23 +172,32 @@ void VectorTableModel::loadPage(int tableId, int page)
     beginResetModel();
 
     // 获取列信息
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_columns = m_robustDataHandler->getVisibleColumns(tableId);
-    } else {
+    }
+    else
+    {
         m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
     }
 
     // 获取总行数
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
-    } else {
+    }
+    else
+    {
         m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
     }
 
     // 获取当前页数据
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_pageData = m_robustDataHandler->getPageData(tableId, page, m_pageSize);
-    } else {
+    }
+    else
+    {
         m_pageData = VectorDataHandler::instance().getPageData(tableId, page, m_pageSize);
     }
 
@@ -286,9 +295,12 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
 
     // 标记为已修改
     int globalRowIndex = m_currentPage * m_pageSize + index.row();
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_robustDataHandler->markRowAsModified(m_tableId, globalRowIndex);
-    } else {
+    }
+    else
+    {
         VectorDataHandler::instance().markRowAsModified(m_tableId, globalRowIndex);
     }
 
@@ -310,12 +322,15 @@ bool VectorTableModel::saveData(QString &errorMessage)
 
     // 检查是否有任何修改
     bool hasModifications;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         hasModifications = m_robustDataHandler->isRowModified(m_tableId, -1);
-    } else {
+    }
+    else
+    {
         hasModifications = VectorDataHandler::instance().isRowModified(m_tableId, -1);
     }
-    
+
     if (!hasModifications)
     {
         errorMessage = "没有检测到数据变更，跳过保存";
@@ -394,10 +409,13 @@ bool VectorTableModel::saveData(QString &errorMessage)
 
     // 调用VectorDataHandler保存数据
     bool success;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         success = m_robustDataHandler->saveVectorTableDataPaged(
             m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
-    } else {
+    }
+    else
+    {
         success = VectorDataHandler::instance().saveVectorTableDataPaged(
             m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
     }
@@ -617,75 +635,37 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
     const QString funcName = "VectorTableModel::insertRows";
     qDebug() << funcName << "- 开始在位置" << row << "插入" << count << "行";
 
-    // 默认使用的TimeSet ID (可以从第一行获取或使用默认值1)
-    int timesetId = 1;
-    if (!m_pageData.isEmpty() && m_pageData.first().size() > 0) {
-        // 尝试从第一行获取TimeSet ID
-        for (int i = 0; i < m_columns.size(); i++) {
-            if (m_columns[i].type == Vector::ColumnDataType::TIMESET_ID) {
-                timesetId = m_pageData.first()[i].toInt();
-                break;
-            }
-        }
-    }
+    // 注意：这里的实现将通过多次调用addNewRow来完成，
+    // 这确保了无论是新架构还是旧架构，数据都能被正确持久化。
+    // addNewRow 内部已经处理了 if-else 逻辑。
 
-    // 创建一个空的行数据结构
-    Vector::RowData emptyRow;
-    for (int i = 0; i < m_columns.size(); i++) {
-        // 根据列类型设置默认值
-        switch (m_columns[i].type) {
-            case Vector::ColumnDataType::INTEGER:
-                emptyRow.append(0);
-                break;
-            case Vector::ColumnDataType::REAL:
-                emptyRow.append(0.0);
-                break;
-            case Vector::ColumnDataType::BOOLEAN:
-                emptyRow.append(false);
-                break;
-            case Vector::ColumnDataType::PIN_STATE_ID:
-                emptyRow.append("X"); // 默认管脚状态为X
-                break;
-            case Vector::ColumnDataType::TIMESET_ID:
-                emptyRow.append(timesetId);
-                break;
-            case Vector::ColumnDataType::INSTRUCTION_ID:
-                emptyRow.append(1); // 默认指令ID
-                break;
-            default:
-                emptyRow.append(QString());
-                break;
-        }
-    }
-
-    // 开始插入行
     beginInsertRows(parent, row, row + count - 1);
-    
-    // 计算实际插入点
-    int actualInsertRow = qMin(row, m_pageData.size());
-    
-    // 插入空行
-    for (int i = 0; i < count; i++) {
-        m_pageData.insert(actualInsertRow, emptyRow);
+
+    bool allSuccess = true;
+    for (int i = 0; i < count; ++i)
+    {
+        QString errorMessage;
+        // 使用 addNewRow 添加一个带有默认值的行。
+        // TimeSet ID 和 Pin Values 可以根据需要设置默认值或从上下文中获取。
+        // 这里我们使用默认的 TimeSet ID 1 和空的 Pin 值。
+        if (!addNewRow(1, QMap<int, QString>(), errorMessage))
+        {
+            qWarning() << funcName << "- 插入第" << (i + 1) << "行失败:" << errorMessage;
+            allSuccess = false;
+            break; // 如果有一行失败，则停止
+        }
     }
-    
-    // 更新总行数
-    m_totalRows += count;
-    
-    // 结束插入行
+
     endInsertRows();
 
-    // 标记为已修改
-    for (int i = 0; i < count; i++) {
-        if (m_useNewDataHandler) {
-            m_robustDataHandler->markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
-        } else {
-            VectorDataHandler::instance().markRowAsModified(m_tableId, row + i + (m_currentPage * m_pageSize));
-        }
+    if (allSuccess)
+    {
+        qDebug() << funcName << "- 已成功触发插入" << count << "行";
+        // 重新加载页面以显示新数据
+        loadPage(m_tableId, m_currentPage);
     }
 
-    qDebug() << funcName << "- 已成功插入" << count << "行";
-    return true;
+    return allSuccess;
 }
 
 bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
@@ -699,36 +679,43 @@ bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
 
     // 获取要删除的行的实际索引（考虑分页）
     QList<int> rowIndexes;
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
         rowIndexes.append(row + i + (m_currentPage * m_pageSize));
     }
 
     // 调用VectorDataHandler删除行
     QString errorMessage;
     bool deleteSuccess;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         deleteSuccess = m_robustDataHandler->deleteVectorRows(m_tableId, rowIndexes, errorMessage);
-    } else {
+    }
+    else
+    {
         deleteSuccess = VectorDataHandler::instance().deleteVectorRows(m_tableId, rowIndexes, errorMessage);
     }
-    if (!deleteSuccess) {
+    if (!deleteSuccess)
+    {
         qWarning() << funcName << "- 删除行失败:" << errorMessage;
         return false;
     }
 
     // 开始移除行
     beginRemoveRows(parent, row, row + count - 1);
-    
+
     // 从模型数据中移除行
-    for (int i = 0; i < count; i++) {
-        if (row < m_pageData.size()) {
+    for (int i = 0; i < count; i++)
+    {
+        if (row < m_pageData.size())
+        {
             m_pageData.removeAt(row);
         }
     }
-    
+
     // 更新总行数
     m_totalRows -= count;
-    
+
     // 结束移除行
     endRemoveRows();
 
@@ -741,14 +728,16 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
     const QString funcName = "VectorTableModel::deleteSelectedRows";
     qDebug() << funcName << "- 开始删除选中的行，共" << rowIndexes.size() << "行";
 
-    if (rowIndexes.isEmpty() || m_tableId <= 0) {
+    if (rowIndexes.isEmpty() || m_tableId <= 0)
+    {
         errorMessage = "没有选中任何行或表ID无效";
         return false;
     }
 
     // 获取绝对行索引（考虑分页）
     QList<int> absoluteRowIndexes;
-    for (int rowIndex : rowIndexes) {
+    for (int rowIndex : rowIndexes)
+    {
         // 计算绝对行索引
         int absoluteRowIndex = rowIndex;
         absoluteRowIndexes.append(absoluteRowIndex);
@@ -756,12 +745,16 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
 
     // 调用VectorDataHandler删除行
     bool deleteSuccess;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         deleteSuccess = m_robustDataHandler->deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage);
-    } else {
+    }
+    else
+    {
         deleteSuccess = VectorDataHandler::instance().deleteVectorRows(m_tableId, absoluteRowIndexes, errorMessage);
     }
-    if (!deleteSuccess) {
+    if (!deleteSuccess)
+    {
         qWarning() << funcName << "- 删除行失败:" << errorMessage;
         return false;
     }
@@ -778,19 +771,24 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
     const QString funcName = "VectorTableModel::deleteRowsInRange";
     qDebug() << funcName << "- 开始删除从第" << fromRow << "行到第" << toRow << "行";
 
-    if (fromRow <= 0 || toRow <= 0 || fromRow > toRow || m_tableId <= 0) {
+    if (fromRow <= 0 || toRow <= 0 || fromRow > toRow || m_tableId <= 0)
+    {
         errorMessage = "无效的行范围或表ID";
         return false;
     }
 
     // 调用VectorDataHandler删除行范围
     bool deleteSuccess;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         deleteSuccess = m_robustDataHandler->deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage);
-    } else {
+    }
+    else
+    {
         deleteSuccess = VectorDataHandler::instance().deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage);
     }
-    if (!deleteSuccess) {
+    if (!deleteSuccess)
+    {
         qWarning() << funcName << "- 删除行范围失败:" << errorMessage;
         return false;
     }
@@ -807,18 +805,19 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
     const QString funcName = "VectorTableModel::addNewRow";
     qDebug() << funcName << "- 开始添加新行，TimesetID:" << timesetId;
 
-    if (m_tableId <= 0) {
+    if (m_tableId <= 0)
+    {
         errorMessage = "表ID无效";
         return false;
     }
 
     // 从数据库获取已选择的管脚 - 提前获取管脚信息，这样可以正确设置表格列数
     QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins; // pinId, <pinName, <channelCount, typeName>>
-    
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
-    
+
     // 查询此表关联的管脚信息
     query.prepare("SELECT p.id, pl.pin_name, p.pin_channel_count, t.type_name, p.pin_type "
                   "FROM vector_table_pins p "
@@ -826,32 +825,37 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
                   "JOIN type_options t ON p.pin_type = t.id "
                   "WHERE p.table_id = ?");
     query.addBindValue(m_tableId);
-    
-    if (query.exec()) {
-        while (query.next()) {
+
+    if (query.exec())
+    {
+        while (query.next())
+        {
             int pinId = query.value(0).toInt();
             QString pinName = query.value(1).toString();
             int channelCount = query.value(2).toInt();
             QString typeName = query.value(3).toString();
             int typeId = query.value(4).toInt();
-            
+
             selectedPins.append(qMakePair(pinId, qMakePair(pinName, qMakePair(channelCount, typeName))));
         }
-    } else {
+    }
+    else
+    {
         errorMessage = "获取管脚信息失败：" + query.lastError().text();
         qWarning() << funcName << "- " << errorMessage;
         return false;
     }
-    
+
     // 确保selectedPins不为空
-    if (selectedPins.isEmpty()) {
+    if (selectedPins.isEmpty())
+    {
         errorMessage = "此表没有关联的管脚，请先设置管脚";
         qWarning() << funcName << "- " << errorMessage;
         return false;
     }
-    
+
     qDebug() << funcName << "- 找到" << selectedPins.size() << "个管脚关联到表ID:" << m_tableId;
-    
+
     // 创建临时表格用于传递数据
     // 修正：将列数设置为selectedPins的数量，而不是模型的列数
     QTableWidget tempTable;
@@ -859,61 +863,72 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
     tempTable.setColumnCount(selectedPins.size());
 
     // 设置列 - 只设置管脚列的值（因为这是insertVectorRows期望的格式）
-    for (int col = 0; col < selectedPins.size(); col++) {
+    for (int col = 0; col < selectedPins.size(); col++)
+    {
         const auto &pinInfo = selectedPins[col];
         const int pinId = pinInfo.first;
         const QString &pinName = pinInfo.second.first;
-        
+
         // 设置表格表头，确保与管脚名称匹配
         QTableWidgetItem *headerItem = new QTableWidgetItem(pinName);
         tempTable.setHorizontalHeaderItem(col, headerItem);
-        
+
         // 设置默认值
         QTableWidgetItem *item = new QTableWidgetItem();
-        
+
         // 检查是否有为此管脚提供的值
-        if (pinValues.contains(pinId)) {
+        if (pinValues.contains(pinId))
+        {
             item->setText(pinValues.value(pinId));
-        } else {
+        }
+        else
+        {
             item->setText("X"); // 默认值
         }
-        
+
         tempTable.setItem(0, col, item);
     }
 
     // 使用VectorDataHandler插入行
     // 获取当前表最后一行的索引
     int lastRowIndex;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         lastRowIndex = m_robustDataHandler->getVectorTableRowCount(m_tableId);
-    } else {
+    }
+    else
+    {
         lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
     }
-    
+
     // 调用insertVectorRows插入新行
     bool insertSuccess;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         insertSuccess = m_robustDataHandler->insertVectorRows(
-            m_tableId,          // 表ID
-            lastRowIndex,       // 开始索引
-            1,                  // 行数
-            timesetId,          // TimeSet ID
-            &tempTable,         // 数据表
-            true,               // 追加到末尾
-            selectedPins,       // 选中的管脚信息
-            errorMessage);
-    } else {
-        insertSuccess = VectorDataHandler::instance().insertVectorRows(
-            m_tableId,          // 表ID
-            lastRowIndex,       // 开始索引
-            1,                  // 行数
-            timesetId,          // TimeSet ID
-            &tempTable,         // 数据表
-            true,               // 追加到末尾
-            selectedPins,       // 选中的管脚信息
+            m_tableId,    // 表ID
+            lastRowIndex, // 开始索引
+            1,            // 行数
+            timesetId,    // TimeSet ID
+            &tempTable,   // 数据表
+            true,         // 追加到末尾
+            selectedPins, // 选中的管脚信息
             errorMessage);
     }
-    if (!insertSuccess) {
+    else
+    {
+        insertSuccess = VectorDataHandler::instance().insertVectorRows(
+            m_tableId,    // 表ID
+            lastRowIndex, // 开始索引
+            1,            // 行数
+            timesetId,    // TimeSet ID
+            &tempTable,   // 数据表
+            true,         // 追加到末尾
+            selectedPins, // 选中的管脚信息
+            errorMessage);
+    }
+    if (!insertSuccess)
+    {
         qWarning() << funcName << "- 添加新行失败:" << errorMessage;
         return false;
     }
