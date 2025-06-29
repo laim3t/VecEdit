@@ -776,43 +776,42 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
                                                   int &schemaVersion, int &totalRowCount)
 {
     const QString funcName = "RobustVectorDataHandler::loadVectorTableMeta";
-    qDebug() << funcName << " - 查询表ID:" << tableId;
+    qDebug() << funcName << " - Querying metadata for table ID:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        qWarning() << funcName << " - 数据库未打开";
+    if (!db.isOpen()) {
+        qWarning() << funcName << " - Database is not open.";
         return false;
     }
 
-    // 1. 查询主记录表
+    // 1. Query the master record table
     QSqlQuery metaQuery(db);
     metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
     metaQuery.addBindValue(tableId);
-    if (!metaQuery.exec() || !metaQuery.next())
-    {
-        qWarning() << funcName << " - 查询主记录失败, 表ID:" << tableId << ", 错误:" << metaQuery.lastError().text();
+    if (!metaQuery.exec() || !metaQuery.next()) {
+        qWarning() << funcName << " - Failed to query master record for table ID:" << tableId << ", Error:" << metaQuery.lastError().text();
         return false;
     }
 
     binFileName = metaQuery.value(0).toString();
     schemaVersion = metaQuery.value(1).toInt();
     totalRowCount = metaQuery.value(2).toInt();
-    qDebug() << funcName << " - 文件名:" << binFileName << ", schemaVersion:" << schemaVersion << ", rowCount:" << totalRowCount;
+    qDebug() << funcName << " - Master record OK. Filename:" << binFileName << ", schemaVersion:" << schemaVersion << ", rowCount:" << totalRowCount;
 
-    // 2. 查询列结构 - 只加载IsVisible=1的列
+    // 2. Query column configuration with the corrected schema
+    columns.clear();
     QSqlQuery colQuery(db);
-    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    colQuery.prepare(
+        "SELECT id, column_name, column_order, column_type, is_visible " // Removed data_properties, default_value is not needed for loading
+        "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order"
+    );
     colQuery.addBindValue(tableId);
-    if (!colQuery.exec())
-    {
-        qWarning() << funcName << " - 查询列结构失败, 错误:" << colQuery.lastError().text();
+    if (!colQuery.exec()) {
+        qWarning() << funcName << " - Failed to query column structure, Error:" << colQuery.lastError().text();
         return false;
     }
 
-    columns.clear();
-    while (colQuery.next())
-    {
+    while (colQuery.next()) {
         Vector::ColumnInfo col;
         col.id = colQuery.value(0).toInt();
         col.vector_table_id = tableId;
@@ -820,37 +819,15 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
         col.order = colQuery.value(2).toInt();
         col.original_type_str = colQuery.value(3).toString();
         col.type = Vector::columnDataTypeFromString(col.original_type_str);
-        col.is_visible = colQuery.value(5).toBool();
+        col.is_visible = colQuery.value(4).toBool();
+        
+        // data_properties is no longer used in this simplified schema.
+        // The logic to parse it has been removed.
 
-        QString propStr = colQuery.value(4).toString();
-        if (!propStr.isEmpty())
-        {
-            QJsonParseError err;
-            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            qDebug().nospace() << funcName << " - JSON Parsing Details for Column: '" << col.name
-                               << "', Input: '" << propStr
-                               << "', ErrorCode: " << err.error
-                               << " (ErrorStr: \"" << err.errorString()
-                               << "\"), IsObject: " << doc.isObject();
-
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-            {
-                col.data_properties = doc.object();
-            }
-            else
-            {
-                qWarning().nospace() << funcName << " - 列属性JSON解析失败, 列: '" << col.name
-                                     << "', Input: '" << propStr
-                                     << "', ErrorCode: " << err.error
-                                     << " (ErrorStr: \"" << err.errorString()
-                                     << "\"), IsObject: " << doc.isObject();
-            }
-        }
-
-        col.logDetails(funcName);
         columns.append(col);
     }
 
+    qDebug() << funcName << " - Successfully loaded" << columns.count() << "column configurations.";
     return true;
 }
 
