@@ -207,22 +207,34 @@ CREATE TABLE VectorTableMasterRecord (
 
 -- VectorTableColumnConfiguration 将存储每个二进制数据文件内部的列结构定义
 CREATE TABLE VectorTableColumnConfiguration (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,                   -- 主键
-    master_record_id INTEGER NOT NULL,                      -- 外键，关联到 VectorTableMasterRecord(id)
-    -- original_vector_table_pin_id INTEGER,                -- 可选: 用于映射旧的 vector_table_pins.id
-    column_name TEXT NOT NULL,                              -- 列名 (例如 "Label", "Instruction", "Pin1", "Pin2")
-    column_order INTEGER NOT NULL,                          -- 列的顺序 (0-indexed)
-    column_type TEXT NOT NULL,                              -- 列的数据类型 (例如 "TEXT", "INTEGER", "PIN_STATE_ID", "TIMESET_ID")
-                                                            -- "PIN_STATE_ID" 表示存储的是 pin_options.id
-                                                            -- "TIMESET_ID" 表示存储的是 timeset_list.id
-                                                            -- "INSTRUCTION_ID" 表示存储的是 instruction_options.id
-    data_properties TEXT,                                   -- 可选: 存储此列的其他属性 (例如，如果是管脚列，可以存 pin_list.id, channel_count, type_options.id)
-                                                            -- 建议使用 JSON 格式: '{"pin_list_id": 5, "channel_count": 1, "type_id": 2}'
-    IsVisible BOOLEAN NOT NULL DEFAULT 1,                   -- 标记列是否可见（用于逻辑删除）
-    UNIQUE (master_record_id, column_name),
-    UNIQUE (master_record_id, column_order),
-    FOREIGN KEY (master_record_id) REFERENCES VectorTableMasterRecord(id) ON DELETE CASCADE
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    master_record_id INTEGER NOT NULL,
+    column_name TEXT NOT NULL,
+    column_type TEXT NOT NULL,
+    column_order INTEGER NOT NULL,
+    default_value TEXT,
+    is_visible INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY(master_record_id) REFERENCES VectorTableMasterRecord(id) ON DELETE CASCADE
 );
+
+-- ============================================================================
+-- Micro-level Row Index for RobustVectorDataHandler (New Track)
+--
+-- This table provides a fine-grained index for each row in the binary data file.
+-- It maps a logical row order to its physical offset and size in the file,
+-- enabling high-performance random access, updates, and soft deletes.
+-- ============================================================================
+CREATE TABLE VectorTableRowIndex (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    master_record_id INTEGER NOT NULL,
+    logical_row_order INTEGER NOT NULL,
+    offset INTEGER NOT NULL,
+    size INTEGER NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY(master_record_id) REFERENCES VectorTableMasterRecord(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_vector_table_row_index_master_id_order ON VectorTableRowIndex(master_record_id, logical_row_order);
 
 -- 可选: 创建一个触发器，在 VectorTableMasterRecord 更新时自动更新 updated_at 时间戳
 CREATE TRIGGER trigger_update_vector_table_master_record_updated_at
