@@ -450,6 +450,8 @@ private:
     // 数据处理器切换控制
     bool m_useNewDataHandler = true;
     RobustVectorDataHandler *m_robustDataHandler = nullptr;
+
+    bool updateSelectedPinsAsColumns(int tableId); // 声明新函数
 };
 
 #endif // MAINWINDOW_H

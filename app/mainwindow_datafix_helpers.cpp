@@ -300,22 +300,16 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
             int channelCount = pinQuery.value(3).toInt();
             int pinType = pinQuery.value(4).toInt();
 
-            // 构造JSON属性字符串
-            QString jsonProps = QString("{\"pin_list_id\": %1, \"channel_count\": %2, \"type_id\": %3}")
-                                    .arg(pinId)
-                                    .arg(channelCount)
-                                    .arg(pinType);
-
             // 添加管脚列配置
             QSqlQuery colInsertQuery(db);
             colInsertQuery.prepare("INSERT INTO VectorTableColumnConfiguration "
-                                   "(master_record_id, column_name, column_order, column_type, data_properties) "
-                                   "VALUES (?, ?, ?, ?, ?)");
+                                   "(master_record_id, column_name, column_order, column_type, default_value, is_visible) "
+                                   "VALUES (?, ?, ?, ?, ?, 1)");
             colInsertQuery.addBindValue(tableId);
             colInsertQuery.addBindValue(pinName);
             colInsertQuery.addBindValue(columnOrder++);
             colInsertQuery.addBindValue("PIN_STATE_ID");
-            colInsertQuery.addBindValue(jsonProps);
+            colInsertQuery.addBindValue("0"); // 管脚默认值为 "0"
 
             if (!colInsertQuery.exec())
             {
@@ -444,7 +438,7 @@ bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Ve
 
     // 2. 查询列结构 - 只加载IsVisible=1的列
     QSqlQuery colQuery(db);
-    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND IsVisible = 1 ORDER BY column_order");
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, default_value, is_visible FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND is_visible = 1 ORDER BY column_order");
     colQuery.addBindValue(tableId);
     if (!colQuery.exec())
     {
@@ -464,30 +458,7 @@ bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Ve
         col.type = Vector::columnDataTypeFromString(col.original_type_str);
         col.is_visible = colQuery.value(5).toBool();
 
-        QString propStr = colQuery.value(4).toString();
-        if (!propStr.isEmpty())
-        {
-            QJsonParseError err;
-            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            qDebug().nospace() << funcName << " - JSON Parsing Details for Column: '" << col.name
-                               << "', Input: '" << propStr
-                               << "', ErrorCode: " << err.error
-                               << " (ErrorStr: " << err.errorString()
-                               << "), IsObject: " << doc.isObject();
-
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-            {
-                col.data_properties = doc.object();
-            }
-            else
-            {
-                qWarning().nospace() << funcName << " - 列属性JSON解析判定为失败 (条件分支), 列: '" << col.name
-                                     << "', Input: '" << propStr
-                                     << "', ErrorCode: " << err.error
-                                     << " (ErrorStr: " << err.errorString()
-                                     << "), IsObject: " << doc.isObject();
-            }
-        }
+        col.data_properties = QJsonObject(); // 不再需要解析 data_properties
         columns.append(col);
     }
     return true;
@@ -552,7 +523,7 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 
     QSqlQuery colQuery(db);
     // 获取所有列，无论是否可见，因为迁移需要处理所有物理列
-    colQuery.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible "
+    colQuery.prepare("SELECT id, column_name, column_order, column_type, default_value, is_visible "
                      "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     colQuery.addBindValue(tableId);
 
@@ -572,20 +543,7 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
         col.original_type_str = colQuery.value(3).toString();               // Store the original string
         col.type = Vector::columnDataTypeFromString(col.original_type_str); // Convert to enum
 
-        QString propStr = colQuery.value(4).toString();
-        if (!propStr.isEmpty())
-        {
-            QJsonParseError err;
-            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-            {
-                col.data_properties = doc.object();
-            }
-            else
-            {
-                qWarning() << funcName << " - 解析列属性JSON失败 for column " << col.name << ", error: " << err.errorString();
-            }
-        }
+        col.data_properties = QJsonObject(); // 不再需要解析 data_properties
         col.is_visible = colQuery.value(5).toBool();
         columns.append(col);
     }
@@ -754,4 +712,82 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
 
     qDebug() << funcName << " - 未发现重复的Label值";
     return false;
+}
+
+bool MainWindow::updateSelectedPinsAsColumns(int tableId)
+{
+    const QString funcName = "MainWindow::updateSelectedPinsAsColumns";
+    qDebug() << funcName << " - Starting to update pin columns for tableId:" << tableId;
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen()) {
+        qWarning() << funcName << " - Database is not open.";
+        return false;
+    }
+
+    // 1. 获取该表已选择的管脚
+    QSqlQuery pinQuery(db);
+    pinQuery.prepare(
+        "SELECT p.pin_name "
+        "FROM vector_table_pins vtp "
+        "JOIN pin_list p ON vtp.pin_id = p.id "
+        "WHERE vtp.table_id = ?");
+    pinQuery.addBindValue(tableId);
+
+    if (!pinQuery.exec()) {
+        qWarning() << funcName << " - Failed to query selected pins:" << pinQuery.lastError().text();
+        return false;
+    }
+
+    QStringList pinNames;
+    while (pinQuery.next()) {
+        pinNames << pinQuery.value(0).toString();
+    }
+
+    if (pinNames.isEmpty()) {
+        qInfo() << funcName << " - No pins selected for tableId:" << tableId << ". Nothing to do.";
+        return true; // 没有选择管脚不是一个错误
+    }
+    qDebug() << funcName << " - Found selected pins:" << pinNames;
+
+    // 2. 获取当前最大的 column_order
+    QSqlQuery orderQuery(db);
+    orderQuery.prepare("SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+    orderQuery.addBindValue(tableId);
+    int maxOrder = 0;
+    if (orderQuery.exec() && orderQuery.next()) {
+        maxOrder = orderQuery.value(0).toInt();
+    }
+    qDebug() << funcName << " - Current max column order is:" << maxOrder;
+
+    // 3. 准备插入新列
+    db.transaction(); // 开始事务
+    QSqlQuery insertQuery(db);
+    insertQuery.prepare(
+        "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_type, column_order, default_value, is_visible) "
+        "VALUES (?, ?, ?, ?, ?, 1)");
+
+    for (const QString &pinName : pinNames) {
+        maxOrder++;
+        insertQuery.bindValue(0, tableId);
+        insertQuery.bindValue(1, pinName);
+        insertQuery.bindValue(2, "Pin"); // 管脚列的类型固定为 'Pin'
+        insertQuery.bindValue(3, maxOrder);
+        insertQuery.bindValue(4, "0");   // 默认值设为 '0'
+
+        if (!insertQuery.exec()) {
+            qWarning() << funcName << " - Failed to insert pin column" << pinName << ":" << insertQuery.lastError().text();
+            db.rollback(); // 插入失败，回滚事务
+            return false;
+        }
+    }
+
+    if (!db.commit()) {
+        qWarning() << funcName << " - Transaction commit failed:" << db.lastError().text();
+        db.rollback();
+        return false;
+    }
+    
+    qInfo() << funcName << " - Successfully added" << pinNames.count() << "pin columns to configuration for tableId:" << tableId;
+    return true;
 }

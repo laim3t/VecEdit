@@ -227,7 +227,7 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         }
 
         // Step 3: Insert new pin associations based on dialog selection
-        queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, type_id, channel_count) VALUES (?, ?, ?, ?)");
+        queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) VALUES (?, ?, ?, ?)");
         for (const auto& pin : selectedPins)
         {
             queryHelper.bindValue(0, tableId);
@@ -248,14 +248,11 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
         } else {
             db.rollback();
             qWarning() << "DialogManager::showPinSelectionDialog - Pin association update failed, transaction rolled back.";
-            return false; // Failure
+            return false;
         }
     }
-    else
-    {
-        // 用户点击了"取消向导"
-        return false;
-    }
+
+    return false; // User cancelled the dialog
 }
 
 #include "dialogmanager_1.cpp"

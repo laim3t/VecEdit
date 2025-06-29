@@ -102,21 +102,19 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
     {
         qInfo() << funcName << " - Pin selection was successful for table ID:" << tableId;
 
-        // CRITICAL STEP: Add default columns first.
-        // This is the centralized and correct implementation.
-        if (!addDefaultColumnConfigurations(tableId)) {
-            qCritical() << funcName << " - CRITICAL: Failed to add default column configurations after pin selection. Aborting further setup for table" << tableId;
-            // Optionally show an error message to the user
-            QMessageBox::critical(this, "Setup Error", "Failed to create the basic columns for the new table. The table may be in an inconsistent state.");
-            return;
-        }
+        // CRITICAL STEP: Default columns are now added in addNewVectorTable.
+        // We should NOT add them again here.
+        // if (!addDefaultColumnConfigurations(tableId)) {
+        //     qCritical() << funcName << " - CRITICAL: Failed to add default column configurations after pin selection. Aborting further setup for table" << tableId;
+        //     // Optionally show an error message to the user
+        //     QMessageBox::critical(this, "Setup Error", "Failed to create the basic columns for the new table. The table may be in an inconsistent state.");
+        //     return;
+        // }
 
-        qInfo() << funcName << " - Successfully added default columns. Now proceeding with pin-specific columns.";
+        qInfo() << funcName << " - Proceeding with pin-specific columns.";
 
         // After adding default columns, add the selected pins as new columns.
-        // This assumes you have a function to do this. If not, this is where it would go.
-        // For now, let's assume updateBinaryHeaderColumnCount and reload handle everything.
-        // updateSelectedPinsAsColumns(tableId); // Placeholder for a function that adds pin columns
+        updateSelectedPinsAsColumns(tableId); // Placeholder for a function that adds pin columns
 
         // Now, update the binary header with the final column count
         updateBinaryHeaderColumnCount(tableId);
