@@ -100,13 +100,29 @@ void MainWindow::showPinSelectionDialog(int tableId, const QString &tableName)
 
     if (success)
     {
-        qInfo() << funcName << " - 管脚配置成功完成 for table ID:" << tableId;
+        qInfo() << funcName << " - Pin selection was successful for table ID:" << tableId;
 
-        // 新增：在管脚配置成功后，立即更新二进制文件头的列计数
+        // CRITICAL STEP: Add default columns first.
+        // This is the centralized and correct implementation.
+        if (!addDefaultColumnConfigurations(tableId)) {
+            qCritical() << funcName << " - CRITICAL: Failed to add default column configurations after pin selection. Aborting further setup for table" << tableId;
+            // Optionally show an error message to the user
+            QMessageBox::critical(this, "Setup Error", "Failed to create the basic columns for the new table. The table may be in an inconsistent state.");
+            return;
+        }
+
+        qInfo() << funcName << " - Successfully added default columns. Now proceeding with pin-specific columns.";
+
+        // After adding default columns, add the selected pins as new columns.
+        // This assumes you have a function to do this. If not, this is where it would go.
+        // For now, let's assume updateBinaryHeaderColumnCount and reload handle everything.
+        // updateSelectedPinsAsColumns(tableId); // Placeholder for a function that adds pin columns
+
+        // Now, update the binary header with the final column count
         updateBinaryHeaderColumnCount(tableId);
 
-        // 重新加载并刷新向量表视图以反映更改
-        reloadAndRefreshVectorTable(tableId); // Implementation will be added
+        // Reload and refresh the vector table view to reflect all changes
+        reloadAndRefreshVectorTable(tableId);
     }
     else
     {

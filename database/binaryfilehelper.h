@@ -38,6 +38,10 @@ namespace Persistence
     public:
         BinaryFileHelper();
 
+        // ... C++11 and later, disallow copying
+        BinaryFileHelper(const BinaryFileHelper &) = delete;
+        BinaryFileHelper &operator=(const BinaryFileHelper &) = delete;
+
         /**
          * @brief Reads the BinaryFileHeader from the given I/O device.
          * @param device The I/O device to read from. Must be open and readable.
@@ -195,6 +199,10 @@ namespace Persistence
         static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                        int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
                                        QString &errorMessage);
+
+        // New serialization and deserialization functions
+        static bool serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray);
+        static bool deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData);
 
     private:
         /**

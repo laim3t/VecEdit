@@ -13,6 +13,9 @@
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
 #include <limits> // 添加 std::numeric_limits 所需的头文件
+#include "databasemanager.h" // For database access if needed
+#include <QFile>
+#include "common/binary_file_format.h" // For Header struct
 
 // 初始化静态成员
 QMap<QString, Persistence::BinaryFileHelper::RowOffsetCache> Persistence::BinaryFileHelper::s_fileRowOffsetCache;
@@ -262,4 +265,47 @@ namespace Persistence
     #include "binaryfilehelper_2.cpp"
     #include "binaryfilehelper_3.cpp"
     #include "binaryfilehelper_4.cpp"
+
+    bool Persistence::BinaryFileHelper::serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray)
+    {
+        outByteArray.clear();
+        QDataStream stream(&outByteArray, QIODevice::WriteOnly);
+        stream.setVersion(QDataStream::Qt_5_15); // Or your project's Qt version
+
+        // QDataStream has native support for QList<QVariant>
+        stream << rowData;
+
+        return stream.status() == QDataStream::Ok;
+    }
+
+    bool Persistence::BinaryFileHelper::deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData)
+    {
+        if (inByteArray.isEmpty()) {
+            return false;
+        }
+
+        QDataStream stream(inByteArray);
+        stream.setVersion(QDataStream::Qt_5_15); // Ensure this matches the writing version
+
+        // Clear the output list before reading into it
+        outRowData.clear();
+
+        // QDataStream can read the QList<QVariant> directly
+        stream >> outRowData;
+        
+        // Check for errors during deserialization
+        if (stream.status() != QDataStream::Ok) {
+            // This could happen if the byte array is malformed or truncated
+            qWarning() << "BinaryFileHelper::deserializeRow - QDataStream status is not Ok after reading.";
+            return false;
+        }
+
+        // Additional check to see if we've reached the end of the stream.
+        // If not, it might indicate a problem (e.g., extra, unexpected data).
+        if (!stream.atEnd()) {
+            qWarning() << "BinaryFileHelper::deserializeRow - Stream not at end after deserializing row data. Possible malformed data.";
+        }
+        
+        return true;
+    }
 } // namespace Persistence

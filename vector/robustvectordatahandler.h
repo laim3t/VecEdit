@@ -59,6 +59,17 @@ public:
     // 获取指定表的所有行数据
     QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
 
+    /**
+     * @brief Inserts multiple rows of vector data into the specified table using the new high-performance indexing mechanism.
+     * @param tableId The ID of the target vector table.
+     * @param logicalStartIndex The logical index where the new rows should be inserted.
+     * @param rows The list of row data to insert.
+     * @param errorMessage An output parameter to hold any error messages.
+     * @return True if the insertion was successful, false otherwise.
+     */
+    bool insertVectorRows(int tableId, int logicalStartIndex, const QList<Vector::RowData>& rows, QString& errorMessage);
+
+    // @deprecated This version is tied to older UI logic. Use the new overload without UI-specific parameters.
     // 插入多行向量数据
     bool insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage);
 

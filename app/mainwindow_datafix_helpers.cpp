@@ -152,137 +152,76 @@ QList<Vector::RowData> MainWindow::adaptRowDataToNewColumns(const QList<Vector::
 bool MainWindow::addDefaultColumnConfigurations(int tableId)
 {
     const QString funcName = "MainWindow::addDefaultColumnConfigurations";
-    qDebug() << funcName << " - 开始为表ID " << tableId << " 添加默认列配置";
+    qDebug() << funcName << " - Re-implementing for new schema. Adding default columns for table ID:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        qCritical() << funcName << " - 数据库未打开";
+    if (!db.isOpen()) {
+        qCritical() << funcName << " - Database is not open.";
         return false;
     }
 
-    db.transaction();
-
-    try
-    {
-        QSqlQuery query(db);
-
-        // 添加标准列配置
-        // 1. 添加Label列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Label");
-        query.addBindValue(0);
-        query.addBindValue("TEXT");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加Label列: " + query.lastError().text());
-        }
-
-        // 2. 添加Instruction列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Instruction");
-        query.addBindValue(1);
-        query.addBindValue("INSTRUCTION_ID");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加Instruction列: " + query.lastError().text());
-        }
-
-        // 3. 添加TimeSet列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("TimeSet");
-        query.addBindValue(2);
-        query.addBindValue("TIMESET_ID");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加TimeSet列: " + query.lastError().text());
-        }
-
-        // 4. 添加Capture列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Capture");
-        query.addBindValue(3);
-        query.addBindValue("BOOLEAN");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加Capture列: " + query.lastError().text());
-        }
-
-        // 5. 添加EXT列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("EXT");
-        query.addBindValue(4);
-        query.addBindValue("TEXT");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加EXT列: " + query.lastError().text());
-        }
-
-        // 6. 添加Comment列
-        query.prepare("INSERT INTO VectorTableColumnConfiguration "
-                      "(master_record_id, column_name, column_order, column_type, data_properties) "
-                      "VALUES (?, ?, ?, ?, ?)");
-        query.addBindValue(tableId);
-        query.addBindValue("Comment");
-        query.addBindValue(5);
-        query.addBindValue("TEXT");
-        query.addBindValue("{}");
-
-        if (!query.exec())
-        {
-            throw QString("无法添加Comment列: " + query.lastError().text());
-        }
-
-        // 更新主记录的列数
-        query.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
-        query.addBindValue(6); // 六个标准列
-        query.addBindValue(tableId);
-
-        if (!query.exec())
-        {
-            throw QString("无法更新主记录的列数: " + query.lastError().text());
-        }
-
-        // 提交事务
-        if (!db.commit())
-        {
-            throw QString("无法提交事务: " + db.lastError().text());
-        }
-
-        qDebug() << funcName << " - 成功添加默认列配置";
-        return true;
+    if (!db.transaction()) {
+        qCritical() << funcName << " - Failed to start a database transaction:" << db.lastError().text();
+        return false;
     }
-    catch (const QString &error)
-    {
-        qCritical() << funcName << " - 错误: " << error;
+
+    struct DefaultColumn {
+        QString name;
+        QString type;
+        int order;
+        QString defaultValue;
+    };
+
+    const QList<DefaultColumn> columns_to_add = {
+        {"Label",       "TEXT",           0, ""},
+        {"Instruction", "INSTRUCTION_ID", 1, "0"},
+        {"TimeSet",     "TIMESET_ID",     2, "1"},
+        {"Capture",     "BOOLEAN",        3, "0"},
+        {"EXT",         "TEXT",           4, ""},
+        {"Comment",     "TEXT",           5, ""}
+    };
+
+    QSqlQuery query(db);
+    query.prepare(
+        "INSERT INTO VectorTableColumnConfiguration "
+        "(master_record_id, column_name, column_type, column_order, default_value, is_visible) "
+        "VALUES (?, ?, ?, ?, ?, 1)"
+    );
+
+    for (const auto& col : columns_to_add) {
+        query.bindValue(0, tableId);
+        query.bindValue(1, col.name);
+        query.bindValue(2, col.type);
+        query.bindValue(3, col.order);
+        query.bindValue(4, col.defaultValue);
+
+        if (!query.exec()) {
+            const QString errorMsg = QString("Failed to add column '%1': %2").arg(col.name).arg(query.lastError().text());
+            qCritical() << funcName << " - Error:" << errorMsg;
+            db.rollback();
+            return false;
+        }
+    }
+    
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
+    updateQuery.addBindValue(columns_to_add.size());
+    updateQuery.addBindValue(tableId);
+    if (!updateQuery.exec()) {
+        const QString errorMsg = "Failed to update master record column count: " + updateQuery.lastError().text();
+        qCritical() << funcName << " - Error:" << errorMsg;
         db.rollback();
         return false;
     }
+
+    if (!db.commit()) {
+        qCritical() << funcName << " - Failed to commit the transaction:" << db.lastError().text();
+        db.rollback(); // Attempt to rollback, though commit failed.
+        return false;
+    }
+
+    qDebug() << funcName << " - Successfully added" << columns_to_add.size() << "default columns.";
+    return true;
 }
 
 /**
