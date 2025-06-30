@@ -177,9 +177,9 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         qint64 offset = binFile.size();
 
         QByteArray rowByteArray;
-        if (!Persistence::BinaryFileHelper::serializeRow(row, rowByteArray))
+        if (!Persistence::BinaryFileHelper::serializeRow(row, m_columns, rowByteArray))
         {
-            errorMessage = QString("Failed to serialize row at logical index %1.").arg(logicalStartIndex + i);
+            errorMessage = QString("Failed to serialize row for insertion at index %1.").arg(logicalStartIndex + i);
             success = false;
             break;
         }
@@ -467,15 +467,9 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget 
 
         // 4. 读取页面数据
         QList<Vector::RowData> pageRows;
-        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, tableId, pageRows))
+        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, pageSize, pageRows))
         {
-            qWarning() << funcName << " - 无法读取二进制文件数据";
-
-            // 恢复更新和信号
-            tableWidget->blockSignals(false);
-            tableWidget->verticalHeader()->setUpdatesEnabled(true);
-            tableWidget->horizontalHeader()->setUpdatesEnabled(true);
-            tableWidget->setUpdatesEnabled(true);
+            qWarning() << "Failed to read page data from binary file for table" << tableId;
             return false;
         }
 
@@ -689,10 +683,10 @@ QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pag
 
     // 4. 从二进制文件读取数据
     QList<Vector::RowData> pageRows;
-    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, tableId, pageRows))
+    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, pageSize, pageRows))
     {
-        qWarning() << funcName << " - Failed to read page data from binary file for table" << tableId;
-        return {};
+        qWarning() << "Failed to get page data from binary file for table" << tableId;
+        return {}; // Return empty list on failure
     }
 
     qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows for table" << tableId << "page" << pageIndex;
@@ -872,28 +866,29 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
 bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinFilePath,
                                                      const QList<Vector::ColumnInfo> &columns,
                                                      int schemaVersion,
-                                                     int masterRecordId,
+                                                     int startRow,
+                                                     int numRows,
                                                      QList<Vector::RowData> &pageRows)
 {
-    const QString funcName = "RobustVectorDataHandler::readPageDataFromBinary";
-    qDebug() << funcName << "- [Full Read Mode] Reading all data from:" << absoluteBinFilePath;
-
-    pageRows.clear();
-
-    // Call the new, index-based read method
-    bool success = Persistence::BinaryFileHelper::readAllRowsFromBinary(
-        absoluteBinFilePath,
-        columns,
-        schemaVersion,
-        pageRows,
-        masterRecordId);
-
-    if (!success)
+    if (m_cancelOperation.load())
     {
-        qWarning() << funcName << "- Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
+        qDebug() << "Operation cancelled before reading page data.";
         return false;
     }
 
-    qDebug() << funcName << "- Successfully read" << pageRows.size() << "rows.";
-    return true;
+    // Since this is the implementation, it should call the static helper from Persistence
+    // FIX 5: Call the correct helper function with correct parameters
+    bool success = Persistence::BinaryFileHelper::readPageDataFromBinary(absoluteBinFilePath,
+                                                                         columns,
+                                                                         schemaVersion,
+                                                                         startRow,
+                                                                         numRows,
+                                                                         pageRows);
+
+    if (!success)
+    {
+        qWarning() << "RobustVectorDataHandler::readPageDataFromBinary - Persistence helper failed to read page data.";
+    }
+
+    return success;
 }

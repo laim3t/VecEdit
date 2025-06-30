@@ -36,27 +36,71 @@ namespace Persistence
     class BinaryFileHelper
     {
     public:
-        BinaryFileHelper();
-
-        // ... C++11 and later, disallow copying
+        // This is a static utility class, disallow instantiation.
+        BinaryFileHelper() = delete;
+        ~BinaryFileHelper() = delete;
         BinaryFileHelper(const BinaryFileHelper &) = delete;
         BinaryFileHelper &operator=(const BinaryFileHelper &) = delete;
 
-        /**
-         * @brief Reads the BinaryFileHeader from the given I/O device.
-         * @param device The I/O device to read from. Must be open and readable.
-         * @param header Output parameter to store the read header.
-         * @return True if the header was read and validated successfully, false otherwise.
-         */
+        // --- Core Header and Row I/O ---
         static bool readBinaryHeader(QIODevice *device, BinaryFileHeader &header);
-
-        /**
-         * @brief Writes the BinaryFileHeader to the given I/O device.
-         * @param device The I/O device to write to. Must be open and writable.
-         * @param header The header data to write.
-         * @return True if the header was written successfully, false otherwise.
-         */
         static bool writeBinaryHeader(QIODevice *device, const BinaryFileHeader &header);
+        static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow);
+        static bool deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData);
+
+        // --- Full File Read/Write ---
+
+        // [New Track - Indexed Read for RobustVectorDataHandler]
+        static bool readAllRowsFromBinary(const QString &binFilePath,
+                                          const QList<Vector::ColumnInfo> &columns,
+                                          int schemaVersion, QList<QList<QVariant>> &rows,
+                                          int masterRecordId);
+
+        // [Old Track - Fixed-Width Read for backward compatibility]
+        static bool readAllRowsFromBinary(const QString &binFilePath,
+                                          const QList<Vector::ColumnInfo> &columns,
+                                          int schemaVersion, QList<QList<QVariant>> &rows);
+
+        static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                         int schemaVersion, const QList<Vector::RowData> &rows);
+
+        // --- Incremental/Paged Read/Write ---
+        static bool readPageDataFromBinary(const QString &absoluteBinFilePath,
+                                           const QList<Vector::ColumnInfo> &columns,
+                                           int schemaVersion,
+                                           int startRow,
+                                           int numRows,
+                                           QList<Vector::RowData> &pageRows);
+
+        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                       int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
+
+        static bool robustUpdateRowsInBinary(const QString &binFilePath,
+                                             const QList<Vector::ColumnInfo> &columns,
+                                             int schemaVersion,
+                                             const QMap<int, Vector::RowData> &modifiedRows);
+
+        static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
+                                       int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
+                                       QString &errorMessage);
+
+        // --- Header/Metadata Manipulation ---
+        static bool updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount);
+
+        // --- Cache Management ---
+        static void clearRowOffsetCache(const QString &binFilePath);
+        static void clearAllRowOffsetCaches();
+        static void updateRowOffsetCache(const QString &binFilePath,
+                                         const QSet<int> &modifiedRows,
+                                         bool preserveIndex = true);
+
+    private:
+        /**
+         * @brief 获取列数据类型对应的固定长度
+         * @param type 列数据类型
+         * @return 对应数据类型的固定长度（字节数）
+         */
+        static int getFixedLengthForType(Vector::ColumnDataType type);
 
         /**
          * @brief 获取给定数据类型和列名在二进制存储中的固定长度
@@ -69,161 +113,6 @@ namespace Persistence
          * @return 字段的固定存储长度
          */
         static int getFixedLengthForType(Vector::ColumnDataType type, const QString &columnName = QString());
-
-        /**
-         * @brief 序列化一行数据为二进制字节流
-         * @param rowData 内存中的一行数据（与列顺序一致）
-         * @param columns 列信息（顺序与 rowData 对应）
-         * @param serializedRow 输出的二进制字节流
-         * @return 成功返回 true，失败返回 false
-         */
-        static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow);
-
-        /**
-         * @brief 从二进制字节流反序列化为一行数据
-         * @param bytes 输入的二进制字节流
-         * @param columns 列信息（顺序与目标 rowData 对应）
-         * @param fileVersion 文件头中的数据 schema 版本
-         * @param rowData 输出的内存行数据
-         * @return 成功返回 true，失败返回 false
-         */
-        static bool deserializeRow(const QByteArray &bytes, const QList<Vector::ColumnInfo> &columns, int fileVersion, Vector::RowData &rowData);
-
-        /**
-         * @brief 从二进制文件读取所有行数据
-         *
-         * 支持文件格式特性：
-         * 1. 能够处理标准行数据格式
-         * 2. 支持重定位标记(0xFFFFFFFF)识别，可以跟随重定位指针读取实际数据
-         * 3. 在遇到重定位指针时，自动跳转到指定位置读取数据，然后返回继续处理后续行
-         *
-         * @param binFilePath 二进制文件的绝对路径
-         * @param columns 列信息
-         * @param schemaVersion 数据库中的schema版本
-         * @param rows 输出参数，存储读取的所有行数据
-         * @param masterRecordId 用于查询正确的行索引
-         * @return bool 成功返回true，失败返回false
-         */
-        static bool readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                          int schemaVersion, QList<Vector::RowData> &rows,
-                                          int masterRecordId);
-
-        /**
-         * @brief 将所有行数据写入二进制文件
-         *
-         * @param binFilePath 二进制文件的绝对路径
-         * @param columns 列信息
-         * @param schemaVersion 数据库中的schema版本
-         * @param rows 要写入的所有行数据
-         * @return bool 成功返回true，失败返回false
-         */
-        static bool writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                         int schemaVersion, const QList<Vector::RowData> &rows);
-
-        /**
-         * @brief 只更新二进制文件中被修改的行数据
-         *
-         * 与writeAllRowsToBinary不同，此方法只更新被修改的行，采用随机写入方式，避免重写整个文件
-         *
-         * 优化特点：
-         * 1. 直接对原文件进行随机写入，无需创建临时文件
-         * 2. 对于不需要更改的行数据，完全不读取，减少I/O操作
-         * 3. 当新数据大于原数据空间时，使用重定位机制：
-         *    - 将大数据写到文件末尾
-         *    - 在原位置留下重定位指针(0xFFFFFFFF标记 + qint64位置)
-         * 4. 能够处理大文件的部分更新，显著提高性能
-         *
-         * @param binFilePath 二进制文件的绝对路径
-         * @param columns 列信息
-         * @param schemaVersion 数据库中的schema版本
-         * @param modifiedRows 键为行索引，值为行数据的Map
-         * @return bool 成功返回true，失败返回false
-         */
-        static bool updateRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                       int schemaVersion, const QMap<int, Vector::RowData> &modifiedRows);
-
-        // 第4版更新二进制文件中的行实现（仅内部使用）
-        static bool updateRowsInBinary_v4(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                          int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
-
-        /**
-         * @brief 强健的增量更新实现，能够处理文件损坏和异常大小情况
-         *
-         * 这是一个全新实现的方法，用于替代原有的updateRowsInBinary，
-         * 采用更保守和健壮的方式读取和更新二进制文件，确保在各种情况下都能正常工作。
-         *
-         * 特点：
-         * 1. 不完全信任文件中的大小值，而是采用实际文件大小和预期格式进行验证
-         * 2. 能够检测和处理文件损坏情况
-         * 3. 即使部分行更新失败，也会尽可能完成其他行的更新
-         * 4. 提供详细的诊断信息
-         *
-         * @param binFilePath 二进制文件路径
-         * @param columns 列定义信息
-         * @param schemaVersion 数据库Schema版本
-         * @param modifiedRows 需要更新的行数据
-         * @return bool 操作是否成功
-         */
-        static bool robustUpdateRowsInBinary(const QString &binFilePath,
-                                             const QList<Vector::ColumnInfo> &columns,
-                                             int schemaVersion,
-                                             const QMap<int, Vector::RowData> &modifiedRows);
-
-        /**
-         * @brief 清除指定文件的行偏移缓存
-         * 当文件被修改（如全量重写）后调用，确保缓存数据的一致性
-         *
-         * @param binFilePath 二进制文件路径
-         */
-        static void clearRowOffsetCache(const QString &binFilePath);
-
-        /**
-         * @brief 清除所有文件的行偏移缓存
-         * 当应用需要释放内存或重置状态时调用
-         */
-        static void clearAllRowOffsetCaches();
-
-        /**
-         * @brief 智能更新行偏移缓存，适用于增量更新场景
-         *
-         * 不同于clearRowOffsetCache完全删除缓存和索引文件，
-         * 此方法仅更新被修改行的缓存信息，并保留索引文件
-         *
-         * @param binFilePath 二进制文件路径
-         * @param modifiedRows 被修改的行索引
-         * @param preserveIndex 是否保留索引文件（默认为true）
-         */
-        static void updateRowOffsetCache(const QString &binFilePath,
-                                         const QSet<int> &modifiedRows,
-                                         bool preserveIndex = true);
-
-        // [NEW] 插入多行到二进制文件
-        static bool insertRowsInBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                       int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
-                                       QString &errorMessage);
-
-        // New serialization and deserialization functions
-        static bool serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray);
-        static bool deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData);
-
-        // 从二进制文件读取所有行数据 - 新接口，支持分页
-        static bool readPageDataFromBinary(const QString &absoluteBinFilePath,
-                                           const QList<Vector::ColumnInfo> &columns,
-                                           int schemaVersion,
-                                           int startRow,
-                                           int numRows,
-                                           QList<Vector::RowData> &pageRows);
-
-        // 更新二进制文件头中的行计数值
-        static bool updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount);
-
-    private:
-        /**
-         * @brief 获取列数据类型对应的固定长度
-         * @param type 列数据类型
-         * @return 对应数据类型的固定长度（字节数）
-         */
-        static int getFixedLengthForType(Vector::ColumnDataType type);
 
         /**
          * @brief 读取行的大小信息并进行合理性验证
@@ -304,6 +193,8 @@ namespace Persistence
          * @return 对应的索引文件路径
          */
         static QString getIndexFilePath(const QString &binFilePath);
+
+        static qint64 calculateExpectedRowSize(const QList<Vector::ColumnInfo> &columns);
     };
 
 } // namespace Persistence
