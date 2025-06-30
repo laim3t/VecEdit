@@ -67,11 +67,7 @@ public:
      * @param errorMessage An output parameter to hold any error messages.
      * @return True if the insertion was successful, false otherwise.
      */
-    bool insertVectorRows(int tableId, int logicalStartIndex, const QList<Vector::RowData>& rows, QString& errorMessage);
-
-    // @deprecated This version is tied to older UI logic. Use the new overload without UI-specific parameters.
-    // 插入多行向量数据
-    bool insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage);
+    bool insertVectorRows(int tableId, int logicalStartIndex, const QList<Vector::RowData> &rows, QString &errorMessage);
 
     // 更新单个向量行
     bool updateVectorRow(int tableId, int rowIndex, const Vector::RowData &rowData, QString &errorMessage);

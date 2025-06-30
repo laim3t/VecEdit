@@ -115,106 +115,141 @@ QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bo
     return {};
 }
 
-bool RobustVectorDataHandler::insertVectorRows(int tableId, int startIndex, const QList<Vector::RowData> &rows, int timesetId, const QList<QPair<int, QPair<QString, QPair<int, QString>>>> &selectedPins, QString &errorMessage)
-{
-    // TODO: Implement or redirect to the new method if possible.
-    // For now, it's a placeholder.
-    errorMessage = "This version of insertVectorRows is deprecated and not implemented.";
-    qWarning() << "RobustVectorDataHandler::insertVectorRows (deprecated) called.";
-    return false;
-}
-
 bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartIndex, const QList<Vector::RowData> &rows, QString &errorMessage)
 {
-    const QString funcName = "RobustVectorDataHandler::insertVectorRows (New)";
+    const QString funcName = "RobustVectorDataHandler::insertVectorRows";
     QSqlDatabase db = DatabaseManager::instance()->database();
 
-    if (!db.transaction()) {
+    // 在事务开始前获取当前的行数
+    int oldRowCount = getVectorTableRowCount(tableId);
+
+    if (!db.transaction())
+    {
         errorMessage = "Failed to start database transaction.";
         qWarning() << funcName << "-" << errorMessage << db.lastError().text();
+        db.rollback();
         return false;
     }
 
     bool success = true;
     QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (binFilePath.isEmpty()) {
+    if (binFilePath.isEmpty())
+    {
         db.rollback();
         return false;
     }
 
+    // 1. 如果不是在末尾插入，需要先更新现有行的逻辑顺序
+    if (logicalStartIndex < oldRowCount)
+    {
+        QSqlQuery shiftQuery(db);
+        shiftQuery.prepare("UPDATE VectorTableRowIndex SET logical_row_order = logical_row_order + ? WHERE master_record_id = ? AND logical_row_order >= ?");
+        shiftQuery.addBindValue(rows.count());
+        shiftQuery.addBindValue(tableId);
+        shiftQuery.addBindValue(logicalStartIndex);
+        if (!shiftQuery.exec())
+        {
+            errorMessage = "Failed to shift existing row indexes: " + shiftQuery.lastError().text();
+            qWarning() << funcName << "-" << errorMessage;
+            db.rollback();
+            return false;
+        }
+    }
+
+    // 2. 将新行写入二进制文件，并为其创建索引
     QFile binFile(binFilePath);
-    if (!binFile.open(QIODevice::Append)) {
+    if (!binFile.open(QIODevice::Append))
+    {
         errorMessage = "Failed to open binary file for appending: " + binFile.errorString();
         qWarning() << funcName << "-" << errorMessage;
         db.rollback();
         return false;
     }
 
-    QSqlQuery insertQuery(db);
-    insertQuery.prepare(
+    QSqlQuery insertIndexQuery(db);
+    insertIndexQuery.prepare(
         "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
-        "VALUES (?, ?, ?, ?, 1)"
-    );
+        "VALUES (?, ?, ?, ?, 1)");
 
-    for (int i = 0; i < rows.count(); ++i) {
+    for (int i = 0; i < rows.count(); ++i)
+    {
         const Vector::RowData &row = rows.at(i);
         qint64 offset = binFile.size();
 
         QByteArray rowByteArray;
-        if (!Persistence::BinaryFileHelper::serializeRow(row, rowByteArray)) {
+        if (!Persistence::BinaryFileHelper::serializeRow(row, rowByteArray))
+        {
             errorMessage = QString("Failed to serialize row at logical index %1.").arg(logicalStartIndex + i);
             success = false;
             break;
         }
 
         qint64 bytesWritten = binFile.write(rowByteArray);
-        qint64 size = rowByteArray.size();
-
-        if (bytesWritten != size) {
+        if (bytesWritten != rowByteArray.size())
+        {
             errorMessage = QString("Failed to write full row to binary file at logical index %1.").arg(logicalStartIndex + i);
             success = false;
             break;
         }
-        
-        insertQuery.bindValue(0, tableId);
-        insertQuery.bindValue(1, logicalStartIndex + i); // This assumes we are inserting in a contiguous block. A more complex implementation would handle row shifts.
-        insertQuery.bindValue(2, offset);
-        insertQuery.bindValue(3, size);
 
-        if (!insertQuery.exec()) {
-            errorMessage = "Failed to insert row index into database: " + insertQuery.lastError().text();
+        insertIndexQuery.bindValue(0, tableId);
+        insertIndexQuery.bindValue(1, logicalStartIndex + i);
+        insertIndexQuery.bindValue(2, offset);
+        insertIndexQuery.bindValue(3, rowByteArray.size());
+
+        if (!insertIndexQuery.exec())
+        {
+            errorMessage = "Failed to insert row index into database: " + insertIndexQuery.lastError().text();
             success = false;
             break;
         }
     }
+    binFile.close();
 
-    if (success) {
-        // Update the master record's row count
+    // 3. 更新主记录和文件头中的总行数
+    if (success)
+    {
+        int newTotalRowCount = oldRowCount + rows.count();
+
+        // 更新数据库 Master Record
         QSqlQuery updateQuery(db);
-        // This is a simplified update. A robust version would calculate the new total row count.
-        // For an append-only operation, it's `current_count + new_rows_count`.
-        updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count + ? WHERE id = ?");
-        updateQuery.addBindValue(rows.count());
+        updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
+        updateQuery.addBindValue(newTotalRowCount);
         updateQuery.addBindValue(tableId);
-        if (!updateQuery.exec()) {
+        if (!updateQuery.exec())
+        {
             errorMessage = "Failed to update master table row count: " + updateQuery.lastError().text();
             success = false;
         }
-    }
 
-    if (success) {
-        if (!db.commit()) {
-            errorMessage = "Failed to commit database transaction: " + db.lastError().text();
-            success = false;
+        // 更新二进制文件头
+        if (success)
+        {
+            if (!Persistence::BinaryFileHelper::updateRowCountInHeader(binFilePath, newTotalRowCount))
+            {
+                errorMessage = "Critical: Failed to update binary file header with new row count.";
+                success = false;
+            }
         }
     }
 
-    if (!success) {
+    // 4. 根据结果提交或回滚
+    if (success)
+    {
+        if (!db.commit())
+        {
+            errorMessage = "Failed to commit database transaction: " + db.lastError().text();
+            success = false;
+            qWarning() << funcName << "- Commit failed:" << errorMessage;
+            db.rollback();
+        }
+    }
+    else
+    {
         qWarning() << funcName << "-" << errorMessage;
         db.rollback();
     }
-    
-    binFile.close();
+
     return success;
 }
 
@@ -779,7 +814,8 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
     qDebug() << funcName << " - Querying metadata for table ID:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         qWarning() << funcName << " - Database is not open.";
         return false;
     }
@@ -788,7 +824,8 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
     QSqlQuery metaQuery(db);
     metaQuery.prepare("SELECT binary_data_filename, data_schema_version, row_count FROM VectorTableMasterRecord WHERE id = ?");
     metaQuery.addBindValue(tableId);
-    if (!metaQuery.exec() || !metaQuery.next()) {
+    if (!metaQuery.exec() || !metaQuery.next())
+    {
         qWarning() << funcName << " - Failed to query master record for table ID:" << tableId << ", Error:" << metaQuery.lastError().text();
         return false;
     }
@@ -803,15 +840,16 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
     QSqlQuery colQuery(db);
     colQuery.prepare(
         "SELECT id, column_name, column_order, column_type, is_visible " // Removed data_properties, default_value is not needed for loading
-        "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order"
-    );
+        "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     colQuery.addBindValue(tableId);
-    if (!colQuery.exec()) {
+    if (!colQuery.exec())
+    {
         qWarning() << funcName << " - Failed to query column structure, Error:" << colQuery.lastError().text();
         return false;
     }
 
-    while (colQuery.next()) {
+    while (colQuery.next())
+    {
         Vector::ColumnInfo col;
         col.id = colQuery.value(0).toInt();
         col.vector_table_id = tableId;
@@ -820,7 +858,7 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
         col.original_type_str = colQuery.value(3).toString();
         col.type = Vector::columnDataTypeFromString(col.original_type_str);
         col.is_visible = colQuery.value(4).toBool();
-        
+
         // data_properties is no longer used in this simplified schema.
         // The logic to parse it has been removed.
 
@@ -854,7 +892,8 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
         pageRows       // 这是输出参数
     );
 
-    if (!success) {
+    if (!success)
+    {
         qWarning() << funcName << " - Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
         return false;
     }

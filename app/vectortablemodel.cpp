@@ -634,44 +634,83 @@ int VectorTableModel::getTimeSetId(const QString &timeSetName) const
 
 bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-    // 检查参数是否有效
-    if (parent.isValid() || row < 0 || count <= 0 || m_tableId <= 0)
+    if (parent.isValid() || count <= 0)
         return false;
 
-    const QString funcName = "VectorTableModel::insertRows";
-    qDebug() << funcName << "- 开始在位置" << row << "插入" << count << "行";
+    if (!m_robustDataHandler)
+    {
+        qWarning() << "VectorTableModel::insertRows - RobustVectorDataHandler is null.";
+        return false;
+    }
 
-    // 注意：这里的实现将通过多次调用addNewRow来完成，
-    // 这确保了无论是新架构还是旧架构，数据都能被正确持久化。
-    // addNewRow 内部已经处理了 if-else 逻辑。
+    // 1. 获取当前表的列定义，以构建新行的数据结构
+    QList<Vector::ColumnInfo> columns = m_robustDataHandler->getVisibleColumns(m_tableId);
+    if (columns.isEmpty())
+    {
+        qWarning() << "VectorTableModel::insertRows - Failed to get column info for table" << m_tableId;
+        return false;
+    }
+
+    // 2. 根据列定义创建'count'个带有默认值的新行
+    QList<Vector::RowData> rowsToInsert;
+    for (int i = 0; i < count; ++i)
+    {
+        Vector::RowData newRow;
+        for (const auto &colInfo : columns)
+        {
+            // 根据列类型设置合理的默认值
+            switch (colInfo.type)
+            {
+            case Vector::ColumnDataType::TEXT:
+                // 例如，Label 和 Comment 列可以为空
+                if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
+                {
+                    // 为Label列生成一个唯一的、临时的标签
+                    newRow.append(QString("New_Label_%1").arg(QDateTime::currentMSecsSinceEpoch() + i));
+                }
+                else
+                {
+                    newRow.append(QString(""));
+                }
+                break;
+            case Vector::ColumnDataType::INSTRUCTION_ID:
+                newRow.append(1); // 默认指令ID
+                break;
+            case Vector::ColumnDataType::TIMESET_ID:
+                newRow.append(1); // 默认TimeSet ID
+                break;
+            case Vector::ColumnDataType::BOOLEAN: // Capture
+                newRow.append(false);
+                break;
+            case Vector::ColumnDataType::PIN_STATE_ID:
+                newRow.append("X"); // 默认管脚状态
+                break;
+            default:
+                newRow.append(QVariant()); // 其他类型使用空的QVariant
+                break;
+            }
+        }
+        rowsToInsert.append(newRow);
+    }
 
     beginInsertRows(parent, row, row + count - 1);
 
-    bool allSuccess = true;
-    for (int i = 0; i < count; ++i)
+    // 3. 调用新的、正确的insertVectorRows接口
+    QString errorMessage;
+    bool success = m_robustDataHandler->insertVectorRows(m_tableId, row, rowsToInsert, errorMessage);
+
+    if (success)
     {
-        QString errorMessage;
-        // 使用 addNewRow 添加一个带有默认值的行。
-        // TimeSet ID 和 Pin Values 可以根据需要设置默认值或从上下文中获取。
-        // 这里我们使用默认的 TimeSet ID 1 和空的 Pin 值。
-        if (!addNewRow(1, QMap<int, QString>(), errorMessage))
-        {
-            qWarning() << funcName << "- 插入第" << (i + 1) << "行失败:" << errorMessage;
-            allSuccess = false;
-            break; // 如果有一行失败，则停止
-        }
+        // 4. 如果插入成功，重新加载当前页以显示新数据
+        loadPage(m_tableId, m_currentPage);
+    }
+    else
+    {
+        qWarning() << "VectorTableModel::insertRows failed:" << errorMessage;
     }
 
     endInsertRows();
-
-    if (allSuccess)
-    {
-        qDebug() << funcName << "- 已成功触发插入" << count << "行";
-        // 重新加载页面以显示新数据
-        loadPage(m_tableId, m_currentPage);
-    }
-
-    return allSuccess;
+    return success;
 }
 
 bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
@@ -808,162 +847,9 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
 
 bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinValues, QString &errorMessage)
 {
-    const QString funcName = "VectorTableModel::addNewRow";
-    qDebug() << funcName << "- 开始添加新行，TimesetID:" << timesetId;
-
-    if (m_tableId <= 0)
-    {
-        errorMessage = "表ID无效";
-        return false;
-    }
-
-    // 从数据库获取已选择的管脚 - 提前获取管脚信息，这样可以正确设置表格列数
-    QList<QPair<int, QPair<QString, QPair<int, QString>>>> selectedPins; // pinId, <pinName, <channelCount, typeName>>
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-
-    // 查询此表关联的管脚信息
-    query.prepare("SELECT p.id, pl.pin_name, p.pin_channel_count, t.type_name, p.pin_type "
-                  "FROM vector_table_pins p "
-                  "JOIN pin_list pl ON p.pin_id = pl.id "
-                  "JOIN type_options t ON p.pin_type = t.id "
-                  "WHERE p.table_id = ?");
-    query.addBindValue(m_tableId);
-
-    if (query.exec())
-    {
-        while (query.next())
-        {
-            int pinId = query.value(0).toInt();
-            QString pinName = query.value(1).toString();
-            int channelCount = query.value(2).toInt();
-            QString typeName = query.value(3).toString();
-            int typeId = query.value(4).toInt();
-
-            selectedPins.append(qMakePair(pinId, qMakePair(pinName, qMakePair(channelCount, typeName))));
-        }
-    }
-    else
-    {
-        errorMessage = "获取管脚信息失败：" + query.lastError().text();
-        qWarning() << funcName << "- " << errorMessage;
-        return false;
-    }
-
-    // 确保selectedPins不为空
-    if (selectedPins.isEmpty())
-    {
-        errorMessage = "此表没有关联的管脚，请先设置管脚";
-        qWarning() << funcName << "- " << errorMessage;
-        return false;
-    }
-
-    qDebug() << funcName << "- 找到" << selectedPins.size() << "个管脚关联到表ID:" << m_tableId;
-
-    // 使用VectorDataHandler插入行
-    // 获取当前表最后一行的索引
-    int lastRowIndex;
-    if (m_useNewDataHandler)
-    {
-        lastRowIndex = m_robustDataHandler->getVectorTableRowCount(m_tableId);
-    }
-    else
-    {
-        lastRowIndex = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
-    }
-
-    // 调用insertVectorRows插入新行
-    bool insertSuccess;
-    if (m_useNewDataHandler)
-    {
-        // --- 新架构路径 ---
-        // 1. 准备纯数据结构
-        Vector::RowData newRowData;
-        // 注意：这里的列顺序需要与 getVisibleColumns 的顺序严格对应
-        // 此处我们仅为示例，实际应根据 m_columns 构建
-        newRowData.append(QString("Label_%1").arg(lastRowIndex + 1)); // Label
-        newRowData.append(1);                                         // Instruction
-        newRowData.append(timesetId);                                 // TimeSet
-        newRowData.append(false);                                     // Capture
-        newRowData.append("");                                        // Ext
-        newRowData.append("");                                        // Comment
-
-        // 填充管脚数据
-        for (const auto &pin : selectedPins)
-        {
-            int pinId = pin.first;
-            if (pinValues.contains(pinId))
-            {
-                newRowData.append(pinValues.value(pinId));
-            }
-            else
-            {
-                newRowData.append("X"); // 默认值
-            }
-        }
-
-        QList<Vector::RowData> rowsToInsert;
-        rowsToInsert.append(newRowData);
-
-        // 2. 调用新接口
-        insertSuccess = m_robustDataHandler->insertVectorRows(
-            m_tableId,
-            lastRowIndex,
-            rowsToInsert,
-            timesetId,
-            selectedPins,
-            errorMessage);
-    }
-    else
-    {
-        // --- 旧架构路径 (保持不变) ---
-        // 创建临时表格用于传递数据
-        QTableWidget tempTable;
-        tempTable.setRowCount(1);
-        tempTable.setColumnCount(selectedPins.size());
-
-        for (int col = 0; col < selectedPins.size(); col++)
-        {
-            const auto &pinInfo = selectedPins[col];
-            const int pinId = pinInfo.first;
-            const QString &pinName = pinInfo.second.first;
-
-            QTableWidgetItem *headerItem = new QTableWidgetItem(pinName);
-            tempTable.setHorizontalHeaderItem(col, headerItem);
-
-            QTableWidgetItem *item = new QTableWidgetItem();
-            if (pinValues.contains(pinId))
-            {
-                item->setText(pinValues.value(pinId));
-            }
-            else
-            {
-                item->setText("X");
-            }
-            tempTable.setItem(0, col, item);
-        }
-
-        insertSuccess = VectorDataHandler::instance().insertVectorRows(
-            m_tableId,
-            lastRowIndex,
-            1,
-            timesetId,
-            &tempTable,
-            true,
-            selectedPins,
-            errorMessage);
-    }
-    if (!insertSuccess)
-    {
-        qWarning() << funcName << "- 添加新行失败:" << errorMessage;
-        return false;
-    }
-
-    // 重新加载当前页
-    loadPage(m_tableId, m_currentPage);
-
-    qDebug() << funcName << "- 已成功添加新行";
-    return true;
+    // 此方法已废弃，所有行添加操作应通过insertRows进行。
+    // 保留此空函数体是为了防止在完全移除前，某些旧的调用链路导致编译失败。
+    qWarning() << "VectorTableModel::addNewRow is deprecated and should not be used. Use insertRows instead.";
+    errorMessage = "This function is deprecated.";
+    return false;
 }

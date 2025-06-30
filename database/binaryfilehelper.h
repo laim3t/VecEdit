@@ -142,7 +142,7 @@ namespace Persistence
 
         // 第4版更新二进制文件中的行实现（仅内部使用）
         static bool updateRowsInBinary_v4(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                        int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
+                                          int schemaVersion, const QMap<int, Vector::RowData> &rowsToUpdate);
 
         /**
          * @brief 强健的增量更新实现，能够处理文件损坏和异常大小情况
@@ -203,6 +203,17 @@ namespace Persistence
         // New serialization and deserialization functions
         static bool serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray);
         static bool deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData);
+
+        // 从二进制文件读取所有行数据 - 新接口，支持分页
+        static bool readPageDataFromBinary(const QString &absoluteBinFilePath,
+                                           const QList<Vector::ColumnInfo> &columns,
+                                           int schemaVersion,
+                                           int startRow,
+                                           int numRows,
+                                           QList<Vector::RowData> &pageRows);
+
+        // 更新二进制文件头中的行计数值
+        static bool updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount);
 
     private:
         /**

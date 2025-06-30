@@ -12,7 +12,7 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
-#include <limits> // 添加 std::numeric_limits 所需的头文件
+#include <limits>            // 添加 std::numeric_limits 所需的头文件
 #include "databasemanager.h" // For database access if needed
 #include <QFile>
 #include "common/binary_file_format.h" // For Header struct
@@ -261,10 +261,10 @@ namespace Persistence
         }
     }
 
-    #include "binaryfilehelper_1.cpp"
-    #include "binaryfilehelper_2.cpp"
-    #include "binaryfilehelper_3.cpp"
-    #include "binaryfilehelper_4.cpp"
+#include "binaryfilehelper_1.cpp"
+#include "binaryfilehelper_2.cpp"
+#include "binaryfilehelper_3.cpp"
+#include "binaryfilehelper_4.cpp"
 
     bool Persistence::BinaryFileHelper::serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray)
     {
@@ -280,7 +280,8 @@ namespace Persistence
 
     bool Persistence::BinaryFileHelper::deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData)
     {
-        if (inByteArray.isEmpty()) {
+        if (inByteArray.isEmpty())
+        {
             return false;
         }
 
@@ -292,9 +293,10 @@ namespace Persistence
 
         // QDataStream can read the QList<QVariant> directly
         stream >> outRowData;
-        
+
         // Check for errors during deserialization
-        if (stream.status() != QDataStream::Ok) {
+        if (stream.status() != QDataStream::Ok)
+        {
             // This could happen if the byte array is malformed or truncated
             qWarning() << "BinaryFileHelper::deserializeRow - QDataStream status is not Ok after reading.";
             return false;
@@ -302,10 +304,53 @@ namespace Persistence
 
         // Additional check to see if we've reached the end of the stream.
         // If not, it might indicate a problem (e.g., extra, unexpected data).
-        if (!stream.atEnd()) {
+        if (!stream.atEnd())
+        {
             qWarning() << "BinaryFileHelper::deserializeRow - Stream not at end after deserializing row data. Possible malformed data.";
         }
-        
+
+        return true;
+    }
+
+    bool Persistence::BinaryFileHelper::updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount)
+    {
+        const QString funcName = "BinaryFileHelper::updateRowCountInHeader";
+
+        QFile file(absoluteBinFilePath);
+        if (!file.open(QIODevice::ReadWrite))
+        {
+            qWarning() << funcName << "- Failed to open file for update:" << file.errorString();
+            return false;
+        }
+
+        // 计算 row_count_in_file 字段的精确偏移量
+        // sizeof(magic_number -> uint32_t) + sizeof(file_format_version -> uint16_t) + sizeof(data_schema_version -> uint16_t)
+        const qint64 offset = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t);
+
+        // 跳转到该偏移量
+        if (!file.seek(offset))
+        {
+            qWarning() << funcName << "- Failed to seek to row count position:" << file.errorString();
+            file.close();
+            return false;
+        }
+
+        // 使用 QDataStream 以正确的字节序写入
+        QDataStream stream(&file);
+        stream.setByteOrder(QDataStream::LittleEndian);
+
+        // 将 newRowCount (int) 转换为 uint64_t 写入
+        stream << static_cast<uint64_t>(newRowCount);
+
+        if (stream.status() != QDataStream::Ok)
+        {
+            qWarning() << funcName << "- QDataStream error while writing new row count. Status:" << stream.status();
+            file.close();
+            return false;
+        }
+
+        file.close();
+        qDebug() << funcName << "- Successfully updated row count in header to" << newRowCount << "for file:" << absoluteBinFilePath;
         return true;
     }
 } // namespace Persistence

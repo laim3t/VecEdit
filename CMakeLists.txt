@@ -91,6 +91,7 @@ set(PROJECT_SOURCES
         vector/vectordatamanager.cpp
         migration/datamigrator.h
         migration/datamigrator.cpp
+        vector/addrowdialog.cpp
 )
 
 # 定义 Qt 资源文件

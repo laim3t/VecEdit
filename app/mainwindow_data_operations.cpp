@@ -18,6 +18,9 @@
 #include "vector/vectordatahandler.h"
 #include "vector/deleterangevectordialog.h"
 #include "common/dialogmanager.h"
+#include "vector/fillvectordialog.h"
+#include "vector/addrowdialog.h"
+#include "common/utils/pathutils.h"
 
 // 保存向量表数据
 void MainWindow::saveVectorTableData()
@@ -263,60 +266,41 @@ void MainWindow::addRowToCurrentVectorTable()
 // 为当前选中的向量表添加行(Model/View架构)
 void MainWindow::addRowToCurrentVectorTableModel()
 {
-    const QString funcName = "MainWindow::addRowToCurrentVectorTableModel";
-    qDebug() << funcName << " - 开始处理添加新行（Model/View架构）";
-    qDebug() << funcName << " - 当前 MainWindow::m_useNewDataHandler 状态为:" << m_useNewDataHandler;
-
-    // 获取当前选中的向量表ID和名称
-    int tableId = m_vectorTableSelector->currentData().toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-
-    // 确保数据模型已初始化
     if (!m_vectorTableModel)
     {
-        QMessageBox::warning(this, "添加失败", "数据模型未初始化");
-        qWarning() << funcName << " - 数据模型未初始化";
+        QMessageBox::warning(this, "错误", "数据模型未初始化。");
         return;
     }
 
-    // 查询当前表中最大的排序索引
-    int maxSortIndex = -1;
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT MAX(sort_index) FROM vector_table_data WHERE table_id = ?");
-    query.addBindValue(tableId);
-
-    if (query.exec() && query.next())
+    // 创建并显示新的、轻量级的添加行对话框
+    AddRowDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted)
     {
-        maxSortIndex = query.value(0).toInt();
-    }
-
-    // 使用对话框管理器显示向量行数据录入对话框（与老视图保持一致）
-    if (m_dialogManager->showVectorDataDialog(tableId, tableName, maxSortIndex + 1))
-    {
-        // 刷新表格显示 - 使用Model/View方式
-        m_vectorTableModel->loadPage(tableId, m_vectorTableModel->currentPage());
-
-        // 重新计算总页数
-        if (m_useNewDataHandler)
+        // 获取用户输入的行数
+        int rowCount = dialog.getRowCount();
+        if (rowCount <= 0)
         {
-            m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+            return; // 用户输入了无效的行数
         }
-        else
+
+        // 获取当前选中的行，如果没有选中行，则在末尾添加
+        int insertionRow = m_vectorTableModel->rowCount();
+        QModelIndexList selectedRows = m_vectorTableView->selectionModel()->selectedRows();
+        if (!selectedRows.isEmpty())
         {
-            m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+            // 在第一个选中行的位置插入
+            insertionRow = selectedRows.first().row();
         }
-        m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-        updatePaginationInfo();
 
-        // 刷新侧边栏导航树，确保Label同步
-        refreshSidebarNavigator();
+        qDebug() << "MainWindow::addRowToCurrentVectorTableModel - "
+                 << "准备在第" << insertionRow << "行插入" << rowCount << "行";
 
-        qDebug() << funcName << " - 通过对话框成功添加新行，总行数更新为: " << m_totalRows;
-    }
-    else
-    {
-        qDebug() << funcName << " - 用户取消了添加行操作";
+        // 调用模型的insertRows方法
+        // 模型将负责处理数据持久化和通知视图更新
+        if (!m_vectorTableModel->insertRows(insertionRow, rowCount))
+        {
+            QMessageBox::critical(this, "错误", "添加行失败。请检查日志获取详细信息。");
+        }
     }
 }
 

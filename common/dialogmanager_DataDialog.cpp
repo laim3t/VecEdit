@@ -453,38 +453,10 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
 
         if (m_useNewDataHandler)
         {
-            if (m_robustDataHandler) {
-                // 从 QTableWidget 提取数据并复制指定的次数
-                QList<Vector::RowData> rowDataList;
-                int repeatCount = totalRowCount / vectorTable->rowCount();
-                
-                // 首先收集一份基础数据
-                for (int row = 0; row < vectorTable->rowCount(); ++row) {
-                    Vector::RowData rowData;
-                    for (int col = 0; col < vectorTable->columnCount(); ++col) {
-                        QTableWidgetItem* item = vectorTable->item(row, col);
-                        rowData.append(item ? item->data(Qt::DisplayRole) : QVariant());
-                    }
-                    rowDataList.append(rowData);
-                }
-                
-                // 复制数据达到所需的总行数
-                QList<Vector::RowData> originalData = rowDataList;
-                for (int i = 1; i < repeatCount; ++i) {
-                    rowDataList.append(originalData);
-                }
-
-                success = m_robustDataHandler->insertVectorRows(
-                    tableId,
-                    actualStartIndex,
-                    rowDataList,
-                    timesetCombo->currentData().toInt(),
-                    selectedPins,
-                    errorMessage);
-            } else {
-                errorMessage = "RobustVectorDataHandler is not initialized.";
-                qCritical() << "DialogManager::showVectorDataDialog - " << errorMessage;
-            }
+            // 新架构的逻辑已迁移到 MainWindow::addRowToCurrentVectorTableModel 和 AddRowDialog,
+            // 此处的代码已废弃，以消除对旧接口的依赖。
+            errorMessage = "New data handler path is deprecated in this dialog.";
+            qCritical() << "DialogManager::showVectorDataDialog - " << errorMessage;
         }
         else
         {
