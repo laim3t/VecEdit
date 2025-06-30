@@ -705,6 +705,9 @@ void MainWindow::addNewVectorTable()
             // 显示管脚选择对话框
             showPinSelectionDialog(newTableId, tableName);
 
+            // 紧接着调用添加向量行对话框
+            addRowToCurrentVectorTable();
+
             // 更新UI显示
             if (m_welcomeWidget->isVisible())
             {
