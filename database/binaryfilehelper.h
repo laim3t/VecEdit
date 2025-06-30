@@ -101,10 +101,12 @@ namespace Persistence
          * @param columns 列信息
          * @param schemaVersion 数据库中的schema版本
          * @param rows 输出参数，存储读取的所有行数据
+         * @param masterRecordId 用于查询正确的行索引
          * @return bool 成功返回true，失败返回false
          */
         static bool readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                          int schemaVersion, QList<Vector::RowData> &rows);
+                                          int schemaVersion, QList<Vector::RowData> &rows,
+                                          int masterRecordId);
 
         /**
          * @brief 将所有行数据写入二进制文件

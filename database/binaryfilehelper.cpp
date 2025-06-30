@@ -15,6 +15,8 @@
 #include <limits>            // 添加 std::numeric_limits 所需的头文件
 #include "databasemanager.h" // For database access if needed
 #include <QFile>
+#include <QSqlQuery>
+#include <QSqlError>
 #include "common/binary_file_format.h" // For Header struct
 
 // 初始化静态成员
@@ -237,27 +239,26 @@ namespace Persistence
             }
         }
 
-        // 如果不是特定命名字段，则根据数据类型返回默认长度
+        // 如果不是特定命名的字段，则根据数据类型返回默认长度
         switch (type)
         {
         case Vector::ColumnDataType::TEXT:
-            return TEXT_FIELD_MAX_LENGTH;
+            return TEXT_FIELD_MAX_LENGTH; // 保留，因为TEXT字段被填充到固定长度
+        case Vector::ColumnDataType::JSON_PROPERTIES:
+            return JSON_PROPERTIES_MAX_LENGTH; // 保留，因为JSON字段被填充到固定长度
         case Vector::ColumnDataType::PIN_STATE_ID:
-            return PIN_STATE_FIELD_MAX_LENGTH;
+            return PIN_STATE_FIELD_MAX_LENGTH; // 保留，可能是1字节
         case Vector::ColumnDataType::INTEGER:
         case Vector::ColumnDataType::INSTRUCTION_ID:
         case Vector::ColumnDataType::TIMESET_ID:
-            return INTEGER_FIELD_MAX_LENGTH;
+            return sizeof(quint32); // 修正: QDataStream 写入 quint32，固定为4字节
         case Vector::ColumnDataType::REAL:
-            return REAL_FIELD_MAX_LENGTH;
+            return sizeof(double); // 修正: QDataStream 写入 double，固定为8字节
         case Vector::ColumnDataType::BOOLEAN:
-            return BOOLEAN_FIELD_MAX_LENGTH;
-        case Vector::ColumnDataType::JSON_PROPERTIES:
-            return JSON_PROPERTIES_MAX_LENGTH;
+            return sizeof(quint8); // 修正: QDataStream 写入 quint8，固定为1字节
         default:
-            // 保留警告日志以便于问题排查
-            qWarning() << "BinaryFileHelper::getFixedLengthForType - 未知数据类型:" << static_cast<int>(type) << ", 返回默认长度(TEXT)";
-            return TEXT_FIELD_MAX_LENGTH;
+            qWarning() << "getFixedLengthForType - Unknown data type:" << static_cast<int>(type);
+            return 0; // 对于未知类型返回0，防止计算错误
         }
     }
 
@@ -352,5 +353,10 @@ namespace Persistence
         file.close();
         qDebug() << funcName << "- Successfully updated row count in header to" << newRowCount << "for file:" << absoluteBinFilePath;
         return true;
+    }
+
+    qint64 BinaryFileHelper::calculateExpectedRowSize(const QList<Vector::ColumnInfo> &columns)
+    {
+        // ... existing code ...
     }
 } // namespace Persistence

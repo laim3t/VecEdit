@@ -467,7 +467,7 @@ bool RobustVectorDataHandler::loadVectorTablePageData(int tableId, QTableWidget 
 
         // 4. 读取页面数据
         QList<Vector::RowData> pageRows;
-        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, rowsToLoad, pageRows))
+        if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, tableId, pageRows))
         {
             qWarning() << funcName << " - 无法读取二进制文件数据";
 
@@ -689,7 +689,7 @@ QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pag
 
     // 4. 从二进制文件读取数据
     QList<Vector::RowData> pageRows;
-    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, numRows, pageRows))
+    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, tableId, pageRows))
     {
         qWarning() << funcName << " - Failed to read page data from binary file for table" << tableId;
         return {};
@@ -872,32 +872,28 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
 bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinFilePath,
                                                      const QList<Vector::ColumnInfo> &columns,
                                                      int schemaVersion,
-                                                     int startRow,
-                                                     int numRows,
+                                                     int masterRecordId,
                                                      QList<Vector::RowData> &pageRows)
 {
     const QString funcName = "RobustVectorDataHandler::readPageDataFromBinary";
-    // 根据您的新需求，新轨道不需要分页，因此我们忽略 startRow 和 numRows，始终读取所有数据。
-    qDebug() << funcName << " - [Full Read Mode] Reading all data from:" << absoluteBinFilePath;
+    qDebug() << funcName << "- [Full Read Mode] Reading all data from:" << absoluteBinFilePath;
 
-    // 清空输出列表，以防有旧数据
     pageRows.clear();
 
-    // 直接调用 BinaryFileHelper 的静态方法来读取所有行
-    // 这个方法封装了打开文件、读取头部、循环读取所有行数据的全部逻辑
+    // Call the new, index-based read method
     bool success = Persistence::BinaryFileHelper::readAllRowsFromBinary(
         absoluteBinFilePath,
         columns,
-        schemaVersion, // 传递 schemaVersion 以进行版本兼容性检查
-        pageRows       // 这是输出参数
-    );
+        schemaVersion,
+        pageRows,
+        masterRecordId);
 
     if (!success)
     {
-        qWarning() << funcName << " - Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
+        qWarning() << funcName << "- Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
         return false;
     }
 
-    qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows.";
+    qDebug() << funcName << "- Successfully read" << pageRows.size() << "rows.";
     return true;
 }

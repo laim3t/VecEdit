@@ -1,4 +1,3 @@
-
 bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow)
 {
     // 使用静态计数器控制日志频率
@@ -239,23 +238,23 @@ bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vecto
         case Vector::ColumnDataType::INSTRUCTION_ID:
         case Vector::ColumnDataType::TIMESET_ID:
         {
-            qint32 intValue;
-            in.readRawData(reinterpret_cast<char *>(&intValue), INTEGER_FIELD_MAX_LENGTH);
+            quint32 intValue;
+            in >> intValue;
             value = intValue;
             break;
         }
         case Vector::ColumnDataType::REAL:
         {
             double doubleValue;
-            in.readRawData(reinterpret_cast<char *>(&doubleValue), REAL_FIELD_MAX_LENGTH);
+            in >> doubleValue;
             value = doubleValue;
             break;
         }
         case Vector::ColumnDataType::BOOLEAN:
         {
             quint8 boolValue;
-            in.readRawData(reinterpret_cast<char *>(&boolValue), BOOLEAN_FIELD_MAX_LENGTH);
-            value = bool(boolValue);
+            in >> boolValue;
+            value = boolValue;
             break;
         }
         case Vector::ColumnDataType::JSON_PROPERTIES:
@@ -330,274 +329,104 @@ bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vecto
         return false;
     }
 
+    if (deserializeCounter % LOG_INTERVAL == 1 || deserializeCounter <= 3)
+    {
+        qDebug() << funcName << " - 反序列化完成, 字节数:" << rowData.size();
+    }
     return true;
 }
 
 bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
-                                             int schemaVersion, QList<Vector::RowData> &rows)
+                                             int schemaVersion, QList<QList<QVariant>> &rows,
+                                             int masterRecordId)
 {
     const QString funcName = "BinaryFileHelper::readAllRowsFromBinary";
-    qDebug() << funcName << "- 开始读取文件:" << binFilePath;
-    rows.clear(); // Ensure the output list is empty initially
+    qDebug() << funcName << "- [Indexed Read Mode] Reading from:" << binFilePath << "for master ID:" << masterRecordId;
+
+    rows.clear();
 
     QFile file(binFilePath);
-    qDebug() << funcName << "- 尝试打开文件进行读取.";
     if (!file.open(QIODevice::ReadOnly))
     {
-        qWarning() << funcName << "- 错误: 无法打开文件:" << binFilePath << "错误信息:" << file.errorString();
+        qWarning() << funcName << "- Error: Cannot open file for reading:" << file.errorString();
         return false;
     }
-    qDebug() << funcName << "- 文件打开成功.";
 
+    // 1. Read and validate file header
     BinaryFileHeader header;
-    qDebug() << funcName << "- 尝试读取二进制头信息.";
     if (!readBinaryHeader(&file, header))
     {
-        qWarning() << funcName << "- 错误: 无法读取或验证二进制头信息.";
+        qWarning() << funcName << "- Error: Failed to read or validate binary file header.";
         file.close();
         return false;
     }
-    qDebug() << funcName << "- 二进制头信息读取成功. 文件中有" << header.row_count_in_file << "行数据.";
-    header.logDetails(funcName); // Log header details
 
-    // --- Version Compatibility Check ---
-    if (header.data_schema_version != schemaVersion)
-    {
-        qWarning() << funcName << "- 警告: 文件数据schema版本 (" << header.data_schema_version
-                   << ") 与预期的DB schema版本不同 (" << schemaVersion << "). 尝试兼容处理.";
-        // Implement compatibility logic here if needed, e.g., using different deserializeRow versions.
-        // For now, we'll proceed but pass the file's schema version to deserializeRow.
-        if (header.data_schema_version > schemaVersion)
-        {
-            qCritical() << funcName << "- 错误: 文件数据schema版本高于DB schema版本. 无法加载.";
-            file.close();
-            return false;
-        }
-        // Allow older file versions to be read using their corresponding schema version
-    }
-    // --- End Version Check ---
+    // 2. Query the row index from the database
+    QList<QPair<qint64, qint64>> indexData; // List of <offset, size>
+    QSqlQuery query(DatabaseManager::instance()->database());
+    query.prepare("SELECT offset, size FROM VectorTableRowIndex WHERE master_record_id = ? AND is_active = 1 ORDER BY logical_row_order ASC");
+    query.addBindValue(masterRecordId);
 
-    // --- Column Count Sanity Check ---
-    if (header.column_count_in_file != static_cast<uint32_t>(columns.size()))
+    if (!query.exec())
     {
-        qWarning() << funcName << "- 警告: 头信息列数 (" << header.column_count_in_file
-                   << ") 与DB schema中的列数不匹配 (" << columns.size() << ").";
-        // Decide how to handle this. Abort? Try to proceed?
-        // Let's try to proceed but log the warning. Deserialization might fail.
-    }
-    // --- End Column Count Check ---
-
-    if (header.row_count_in_file == 0)
-    {
-        qDebug() << funcName << "- 文件头显示文件中有0行. 无数据可读.";
+        qWarning() << funcName << "- Error: Failed to query row index:" << query.lastError().text();
         file.close();
-        return true; // Successfully read a file with 0 rows as indicated by header
+        return false;
     }
 
-    qDebug() << funcName << "- 文件头显示" << header.row_count_in_file << "行. 开始数据反序列化循环.";
-
-    QDataStream in(&file);
-    in.setByteOrder(QDataStream::LittleEndian); // Ensure consistency
-
-    // 设置更合理的日志记录间隔
-    const int LOG_INTERVAL = 5000; // 每5000行记录一次日志
-    const QDateTime startTime = QDateTime::currentDateTime();
-
-    quint64 actualRowsRead = 0; // Use quint64 to match header type
-
-    // 添加安全检查来防止不合理的预分配内存
-    if (header.row_count_in_file > std::numeric_limits<int>::max() || header.row_count_in_file > 10000000)
+    while (query.next())
     {
-        qCritical() << funcName << "- 错误: 文件头声明的行数(" << header.row_count_in_file
-                    << ")过大，超过安全限制或int最大值. 将限制预分配.";
-        // 使用安全的最大值来预分配，而不是全部分配
-        rows.reserve(qMin(10000000, static_cast<int>(qMin(static_cast<quint64>(std::numeric_limits<int>::max()),
-                                                          header.row_count_in_file))));
+        indexData.append({query.value(0).toLongLong(), query.value(1).toLongLong()});
     }
-    else
+    qDebug() << funcName << "- Successfully fetched" << indexData.size() << "row indices from database.";
+
+    // 3. Read data rows based on the index
+    QElapsedTimer timer;
+    timer.start();
+
+    for (const auto &indexEntry : indexData)
     {
-        rows.reserve(static_cast<int>(header.row_count_in_file)); // QList uses int for size/reserve
-    }
+        qint64 offset = indexEntry.first;
+        qint64 size = indexEntry.second;
 
-    // 用于输出完成百分比的计数器
-    int lastReportedPercent = -1;
-
-    while (!in.atEnd() && actualRowsRead < header.row_count_in_file)
-    {
-        // 保存当前位置，用于跟踪重定位
-        qint64 currentPosition = file.pos();
-
-        // Read the size of the next row block
-        quint32 rowByteSize;
-        in >> rowByteSize;
-
-        if (in.status() != QDataStream::Ok || rowByteSize == 0)
+        if (!file.seek(offset))
         {
-            qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取行大小失败. 状态:" << in.status();
-            break;
-        }
-
-        // 增加防护措施：检测不合理的行大小
-        const quint32 MAX_REASONABLE_ROW_SIZE = 1 * 1024 * 1024; // 1MB 是合理的单行最大值
-        if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
-        {
-            qCritical() << funcName << "- 检测到异常大的行大小:" << rowByteSize
-                        << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-
-            // 限制大小到合理范围
-            rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
-            qWarning() << funcName << "- 已将行大小调整为:" << rowByteSize << "字节，尝试继续读取";
-        }
-
-        // 检查是否是重定位标记 (0xFFFFFFFF)
-        if (rowByteSize == 0xFFFFFFFF)
-        {
-            // 读取重定位位置
-            qint64 redirectPosition;
-            in >> redirectPosition;
-
-            if (in.status() != QDataStream::Ok)
-            {
-                qWarning() << funcName << "- 错误: 在位置" << file.pos() << "读取重定向位置失败. 状态:" << in.status();
-                break;
-            }
-
-            // 只在低频率输出重定向日志
-            if (actualRowsRead % LOG_INTERVAL == 0)
-            {
-                qDebug() << funcName << "- 检测到重定位指针，从位置 " << currentPosition << " 重定向到位置 " << redirectPosition;
-            }
-
-            // 保存当前位置，在处理完重定向后需要返回
-            qint64 returnPosition = file.pos();
-
-            // 跳转到重定位位置
-            if (!file.seek(redirectPosition))
-            {
-                qWarning() << funcName << "- 无法跳转到重定位位置 " << redirectPosition;
-                break;
-            }
-
-            // 读取重定位位置的行大小
-            in >> rowByteSize;
-
-            if (in.status() != QDataStream::Ok || rowByteSize == 0)
-            {
-                qWarning() << funcName << "- 错误: 在重定向位置" << redirectPosition << "读取行大小失败. 状态:" << in.status();
-                break;
-            }
-
-            // 对重定向位置也进行行大小检测
-            if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
-            {
-                qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize
-                            << "字节，超过合理限制" << MAX_REASONABLE_ROW_SIZE << "字节. 可能是文件损坏或格式错误.";
-
-                // 限制大小到合理范围
-                rowByteSize = qMin(static_cast<quint32>(file.bytesAvailable()), MAX_REASONABLE_ROW_SIZE);
-                qWarning() << funcName << "- 已将重定向位置的行大小调整为:" << rowByteSize << "字节，尝试继续读取";
-            }
-
-            // 如果重定位位置又是一个重定位指针，这是错误的（避免循环引用）
-            if (rowByteSize == 0xFFFFFFFF)
-            {
-                qWarning() << funcName << "- 错误：重定位指针指向另一个重定位指针，可能存在循环引用";
-                break;
-            }
-
-            // 读取并处理重定位位置的数据
-            QByteArray rowBytes = file.read(rowByteSize);
-            if (rowBytes.size() != static_cast<int>(rowByteSize))
-            {
-                qWarning() << funcName << "- 错误: 在重定向位置读取行数据失败. 预期:" << rowByteSize << "实际:" << rowBytes.size();
-                break;
-            }
-
-            // 反序列化重定位位置的行数据
-            Vector::RowData rowData;
-            if (deserializeRow(rowBytes, columns, header.data_schema_version, rowData))
-            {
-                rows.append(rowData);
-                actualRowsRead++;
-
-                // 计算和显示进度
-                int percent = static_cast<int>((actualRowsRead * 100) / header.row_count_in_file);
-                if (percent != lastReportedPercent && (actualRowsRead % LOG_INTERVAL == 0 || percent - lastReportedPercent >= 10))
-                {
-                    QDateTime currentTime = QDateTime::currentDateTime();
-                    qint64 elapsedMs = startTime.msecsTo(currentTime);
-                    double rowsPerSecond = (elapsedMs > 0) ? (actualRowsRead * 1000.0 / elapsedMs) : 0;
-                    qDebug() << funcName << "- 进度:" << actualRowsRead << "行读取 ("
-                             << percent << "%), 速度:" << rowsPerSecond << "行/秒";
-                    lastReportedPercent = percent;
-                }
-            }
-            else
-            {
-                qWarning() << funcName << "- 在重定向位置反序列化行失败. 继续下一行.";
-            }
-
-            // 返回原位置继续处理后续行
-            if (!file.seek(returnPosition))
-            {
-                qWarning() << funcName << "- 无法返回原位置 " << returnPosition << " 继续处理";
-                break;
-            }
-
-            // 继续下一行的处理，跳过当前行的读取逻辑
+            qWarning() << funcName << "- Error: Failed to seek to offset" << offset << ". File may be corrupt.";
+            // Decide if we should stop or try to continue
             continue;
         }
 
-        // Read the actual bytes for this row
-        QByteArray rowBytes = file.read(rowByteSize);
-        if (rowBytes.size() != static_cast<int>(rowByteSize))
+        QByteArray rowBytes = file.read(size);
+        if (rowBytes.size() != size)
         {
-            qWarning() << funcName << "- 错误: 读取行数据失败. 预期:" << rowByteSize << "实际:" << rowBytes.size();
-            break;
+            qWarning() << funcName << "- Error: Failed to read expected" << size << "bytes, but got" << rowBytes.size() << ". File may be corrupt.";
+            continue;
         }
 
-        // Deserialize the row bytes into a row data object
-        Vector::RowData rowData;
-        if (deserializeRow(rowBytes, columns, header.data_schema_version, rowData))
+        Vector::RowData singleRowData;
+        if (deserializeRow(rowBytes, columns, schemaVersion, singleRowData))
         {
-            rows.append(rowData);
-            actualRowsRead++;
-
-            // 计算和显示进度
-            int percent = static_cast<int>((actualRowsRead * 100) / header.row_count_in_file);
-            if (percent != lastReportedPercent && (actualRowsRead % LOG_INTERVAL == 0 || percent - lastReportedPercent >= 10))
-            {
-                QDateTime currentTime = QDateTime::currentDateTime();
-                qint64 elapsedMs = startTime.msecsTo(currentTime);
-                double rowsPerSecond = (elapsedMs > 0) ? (actualRowsRead * 1000.0 / elapsedMs) : 0;
-                qDebug() << funcName << "- 进度:" << actualRowsRead << "行读取 ("
-                         << percent << "%), 速度:" << rowsPerSecond << "行/秒";
-                lastReportedPercent = percent;
-            }
+            rows.append(singleRowData);
         }
         else
         {
-            qWarning() << funcName << "- 反序列化行失败，位置:" << actualRowsRead + 1 << ". 继续下一行.";
-            // Option: We could break here to abort on first error, but continuing allows for more resilience
+            qWarning() << funcName << "- Error: Failed to deserialize row at offset" << offset;
+            // Optionally, we could add a placeholder row to maintain row count integrity
         }
     }
 
-    file.close();
+    qint64 elapsed = timer.elapsed();
+    qDebug() << funcName << "- File closed. Total rows read:" << rows.size() << ", Expected:" << indexData.size()
+             << ". Time taken:" << elapsed / 1000.0 << "s. Speed:" << (rows.size() * 1000.0 / (elapsed > 0 ? elapsed : 1)) << "rows/s";
 
-    // 计算并显示总体处理统计信息
-    QDateTime endTime = QDateTime::currentDateTime();
-    qint64 totalElapsedMs = startTime.msecsTo(endTime);
-    double avgRowsPerSecond = (totalElapsedMs > 0) ? (actualRowsRead * 1000.0 / totalElapsedMs) : 0;
-
-    qDebug() << funcName << "- 文件已关闭. 总计读取:" << rows.size() << "行, 预期:" << header.row_count_in_file
-             << "行. 耗时:" << (totalElapsedMs / 1000.0) << "秒, 平均速度:" << avgRowsPerSecond << "行/秒";
-
-    if (actualRowsRead != header.row_count_in_file)
+    if (rows.size() != header.row_count_in_file)
     {
-        qWarning() << funcName << "- 警告: 实际读取行数 (" << actualRowsRead << ") 与文件头行数不匹配 (" << header.row_count_in_file << ")";
+        qWarning() << funcName << "- Warning: Number of rows read (" << rows.size()
+                   << ") does not match header row count (" << header.row_count_in_file << ")";
     }
 
-    return !rows.isEmpty() || header.row_count_in_file == 0; // Consider empty file as success if header indicates 0 rows
+    file.close();
+    return true;
 }
 
 bool BinaryFileHelper::writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
