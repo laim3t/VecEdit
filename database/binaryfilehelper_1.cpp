@@ -1,4 +1,3 @@
-
 bool BinaryFileHelper::serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow)
 {
     // 使用静态计数器控制日志频率
@@ -239,15 +238,15 @@ bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vecto
         case Vector::ColumnDataType::INSTRUCTION_ID:
         case Vector::ColumnDataType::TIMESET_ID:
         {
-            qint32 intValue;
-            in.readRawData(reinterpret_cast<char *>(&intValue), INTEGER_FIELD_MAX_LENGTH);
+            quint32 intValue;
+            in >> intValue;
             value = intValue;
             break;
         }
         case Vector::ColumnDataType::REAL:
         {
             double doubleValue;
-            in.readRawData(reinterpret_cast<char *>(&doubleValue), REAL_FIELD_MAX_LENGTH);
+            in >> doubleValue;
             value = doubleValue;
             break;
         }
@@ -487,7 +486,7 @@ bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const Q
                 break;
             }
 
-            // 对重定向位置也进行行大小检测
+            // 对重定位位置也进行行大小检测
             if (rowByteSize > MAX_REASONABLE_ROW_SIZE)
             {
                 qCritical() << funcName << "- 重定向位置检测到异常大的行大小:" << rowByteSize
