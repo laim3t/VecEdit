@@ -80,21 +80,23 @@ namespace Vector
     // Helper to convert string type from DB to enum
     inline ColumnDataType columnDataTypeFromString(const QString &typeStr)
     {
-        if (typeStr == "TEXT")
+        QString upperTypeStr = typeStr.toUpper(); // 转换为大写以进行不区分大小写的比较
+
+        if (upperTypeStr == "TEXT")
             return ColumnDataType::TEXT;
-        if (typeStr == "INTEGER")
+        if (upperTypeStr == "INTEGER")
             return ColumnDataType::INTEGER;
-        if (typeStr == "REAL")
+        if (upperTypeStr == "REAL")
             return ColumnDataType::REAL;
-        if (typeStr == "INSTRUCTION_ID")
+        if (upperTypeStr == "INSTRUCTION_ID")
             return ColumnDataType::INSTRUCTION_ID;
-        if (typeStr == "TIMESET_ID")
+        if (upperTypeStr == "TIMESET_ID")
             return ColumnDataType::TIMESET_ID;
-        if (typeStr == "PIN_STATE_ID")
+        if (upperTypeStr == "PIN_STATE_ID" || upperTypeStr == "PIN")
             return ColumnDataType::PIN_STATE_ID;
-        if (typeStr == "BOOLEAN")
+        if (upperTypeStr == "BOOLEAN")
             return ColumnDataType::BOOLEAN;
-        if (typeStr == "JSON_PROPERTIES")
+        if (upperTypeStr == "JSON_PROPERTIES")
             return ColumnDataType::JSON_PROPERTIES;
 
         qWarning() << "Unrecognized column type string:" << typeStr << ", defaulting to TEXT";
