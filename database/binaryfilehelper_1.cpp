@@ -253,7 +253,7 @@ bool BinaryFileHelper::deserializeRow(const QByteArray &bytes, const QList<Vecto
         case Vector::ColumnDataType::BOOLEAN:
         {
             quint8 boolValue;
-            in.readRawData(reinterpret_cast<char *>(&boolValue), BOOLEAN_FIELD_MAX_LENGTH);
+            in >> boolValue;
             value = bool(boolValue);
             break;
         }
@@ -505,8 +505,8 @@ bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const Q
             }
 
             // 读取并处理重定位位置的数据
-            QByteArray rowBytes = file.read(rowByteSize);
-            if (rowBytes.size() != static_cast<int>(rowByteSize))
+            QByteArray rowBytes(rowByteSize, Qt::Uninitialized);
+            if (in.readRawData(rowBytes.data(), rowByteSize) != static_cast<int>(rowByteSize))
             {
                 qWarning() << funcName << "- 错误: 在重定向位置读取行数据失败. 预期:" << rowByteSize << "实际:" << rowBytes.size();
                 break;
@@ -548,8 +548,8 @@ bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const Q
         }
 
         // Read the actual bytes for this row
-        QByteArray rowBytes = file.read(rowByteSize);
-        if (rowBytes.size() != static_cast<int>(rowByteSize))
+        QByteArray rowBytes(rowByteSize, Qt::Uninitialized);
+        if (in.readRawData(rowBytes.data(), rowByteSize) != static_cast<int>(rowByteSize))
         {
             qWarning() << funcName << "- 错误: 读取行数据失败. 预期:" << rowByteSize << "实际:" << rowBytes.size();
             break;
@@ -650,7 +650,7 @@ bool BinaryFileHelper::writeAllRowsToBinary(const QString &binFilePath, const QL
             out << static_cast<quint32>(serializedRow.size());
 
             // 写入行数据
-            if (file.write(serializedRow) == serializedRow.size())
+            if (out.writeRawData(serializedRow.constData(), serializedRow.size()) == serializedRow.size())
             {
                 rowsWritten++;
 
