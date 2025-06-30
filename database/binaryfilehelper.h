@@ -210,7 +210,7 @@ namespace Persistence
                                            int schemaVersion,
                                            int startRow,
                                            int numRows,
-                                           QList<Vector::RowData> &pageRows);
+                                           QList<QList<QVariant>> &pageRows);
 
         // 更新二进制文件头中的行计数值
         static bool updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount);

@@ -57,7 +57,7 @@ public:
     int getSchemaVersion(int tableId);
 
     // 获取指定表的所有行数据
-    QList<Vector::RowData> getAllVectorRows(int tableId, bool &ok);
+    QList<QList<QVariant>> getAllVectorRows(int tableId, bool &ok);
 
     /**
      * @brief Inserts multiple rows of vector data into the specified table using the new high-performance indexing mechanism.
@@ -100,7 +100,7 @@ public:
     bool loadVectorTablePageDataForModel(int tableId, VectorTableModel *model, int pageIndex, int pageSize);
 
     // 获取向量表指定页数据 - 返回数据而不是填充表格
-    QList<Vector::RowData> getPageData(int tableId, int pageIndex, int pageSize);
+    QList<QList<QVariant>> getPageData(int tableId, int pageIndex, int pageSize);
 
     // 获取向量表的可见列信息
     QList<Vector::ColumnInfo> getVisibleColumns(int tableId);
@@ -139,7 +139,7 @@ private:
                                 int schemaVersion,
                                 int startRow,
                                 int numRows,
-                                QList<Vector::RowData> &pageRows);
+                                QList<QList<QVariant>> &pageRows);
 };
 
 #endif // ROBUSTVECTORDATAHANDLER_H

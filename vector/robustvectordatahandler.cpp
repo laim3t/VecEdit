@@ -108,11 +108,42 @@ int RobustVectorDataHandler::getSchemaVersion(int tableId)
     return 0;
 }
 
-QList<Vector::RowData> RobustVectorDataHandler::getAllVectorRows(int tableId, bool &ok)
+QList<QList<QVariant>> RobustVectorDataHandler::getAllVectorRows(int tableId, bool &ok)
 {
-    qWarning() << "RobustVectorDataHandler::getAllVectorRows is not implemented yet.";
+    const QString funcName = "RobustVectorDataHandler::getAllVectorRows";
+    QString errorMessage;
     ok = false;
-    return {};
+
+    // 1. 加载元数据
+    QString binFileName;
+    QList<Vector::ColumnInfo> columns;
+    int schemaVersion = 0;
+    int totalRowCount = 0;
+    if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
+    {
+        qWarning() << funcName << " - Failed to load meta for table" << tableId;
+        return {};
+    }
+
+    // 2. 获取二进制文件路径
+    QString absoluteBinFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (absoluteBinFilePath.isEmpty())
+    {
+        qWarning() << funcName << " - " << errorMessage;
+        return {};
+    }
+
+    // 3. 从二进制文件读取所有数据
+    QList<QList<QVariant>> allRows;
+    if (!Persistence::BinaryFileHelper::readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, 0, totalRowCount, allRows))
+    {
+        qWarning() << funcName << " - Failed to read all rows from binary file for table" << tableId;
+        return {};
+    }
+
+    qDebug() << funcName << " - Successfully read" << allRows.size() << "rows for table" << tableId;
+    ok = true;
+    return allRows;
 }
 
 bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartIndex, const QList<Vector::RowData> &rows, QString &errorMessage)
@@ -655,7 +686,7 @@ bool RobustVectorDataHandler::loadVectorTablePageDataForModel(int tableId, Vecto
     return false;
 }
 
-QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
+QList<QList<QVariant>> RobustVectorDataHandler::getPageData(int tableId, int pageIndex, int pageSize)
 {
     const QString funcName = "RobustVectorDataHandler::getPageData";
     QString errorMessage;
@@ -688,8 +719,8 @@ QList<Vector::RowData> RobustVectorDataHandler::getPageData(int tableId, int pag
     }
 
     // 4. 从二进制文件读取数据
-    QList<Vector::RowData> pageRows;
-    if (!readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, numRows, pageRows))
+    QList<QList<QVariant>> pageRows;
+    if (!Persistence::BinaryFileHelper::readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, startRow, numRows, pageRows))
     {
         qWarning() << funcName << " - Failed to read page data from binary file for table" << tableId;
         return {};
@@ -874,30 +905,15 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
                                                      int schemaVersion,
                                                      int startRow,
                                                      int numRows,
-                                                     QList<Vector::RowData> &pageRows)
+                                                     QList<QList<QVariant>> &pageRows)
 {
-    const QString funcName = "RobustVectorDataHandler::readPageDataFromBinary";
-    // 根据您的新需求，新轨道不需要分页，因此我们忽略 startRow 和 numRows，始终读取所有数据。
-    qDebug() << funcName << " - [Full Read Mode] Reading all data from:" << absoluteBinFilePath;
-
-    // 清空输出列表，以防有旧数据
-    pageRows.clear();
-
-    // 直接调用 BinaryFileHelper 的静态方法来读取所有行
-    // 这个方法封装了打开文件、读取头部、循环读取所有行数据的全部逻辑
-    bool success = Persistence::BinaryFileHelper::readAllRowsFromBinary(
+    // 直接调用Persistence命名空间下的BinaryFileHelper的readPageDataFromBinary方法
+    return Persistence::BinaryFileHelper::readPageDataFromBinary(
         absoluteBinFilePath,
         columns,
-        schemaVersion, // 传递 schemaVersion 以进行版本兼容性检查
-        pageRows       // 这是输出参数
+        schemaVersion,
+        startRow,
+        numRows,
+        pageRows
     );
-
-    if (!success)
-    {
-        qWarning() << funcName << " - Failed to read all rows using BinaryFileHelper from file:" << absoluteBinFilePath;
-        return false;
-    }
-
-    qDebug() << funcName << " - Successfully read" << pageRows.size() << "rows.";
-    return true;
 }
