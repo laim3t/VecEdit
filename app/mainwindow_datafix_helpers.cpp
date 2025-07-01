@@ -364,6 +364,17 @@ void MainWindow::checkAndFixAllVectorTables()
         return;
     }
 
+    // 执行列类型格式修复
+    // 先执行类型修复，以确保任何后续创建的列配置都有正确的文本类型值
+    if (fixColumnTypeStorageFormat())
+    {
+        qDebug() << funcName << " - 成功修复了数据库中的列类型格式";
+    }
+    else
+    {
+        qWarning() << funcName << " - 修复数据库中的列类型格式失败，但将继续检查列配置";
+    }
+
     // 获取所有向量表主记录
     QSqlQuery query(db);
     query.prepare("SELECT id FROM VectorTableMasterRecord");
@@ -824,4 +835,132 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
 
     qInfo() << funcName << " - Successfully added" << pinNames.count() << "pin columns to configuration for tableId:" << tableId;
     return true;
+}
+
+/**
+ * @brief 修复数据库中列类型的存储格式，将数字转换为对应的文本描述
+ *
+ * 这个函数会将 VectorTableColumnConfiguration 表中所有的 column_type 字段
+ * 从数字形式 (如 "0", "1", "2") 转换为对应的文本描述 (如 "TEXT", "INTEGER", "BOOLEAN")
+ *
+ * @return bool 成功返回true，失败返回false
+ */
+bool MainWindow::fixColumnTypeStorageFormat()
+{
+    const QString funcName = "MainWindow::fixColumnTypeStorageFormat";
+    qDebug() << funcName << " - 开始修复数据库中的列类型存储格式";
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qCritical() << funcName << " - 数据库未打开";
+        return false;
+    }
+
+    // 创建数字到文本类型的映射
+    QMap<int, QString> typeMap;
+    typeMap[0] = "TEXT";
+    typeMap[1] = "INTEGER";
+    typeMap[2] = "REAL";
+    typeMap[3] = "INSTRUCTION_ID";
+    typeMap[4] = "TIMESET_ID";
+    typeMap[5] = "PIN_STATE_ID";
+    typeMap[6] = "BOOLEAN";
+    typeMap[7] = "JSON_PROPERTIES";
+
+    // 对已知的标准列创建列名到类型的映射
+    QMap<QString, QString> columnNameTypeMap;
+    columnNameTypeMap["Label"] = "TEXT";
+    columnNameTypeMap["Instruction"] = "INSTRUCTION_ID";
+    columnNameTypeMap["TimeSet"] = "TIMESET_ID";
+    columnNameTypeMap["Capture"] = "BOOLEAN";
+    columnNameTypeMap["EXT"] = "TEXT";
+    columnNameTypeMap["Comment"] = "TEXT";
+
+    // 开始事务
+    if (!db.transaction())
+    {
+        qCritical() << funcName << " - 无法开始事务:" << db.lastError().text();
+        return false;
+    }
+
+    try
+    {
+        // 查询所有列配置
+        QSqlQuery query(db);
+        query.prepare("SELECT id, master_record_id, column_name, column_type FROM VectorTableColumnConfiguration");
+
+        if (!query.exec())
+        {
+            throw QString("查询列配置失败: " + query.lastError().text());
+        }
+
+        int updatedCount = 0;
+        QSqlQuery updateQuery(db);
+        updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET column_type = ? WHERE id = ?");
+
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString columnName = query.value(2).toString();
+            QString currentTypeStr = query.value(3).toString();
+
+            QString newTypeStr;
+
+            // 首先检查是否是标准列名
+            if (columnNameTypeMap.contains(columnName))
+            {
+                newTypeStr = columnNameTypeMap[columnName];
+            }
+            else
+            {
+                // 如果不是标准列名，检查当前类型是否为数字
+                bool isInt;
+                int typeInt = currentTypeStr.toInt(&isInt);
+
+                if (isInt && typeMap.contains(typeInt))
+                {
+                    newTypeStr = typeMap[typeInt];
+                }
+                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin"))
+                {
+                    // 管脚列特殊处理
+                    newTypeStr = "PIN_STATE_ID";
+                }
+                else
+                {
+                    // 如果无法确定类型，保持不变
+                    newTypeStr = currentTypeStr;
+                }
+            }
+
+            // 仅当类型发生变化时才更新
+            if (newTypeStr != currentTypeStr)
+            {
+                updateQuery.bindValue(0, newTypeStr);
+                updateQuery.bindValue(1, id);
+
+                if (!updateQuery.exec())
+                {
+                    throw QString("更新列类型失败: " + updateQuery.lastError().text());
+                }
+
+                updatedCount++;
+            }
+        }
+
+        if (!db.commit())
+        {
+            throw QString("提交事务失败: " + db.lastError().text());
+        }
+
+        qDebug() << funcName << " - 成功修复了" << updatedCount << "条列类型记录";
+        return true;
+    }
+    catch (const QString &error)
+    {
+        qCritical() << funcName << " - 错误: " << error;
+        db.rollback();
+        return false;
+    }
 }

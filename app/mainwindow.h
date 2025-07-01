@@ -263,6 +263,9 @@ private:
     // 辅助函数：修复没有列配置的表
     bool fixExistingTableWithoutColumns(int tableId);
 
+    // 辅助函数：修复数据库中列类型的存储格式，将数字转换为文本描述
+    bool fixColumnTypeStorageFormat();
+
     // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();
 
