@@ -21,6 +21,9 @@
 #include "common/tablestylemanager.h"
 #include "common/binary_file_format.h"
 #include "common/utils/pathutils.h" // 修正包含路径
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 #include "migration/datamigrator.h"
 // The compiler will merge all these files into one translation unit.
@@ -35,3 +38,4 @@
 #include "mainwindow_waveform_view.cpp"
 #include "mainwindow_waveform_timeset.cpp"
 #include "mainwindow_waveform_types.cpp"
+#include "mainwindow_export.cpp"

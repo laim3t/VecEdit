@@ -131,6 +131,13 @@ void MainWindow::setupMenu()
     QAction *exitAction = fileMenu->addAction(tr("退出(&Q)"));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
 
+    // 创建导出菜单
+    QMenu *exportMenu = menuBar()->addMenu(tr("导出"));
+
+    // 导出构造文件
+    QAction *exportConstructionFileAction = exportMenu->addAction(tr("导出构造文件"));
+    connect(exportConstructionFileAction, &QAction::triggered, this, &MainWindow::exportConstructionFile);
+
     // 创建查看菜单
     QMenu *viewMenu = menuBar()->addMenu(tr("查看(&V)"));
 

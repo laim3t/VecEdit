@@ -67,6 +67,9 @@ private slots:
     // 显示数据库视图对话框
     void showDatabaseViewDialog();
 
+    // 导出功能
+    void exportConstructionFile();
+
     // 显示添加管脚对话框
     bool showAddPinsDialog();
 
