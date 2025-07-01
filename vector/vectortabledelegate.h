@@ -75,6 +75,9 @@ private:
     // 辅助函数：通过UI索引获取列信息
     Vector::ColumnInfo getColumnInfoByIndex(int tableId, int uiColumnIndex) const;
 
+    // 辅助函数：从完整列配置中提取可见列并返回指定索引的列信息
+    Vector::ColumnInfo getVisibleColumn(const QList<Vector::ColumnInfo> &allColumns, int uiColumnIndex, int tableId) const;
+
     // 辅助函数：获取表的列配置（新增）
     QList<Vector::ColumnInfo> getColumnConfiguration(int tableId) const;
 

@@ -155,17 +155,20 @@ bool MainWindow::addDefaultColumnConfigurations(int tableId)
     qDebug() << funcName << " - Re-implementing for new schema. Adding default columns for table ID:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         qCritical() << funcName << " - Database is not open.";
         return false;
     }
 
-    if (!db.transaction()) {
+    if (!db.transaction())
+    {
         qCritical() << funcName << " - Failed to start a database transaction:" << db.lastError().text();
         return false;
     }
 
-    struct DefaultColumn {
+    struct DefaultColumn
+    {
         QString name;
         QString type;
         int order;
@@ -173,48 +176,50 @@ bool MainWindow::addDefaultColumnConfigurations(int tableId)
     };
 
     const QList<DefaultColumn> columns_to_add = {
-        {"Label",       "TEXT",           0, ""},
+        {"Label", "TEXT", 0, ""},
         {"Instruction", "INSTRUCTION_ID", 1, "0"},
-        {"TimeSet",     "TIMESET_ID",     2, "1"},
-        {"Capture",     "BOOLEAN",        3, "0"},
-        {"EXT",         "TEXT",           4, ""},
-        {"Comment",     "TEXT",           5, ""}
-    };
+        {"TimeSet", "TIMESET_ID", 2, "1"},
+        {"Capture", "BOOLEAN", 3, "0"},
+        {"EXT", "TEXT", 4, ""},
+        {"Comment", "TEXT", 5, ""}};
 
     QSqlQuery query(db);
     query.prepare(
         "INSERT INTO VectorTableColumnConfiguration "
         "(master_record_id, column_name, column_type, column_order, default_value, is_visible) "
-        "VALUES (?, ?, ?, ?, ?, 1)"
-    );
+        "VALUES (?, ?, ?, ?, ?, 1)");
 
-    for (const auto& col : columns_to_add) {
+    for (const auto &col : columns_to_add)
+    {
         query.bindValue(0, tableId);
         query.bindValue(1, col.name);
         query.bindValue(2, col.type);
         query.bindValue(3, col.order);
         query.bindValue(4, col.defaultValue);
 
-        if (!query.exec()) {
+        if (!query.exec())
+        {
             const QString errorMsg = QString("Failed to add column '%1': %2").arg(col.name).arg(query.lastError().text());
             qCritical() << funcName << " - Error:" << errorMsg;
             db.rollback();
             return false;
         }
     }
-    
+
     QSqlQuery updateQuery(db);
     updateQuery.prepare("UPDATE VectorTableMasterRecord SET column_count = ? WHERE id = ?");
     updateQuery.addBindValue(columns_to_add.size());
     updateQuery.addBindValue(tableId);
-    if (!updateQuery.exec()) {
+    if (!updateQuery.exec())
+    {
         const QString errorMsg = "Failed to update master record column count: " + updateQuery.lastError().text();
         qCritical() << funcName << " - Error:" << errorMsg;
         db.rollback();
         return false;
     }
 
-    if (!db.commit()) {
+    if (!db.commit())
+    {
         qCritical() << funcName << " - Failed to commit the transaction:" << db.lastError().text();
         db.rollback(); // Attempt to rollback, though commit failed.
         return false;
@@ -471,9 +476,12 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     qDebug() << funcName << "- Reloading and refreshing UI for table ID:" << tableId;
 
     // 首先清除表格数据缓存，确保获取最新数据
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_robustDataHandler->clearTableDataCache(tableId);
-    } else {
+    }
+    else
+    {
         VectorDataHandler::instance().clearTableDataCache(tableId);
     }
 
@@ -514,40 +522,50 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 {
     const QString funcName = "MainWindow::getCurrentColumnConfiguration";
     QList<Vector::ColumnInfo> columns;
+
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
-        qWarning() << funcName << "- 数据库未打开";
+        qWarning() << funcName << " - 数据库未打开";
         return columns;
     }
 
     QSqlQuery colQuery(db);
-    // 获取所有列，无论是否可见，因为迁移需要处理所有物理列
-    colQuery.prepare("SELECT id, column_name, column_order, column_type, default_value, is_visible "
-                     "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+    // 使用 SELECT * 并移除 is_visible 过滤器，以获取所有物理列
+    colQuery.prepare("SELECT * FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     colQuery.addBindValue(tableId);
 
     if (!colQuery.exec())
     {
-        qWarning() << funcName << "- 查询列结构失败, 表ID:" << tableId << ", 错误:" << colQuery.lastError().text();
+        qWarning() << funcName << " - 查询列结构失败, 表ID:" << tableId << ", 错误:" << colQuery.lastError().text();
         return columns;
     }
+
+    qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << colQuery.size() << "列配置。";
 
     while (colQuery.next())
     {
         Vector::ColumnInfo col;
-        col.id = colQuery.value(0).toInt(); // This is the id from VectorTableColumnConfiguration table
-        col.vector_table_id = tableId;      // The master_record_id it belongs to
-        col.name = colQuery.value(1).toString();
-        col.order = colQuery.value(2).toInt();
-        col.original_type_str = colQuery.value(3).toString();               // Store the original string
-        col.type = Vector::columnDataTypeFromString(col.original_type_str); // Convert to enum
+        // 按索引取值以匹配 SELECT *
+        col.id = colQuery.value(0).toInt();
+        col.vector_table_id = tableId;
+        col.name = colQuery.value(2).toString();
+        col.order = colQuery.value(3).toInt();
+        col.original_type_str = colQuery.value(4).toString();
+        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.is_visible = colQuery.value(6).toBool();
 
-        col.data_properties = QJsonObject(); // 不再需要解析 data_properties
-        col.is_visible = colQuery.value(5).toBool();
+        QString propStr = colQuery.value(7).toString();
+        if (!propStr.isEmpty())
+        {
+            QJsonParseError err;
+            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+                col.data_properties = doc.object();
+        }
+
         columns.append(col);
     }
-    qDebug() << funcName << "- 为表ID:" << tableId << "获取了" << columns.size() << "列配置。";
     return columns;
 }
 
@@ -655,9 +673,12 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
     // 获取表的所有行数据
     bool ok = false;
     QList<Vector::RowData> allRows;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
-    } else {
+    }
+    else
+    {
         allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
     }
 
@@ -669,9 +690,12 @@ bool MainWindow::isLabelDuplicate(int tableId, const QString &labelValue, int cu
 
     // 获取表的列配置
     QList<Vector::ColumnInfo> columns;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         columns = m_robustDataHandler->getAllColumnInfo(tableId);
-    } else {
+    }
+    else
+    {
         columns = VectorDataHandler::instance().getAllColumnInfo(tableId);
     }
 
@@ -720,7 +744,8 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
     qDebug() << funcName << " - Starting to update pin columns for tableId:" << tableId;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         qWarning() << funcName << " - Database is not open.";
         return false;
     }
@@ -734,17 +759,20 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         "WHERE vtp.table_id = ?");
     pinQuery.addBindValue(tableId);
 
-    if (!pinQuery.exec()) {
+    if (!pinQuery.exec())
+    {
         qWarning() << funcName << " - Failed to query selected pins:" << pinQuery.lastError().text();
         return false;
     }
 
     QStringList pinNames;
-    while (pinQuery.next()) {
+    while (pinQuery.next())
+    {
         pinNames << pinQuery.value(0).toString();
     }
 
-    if (pinNames.isEmpty()) {
+    if (pinNames.isEmpty())
+    {
         qInfo() << funcName << " - No pins selected for tableId:" << tableId << ". Nothing to do.";
         return true; // 没有选择管脚不是一个错误
     }
@@ -755,7 +783,8 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
     orderQuery.prepare("SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
     orderQuery.addBindValue(tableId);
     int maxOrder = 0;
-    if (orderQuery.exec() && orderQuery.next()) {
+    if (orderQuery.exec() && orderQuery.next())
+    {
         maxOrder = orderQuery.value(0).toInt();
     }
     qDebug() << funcName << " - Current max column order is:" << maxOrder;
@@ -767,27 +796,30 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_type, column_order, default_value, is_visible) "
         "VALUES (?, ?, ?, ?, ?, 1)");
 
-    for (const QString &pinName : pinNames) {
+    for (const QString &pinName : pinNames)
+    {
         maxOrder++;
         insertQuery.bindValue(0, tableId);
         insertQuery.bindValue(1, pinName);
         insertQuery.bindValue(2, "Pin"); // 管脚列的类型固定为 'Pin'
         insertQuery.bindValue(3, maxOrder);
-        insertQuery.bindValue(4, "0");   // 默认值设为 '0'
+        insertQuery.bindValue(4, "0"); // 默认值设为 '0'
 
-        if (!insertQuery.exec()) {
+        if (!insertQuery.exec())
+        {
             qWarning() << funcName << " - Failed to insert pin column" << pinName << ":" << insertQuery.lastError().text();
             db.rollback(); // 插入失败，回滚事务
             return false;
         }
     }
 
-    if (!db.commit()) {
+    if (!db.commit())
+    {
         qWarning() << funcName << " - Transaction commit failed:" << db.lastError().text();
         db.rollback();
         return false;
     }
-    
+
     qInfo() << funcName << " - Successfully added" << pinNames.count() << "pin columns to configuration for tableId:" << tableId;
     return true;
 }

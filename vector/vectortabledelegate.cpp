@@ -16,6 +16,7 @@
 #include <QDoubleValidator>
 #include "common/binary_field_lengths.h"
 #include <QPainter>
+#include <QTimer>
 
 // 定义静态成员变量
 QMap<int, QList<Vector::ColumnInfo>> VectorTableDelegate::s_tableColumnsCache;
@@ -76,7 +77,7 @@ QWidget *VectorTableDelegate::createEditor(QWidget *parent, const QStyleOptionVi
     }
 
     Vector::ColumnInfo colInfo = getColumnInfoByIndex(tableId, column);
-    qDebug() << "VectorTableDelegate::createEditor - 列信息 - 名称:" << colInfo.name 
+    qDebug() << "VectorTableDelegate::createEditor - 列信息 - 名称:" << colInfo.name
              << "类型:" << static_cast<int>(colInfo.type);
 
     // 根据列类型创建合适的编辑器
@@ -147,7 +148,7 @@ QWidget *VectorTableDelegate::createEditor(QWidget *parent, const QStyleOptionVi
     }
     else
     {
-        qDebug() << "VectorTableDelegate::createEditor - 未知列类型" << static_cast<int>(colInfo.type) 
+        qDebug() << "VectorTableDelegate::createEditor - 未知列类型" << static_cast<int>(colInfo.type)
                  << "，使用默认编辑器";
         // 默认使用基类创建
         editor = QStyledItemDelegate::createEditor(parent, option, index);
@@ -173,11 +174,13 @@ void VectorTableDelegate::setEditorData(QWidget *editor, const QModelIndex &inde
     {
         // 设置下拉框的当前值
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
-        if (comboBox) {
+        if (comboBox)
+        {
             QString strValue = value.toString();
             int idx = comboBox->findText(strValue);
-            if (idx >= 0) {
-            comboBox->setCurrentIndex(idx);
+            if (idx >= 0)
+            {
+                comboBox->setCurrentIndex(idx);
             }
         }
     }
@@ -185,9 +188,11 @@ void VectorTableDelegate::setEditorData(QWidget *editor, const QModelIndex &inde
     {
         // 设置管脚状态编辑器的值
         PinValueLineEdit *lineEdit = qobject_cast<PinValueLineEdit *>(editor);
-        if (lineEdit) {
+        if (lineEdit)
+        {
             QString strValue = value.toString();
-            if (strValue.isEmpty()) {
+            if (strValue.isEmpty())
+            {
                 strValue = "X"; // 默认值
             }
             lineEdit->setText(strValue);
@@ -200,7 +205,8 @@ void VectorTableDelegate::setEditorData(QWidget *editor, const QModelIndex &inde
     {
         // 设置文本编辑框的值
         QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
-        if (lineEdit) {
+        if (lineEdit)
+        {
             lineEdit->setText(value.toString());
         }
     }
@@ -222,40 +228,45 @@ void VectorTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *mode
     if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
-        if (comboBox) {
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
+        if (comboBox)
+        {
+            QString value = comboBox->currentText();
+            model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::TIMESET_ID)
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
-        if (comboBox) {
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
+        if (comboBox)
+        {
+            QString value = comboBox->currentText();
+            model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::BOOLEAN)
     {
         QComboBox *comboBox = qobject_cast<QComboBox *>(editor);
-        if (comboBox) {
-        QString value = comboBox->currentText();
-        model->setData(index, value, Qt::EditRole);
+        if (comboBox)
+        {
+            QString value = comboBox->currentText();
+            model->setData(index, value, Qt::EditRole);
         }
     }
     else if (colInfo.type == Vector::ColumnDataType::PIN_STATE_ID)
     {
         PinValueLineEdit *lineEdit = qobject_cast<PinValueLineEdit *>(editor);
-        if (lineEdit) {
-        QString value = lineEdit->text();
-        // 如果为空，默认使用X
-            if (value.isEmpty()) {
-            value = "X";
+        if (lineEdit)
+        {
+            QString value = lineEdit->text();
+            // 如果为空，默认使用X
+            if (value.isEmpty())
+            {
+                value = "X";
+            }
+            // 简单转换大写，但不进行严格验证
+            value = value.toUpper();
+            model->setData(index, value, Qt::EditRole);
         }
-        // 简单转换大写，但不进行严格验证
-        value = value.toUpper();
-        model->setData(index, value, Qt::EditRole);
-    }
     }
     else if (colInfo.type == Vector::ColumnDataType::INTEGER ||
              colInfo.type == Vector::ColumnDataType::REAL ||
@@ -263,14 +274,15 @@ void VectorTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *mode
              colInfo.type == Vector::ColumnDataType::JSON_PROPERTIES)
     {
         QLineEdit *lineEdit = qobject_cast<QLineEdit *>(editor);
-        if (lineEdit) {
+        if (lineEdit)
+        {
             model->setData(index, lineEdit->text(), Qt::EditRole);
         }
-        }
-        else
-        {
+    }
+    else
+    {
         // 默认使用基类方法
-            QStyledItemDelegate::setModelData(editor, model, index);
+        QStyledItemDelegate::setModelData(editor, model, index);
     }
 }
 
@@ -327,57 +339,71 @@ Vector::ColumnInfo VectorTableDelegate::getColumnInfoByIndex(int tableId, int ui
 {
     Vector::ColumnInfo defaultInfo;
     if (tableId < 0 || uiColumnIndex < 0)
-        return defaultInfo;
-
-    // 查询列信息
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-    query.prepare("SELECT id, column_name, column_order, column_type, data_properties "
-                  "FROM VectorTableColumnConfiguration "
-                  "WHERE master_record_id = ? ORDER BY column_order");
-    query.addBindValue(tableId);
-
-    if (!query.exec())
     {
-        qWarning() << "VectorTableDelegate::getColumnInfoByIndex - 查询列信息失败:" << query.lastError().text();
+        qWarning() << "VectorTableDelegate::getColumnInfoByIndex - 收到无效参数，tableId:" << tableId << "uiColumnIndex:" << uiColumnIndex;
         return defaultInfo;
     }
 
-    QList<Vector::ColumnInfo> columns;
-    while (query.next())
+    // 1. 检查缓存
+    if (!s_tableColumnsCache.contains(tableId))
     {
-        Vector::ColumnInfo col;
-        col.id = query.value(0).toInt();
-        col.vector_table_id = tableId;
-        col.name = query.value(1).toString();
-        col.order = query.value(2).toInt();
-        col.original_type_str = query.value(3).toString();
-        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        // 缓存未命中，从数据库加载并存入缓存
+        qDebug() << "VectorTableDelegate::getColumnInfoByIndex - 缓存未命中，为表ID加载列配置:" << tableId;
+        s_tableColumnsCache[tableId] = getColumnConfiguration(tableId);
+    }
 
-        QString propStr = query.value(4).toString();
-        if (!propStr.isEmpty())
+    const QList<Vector::ColumnInfo> &allColumns = s_tableColumnsCache.value(tableId);
+
+    // 再次检查，如果缓存中的列表仍然为空（说明加载失败），则发出警告
+    if (allColumns.isEmpty())
+    {
+        qWarning() << "VectorTableDelegate::getColumnInfoByIndex - 缓存中表ID" << tableId << "的列配置为空或加载失败。";
+        // 尝试重新加载一次，以应对首次加载时数据库未准备好的情况
+        QList<Vector::ColumnInfo> refreshedColumns = getColumnConfiguration(tableId);
+        if (refreshedColumns.isEmpty())
         {
-            QJsonParseError err;
-            QJsonDocument doc = QJsonDocument::fromJson(propStr.toUtf8(), &err);
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-            {
-                col.data_properties = doc.object();
-            }
+            qWarning() << "VectorTableDelegate::getColumnInfoByIndex - 重新加载后，列配置仍然为空。";
+            return defaultInfo;
         }
-
-        columns.append(col);
+        else
+        {
+            qDebug() << "VectorTableDelegate::getColumnInfoByIndex - 重新加载成功，获取到" << refreshedColumns.size() << "个列。";
+            s_tableColumnsCache[tableId] = refreshedColumns;
+            // 重新获取对缓存中数据的引用
+            const QList<Vector::ColumnInfo> &reloadedColumns = s_tableColumnsCache.value(tableId);
+            return getVisibleColumn(reloadedColumns, uiColumnIndex, tableId);
+        }
     }
 
-    // UI索引和列顺序不一定对应，需要根据column_order排序后找到对应的列
-    std::sort(columns.begin(), columns.end(), [](const Vector::ColumnInfo &a, const Vector::ColumnInfo &b)
-              { return a.order < b.order; });
+    return getVisibleColumn(allColumns, uiColumnIndex, tableId);
+}
 
-    if (uiColumnIndex < columns.size())
+// 新增辅助函数，用于从列配置列表中提取可见列
+Vector::ColumnInfo VectorTableDelegate::getVisibleColumn(const QList<Vector::ColumnInfo> &allColumns, int uiColumnIndex, int tableId) const
+{
+    Vector::ColumnInfo defaultInfo;
+
+    // 筛选出可见的列
+    QList<Vector::ColumnInfo> visibleColumns;
+    for (const auto &col : allColumns)
     {
-        return columns[uiColumnIndex];
+        if (col.is_visible)
+        {
+            visibleColumns.append(col);
+        }
     }
 
-    return defaultInfo;
+    // 从可见列列表中通过UI索引获取正确的列信息
+    if (uiColumnIndex < visibleColumns.size())
+    {
+        return visibleColumns[uiColumnIndex];
+    }
+    else
+    {
+        qWarning() << "VectorTableDelegate::getVisibleColumn - UI列索引" << uiColumnIndex
+                   << "超出了可见列的数量" << visibleColumns.size() << "对于表ID" << tableId;
+        return defaultInfo;
+    }
 }
 
 // 辅助函数：获取向量表选择器指针
@@ -415,31 +441,67 @@ QObject *VectorTableDelegate::getVectorTableSelectorPtr() const
 QList<Vector::ColumnInfo> VectorTableDelegate::getColumnConfiguration(int tableId) const
 {
     QList<Vector::ColumnInfo> columns;
+
+    // 参数检查
+    if (tableId <= 0)
+    {
+        qWarning() << "VectorTableDelegate::getColumnConfiguration - 无效的表ID:" << tableId;
+        return columns;
+    }
+
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
+    {
+        qWarning() << "VectorTableDelegate::getColumnConfiguration - 数据库未打开";
         return columns;
+    }
+
+    // --- NEW DIAGNOSTIC LOGGING ---
+    qDebug() << "[DB_DIAGNOSTIC] In VectorTableDelegate::getColumnConfiguration:";
+    qDebug() << "[DB_DIAGNOSTIC]   Connection Name:" << db.connectionName();
+    qDebug() << "[DB_DIAGNOSTIC]   Database Name:" << db.databaseName();
+    qDebug() << "[DB_DIAGNOSTIC]   Is Valid:" << db.isValid();
+    qDebug() << "[DB_DIAGNOSTIC]   Driver Name:" << db.driverName();
+    // --- END DIAGNOSTIC LOGGING ---
+
+    qDebug() << "VectorTableDelegate::getColumnConfiguration - 开始从数据库加载表ID" << tableId << "的列配置";
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, column_name, column_order, column_type, data_properties, IsVisible "
-                  "FROM VectorTableColumnConfiguration "
-                  "WHERE master_record_id = ? ORDER BY column_order");
+    // 使用 SELECT * 来提高健壮性，避免列名问题
+    query.prepare("SELECT * FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     query.addBindValue(tableId);
 
     if (!query.exec())
+    {
+        qWarning() << "VectorTableDelegate::getColumnConfiguration - 执行查询失败:"
+                   << query.lastError().text() << "，SQL:" << query.lastQuery();
         return columns;
+    }
+
+    // 检查查询是否返回任何行
+    if (query.size() == 0)
+    {
+        qWarning() << "VectorTableDelegate::getColumnConfiguration - 表ID" << tableId
+                   << "在VectorTableColumnConfiguration中没有任何列配置记录";
+    }
 
     while (query.next())
     {
         Vector::ColumnInfo col;
+        // 按索引取值以匹配 SELECT *
         col.id = query.value(0).toInt();
+        // master_record_id 是第1列，与tableId相同
         col.vector_table_id = tableId;
-        col.name = query.value(1).toString();
-        col.order = query.value(2).toInt();
-        col.original_type_str = query.value(3).toString();
+        col.name = query.value(2).toString();
+        col.order = query.value(3).toInt();
+        col.original_type_str = query.value(4).toString();
         col.type = Vector::columnDataTypeFromString(col.original_type_str);
-        col.is_visible = query.value(5).toBool();
+        // default_value 是第5列
+        // is_visible 是第6列
+        col.is_visible = query.value(6).toBool();
+        // data_properties 是第7列
+        QString propStr = query.value(7).toString();
 
-        QString propStr = query.value(4).toString();
         if (!propStr.isEmpty())
         {
             QJsonParseError err;
@@ -449,7 +511,12 @@ QList<Vector::ColumnInfo> VectorTableDelegate::getColumnConfiguration(int tableI
         }
 
         columns.append(col);
+        qDebug() << "VectorTableDelegate::getColumnConfiguration - 加载列:" << col.name
+                 << "类型:" << col.original_type_str << "是否可见:" << col.is_visible;
     }
+
+    qDebug() << "VectorTableDelegate::getColumnConfiguration - 成功加载了" << columns.size()
+             << "个列配置，表ID:" << tableId;
 
     return columns;
 }
