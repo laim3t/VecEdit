@@ -922,10 +922,14 @@ bool MainWindow::fixColumnTypeStorageFormat()
                 {
                     newTypeStr = typeMap[typeInt];
                 }
-                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin"))
+                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin") ||
+                         // 处理单字母管脚名称，如"A"、"B"等，以及可能的其他管脚命名格式
+                         (columnName.length() <= 2 && !columnNameTypeMap.contains(columnName) &&
+                          (columnName != "EXT" && columnName != "ID" && columnName != "PC")))
                 {
                     // 管脚列特殊处理
                     newTypeStr = "PIN_STATE_ID";
+                    qDebug() << funcName << " - 识别到可能的管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
                 }
                 else
                 {

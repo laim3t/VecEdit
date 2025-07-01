@@ -94,6 +94,10 @@ namespace Vector
                 return ColumnDataType::BOOLEAN; // 这是关键修复：Capture列应该使用布尔类型编辑器
             else if (columnName == "EXT" || columnName == "Comment")
                 return ColumnDataType::TEXT;
+            // 处理单字母管脚名称，如"A"、"B"等，或者其他管脚命名格式
+            else if (columnName.startsWith("Pin") || (columnName.length() <= 2 &&
+                                                      columnName != "ID" && columnName != "PC"))
+                return ColumnDataType::PIN_STATE_ID;
         }
 
         // 检查是否是数字（在数据库中，类型存储为数字形式 "0", "1", "2" 等）
