@@ -78,9 +78,38 @@ namespace Vector
     using VectorTableData = QList<RowData>;
 
     // Helper to convert string type from DB to enum
-    inline ColumnDataType columnDataTypeFromString(const QString &typeStr)
+    inline ColumnDataType columnDataTypeFromString(const QString &typeStr, const QString &columnName = QString())
     {
-        QString upperTypeStr = typeStr.toUpper(); // 转换为大写以进行不区分大小写的比较
+        // 特殊情况处理: 根据列名做硬编码映射，覆盖数据库中不正确的类型值
+        // 这是一个紧急修复，后续应该通过修复数据库中的值来解决根本问题
+        if (!columnName.isEmpty())
+        {
+            if (columnName == "Label")
+                return ColumnDataType::TEXT;
+            else if (columnName == "Instruction")
+                return ColumnDataType::INSTRUCTION_ID;
+            else if (columnName == "TimeSet")
+                return ColumnDataType::TIMESET_ID;
+            else if (columnName == "Capture")
+                return ColumnDataType::BOOLEAN; // 这是关键修复：Capture列应该使用布尔类型编辑器
+            else if (columnName == "EXT" || columnName == "Comment")
+                return ColumnDataType::TEXT;
+        }
+
+        // 检查是否是数字（在数据库中，类型存储为数字形式 "0", "1", "2" 等）
+        bool isInt;
+        int typeInt = typeStr.toInt(&isInt);
+        if (isInt)
+        {
+            // 验证整数值是否在有效范围内
+            if (typeInt >= 0 && typeInt <= 7) // 假设枚举最大值为7 (JSON_PROPERTIES)
+            {
+                return static_cast<ColumnDataType>(typeInt);
+            }
+        }
+
+        // 如果不是数字或数字超出范围，则尝试按文本匹配（向后兼容）
+        QString upperTypeStr = typeStr.toUpper();
 
         if (upperTypeStr == "TEXT")
             return ColumnDataType::TEXT;

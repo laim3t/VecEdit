@@ -78,7 +78,8 @@ QWidget *VectorTableDelegate::createEditor(QWidget *parent, const QStyleOptionVi
 
     Vector::ColumnInfo colInfo = getColumnInfoByIndex(tableId, column);
     qDebug() << "VectorTableDelegate::createEditor - 列信息 - 名称:" << colInfo.name
-             << "类型:" << static_cast<int>(colInfo.type);
+             << "类型:" << static_cast<int>(colInfo.type)
+             << "原始类型字符串:" << colInfo.original_type_str;
 
     // 根据列类型创建合适的编辑器
     if (colInfo.type == Vector::ColumnDataType::INSTRUCTION_ID)
@@ -467,7 +468,6 @@ QList<Vector::ColumnInfo> VectorTableDelegate::getColumnConfiguration(int tableI
     qDebug() << "VectorTableDelegate::getColumnConfiguration - 开始从数据库加载表ID" << tableId << "的列配置";
 
     QSqlQuery query(db);
-    // 使用 SELECT * 来提高健壮性，避免列名问题
     query.prepare("SELECT * FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     query.addBindValue(tableId);
 
@@ -495,7 +495,18 @@ QList<Vector::ColumnInfo> VectorTableDelegate::getColumnConfiguration(int tableI
         col.name = query.value(2).toString();
         col.order = query.value(3).toInt();
         col.original_type_str = query.value(4).toString();
-        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+
+        // 添加详细诊断日志
+        qDebug() << "VectorTableDelegate::getColumnConfiguration - 列 " << col.name
+                 << " 的原始类型字符串：'" << col.original_type_str << "'";
+
+        // 传递列名到columnDataTypeFromString函数，实现基于列名的类型映射
+        col.type = Vector::columnDataTypeFromString(col.original_type_str, col.name);
+
+        // 添加类型转换结果日志
+        qDebug() << "VectorTableDelegate::getColumnConfiguration - 列 " << col.name
+                 << " 类型转换结果：" << static_cast<int>(col.type);
+
         // default_value 是第5列
         // is_visible 是第6列
         col.is_visible = query.value(6).toBool();

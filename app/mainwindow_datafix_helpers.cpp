@@ -460,7 +460,7 @@ bool MainWindow::loadVectorTableMeta(int tableId, QString &binFileName, QList<Ve
         col.name = colQuery.value(1).toString();
         col.order = colQuery.value(2).toInt();
         col.original_type_str = colQuery.value(3).toString();
-        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.type = Vector::columnDataTypeFromString(col.original_type_str, col.name);
         col.is_visible = colQuery.value(5).toBool();
 
         col.data_properties = QJsonObject(); // 不再需要解析 data_properties
@@ -531,7 +531,9 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
     }
 
     QSqlQuery colQuery(db);
-    // 使用 SELECT * 并移除 is_visible 过滤器，以获取所有物理列
+    // 在准备新查询前先调用clear()，确保查询对象状态干净，这是治本之策
+    colQuery.clear();
+    // 恢复使用安全的参数绑定
     colQuery.prepare("SELECT * FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
     colQuery.addBindValue(tableId);
 
@@ -552,7 +554,7 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
         col.name = colQuery.value(2).toString();
         col.order = colQuery.value(3).toInt();
         col.original_type_str = colQuery.value(4).toString();
-        col.type = Vector::columnDataTypeFromString(col.original_type_str);
+        col.type = Vector::columnDataTypeFromString(col.original_type_str, col.name);
         col.is_visible = colQuery.value(6).toBool();
 
         QString propStr = colQuery.value(7).toString();
