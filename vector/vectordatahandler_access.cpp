@@ -756,12 +756,12 @@ QList<Vector::RowData> VectorDataHandler::getPageData(int tableId, int pageIndex
     }
 
     int rowsToLoad = qMin(pageSize, totalRowCount - startRow);
-    qDebug() << funcName << " - 总行数:" << totalRowCount 
-             << ", 起始行:" << startRow 
+    qDebug() << funcName << " - 总行数:" << totalRowCount
+             << ", 起始行:" << startRow
              << ", 加载行数:" << rowsToLoad
              << ", 页码:" << pageIndex
              << ", 每页行数:" << pageSize;
-    
+
     return allRows.mid(startRow, rowsToLoad);
     // --- END: TEMPORARY FIX ---
 
