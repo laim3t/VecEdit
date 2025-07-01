@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+7c5f9ade040cb2fe7bea90dba829d314 CMakeFiles/VecEdit_autogen
+645aed7fd4e991cfe8f84207c44fe398 VecEdit_autogen/BUURKL3RHA/qrc_icons.cpp
+18c5f63e341753154d1fe1c83cf00aa4 VecEdit_autogen/timestamp

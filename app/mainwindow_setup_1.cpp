@@ -121,6 +121,10 @@ void MainWindow::setupMenu()
     // 打开项目
     m_openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
     connect(m_openProjectAction, &QAction::triggered, this, &MainWindow::openExistingProject);
+    
+    // 打开项目(新架构)
+    QAction *openProjectNewArchAction = fileMenu->addAction(tr("打开项目(新架构)"));
+    connect(openProjectNewArchAction, &QAction::triggered, this, &MainWindow::openExistingProjectWithNewArch);
 
     // 分隔符
     fileMenu->addSeparator();

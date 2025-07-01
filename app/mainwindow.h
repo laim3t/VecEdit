@@ -69,6 +69,7 @@ private slots:
     void createNewProject();
     void createNewProjectWithNewArch(); // 使用新架构创建项目
     void openExistingProject();
+    void openExistingProjectWithNewArch(); // 使用新架构打开项目
     void closeCurrentProject();
 
     // 显示数据库视图对话框

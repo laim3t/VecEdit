@@ -24,6 +24,14 @@ namespace Vector
 
 namespace Persistence
 {
+    // 用于HeaderData结构
+    struct HeaderData {
+        quint32 magic_number;
+        quint16 file_format_version;
+        quint16 data_schema_version;
+        quint32 row_count;
+        quint32 column_count;
+    };
 
     /**
      * @brief Helper class for working with binary file I/O.
@@ -200,7 +208,7 @@ namespace Persistence
                                        int schemaVersion, int startRow, const QList<Vector::RowData> &rowsToInsert,
                                        QString &errorMessage);
 
-        // New serialization and deserialization functions
+        // [NEW] - Length-prefixed serialization
         static bool serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray);
         static bool deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData);
 
@@ -214,6 +222,12 @@ namespace Persistence
 
         // 更新二进制文件头中的行计数值
         static bool updateRowCountInHeader(const QString &absoluteBinFilePath, int newRowCount);
+
+        // 初始化二进制文件，创建合法的头部结构
+        static bool initBinaryFile(const QString &filePath, int columnCount, int schemaVersion);
+        
+        // 读取并验证二进制文件头部
+        static bool readAndValidateHeader(QFile &file, Persistence::HeaderData &headerData, int expectedSchemaVersion);
 
     private:
         /**

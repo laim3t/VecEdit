@@ -32,6 +32,11 @@ public:
                                   int currentPage, int pageSize, int totalRows,
                                   QString &errorMessage);
 
+    // 从VectorTableModel保存数据
+    bool saveDataFromModel(int tableId, const QList<Vector::RowData> &pageData,
+                           int currentPage, int pageSize, int totalRows,
+                           QString &errorMessage);
+
     // 添加向量行
     static void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
@@ -49,6 +54,9 @@ public:
 
     // 获取向量表总行数
     int getVectorTableRowCount(int tableId);
+
+    // 确保二进制文件兼容性
+    bool ensureBinaryFilesCompatibility(const QString &dbPath, QString &errorMessage);
 
     // 获取指定表的所有列信息（包括可见和隐藏）
     QList<Vector::ColumnInfo> getAllColumnInfo(int tableId);

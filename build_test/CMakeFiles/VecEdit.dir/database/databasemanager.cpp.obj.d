@@ -1,0 +1,32 @@
+CMakeFiles/VecEdit.dir/database/databasemanager.cpp.obj: \
+ E:\QT_project\1\VecEdit\database\databasemanager.cpp \
+ E:\QT_project\1\VecEdit\database\databasemanager.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QObject \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qobject.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlDatabase \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqldatabase.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlQuery \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlquery.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/QSqlError \
+ C:/Qt/5.15.2/mingw81_32/include/QtSql/qsqlerror.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QFile \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qfile.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDir \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdir.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDebug \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdebug.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QString \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qstring.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QVariant \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qvariant.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonDocument \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsondocument.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QJsonObject \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qjsonobject.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QFileInfo \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qfileinfo.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QDateTime \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qdatetime.h \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/QCoreApplication \
+ C:/Qt/5.15.2/mingw81_32/include/QtCore/qcoreapplication.h \
+ E:\QT_project\1\VecEdit\database\databasemanager_1.cpp

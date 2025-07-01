@@ -324,115 +324,27 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
 
 bool VectorTableModel::saveData(QString &errorMessage)
 {
-    qDebug() << "VectorTableModel::saveData - 开始保存表ID:" << m_tableId << "的修改数据";
+    const QString funcName = "VectorTableModel::saveData";
+    qDebug() << funcName << " - 开始保存表ID:" << m_tableId << "的数据";
 
-    // 检查是否有任何修改
-    bool hasModifications;
-    if (m_useNewDataHandler)
+    if (m_tableId == -1)
     {
-        hasModifications = m_robustDataHandler->isRowModified(m_tableId, -1);
-    }
-    else
-    {
-        hasModifications = VectorDataHandler::instance().isRowModified(m_tableId, -1);
+        errorMessage = "无效的表ID";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
     }
 
-    if (!hasModifications)
-    {
-        errorMessage = "没有检测到数据变更，跳过保存";
-        qDebug() << "VectorTableModel::saveData - " << errorMessage;
-        return true; // 没有修改，视为成功
-    }
-
-    // 使用VectorDataHandler保存修改的数据
-    // 由于我们使用了Model/View架构，不再需要传递QTableWidget
-    // 而是直接使用内部的m_pageData
-
-    // 创建一个临时的QTableWidget来兼容VectorDataHandler的接口
-    // 这是一个临时解决方案，后续应该修改VectorDataHandler以直接支持QList<Vector::RowData>
-    QTableWidget tempTable;
-
-    // 设置表格的行列数
-    tempTable.setRowCount(m_pageData.size());
-    tempTable.setColumnCount(m_columns.size());
-
-    // 设置水平表头，确保列名与数据库匹配
-    for (int col = 0; col < m_columns.size(); ++col)
-    {
-        QTableWidgetItem *headerItem = new QTableWidgetItem(m_columns[col].name);
-        tempTable.setHorizontalHeaderItem(col, headerItem);
-    }
-
-    // 填充临时表格数据
-    for (int row = 0; row < m_pageData.size(); ++row)
-    {
-        const Vector::RowData &rowData = m_pageData.at(row);
-        for (int col = 0; col < m_columns.size(); ++col)
-        {
-            const Vector::ColumnInfo &colInfo = m_columns.at(col);
-            QTableWidgetItem *item = new QTableWidgetItem();
-
-            // 获取列数据，确保索引有效
-            QVariant cellData;
-            if (col < rowData.size())
-            {
-                cellData = rowData.at(col);
-            }
-
-            // 根据列类型设置数据
-            switch (colInfo.type)
-            {
-            case Vector::ColumnDataType::BOOLEAN:
-                item->setText(cellData.toBool() ? "Y" : "N");
-                break;
-            case Vector::ColumnDataType::PIN_STATE_ID:
-                // 确保管脚状态值不为空，默认使用X
-                {
-                    QString pinState = cellData.toString();
-                    if (pinState.isEmpty())
-                    {
-                        pinState = "X";
-                    }
-                    item->setText(pinState);
-                }
-                break;
-            case Vector::ColumnDataType::INSTRUCTION_ID:
-                // 将指令ID转换为名称
-                item->setText(getInstructionName(cellData.toInt()));
-                break;
-            case Vector::ColumnDataType::TIMESET_ID:
-                // 将TimeSet ID转换为名称
-                item->setText(getTimeSetName(cellData.toInt()));
-                break;
-            default:
-                item->setText(cellData.toString());
-                break;
-            }
-
-            tempTable.setItem(row, col, item);
-        }
-    }
-
-    // 调用VectorDataHandler保存数据
-    bool success;
-    if (m_useNewDataHandler)
-    {
-        success = m_robustDataHandler->saveVectorTableDataPaged(
-            m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
-    }
-    else
-    {
-        success = VectorDataHandler::instance().saveVectorTableDataPaged(
-            m_tableId, &tempTable, m_currentPage, m_pageSize, m_totalRows, errorMessage);
-    }
+    // 调用新的、更直接的保存方法
+    bool success = m_robustDataHandler->saveDataFromModel(
+        m_tableId, m_pageData, m_currentPage, m_pageSize, m_totalRows, errorMessage);
 
     if (success)
     {
-        qDebug() << "VectorTableModel::saveData - 成功保存表ID:" << m_tableId << "的数据";
+        qDebug() << funcName << " - 成功保存表ID:" << m_tableId << "的数据";
     }
     else
     {
-        qWarning() << "VectorTableModel::saveData - 保存表ID:" << m_tableId << "的数据失败:" << errorMessage;
+        qWarning() << funcName << " - 保存表ID:" << m_tableId << "的数据失败:" << errorMessage;
     }
 
     return success;

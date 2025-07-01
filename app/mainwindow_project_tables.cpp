@@ -290,6 +290,87 @@ void MainWindow::openExistingProject()
     }
 }
 
+void MainWindow::openExistingProjectWithNewArch()
+{
+    // 先关闭当前项目
+    closeCurrentProject();
+
+    // 使用QSettings获取上次使用的路径
+    QSettings settings(QDir::homePath() + "/.vecedit/settings.ini", QSettings::IniFormat);
+    QString lastPath = settings.value("lastUsedPath", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+    QDir dir(lastPath);
+    if (!dir.exists())
+    {
+        lastPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+
+    // 选择要打开的数据库文件
+    QString dbPath = QFileDialog::getOpenFileName(this, tr("打开项目数据库"),
+                                                  lastPath,
+                                                  tr("SQLite数据库 (*.db)"));
+    if (dbPath.isEmpty())
+    {
+        return;
+    }
+
+    // 保存本次使用的路径
+    settings.setValue("lastUsedPath", QFileInfo(dbPath).absolutePath());
+
+    // 设置使用新数据处理器
+    m_useNewDataHandler = true;
+    if (m_vectorTableModel)
+    {
+        m_vectorTableModel->setUseNewDataHandler(true);
+    }
+
+    // 使用DatabaseManager打开数据库
+    if (DatabaseManager::instance()->openExistingDatabase(dbPath))
+    {
+        m_currentDbPath = dbPath;
+        setWindowTitle(QString("VecEdit - 矢量测试编辑器 (新架构) [%1]").arg(QFileInfo(dbPath).fileName()));
+
+        // 显示当前数据库版本
+        int version = DatabaseManager::instance()->getCurrentDatabaseVersion();
+        statusBar()->showMessage(tr("数据库已打开(新架构): %1 (版本: %2)").arg(dbPath).arg(version));
+
+        // 确保二进制数据目录存在
+        QString binaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(dbPath);
+        QDir binDir(binaryDataDir);
+        if (!binDir.exists()) {
+            binDir.mkpath(".");
+            qDebug() << "创建二进制数据目录：" << binaryDataDir;
+        }
+        
+        // 确保二进制文件兼容性
+        QString errorMsg;
+        if (!m_robustDataHandler->ensureBinaryFilesCompatibility(dbPath, errorMsg)) {
+            qWarning() << "确保二进制文件兼容性失败:" << errorMsg;
+            // 这里不会中断流程，因为有些表可能没有问题
+        }
+
+        // 加载向量表数据
+        loadVectorTable();
+
+        // 检查和修复所有向量表的列配置
+        checkAndFixAllVectorTables();
+
+        // 刷新侧边导航栏
+        refreshSidebarNavigator();
+
+        // 设置窗口标题
+        setWindowTitle(tr("向量编辑器 (新架构) [%1]").arg(QFileInfo(dbPath).fileName()));
+
+        // 更新菜单状态
+        updateMenuState();
+    }
+    else
+    {
+        statusBar()->showMessage(tr("错误: %1").arg(DatabaseManager::instance()->lastError()));
+        QMessageBox::critical(this, tr("错误"),
+                              tr("打开项目数据库失败：\n%1").arg(DatabaseManager::instance()->lastError()));
+    }
+}
+
 void MainWindow::closeCurrentProject()
 {
     if (!m_currentDbPath.isEmpty())

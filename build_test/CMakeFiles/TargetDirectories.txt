@@ -1,0 +1,11 @@
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/VecEdit.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/package.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/package_source.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/edit_cache.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/rebuild_cache.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/list_install_components.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/install.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/install/local.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/install/strip.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/VecEdit_autogen_timestamp_deps.dir
+E:/QT_project/1/VecEdit/build_test/CMakeFiles/VecEdit_autogen.dir
