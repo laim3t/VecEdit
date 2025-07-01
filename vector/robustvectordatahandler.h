@@ -128,6 +128,9 @@ private:
     // 禁止拷贝和赋值
     RobustVectorDataHandler(const RobustVectorDataHandler &) = delete;
     RobustVectorDataHandler &operator=(const RobustVectorDataHandler &) = delete;
+    
+    // 存储每个表的已修改行索引
+    QMap<int, QSet<int>> m_modifiedRows;
 
     // 加载向量表元数据（列信息、行数等）
     bool loadVectorTableMeta(int tableId, QString &binFileName, QList<Vector::ColumnInfo> &columns,
