@@ -665,8 +665,8 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
                 // 例如，Label 和 Comment 列可以为空
                 if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
                 {
-                    // 为Label列生成一个唯一的、临时的标签
-                    newRow.append(QString("New_Label_%1").arg(QDateTime::currentMSecsSinceEpoch() + i));
+                    // 不再为Label列生成默认值，使用空字符串
+                    newRow.append(QString(""));
                 }
                 else
                 {

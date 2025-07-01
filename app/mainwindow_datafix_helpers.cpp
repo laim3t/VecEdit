@@ -877,6 +877,23 @@ bool MainWindow::fixColumnTypeStorageFormat()
     columnNameTypeMap["EXT"] = "TEXT";
     columnNameTypeMap["Comment"] = "TEXT";
 
+    // 从pin_list表获取所有管脚名称，用于准确识别管脚列
+    QSet<QString> pinNames;
+    QSqlQuery pinQuery(db);
+    pinQuery.prepare("SELECT pin_name FROM pin_list");
+    if (pinQuery.exec())
+    {
+        while (pinQuery.next())
+        {
+            pinNames.insert(pinQuery.value(0).toString());
+        }
+        qDebug() << funcName << " - 从pin_list表获取了" << pinNames.size() << "个管脚名称";
+    }
+    else
+    {
+        qWarning() << funcName << " - 无法查询pin_list表:" << pinQuery.lastError().text();
+    }
+
     // 开始事务
     if (!db.transaction())
     {
@@ -912,9 +929,15 @@ bool MainWindow::fixColumnTypeStorageFormat()
             {
                 newTypeStr = columnNameTypeMap[columnName];
             }
+            // 然后检查是否是已知的管脚名称
+            else if (pinNames.contains(columnName))
+            {
+                newTypeStr = "PIN_STATE_ID";
+                qDebug() << funcName << " - 识别到管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
+            }
             else
             {
-                // 如果不是标准列名，检查当前类型是否为数字
+                // 如果不是标准列名或已知管脚，检查当前类型是否为数字
                 bool isInt;
                 int typeInt = currentTypeStr.toInt(&isInt);
 
@@ -922,14 +945,11 @@ bool MainWindow::fixColumnTypeStorageFormat()
                 {
                     newTypeStr = typeMap[typeInt];
                 }
-                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin") ||
-                         // 处理单字母管脚名称，如"A"、"B"等，以及可能的其他管脚命名格式
-                         (columnName.length() <= 2 && !columnNameTypeMap.contains(columnName) &&
-                          (columnName != "EXT" && columnName != "ID" && columnName != "PC")))
+                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin"))
                 {
-                    // 管脚列特殊处理
+                    // 管脚列特殊处理（备用规则，以防pin_list表不完整）
                     newTypeStr = "PIN_STATE_ID";
-                    qDebug() << funcName << " - 识别到可能的管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
+                    qDebug() << funcName << " - 通过命名规则识别到管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
                 }
                 else
                 {

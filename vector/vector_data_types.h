@@ -6,6 +6,10 @@
 #include <QVariant>
 #include <QJsonObject>
 #include <QDebug> // For qDebug()
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QSet>
 
 namespace Vector
 {
@@ -84,6 +88,34 @@ namespace Vector
         // 这是一个紧急修复，后续应该通过修复数据库中的值来解决根本问题
         if (!columnName.isEmpty())
         {
+            static QSet<QString> pinNames;
+            static bool initialized = false;
+
+            // 首次调用时，从数据库加载所有管脚名称
+            if (!initialized)
+            {
+                QSqlDatabase db = QSqlDatabase::database();
+                if (db.isOpen())
+                {
+                    QSqlQuery pinQuery(db);
+                    pinQuery.prepare("SELECT pin_name FROM pin_list");
+                    if (pinQuery.exec())
+                    {
+                        while (pinQuery.next())
+                        {
+                            pinNames.insert(pinQuery.value(0).toString());
+                        }
+                        qDebug() << "columnDataTypeFromString - 从pin_list表加载了" << pinNames.size() << "个管脚名称";
+                    }
+                    else
+                    {
+                        qWarning() << "columnDataTypeFromString - 无法查询pin_list表:" << pinQuery.lastError().text();
+                    }
+                }
+                initialized = true;
+            }
+
+            // 检查是否是标准列名
             if (columnName == "Label")
                 return ColumnDataType::TEXT;
             else if (columnName == "Instruction")
@@ -94,9 +126,11 @@ namespace Vector
                 return ColumnDataType::BOOLEAN; // 这是关键修复：Capture列应该使用布尔类型编辑器
             else if (columnName == "EXT" || columnName == "Comment")
                 return ColumnDataType::TEXT;
-            // 处理单字母管脚名称，如"A"、"B"等，或者其他管脚命名格式
-            else if (columnName.startsWith("Pin") || (columnName.length() <= 2 &&
-                                                      columnName != "ID" && columnName != "PC"))
+            // 检查是否是已知的管脚名称
+            else if (pinNames.contains(columnName))
+                return ColumnDataType::PIN_STATE_ID;
+            // 备用规则，以防pin_list表不完整
+            else if (columnName.startsWith("Pin"))
                 return ColumnDataType::PIN_STATE_ID;
         }
 
