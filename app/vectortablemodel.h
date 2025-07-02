@@ -50,6 +50,9 @@ public:
 
     // 加载指定表格的指定页数据
     void loadPage(int tableId, int page);
+    
+    // 新增：追加下一页数据（无限滚动功能）
+    bool appendPage();
 
     // 加载指定表格的所有数据（新轨道模式）
     void loadAllData(int tableId);

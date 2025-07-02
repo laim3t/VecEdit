@@ -1,3 +1,11 @@
+#include <QElapsedTimer>
+
+// 无限滚动相关命名空间的前向声明
+namespace InfiniteScroll {
+    extern bool g_isLoadingData;
+    extern QElapsedTimer g_lastLoadTime;
+}
+
 void MainWindow::onVectorTableSelectionChanged(int index)
 {
     const QString funcName = "MainWindow::onVectorTableSelectionChanged";
@@ -39,13 +47,20 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         qDebug() << funcName << " - 使用Model/View架构加载数据";
         if (m_vectorTableModel)
         {
-            if (m_useNewDataHandler)
+            // 设置合适的分页大小 - 根据无限滚动的需要调整
+            m_vectorTableModel->setPageSize(100); // 每页加载100行，确保滚动流畅
+            
+            // 【启用无限滚动】无论是否使用新数据处理器，都使用分页模式加载，而不是loadAllData
+            // 这样可以避免大数据集导致的UI卡顿问题
+            qDebug() << funcName << " - 重置页码并加载第一页数据";
+            m_vectorTableModel->loadPage(tableId, 0); // 分页模式总是从第一页开始
+            
+            // 清除滚动状态，确保下次滚动时能正确触发加载
+            if (InfiniteScroll::g_lastLoadTime.isValid())
             {
-                m_vectorTableModel->loadAllData(tableId);
-            }
-            else
-            {
-                m_vectorTableModel->loadPage(tableId, 0); // 分页模式总是从第一页开始
+                InfiniteScroll::g_lastLoadTime.invalidate();
+                InfiniteScroll::g_isLoadingData = false;
+                qDebug() << funcName << " - 重置滚动状态";
             }
         }
     }

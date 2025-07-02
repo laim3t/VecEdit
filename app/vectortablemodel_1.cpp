@@ -81,10 +81,50 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
     // 完成行插入操作
     endInsertRows();
     
-    // 如果插入成功，重新加载所有数据以确保模型缓存与数据库同步
+    // 如果插入成功，只加载当前页的数据，而不是全部数据
     if (success)
     {
-        loadAllData(m_tableId);
+        // 注意：我们不调用loadAllData而是重新加载当前页数据
+        // 加载的页码应该是0，确保首先加载首页
+        m_currentPage = 0;
+        
+        // 获取列信息
+        if (m_useNewDataHandler)
+        {
+            m_columns = m_robustDataHandler->getVisibleColumns(m_tableId);
+        }
+        else
+        {
+            m_columns = VectorDataHandler::instance().getVisibleColumns(m_tableId);
+        }
+        
+        // 更新总行数
+        if (m_useNewDataHandler)
+        {
+            m_totalRows = m_robustDataHandler->getVectorTableRowCount(m_tableId);
+        }
+        else
+        {
+            m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_tableId);
+        }
+        
+        // 重置模型并加载第一页数据
+        beginResetModel();
+        
+        // 获取第一页数据
+        if (m_useNewDataHandler)
+        {
+            m_pageData = m_robustDataHandler->getPageData(m_tableId, 0, m_pageSize);
+        }
+        else
+        {
+            m_pageData = VectorDataHandler::instance().getPageData(m_tableId, 0, m_pageSize);
+        }
+        
+        endResetModel();
+        
+        qDebug() << "VectorTableModel::insertRows - 成功重新加载首页数据，行数:" << m_pageData.size()
+                 << "，总行数:" << m_totalRows;
     }
     
     return success;
@@ -323,4 +363,82 @@ void VectorTableModel::loadAllData(int tableId)
 int VectorTableModel::getCurrentTableId() const
 {
     return m_tableId;
+}
+
+// 实现无限滚动功能：追加下一页数据
+bool VectorTableModel::appendPage()
+{
+    const QString funcName = "VectorTableModel::appendPage";
+    int oldPage = m_currentPage;
+    qDebug() << funcName << " - 正在追加下一页数据，当前表ID:" << m_tableId << "当前页:" << oldPage;
+
+    // 检查参数有效性
+    if (m_tableId <= 0)
+    {
+        qWarning() << funcName << " - 无效的表ID";
+        return false;
+    }
+
+    // 计算下一页页码
+    int nextPage = oldPage + 1;
+    qDebug() << funcName << " - 计算下一页页码:" << nextPage;
+
+    // 计算当前已加载的数据行数
+    int loadedRows = m_pageData.size();
+    int expectedRows = (oldPage + 1) * m_pageSize; // 当前应该已加载的行数
+
+    // 检查是否已经加载了所有数据
+    if (loadedRows >= m_totalRows)
+    {
+        qDebug() << funcName << " - 已加载全部数据，无需追加 (已加载:" << loadedRows 
+                 << "行，总行数:" << m_totalRows << ")";
+        return false;
+    }
+
+    // 检查当前加载的行数是否与预期一致，如果不一致可能是页码计算有误
+    if (loadedRows < expectedRows - m_pageSize || loadedRows > expectedRows)
+    {
+        qWarning() << funcName << " - 当前加载的行数与预期不符，可能存在页码计算错误"
+                   << " (已加载:" << loadedRows << "行，预期:" << expectedRows << "行)";
+        // 不要中断，继续尝试加载
+    }
+
+    // 获取下一页数据
+    QList<Vector::RowData> nextPageData;
+    if (m_useNewDataHandler)
+    {
+        nextPageData = m_robustDataHandler->getPageData(m_tableId, nextPage, m_pageSize);
+    }
+    else
+    {
+        nextPageData = VectorDataHandler::instance().getPageData(m_tableId, nextPage, m_pageSize);
+    }
+
+    // 检查是否成功获取到数据
+    if (nextPageData.isEmpty())
+    {
+        qDebug() << funcName << " - 下一页没有数据，无需追加 (页码:" << nextPage << ")";
+        return false;
+    }
+
+    // 计算实际添加的行数
+    int startRow = m_pageData.size();
+    int addedRows = nextPageData.size();
+
+    // 告诉视图我们要开始插入行
+    beginInsertRows(QModelIndex(), startRow, startRow + addedRows - 1);
+
+    // 追加数据到当前数据集
+    m_pageData.append(nextPageData);
+
+    // 更新当前页码 - 确保在这里更新
+    m_currentPage = nextPage;
+
+    // 告诉视图插入完成
+    endInsertRows();
+
+    qDebug() << funcName << " - 成功追加" << addedRows << "行数据，当前总行数:" << m_pageData.size()
+             << "，总数据行数:" << m_totalRows << "，页码从" << oldPage << "更新为" << m_currentPage;
+
+    return true;
 }

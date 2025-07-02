@@ -170,6 +170,10 @@ private slots:
     void loadPrevPage();
     void changePageSize(int newSize);
     void jumpToPage(int pageNum);
+    
+    // 无限滚动相关方法
+    void onTableViewScrolled(int value);
+    void loadMoreDataIfNeeded();
 
     // 表格数据变更监听
     void onTableCellChanged(int row, int column);

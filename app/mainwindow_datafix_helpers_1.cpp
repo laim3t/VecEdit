@@ -286,9 +286,9 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         maxOrder++;
         insertQuery.bindValue(0, tableId);
         insertQuery.bindValue(1, pinName);
-        insertQuery.bindValue(2, "Pin"); // 管脚列的类型固定为 'Pin'
+        insertQuery.bindValue(2, "PIN_STATE_ID"); // 使用标准的、无歧义的枚举名称
         insertQuery.bindValue(3, maxOrder);
-        insertQuery.bindValue(4, "0"); // 默认值设为 '0'
+        insertQuery.bindValue(4, "X"); // 管脚列的默认值应为 'X'
 
         if (!insertQuery.exec())
         {

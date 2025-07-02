@@ -167,9 +167,14 @@ void VectorTableModel::loadPage(int tableId, int page)
 {
     qDebug() << "VectorTableModel::loadPage - 加载表ID:" << tableId << "页码:" << page;
 
+    // 检查是否切换了表格，如果是则清空现有数据
+    bool isNewTable = (m_tableId != tableId);
+    
     // 保存新的表ID和页码
     m_tableId = tableId;
     m_currentPage = page;
+    
+    qDebug() << "VectorTableModel::loadPage - 设置当前页码为:" << m_currentPage;
 
     // 刷新指令和TimeSet的缓存
     refreshCaches();
@@ -197,21 +202,41 @@ void VectorTableModel::loadPage(int tableId, int page)
         m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
     }
 
+    // 如果是新表格或者重新加载第一页，则清空现有数据
+    if (isNewTable || page == 0)
+    {
+        m_pageData.clear();
+    }
+
     // 获取当前页数据
+    QList<Vector::RowData> pageData;
     if (m_useNewDataHandler)
     {
-        m_pageData = m_robustDataHandler->getPageData(tableId, page, m_pageSize);
+        pageData = m_robustDataHandler->getPageData(tableId, page, m_pageSize);
     }
     else
     {
-        m_pageData = VectorDataHandler::instance().getPageData(tableId, page, m_pageSize);
+        pageData = VectorDataHandler::instance().getPageData(tableId, page, m_pageSize);
+    }
+    
+    // 设置或追加数据
+    if (isNewTable || page == 0)
+    {
+        // 新表格或第一页：直接设置数据
+        m_pageData = pageData;
+    }
+    else
+    {
+        // 非第一页：追加数据
+        m_pageData.append(pageData);
     }
 
     // 告诉视图我们已经修改完数据
     endResetModel();
 
     qDebug() << "VectorTableModel::loadPage - 加载完成，列数:" << m_columns.size()
-             << "，当前页行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
+             << "，当前页行数:" << m_pageData.size() << "，总行数:" << m_totalRows
+             << "，当前页码:" << m_currentPage;
 }
 
 Qt::ItemFlags VectorTableModel::flags(const QModelIndex &index) const

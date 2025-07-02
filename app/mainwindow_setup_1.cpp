@@ -435,6 +435,13 @@ void MainWindow::setupVectorTableUI()
                          "   padding: 2px; "
                          "} ";
     m_vectorTableView->setStyleSheet(tableStyle);
+    
+    // 连接垂直滚动条的信号，实现无限滚动功能
+    QScrollBar *verticalScrollBar = m_vectorTableView->verticalScrollBar();
+    if (verticalScrollBar)
+    {
+        connect(verticalScrollBar, &QScrollBar::valueChanged, this, &MainWindow::onTableViewScrolled);
+    }
 
     // 设置自定义委托，处理不同类型单元格的编辑功能
     m_vectorTableView->setItemDelegate(m_itemDelegate);
