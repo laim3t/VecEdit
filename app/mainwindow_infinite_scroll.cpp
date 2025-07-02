@@ -8,6 +8,7 @@
 #include <QTableView>
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QTimer>
 
 // Project-specific headers
 #include "vectortablemodel.h"
@@ -16,8 +17,10 @@
 namespace InfiniteScroll {
     bool g_isLoadingData = false; // 全局加载状态标志，防止重复触发
     const int SCROLL_THRESHOLD = 50; // 滚动条触发阈值（距离底部的像素数）
+    const int PRELOAD_THRESHOLD = 200; // 预加载阈值（距离底部的像素数，应大于SCROLL_THRESHOLD）
     const int DEBOUNCE_TIME_MS = 200; // 防抖间隔时间（毫秒）
     QElapsedTimer g_lastLoadTime; // 最后一次加载时间
+    bool g_preloadRequested = false; // 预加载请求标志
 }
 
 // 处理表格视图滚动事件
@@ -42,13 +45,15 @@ void MainWindow::onTableViewScrolled(int value)
 
     // 获取滚动条的当前位置、最大值和阈值
     int maximum = scrollBar->maximum();
-    int threshold = maximum - InfiniteScroll::SCROLL_THRESHOLD;
+    int loadThreshold = maximum - InfiniteScroll::SCROLL_THRESHOLD;
+    int preloadThreshold = maximum - InfiniteScroll::PRELOAD_THRESHOLD;
     
     qDebug() << funcName << " - 滚动位置:" << value << "，最大值:" << maximum 
-             << "，阈值:" << threshold << "，是否需要加载:" << (value >= threshold);
+             << "，加载阈值:" << loadThreshold << "，预加载阈值:" << preloadThreshold
+             << "，是否需要加载:" << (value >= loadThreshold);
 
-    // 检查是否接近底部
-    if (value >= threshold)
+    // 检查是否已经到达底部（需要立即加载）
+    if (value >= loadThreshold)
     {
         // 防抖：检查距离上次加载是否已过足够时间
         if (!InfiniteScroll::g_lastLoadTime.isValid() || InfiniteScroll::g_lastLoadTime.elapsed() > InfiniteScroll::DEBOUNCE_TIME_MS)
@@ -56,10 +61,28 @@ void MainWindow::onTableViewScrolled(int value)
             qDebug() << funcName << " - 触发加载更多数据";
             loadMoreDataIfNeeded();
             InfiniteScroll::g_lastLoadTime.restart(); // 重置计时器
+            InfiniteScroll::g_preloadRequested = false; // 重置预加载标志
         }
         else
         {
             qDebug() << funcName << " - 防抖期间，忽略加载请求，距上次加载:" << InfiniteScroll::g_lastLoadTime.elapsed() << "ms";
+        }
+    }
+    // 检查是否接近底部（需要预加载）
+    else if (value >= preloadThreshold && !InfiniteScroll::g_preloadRequested)
+    {
+        // 防抖：检查距离上次加载是否已过足够时间
+        if (!InfiniteScroll::g_lastLoadTime.isValid() || InfiniteScroll::g_lastLoadTime.elapsed() > InfiniteScroll::DEBOUNCE_TIME_MS * 2)
+        {
+            qDebug() << funcName << " - 触发预加载数据";
+            InfiniteScroll::g_preloadRequested = true; // 设置预加载标志，避免重复预加载
+            
+            // 使用Qt的单次定时器，延迟一小段时间后加载，避免影响当前滚动性能
+            QTimer::singleShot(100, this, [this]() {
+                loadMoreDataIfNeeded();
+                InfiniteScroll::g_lastLoadTime.restart();
+                InfiniteScroll::g_preloadRequested = false;
+            });
         }
     }
 }
@@ -108,9 +131,16 @@ void MainWindow::loadMoreDataIfNeeded()
     // 设置加载状态
     InfiniteScroll::g_isLoadingData = true;
     
-    // 显示加载中状态
-    QString loadingMsg = tr("正在加载第 %1 页数据...").arg(currentPage + 1);
-    statusBar()->showMessage(loadingMsg);
+    // 创建加载进度指示器
+    QProgressBar* progressBar = new QProgressBar();
+    progressBar->setRange(0, 0); // 设置为不确定模式
+    progressBar->setMaximumWidth(200);
+    progressBar->setTextVisible(true);
+    progressBar->setFormat(tr("正在加载第 %1 页...").arg(currentPage + 1));
+    
+    // 将进度条添加到状态栏
+    statusBar()->addWidget(progressBar);
+    statusBar()->showMessage(tr("正在加载数据..."));
     
     // 异步加载下一页数据
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -121,18 +151,25 @@ void MainWindow::loadMoreDataIfNeeded()
     // 恢复光标并显示结果
     QApplication::restoreOverrideCursor();
     
+    // 移除进度条
+    statusBar()->removeWidget(progressBar);
+    delete progressBar;
+    
     if (success)
     {
         int newPage = m_vectorTableModel->currentPage();
         int rowCount = m_vectorTableModel->rowCount();
         int totalRows = m_vectorTableModel->totalRows();
         
-        QString successMsg = tr("加载完成 - 当前页: %1，已加载: %2/%3 行").arg(newPage).arg(rowCount).arg(totalRows);
-        statusBar()->showMessage(successMsg);
+        // 计算加载进度百分比
+        double progressPercent = static_cast<double>(rowCount) * 100.0 / totalRows;
         
+        // 格式化显示，包含进度百分比
+        QString successMsg = tr("加载完成 - 页: %1，已加载: %2/%3 行 (%.2f%%)").arg(newPage).arg(rowCount).arg(totalRows).arg(progressPercent);
+        statusBar()->showMessage(successMsg);
         qDebug() << funcName << " - 成功追加一页数据，当前页:" << newPage
                  << "，当前行数:" << rowCount << "，总行数:" << totalRows
-                 << "，加载进度:" << (rowCount * 100 / totalRows) << "%";
+                 << "，加载进度:" << QString::number(progressPercent, 'f', 2) << "%";
                  
         // 如果接近底部，预加载下一页
         if (rowCount > 0 && rowCount < totalRows && 

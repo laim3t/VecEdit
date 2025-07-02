@@ -5,6 +5,8 @@
 
 // Qt Widgets & Core
 #include <QtWidgets>
+#include <QScroller>
+#include <QScrollerProperties>
 
 // Project-specific headers
 #include "common/dialogmanager.h"
@@ -436,12 +438,39 @@ void MainWindow::setupVectorTableUI()
                          "} ";
     m_vectorTableView->setStyleSheet(tableStyle);
     
+    // 设置滚动属性，启用平滑滚动
+    m_vectorTableView->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    m_vectorTableView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+    
+    // 设置滚动动画
+    QScroller::grabGesture(m_vectorTableView->viewport(), QScroller::TouchGesture);
+    QScrollerProperties properties = QScroller::scroller(m_vectorTableView->viewport())->scrollerProperties();
+    properties.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QScrollerProperties::OvershootAlwaysOff);
+    QScroller::scroller(m_vectorTableView->viewport())->setScrollerProperties(properties);
+    
     // 连接垂直滚动条的信号，实现无限滚动功能
     QScrollBar *verticalScrollBar = m_vectorTableView->verticalScrollBar();
     if (verticalScrollBar)
     {
         connect(verticalScrollBar, &QScrollBar::valueChanged, this, &MainWindow::onTableViewScrolled);
     }
+    
+    // 添加快捷键，用于快速滚动到顶部和底部
+    QShortcut *topShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Home), this);
+    connect(topShortcut, &QShortcut::activated, [this]() {
+        if (m_vectorTableView && m_vectorTableView->isVisible()) {
+            m_vectorTableView->scrollToTop();
+            qDebug() << "滚动到顶部";
+        }
+    });
+    
+    QShortcut *bottomShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_End), this);
+    connect(bottomShortcut, &QShortcut::activated, [this]() {
+        if (m_vectorTableView && m_vectorTableView->isVisible()) {
+            m_vectorTableView->scrollToBottom();
+            qDebug() << "滚动到底部";
+        }
+    });
 
     // 设置自定义委托，处理不同类型单元格的编辑功能
     m_vectorTableView->setItemDelegate(m_itemDelegate);
