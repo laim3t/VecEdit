@@ -50,7 +50,7 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
 {
     const QString funcName = "RobustVectorDataHandler::saveVectorTableDataPaged";
     qDebug() << funcName << " - 开始保存表ID:" << tableId << "的当前页数据";
-    
+
     // 检查参数有效性
     if (!currentPageTable || pageSize <= 0 || currentPage < 0)
     {
@@ -58,20 +58,20 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 获取表的元数据
     QString binFileName;
     QList<Vector::ColumnInfo> columns;
     int schemaVersion = 0;
     int storedRowCount = 0;
-    
+
     if (!loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, storedRowCount))
     {
         errorMessage = "无法加载表元数据";
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 获取二进制文件路径
     QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
     if (binFilePath.isEmpty())
@@ -79,14 +79,14 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 检查是否有修改
     if (!isRowModified(tableId, -1))
     {
         qDebug() << funcName << " - 没有检测到修改，跳过保存";
         return true;
     }
-    
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
@@ -95,7 +95,7 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 开始事务
     if (!db.transaction())
     {
@@ -103,14 +103,14 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     bool success = true;
-    
+
     // 计算当前页的起始行和结束行
     int startRow = currentPage * pageSize;
     int endRow = qMin(startRow + pageSize, totalRows);
     int rowsInPage = endRow - startRow;
-    
+
     // 确保表格行数与预期一致
     if (currentPageTable->rowCount() != rowsInPage)
     {
@@ -119,36 +119,36 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         db.rollback();
         return false;
     }
-    
+
     // 获取已修改的行
     QSet<int> modifiedRows;
     if (m_modifiedRows.contains(tableId))
     {
         modifiedRows = m_modifiedRows[tableId];
     }
-    
+
     // 遍历当前页中的每一行
     for (int i = 0; i < rowsInPage; ++i)
     {
         int globalRowIndex = startRow + i;
-        
+
         // 检查此行是否被修改过
         if (!modifiedRows.contains(globalRowIndex))
         {
             continue; // 跳过未修改的行
         }
-        
+
         // 从表格中收集行数据
         Vector::RowData rowData;
         for (int col = 0; col < currentPageTable->columnCount() && col < columns.size(); ++col)
         {
             QTableWidgetItem *item = currentPageTable->item(i, col);
             QVariant value;
-            
+
             if (item)
             {
                 value = item->text();
-                
+
                 // 根据列类型转换数据
                 switch (columns[col].type)
                 {
@@ -166,10 +166,10 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
                     break;
                 }
             }
-            
+
             rowData.append(value);
         }
-        
+
         // 更新行数据
         QString rowError;
         if (!updateVectorRow(tableId, globalRowIndex, rowData, rowError))
@@ -180,7 +180,7 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
             break;
         }
     }
-    
+
     // 提交或回滚事务
     if (success)
     {
@@ -191,10 +191,10 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
             db.rollback();
             return false;
         }
-        
+
         // 清除已修改行的标记
         clearModifiedRows(tableId);
-        
+
         qDebug() << funcName << " - 成功保存表ID:" << tableId << "的当前页数据";
     }
     else
@@ -202,7 +202,7 @@ bool RobustVectorDataHandler::saveVectorTableDataPaged(int tableId, QTableWidget
         db.rollback();
         qWarning() << funcName << " - 保存失败，已回滚事务";
     }
-    
+
     return success;
 }
 
@@ -442,14 +442,16 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
 {
     const QString funcName = "RobustVectorDataHandler::updateVectorRow";
     QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen()) {
+    if (!db.isOpen())
+    {
         errorMessage = "数据库未连接";
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
 
     QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (binFilePath.isEmpty()) {
+    if (binFilePath.isEmpty())
+    {
         return false;
     }
 
@@ -469,7 +471,8 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
     indexQuery.prepare("SELECT offset, size FROM VectorTableRowIndex WHERE master_record_id = ? AND logical_row_order = ? AND is_active = 1");
     indexQuery.addBindValue(tableId);
     indexQuery.addBindValue(rowIndex);
-    if (!indexQuery.exec() || !indexQuery.next()) {
+    if (!indexQuery.exec() || !indexQuery.next())
+    {
         errorMessage = "无法获取行的旧索引信息: " + indexQuery.lastError().text();
         qWarning() << funcName << " - " << errorMessage;
         return false;
@@ -479,51 +482,58 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
 
     // 3. 打开二进制文件准备写入
     QFile binFile(binFilePath);
-    if (!binFile.open(QIODevice::ReadWrite)) {
+    if (!binFile.open(QIODevice::ReadWrite))
+    {
         errorMessage = "无法打开二进制文件进行写入: " + binFile.errorString();
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 4. 决定写入策略：原地更新 或 追加写
     qint64 newOffset = oldOffset;
     qint64 newSize = serializedRow.size();
 
     // 策略A：如果新数据大小不大于旧数据大小，可以原地更新以节省空间
-    if (newSize <= oldSize) {
-        if (!binFile.seek(oldOffset)) {
+    if (newSize <= oldSize)
+    {
+        if (!binFile.seek(oldOffset))
+        {
             errorMessage = "无法定位到二进制文件中的写入位置";
             qWarning() << funcName << " - " << errorMessage;
             binFile.close();
             return false;
         }
         qint64 bytesWritten = binFile.write(serializedRow);
-        if (bytesWritten != newSize) {
+        if (bytesWritten != newSize)
+        {
             errorMessage = QString("写入数据失败，预期写入 %1 字节，实际写入 %2 字节").arg(newSize).arg(bytesWritten);
             qWarning() << funcName << " - " << errorMessage;
             binFile.close();
             return false;
         }
         // 如果新数据更小，后面会留下一段空白，这在我们的追加模型中是可以接受的
-    } 
+    }
     // 策略B：如果新数据更大，则在文件末尾追加
-    else {
+    else
+    {
         newOffset = binFile.size();
-        if (!binFile.seek(newOffset)) {
-             errorMessage = "无法定位到二进制文件的末尾";
-             qWarning() << funcName << " - " << errorMessage;
-             binFile.close();
-             return false;
+        if (!binFile.seek(newOffset))
+        {
+            errorMessage = "无法定位到二进制文件的末尾";
+            qWarning() << funcName << " - " << errorMessage;
+            binFile.close();
+            return false;
         }
         qint64 bytesWritten = binFile.write(serializedRow);
-        if (bytesWritten != newSize) {
+        if (bytesWritten != newSize)
+        {
             errorMessage = QString("写入数据失败，预期写入 %1 字节，实际写入 %2 字节").arg(newSize).arg(bytesWritten);
             qWarning() << funcName << " - " << errorMessage;
             binFile.close();
             return false;
         }
     }
-    
+
     binFile.close();
 
     // 5. 更新数据库中的索引
@@ -534,7 +544,8 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
     updateQuery.addBindValue(tableId);
     updateQuery.addBindValue(rowIndex);
 
-    if (!updateQuery.exec()) {
+    if (!updateQuery.exec())
+    {
         errorMessage = "更新行索引失败: " + updateQuery.lastError().text();
         qWarning() << funcName << " - " << errorMessage;
         return false;
@@ -1020,11 +1031,11 @@ void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex)
     {
         m_modifiedRows[tableId] = QSet<int>();
     }
-    
+
     // 将行索引添加到修改集合中
     m_modifiedRows[tableId].insert(rowIndex);
-    
-    qDebug() << "RobustVectorDataHandler::markRowAsModified - 标记表" << tableId 
+
+    qDebug() << "RobustVectorDataHandler::markRowAsModified - 标记表" << tableId
              << "的行" << rowIndex << "为已修改";
 }
 
@@ -1197,14 +1208,13 @@ bool RobustVectorDataHandler::readPageDataFromBinary(const QString &absoluteBinF
         schemaVersion,
         startRow,
         numRows,
-        pageRows
-    );
+        pageRows);
 }
 
 bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPath, QString &errorMessage)
 {
     const QString funcName = "RobustVectorDataHandler::ensureBinaryFilesCompatibility";
-    
+
     // 确保数据库已打开
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
@@ -1213,7 +1223,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 获取二进制数据目录
     QString binaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(dbPath);
     if (binaryDataDir.isEmpty())
@@ -1222,7 +1232,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 确保目录存在
     QDir dir(binaryDataDir);
     if (!dir.exists())
@@ -1235,7 +1245,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
         }
         qDebug() << funcName << " - 创建二进制数据目录: " << binaryDataDir;
     }
-    
+
     // 查询所有向量表
     QSqlQuery query(db);
     query.prepare("SELECT id, binary_data_filename, data_schema_version FROM VectorTableMasterRecord");
@@ -1245,18 +1255,18 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 处理每个表
     while (query.next())
     {
         int tableId = query.value(0).toInt();
         QString binFileName = query.value(1).toString();
         int schemaVersion = query.value(2).toInt();
-        
+
         // 检查二进制文件是否存在
         QString binFilePath = dir.absoluteFilePath(binFileName);
         QFileInfo fileInfo(binFilePath);
-        
+
         if (fileInfo.exists())
         {
             // 文件存在，验证头部
@@ -1266,7 +1276,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
                 qWarning() << funcName << " - 无法打开二进制文件进行验证: " << binFilePath;
                 continue; // 处理下一个表
             }
-            
+
             Persistence::HeaderData headerData;
             if (!Persistence::BinaryFileHelper::readAndValidateHeader(file, headerData, schemaVersion))
             {
@@ -1282,7 +1292,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
         else
         {
             qDebug() << funcName << " - 表 " << tableId << " 的二进制文件不存在，将创建新文件";
-            
+
             // 获取列配置
             QList<Vector::ColumnInfo> columns;
             int rowCount;
@@ -1304,7 +1314,7 @@ bool RobustVectorDataHandler::ensureBinaryFilesCompatibility(const QString &dbPa
             }
         }
     }
-    
+
     return true;
 }
 
@@ -1322,7 +1332,7 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         errorMessage = "没有检测到数据变更，跳过保存";
         return true;
     }
-    
+
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
@@ -1331,7 +1341,7 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     // 开始事务
     if (!db.transaction())
     {
@@ -1339,30 +1349,30 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         qWarning() << funcName << " - " << errorMessage;
         return false;
     }
-    
+
     bool success = true;
     int modifiedCount = 0;
-    
+
     // 获取已修改的行
     const QSet<int> modifiedRows = m_modifiedRows.value(tableId);
-    
+
     // 计算当前页的全局起始行索引
     int startRow = currentPage * pageSize;
-    
+
     // 遍历当前页的数据
     for (int i = 0; i < pageData.size(); ++i)
     {
         int globalRowIndex = startRow + i;
-        
+
         // 检查此行是否被修改过
         if (!modifiedRows.contains(globalRowIndex))
         {
             continue; // 跳过未修改的行
         }
-        
+
         // 获取行数据
         const Vector::RowData &rowData = pageData.at(i);
-        
+
         // 更新行数据
         QString rowError;
         if (!updateVectorRow(tableId, globalRowIndex, rowData, rowError))
@@ -1374,7 +1384,7 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         }
         modifiedCount++;
     }
-    
+
     // 提交或回滚事务
     if (success)
     {
@@ -1385,7 +1395,7 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
             db.rollback();
             return false;
         }
-        
+
         // 清除已修改行的标记
         clearModifiedRows(tableId);
         errorMessage = QString("成功保存 %1 行已修改的数据。").arg(modifiedCount);
@@ -1396,6 +1406,6 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         db.rollback();
         qWarning() << funcName << " - 保存失败，已回滚事务";
     }
-    
+
     return success;
 }

@@ -66,13 +66,26 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     updatePaginationInfo();
 
     // 根据当前使用的视图类型选择不同的加载方法
-    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+    bool isUsingNewView = (m_vectorStackedWidget->currentWidget() == m_vectorTableView);
+    if (isUsingNewView)
     {
         // 使用Model/View架构加载数据
-        qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
+        qDebug() << funcName << " - 使用Model/View架构加载数据";
         if (m_vectorTableModel)
         {
-            m_vectorTableModel->loadPage(tableId, m_currentPage);
+            if (m_useNewDataHandler)
+            {
+                // 新轨道模式：一次性加载所有数据
+                qDebug() << funcName << " - 新轨道模式：加载所有数据";
+                m_vectorTableModel->loadAllData(tableId);
+            }
+            else
+            {
+                // 旧数据处理器但新视图的模式：分页加载
+                qDebug() << funcName << " - 旧数据处理器模式：加载页面";
+                m_vectorTableModel->loadPage(tableId, m_currentPage);
+            }
+
             qDebug() << funcName << " - 新表格模型数据加载完成";
             statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
         }
@@ -145,7 +158,14 @@ void MainWindow::onVectorTableSelectionChanged(int index)
 
             // 同时加载新模型数据，以保持两种视图的数据同步
             qDebug() << funcName << " - 同步加载新表格模型数据，表ID:" << tableId;
-            m_vectorTableModel->loadPage(tableId, m_currentPage);
+            if (m_useNewDataHandler)
+            {
+                m_vectorTableModel->loadAllData(tableId);
+            }
+            else
+            {
+                m_vectorTableModel->loadPage(tableId, m_currentPage);
+            }
         }
         else
         {
