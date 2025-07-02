@@ -293,17 +293,21 @@ void MainWindow::exportConstructionFile()
             qWarning() << "Failed to query instruction_options:" << instructionNameQuery.lastError().text();
         }
 
-        // 打印查询到的指令映射，用于调试
-        qDebug() << "加载了" << instructionNameMap.size() << "个指令映射:";
-        for (auto it = instructionNameMap.begin(); it != instructionNameMap.end(); ++it)
-        {
-            qDebug() << "  指令ID:" << it.key() << "对应名称:" << it.value();
-        }
+        // 调试信息：打印加载的表格数量
+        int totalTables = 0;
+        while (patternTablesQuery.next())
+            totalTables++;
+        qDebug() << "导出：共找到" << totalTables << "个向量表";
+
+        // 重新执行查询，因为上一个循环已经消耗了结果集
+        patternTablesQuery.exec("SELECT id, table_name FROM vector_tables");
 
         while (patternTablesQuery.next())
         {
             int tableId = patternTablesQuery.value(0).toInt();
             QString tableName = patternTablesQuery.value(1).toString();
+
+            qDebug() << "处理向量表: ID=" << tableId << ", 名称=" << tableName;
 
             // 获取表的列配置
             QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(tableId);
@@ -348,13 +352,6 @@ void MainWindow::exportConstructionFile()
                 }
             }
 
-            // 添加调试信息
-            qDebug() << "Table:" << tableName << "找到" << pinColumnIndices.size() << "个管脚列";
-            for (int i = 0; i < pinColumnIndices.size(); ++i)
-            {
-                qDebug() << "  列索引:" << pinColumnIndices[i] << "管脚名:" << pinNames[i];
-            }
-
             // 从二进制文件中读取所有行数据
             QString binFileName;
             int rowCount = 0;
@@ -377,17 +374,8 @@ void MainWindow::exportConstructionFile()
             }
 
             qDebug() << "Table:" << tableName << "读取到" << rows.size() << "行数据";
-            // 输出第一行数据作为示例，帮助调试
-            if (!rows.isEmpty())
-            {
-                qDebug() << "第一行数据:";
-                for (int i = 0; i < rows[0].size(); ++i)
-                {
-                    qDebug() << "  列" << i << "值:" << rows[0][i];
-                }
-            }
 
-            // 为表写入头部
+            // 为表写入头部，确保表名正确地显示
             out << "@@PATTERN_DEFINE " << tableName << "\n";
 
             // 遍历所有行，按照格式要求输出
@@ -415,13 +403,11 @@ void MainWindow::exportConstructionFile()
                 if (instructionIdx >= 0 && instructionIdx < row.size())
                 {
                     int instructionId = row[instructionIdx].toInt();
-                    qDebug() << "处理指令ID:" << instructionId;
 
                     // 如果在映射中找到对应的指令名称，则使用；否则保留原始值
                     if (instructionNameMap.contains(instructionId) && !instructionNameMap[instructionId].isEmpty())
                     {
                         instructionStr = instructionNameMap[instructionId];
-                        qDebug() << "  从预加载映射中找到指令名称:" << instructionStr;
                     }
                     else
                     {
@@ -432,14 +418,11 @@ void MainWindow::exportConstructionFile()
                         if (instrQuery.exec() && instrQuery.next())
                         {
                             instructionStr = instrQuery.value(0).toString();
-                            qDebug() << "  通过数据库查询找到指令名称:" << instructionStr;
                         }
                         else
                         {
                             // 如果找不到指令名称，使用原始值
                             instructionStr = row[instructionIdx].toString();
-                            qDebug() << "  无法找到指令名称，使用原始值:" << instructionStr;
-                            qDebug() << "  查询错误:" << instrQuery.lastError().text();
                         }
                     }
                 }
@@ -478,10 +461,13 @@ void MainWindow::exportConstructionFile()
     // 第六部分 - 管脚信息
     out << "@@PIN_DEFINE\n";
 
+    // 使用SET来确保每个管脚只导出一次
+    QSet<int> exportedPinIds;
+
     // 从pin_settings表获取管脚设置信息
     QSqlQuery pinSettingsQuery(db);
     pinSettingsQuery.prepare(
-        "SELECT p.pin_name, ps.channel_count, ps.station_bit_index, ps.station_number "
+        "SELECT p.id, p.pin_name, ps.channel_count, ps.station_bit_index, ps.station_number "
         "FROM pin_settings ps "
         "JOIN pin_list p ON ps.pin_id = p.id "
         "ORDER BY p.id");
@@ -490,10 +476,21 @@ void MainWindow::exportConstructionFile()
     {
         while (pinSettingsQuery.next())
         {
-            QString pinName = pinSettingsQuery.value(0).toString();
-            int channelCount = pinSettingsQuery.value(1).toInt();
-            int stationBitIndex = pinSettingsQuery.value(2).toInt();
-            int stationNumber = pinSettingsQuery.value(3).toInt();
+            int pinId = pinSettingsQuery.value(0).toInt();
+
+            // 如果这个管脚已经导出过，则跳过
+            if (exportedPinIds.contains(pinId))
+            {
+                continue;
+            }
+
+            // 标记这个管脚已经导出
+            exportedPinIds.insert(pinId);
+
+            QString pinName = pinSettingsQuery.value(1).toString();
+            int channelCount = pinSettingsQuery.value(2).toInt();
+            int stationBitIndex = pinSettingsQuery.value(3).toInt();
+            int stationNumber = pinSettingsQuery.value(4).toInt();
 
             // 构建工位值字符串 (格式为 "stationBitIndex:stationNumber")
             QString siteValue = QString("%1:%2").arg(stationBitIndex).arg(stationNumber);
@@ -512,6 +509,10 @@ void MainWindow::exportConstructionFile()
     }
 
     out << "@@END_PIN_DEFINE\n";
+
+    // 第七部分 - 管脚组信息（目前为空占位符）
+    out << "@@PINGROUP_DEFINE\n";
+    out << "@@END_PINGROUP_DEFINE\n";
 
     file.close();
 
