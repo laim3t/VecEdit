@@ -224,6 +224,7 @@ bool VectorDataHandler::readAllRowsFromBinary(const QString &absoluteBinFilePath
 #include "vectordatahandler_core.cpp"
 #include "vectordatahandler_cache.cpp"
 #include "vectordatahandler_access.cpp"
+#include "vectordatahandler_access_1.cpp"
 #include "vectordatahandler_modify_save_1.cpp"
 #include "vectordatahandler_modify_save_2.cpp"
 #include "vectordatahandler_modify_rowops_1.cpp"
