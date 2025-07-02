@@ -61,34 +61,32 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
         rowsToInsert.append(newRow);
     }
 
+    // 通知视图我们将要插入行
     beginInsertRows(parent, row, row + count - 1);
 
-    // 3. 调用新的、正确的insertVectorRows接口
+    // 3. 调用新的、正确的insertVectorRows接口插入到后端存储
     QString errorMessage;
     bool success = m_robustDataHandler->insertVectorRows(m_tableId, row, rowsToInsert, errorMessage);
 
     if (success)
     {
-        // 4. 如果插入成功，重新加载数据以显示新数据
-        if (m_useNewDataHandler)
-        {
-            // 如果使用新的数据处理器，加载全部数据（不分页）
-            qDebug() << "VectorTableModel::insertRows - 使用新数据处理器，加载全部数据";
-            loadAllData(m_tableId);
-        }
-        else
-        {
-            // 如果使用旧的数据处理器，仍然使用分页加载
-            qDebug() << "VectorTableModel::insertRows - 使用旧数据处理器，加载当前页数据";
-            loadPage(m_tableId, m_currentPage);
-        }
+        // 更新总行数
+        m_totalRows += count;
     }
     else
     {
         qWarning() << "VectorTableModel::insertRows failed:" << errorMessage;
     }
 
+    // 完成行插入操作
     endInsertRows();
+    
+    // 如果插入成功，重新加载所有数据以确保模型缓存与数据库同步
+    if (success)
+    {
+        loadAllData(m_tableId);
+    }
+    
     return success;
 }
 
@@ -297,6 +295,7 @@ void VectorTableModel::loadAllData(int tableId)
         QList<QList<QVariant>> allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
         if (ok)
         {
+            // 直接设置模型数据，而不是累加
             m_pageData = allRows;
             qDebug() << "VectorTableModel::loadAllData - 成功加载全部" << allRows.size() << "行数据";
         }
