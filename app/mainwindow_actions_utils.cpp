@@ -42,9 +42,12 @@ void MainWindow::gotoLine()
 
     // 获取表的总行数
     int totalRowCount;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         totalRowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
-    } else {
+    }
+    else
+    {
         totalRowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
     }
 
@@ -271,10 +274,13 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
 
             // 确保不超过数据范围
             int totalRows;
-            if (m_useNewDataHandler) {
+            if (m_useNewDataHandler)
+            {
                 totalRows = m_robustDataHandler->getVectorTableRowCount(
                     m_vectorTableSelector->currentData().toInt());
-            } else {
+            }
+            else
+            {
                 totalRows = VectorDataHandler::instance().getVectorTableRowCount(
                     m_vectorTableSelector->currentData().toInt());
             }
@@ -510,9 +516,12 @@ void MainWindow::refreshSidebarNavigator()
                     // 获取当前表的所有行数据（包括其他页的数据）
                     bool ok = false;
                     QList<Vector::RowData> allRows;
-                    if (m_useNewDataHandler) {
+                    if (m_useNewDataHandler)
+                    {
                         allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
-                    } else {
+                    }
+                    else
+                    {
                         allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
                     }
 
@@ -598,9 +607,12 @@ void MainWindow::refreshSidebarNavigator()
                     // 使用VectorDataHandler::getAllVectorRows读取所有行数据
                     bool ok = false;
                     QList<Vector::RowData> allRows;
-                    if (m_useNewDataHandler) {
+                    if (m_useNewDataHandler)
+                    {
                         allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
-                    } else {
+                    }
+                    else
+                    {
                         allRows = VectorDataHandler::instance().getAllVectorRows(tableId, ok);
                     }
 

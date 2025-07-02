@@ -121,7 +121,7 @@ void MainWindow::setupMenu()
     // 打开项目
     m_openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
     connect(m_openProjectAction, &QAction::triggered, this, &MainWindow::openExistingProject);
-    
+
     // 打开项目(新架构)
     QAction *openProjectNewArchAction = fileMenu->addAction(tr("打开项目(新架构)"));
     connect(openProjectNewArchAction, &QAction::triggered, this, &MainWindow::openExistingProjectWithNewArch);
@@ -489,6 +489,18 @@ void MainWindow::setupVectorTableUI()
         int nextIndex = (m_vectorStackedWidget->currentIndex() + 1) % 2;
         m_vectorStackedWidget->setCurrentIndex(nextIndex); 
         
+        // 更新分页控件的显示状态
+        bool isUsingNewView = (nextIndex == 1); // 索引1是新视图
+        if (isUsingNewView && m_useNewDataHandler) {
+            // 新轨道模式：隐藏分页控件
+            m_paginationWidget->setVisible(false);
+            qDebug() << "视图切换 - 新轨道模式，隐藏分页控件";
+        } else {
+            // 旧轨道或旧视图模式：显示分页控件
+            m_paginationWidget->setVisible(true);
+            qDebug() << "视图切换 - 显示分页控件";
+        }
+        
         // 在视图切换后更新向量列属性栏
         if (nextIndex == 0) {
             // 切换到旧视图 (QTableWidget)
@@ -499,6 +511,18 @@ void MainWindow::setupVectorTableUI()
             }
         } else {
             // 切换到新视图 (QTableView)
+            // 如果是新轨道模式，重新加载数据，确保显示所有行
+            if (m_useNewDataHandler) {
+                int tabIndex = m_vectorTabWidget->currentIndex();
+                if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex)) {
+                    int tableId = m_tabToTableId[tabIndex];
+                    qDebug() << "视图切换 - 新轨道模式，加载表ID:" << tableId << "的全部数据";
+                    if (m_vectorTableModel) {
+                        m_vectorTableModel->loadAllData(tableId);
+                    }
+                }
+            }
+            
             if (m_vectorTableView->selectionModel()->hasSelection()) {
                 QModelIndexList indexes = m_vectorTableView->selectionModel()->selectedIndexes();
                 if (!indexes.isEmpty()) {

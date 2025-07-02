@@ -694,6 +694,22 @@ void MainWindow::updatePaginationInfo()
     const QString funcName = "MainWindow::updatePaginationInfo";
     qDebug() << funcName << " - 更新分页信息，当前页:" << m_currentPage << "，总页数:" << m_totalPages << "，总行数:" << m_totalRows;
 
+    // 检查是否使用新视图 (QTableView)
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentWidget() == m_vectorTableView);
+
+    // 在新轨道下隐藏分页控件（新视图不需要手动分页功能）
+    if (isUsingNewView && m_useNewDataHandler)
+    {
+        m_paginationWidget->setVisible(false);
+        qDebug() << funcName << " - 新轨道模式，隐藏分页控件";
+        return;
+    }
+    else
+    {
+        // 旧轨道模式，显示分页控件
+        m_paginationWidget->setVisible(true);
+    }
+
     // 更新页码信息标签
     m_pageInfoLabel->setText(tr("第 %1/%2 页，共 %3 行").arg(m_currentPage + 1).arg(m_totalPages).arg(m_totalRows));
 
@@ -749,23 +765,36 @@ void MainWindow::loadCurrentPage()
 
     qDebug() << funcName << " - 总行数:" << m_totalRows << "，总页数:" << m_totalPages << "，当前页:" << m_currentPage;
 
+    // 检查是否使用新视图 (QTableView)
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentWidget() == m_vectorTableView);
+
     // 根据当前使用的视图类型选择不同的加载方法
     bool success = false;
-    if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
+    if (isUsingNewView)
     {
         // 使用Model/View架构加载数据
-        qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
+        qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId;
         if (m_vectorTableModel)
         {
-            // 确保模型使用与MainWindow相同的页面大小
-            if (m_vectorTableModel->pageSize() != m_pageSize)
+            if (m_useNewDataHandler)
             {
-                qDebug() << funcName << " - 更新模型的页面大小从" << m_vectorTableModel->pageSize() << "到" << m_pageSize;
-                // 使用新添加的setPageSize方法
-                m_vectorTableModel->setPageSize(m_pageSize);
+                // 新轨道模式：一次性加载所有数据，忽略分页
+                qDebug() << funcName << " - 新轨道模式：一次性加载所有数据";
+                m_vectorTableModel->loadAllData(tableId);
             }
-
-            m_vectorTableModel->loadPage(tableId, m_currentPage);
+            else
+            {
+                // 旧数据处理器模式：仍然使用分页
+                qDebug() << funcName << " - 旧数据处理器模式：加载页面数据";
+                // 确保模型使用与MainWindow相同的页面大小
+                if (m_vectorTableModel->pageSize() != m_pageSize)
+                {
+                    qDebug() << funcName << " - 更新模型的页面大小从" << m_vectorTableModel->pageSize() << "到" << m_pageSize;
+                    // 使用新添加的setPageSize方法
+                    m_vectorTableModel->setPageSize(m_pageSize);
+                }
+                m_vectorTableModel->loadPage(tableId, m_currentPage);
+            }
             success = true; // 假设loadPage总是成功
             qDebug() << funcName << " - 新表格模型数据加载完成";
         }

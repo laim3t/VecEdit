@@ -336,14 +336,16 @@ void MainWindow::openExistingProjectWithNewArch()
         // 确保二进制数据目录存在
         QString binaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(dbPath);
         QDir binDir(binaryDataDir);
-        if (!binDir.exists()) {
+        if (!binDir.exists())
+        {
             binDir.mkpath(".");
             qDebug() << "创建二进制数据目录：" << binaryDataDir;
         }
-        
+
         // 确保二进制文件兼容性
         QString errorMsg;
-        if (!m_robustDataHandler->ensureBinaryFilesCompatibility(dbPath, errorMsg)) {
+        if (!m_robustDataHandler->ensureBinaryFilesCompatibility(dbPath, errorMsg))
+        {
             qWarning() << "确保二进制文件兼容性失败:" << errorMsg;
             // 这里不会中断流程，因为有些表可能没有问题
         }

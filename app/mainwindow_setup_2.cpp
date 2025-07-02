@@ -378,14 +378,14 @@ void MainWindow::setupVectorColumnPropertiesBar()
 
     // 连接编辑完成信号
     connect(m_pinValueField, &QLineEdit::editingFinished, this, &MainWindow::onHexValueEdited);
-    
+
     // 为新视图创建相同的连接（会根据当前活动的视图自动选择）
-    connect(m_pinValueField, &QLineEdit::editingFinished, [this]() {
+    connect(m_pinValueField, &QLineEdit::editingFinished, [this]()
+            {
         // 如果当前正在显示新视图，则调用新视图的处理函数
         if (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1) {
             this->onHexValueEditedForModel();
-        }
-    });
+        } });
 
     // 连接文本变化信号，实时验证输入
     connect(m_pinValueField, &QLineEdit::textChanged, this, &MainWindow::validateHexInput);

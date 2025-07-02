@@ -613,8 +613,19 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
 
     if (success)
     {
-        // 4. 如果插入成功，重新加载当前页以显示新数据
-        loadPage(m_tableId, m_currentPage);
+        // 4. 如果插入成功，重新加载数据以显示新数据
+        if (m_useNewDataHandler)
+        {
+            // 如果使用新的数据处理器，加载全部数据（不分页）
+            qDebug() << "VectorTableModel::insertRows - 使用新数据处理器，加载全部数据";
+            loadAllData(m_tableId);
+        }
+        else
+        {
+            // 如果使用旧的数据处理器，仍然使用分页加载
+            qDebug() << "VectorTableModel::insertRows - 使用旧数据处理器，加载当前页数据";
+            loadPage(m_tableId, m_currentPage);
+        }
     }
     else
     {
@@ -716,8 +727,19 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
         return false;
     }
 
-    // 重新加载当前页
-    loadPage(m_tableId, m_currentPage);
+    // 重新加载数据
+    if (m_useNewDataHandler)
+    {
+        // 如果使用新的数据处理器，加载全部数据（不分页）
+        qDebug() << funcName << "- 使用新数据处理器，加载全部数据";
+        loadAllData(m_tableId);
+    }
+    else
+    {
+        // 如果使用旧的数据处理器，仍然使用分页加载
+        qDebug() << funcName << "- 使用旧数据处理器，加载当前页数据";
+        loadPage(m_tableId, m_currentPage);
+    }
 
     qDebug() << funcName << "- 已成功删除选中的行";
     return true;
@@ -750,8 +772,19 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
         return false;
     }
 
-    // 重新加载当前页
-    loadPage(m_tableId, m_currentPage);
+    // 重新加载数据
+    if (m_useNewDataHandler)
+    {
+        // 如果使用新的数据处理器，加载全部数据（不分页）
+        qDebug() << funcName << "- 使用新数据处理器，加载全部数据";
+        loadAllData(m_tableId);
+    }
+    else
+    {
+        // 如果使用旧的数据处理器，仍然使用分页加载
+        qDebug() << funcName << "- 使用旧数据处理器，加载当前页数据";
+        loadPage(m_tableId, m_currentPage);
+    }
 
     qDebug() << funcName << "- 已成功删除行范围";
     return true;
@@ -764,4 +797,69 @@ bool VectorTableModel::addNewRow(int timesetId, const QMap<int, QString> &pinVal
     qWarning() << "VectorTableModel::addNewRow is deprecated and should not be used. Use insertRows instead.";
     errorMessage = "This function is deprecated.";
     return false;
+}
+
+// 新轨道模式：加载表格的所有数据
+void VectorTableModel::loadAllData(int tableId)
+{
+    qDebug() << "VectorTableModel::loadAllData - 一次性加载表ID:" << tableId << "的所有数据";
+
+    // 保存新的表ID
+    m_tableId = tableId;
+    m_currentPage = 0; // 在全量数据模式下，页码概念不再重要，但保持为0
+
+    // 刷新指令和TimeSet的缓存
+    refreshCaches();
+
+    // 告诉视图我们要开始修改数据了
+    beginResetModel();
+
+    // 获取列信息
+    if (m_useNewDataHandler)
+    {
+        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+    }
+    else
+    {
+        m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    }
+
+    // 获取总行数
+    if (m_useNewDataHandler)
+    {
+        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+    }
+    else
+    {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
+
+    // 获取所有数据
+    if (m_useNewDataHandler)
+    {
+        bool ok = false;
+        QList<QList<QVariant>> allRows = m_robustDataHandler->getAllVectorRows(tableId, ok);
+        if (ok)
+        {
+            m_pageData = allRows;
+            qDebug() << "VectorTableModel::loadAllData - 成功加载全部" << allRows.size() << "行数据";
+        }
+        else
+        {
+            qWarning() << "VectorTableModel::loadAllData - 加载全部数据失败";
+            m_pageData.clear();
+        }
+    }
+    else
+    {
+        // 旧数据处理器不支持全量加载，使用分页加载的第一页
+        m_pageData = VectorDataHandler::instance().getPageData(tableId, 0, m_pageSize);
+        qWarning() << "VectorTableModel::loadAllData - 旧数据处理器不支持全量加载，已加载第一页" << m_pageData.size() << "行";
+    }
+
+    // 告诉视图我们已经修改完数据
+    endResetModel();
+
+    qDebug() << "VectorTableModel::loadAllData - 加载完成，列数:" << m_columns.size()
+             << "，加载行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
 }
