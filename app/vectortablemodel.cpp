@@ -863,3 +863,9 @@ void VectorTableModel::loadAllData(int tableId)
     qDebug() << "VectorTableModel::loadAllData - 加载完成，列数:" << m_columns.size()
              << "，加载行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
 }
+
+// 获取当前加载的表ID
+int VectorTableModel::getCurrentTableId() const
+{
+    return m_tableId;
+}

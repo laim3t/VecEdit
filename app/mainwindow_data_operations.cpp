@@ -266,9 +266,11 @@ void MainWindow::addRowToCurrentVectorTable()
 // 为当前选中的向量表添加行(Model/View架构)
 void MainWindow::addRowToCurrentVectorTableModel()
 {
+    const QString funcName = "MainWindow::addRowToCurrentVectorTableModel";
+
     if (!m_vectorTableModel)
     {
-        QMessageBox::warning(this, "错误", "数据模型未初始化。");
+        qWarning() << funcName << " - 向量表模型未初始化";
         return;
     }
 
@@ -276,30 +278,31 @@ void MainWindow::addRowToCurrentVectorTableModel()
     AddRowDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted)
     {
-        // 获取用户输入的行数
         int rowCount = dialog.getRowCount();
         if (rowCount <= 0)
         {
-            return; // 用户输入了无效的行数
+            return;
         }
 
-        // 获取当前选中的行，如果没有选中行，则在末尾添加
-        int insertionRow = m_vectorTableModel->rowCount();
+        // 【已修正】恢复正确的插入位置判断逻辑
+        // 如果用户选中了行，则在第一个选中行的位置插入；否则，在表格末尾追加。
+        int insertionRow = m_vectorTableModel->rowCount(); // 默认为末尾
         QModelIndexList selectedRows = m_vectorTableView->selectionModel()->selectedRows();
         if (!selectedRows.isEmpty())
         {
-            // 在第一个选中行的位置插入
             insertionRow = selectedRows.first().row();
         }
 
-        qDebug() << "MainWindow::addRowToCurrentVectorTableModel - "
-                 << "准备在第" << insertionRow << "行插入" << rowCount << "行";
+        qDebug() << funcName << " - 准备在第" << insertionRow << "行插入" << rowCount << "行";
 
-        // 调用模型的insertRows方法
-        // 模型将负责处理数据持久化和通知视图更新
-        if (!m_vectorTableModel->insertRows(insertionRow, rowCount))
+        // 调用模型的方法来插入新行，模型内部会负责处理数据写入和刷新
+        if (m_vectorTableModel->insertRows(insertionRow, rowCount))
         {
-            QMessageBox::critical(this, "错误", "添加行失败。请检查日志获取详细信息。");
+            qDebug() << funcName << " - 成功插入" << rowCount << "行";
+        }
+        else
+        {
+            QMessageBox::critical(this, tr("错误"), tr("添加新行失败！"));
         }
     }
 }

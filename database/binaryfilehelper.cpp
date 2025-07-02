@@ -274,10 +274,10 @@ namespace Persistence
         outByteArray.clear();
         QDataStream stream(&outByteArray, QIODevice::WriteOnly);
         stream.setByteOrder(QDataStream::LittleEndian);
-        
+
         // 写入字段数量
         stream << (quint32)rowData.size();
-        
+
         // 逐个写入每个字段
         for (const QVariant &value : rowData)
         {
@@ -286,24 +286,26 @@ namespace Persistence
             QDataStream fieldStream(&fieldData, QIODevice::WriteOnly);
             fieldStream.setByteOrder(QDataStream::LittleEndian);
             fieldStream << value;
-            
-            if (fieldStream.status() != QDataStream::Ok) {
+
+            if (fieldStream.status() != QDataStream::Ok)
+            {
                 qWarning() << "serializeRow: Failed to serialize field value:" << value;
                 return false;
             }
-            
+
             // 写入字段长度和数据
             stream << (quint32)fieldData.size();
             stream.writeRawData(fieldData.constData(), fieldData.size());
         }
-        
+
         return stream.status() == QDataStream::Ok;
     }
 
     bool Persistence::BinaryFileHelper::deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData)
     {
         outRowData.clear();
-        if (inByteArray.isEmpty()) return true; // 空数据是有效的
+        if (inByteArray.isEmpty())
+            return true; // 空数据是有效的
 
         QDataStream stream(inByteArray);
         stream.setByteOrder(QDataStream::LittleEndian);
@@ -311,14 +313,16 @@ namespace Persistence
         // 读取字段数量
         quint32 fieldCount;
         stream >> fieldCount;
-        
-        if (stream.status() != QDataStream::Ok) {
+
+        if (stream.status() != QDataStream::Ok)
+        {
             qWarning() << "deserializeRow: Failed to read field count.";
             return false;
         }
-        
+
         // 安全检查：确保字段数量合理
-        if (fieldCount > 1000) { // 1000列是一个合理的上限
+        if (fieldCount > 1000)
+        { // 1000列是一个合理的上限
             qWarning() << "deserializeRow: Unreasonable field count:" << fieldCount;
             return false;
         }
@@ -329,39 +333,43 @@ namespace Persistence
             // 读取字段长度
             quint32 fieldSize;
             stream >> fieldSize;
-            
-            if (stream.status() != QDataStream::Ok) {
+
+            if (stream.status() != QDataStream::Ok)
+            {
                 qWarning() << "deserializeRow: Failed to read field size for field" << i;
                 return false;
             }
-            
+
             // 安全检查：确保字段大小合理
-            if (fieldSize > 10000000) { // 10MB是一个合理的上限
+            if (fieldSize > 10000000)
+            { // 10MB是一个合理的上限
                 qWarning() << "deserializeRow: Unreasonable field size:" << fieldSize << "for field" << i;
                 return false;
             }
-            
+
             // 读取字段数据
             QByteArray fieldData = stream.device()->read(fieldSize);
-            if ((quint32)fieldData.size() != fieldSize) {
+            if ((quint32)fieldData.size() != fieldSize)
+            {
                 qWarning() << "deserializeRow: Failed to read field data. Expected" << fieldSize << "got" << fieldData.size() << "for field" << i;
                 return false;
             }
-            
+
             // 反序列化字段值
             QDataStream fieldStream(fieldData);
             fieldStream.setByteOrder(QDataStream::LittleEndian);
             QVariant value;
             fieldStream >> value;
-            
-            if (fieldStream.status() != QDataStream::Ok) {
+
+            if (fieldStream.status() != QDataStream::Ok)
+            {
                 qWarning() << "deserializeRow: Failed to deserialize field value for field" << i;
                 return false;
             }
-            
+
             outRowData.append(value);
         }
-        
+
         return true;
     }
 
@@ -369,14 +377,14 @@ namespace Persistence
     {
         const QString funcName = "BinaryFileHelper::updateRowCountInHeader";
         qDebug() << funcName << " - 开始更新文件行数: " << absoluteBinFilePath << " 到 " << newRowCount;
-        
+
         QFile file(absoluteBinFilePath);
         if (!file.open(QIODevice::ReadWrite))
         {
             qWarning() << funcName << " - 无法打开文件: " << absoluteBinFilePath << " Error: " << file.errorString();
             return false;
         }
-        
+
         // 读取现有头部
         BinaryFileHeader header;
         if (!readBinaryHeader(&file, header))
@@ -385,11 +393,11 @@ namespace Persistence
             file.close();
             return false;
         }
-        
+
         // 更新行数
         header.row_count_in_file = newRowCount;
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-        
+
         // 重置文件指针到开始位置
         if (!file.seek(0))
         {
@@ -397,7 +405,7 @@ namespace Persistence
             file.close();
             return false;
         }
-        
+
         // 写入更新后的头部
         if (!writeBinaryHeader(&file, header))
         {
@@ -405,7 +413,7 @@ namespace Persistence
             file.close();
             return false;
         }
-        
+
         file.close();
         qDebug() << funcName << " - 成功更新文件 " << absoluteBinFilePath << " 的行数为 " << newRowCount;
         return true;
@@ -415,14 +423,14 @@ namespace Persistence
     {
         const QString funcName = "BinaryFileHelper::initBinaryFile";
         qDebug() << funcName << " - 初始化二进制文件: " << filePath;
-        
+
         QFile file(filePath);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
         {
             qWarning() << funcName << " - 无法打开文件进行写入: " << filePath << " 错误: " << file.errorString();
             return false;
         }
-        
+
         // 创建并初始化头部
         BinaryFileHeader header;
         header.magic_number = Persistence::VEC_BINDATA_MAGIC;
@@ -434,7 +442,7 @@ namespace Persistence
         header.timestamp_updated = header.timestamp_created;
         header.compression_type = 0; // 无压缩
         memset(header.reserved_bytes, 0, sizeof(header.reserved_bytes));
-        
+
         // 写入头部
         if (!writeBinaryHeader(&file, header))
         {
@@ -442,30 +450,30 @@ namespace Persistence
             file.close();
             return false;
         }
-        
+
         file.close();
         qDebug() << funcName << " - 成功初始化二进制文件: " << filePath;
         return true;
     }
-    
+
     bool Persistence::BinaryFileHelper::readAndValidateHeader(QFile &file, Persistence::HeaderData &headerData, int expectedSchemaVersion)
     {
         const QString funcName = "BinaryFileHelper::readAndValidateHeader";
-        
+
         // 确保文件已打开
         if (!file.isOpen())
         {
             qWarning() << funcName << " - 文件未打开";
             return false;
         }
-        
+
         // 重置文件指针到开始位置
         if (!file.seek(0))
         {
             qWarning() << funcName << " - 无法重置文件指针到开始位置";
             return false;
         }
-        
+
         // 读取完整头部
         BinaryFileHeader fullHeader;
         if (!readBinaryHeader(&file, fullHeader))
@@ -473,27 +481,27 @@ namespace Persistence
             qWarning() << funcName << " - 读取文件头失败";
             return false;
         }
-        
+
         // 提取简化的HeaderData
         headerData.magic_number = fullHeader.magic_number;
         headerData.file_format_version = fullHeader.file_format_version;
         headerData.data_schema_version = fullHeader.data_schema_version;
         headerData.row_count = fullHeader.row_count_in_file;
         headerData.column_count = fullHeader.column_count_in_file;
-        
+
         // 验证魔数和版本
         if (!fullHeader.isValid())
         {
             qWarning() << funcName << " - 无效的魔数: 0x" << QString::number(headerData.magic_number, 16);
             return false;
         }
-        
+
         // 检查Schema版本兼容性
         if (headerData.data_schema_version != expectedSchemaVersion)
         {
-            qWarning() << funcName << " - Schema版本不匹配: 期望 " << expectedSchemaVersion 
-                     << ", 实际 " << headerData.data_schema_version;
-            
+            qWarning() << funcName << " - Schema版本不匹配: 期望 " << expectedSchemaVersion
+                       << ", 实际 " << headerData.data_schema_version;
+
             // 如果文件版本高于期望版本，则拒绝读取
             if (headerData.data_schema_version > expectedSchemaVersion)
             {
@@ -506,7 +514,7 @@ namespace Persistence
                 qWarning() << funcName << " - 文件版本较旧，但继续处理";
             }
         }
-        
+
         return true;
     }
 
@@ -530,38 +538,45 @@ namespace Persistence
 
         // 1. 获取数据库连接和表ID
         QSqlDatabase db = DatabaseManager::instance()->database();
-        if (!db.isOpen()) {
+        if (!db.isOpen())
+        {
             qWarning() << funcName << " - 数据库未连接";
             return false;
         }
-        
+
         QFileInfo dbFileInfo(db.databaseName());
         QFileInfo binFileInfo(absoluteBinFilePath);
         QString binDirName = binFileInfo.dir().dirName();
         QString expectedDirNameSuffix = "_vbindata";
         QString projectName = binDirName.left(binDirName.length() - expectedDirNameSuffix.length());
-        
+
         QSqlQuery tableIdQuery(db);
         tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE project_name = ? AND binary_data_filename = ?");
         tableIdQuery.addBindValue(projectName);
         tableIdQuery.addBindValue(binFileInfo.fileName());
-        
+
         int tableId = -1;
-        if (tableIdQuery.exec() && tableIdQuery.next()) {
+        if (tableIdQuery.exec() && tableIdQuery.next())
+        {
             tableId = tableIdQuery.value(0).toInt();
-        } else {
-             qWarning() << funcName << " - 无法从文件名反向解析表ID:" << binFileInfo.fileName();
-             // 这是一个备用方案，可能不准确
-             tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE binary_data_filename = ?");
-             tableIdQuery.addBindValue(binFileInfo.fileName());
-             if (tableIdQuery.exec() && tableIdQuery.next()) {
-                 tableId = tableIdQuery.value(0).toInt();
-             } else {
-                 qWarning() << funcName << " - 备用方案也无法找到表ID";
-                 return false;
-             }
         }
-        
+        else
+        {
+            qWarning() << funcName << " - 无法从文件名反向解析表ID:" << binFileInfo.fileName();
+            // 这是一个备用方案，可能不准确
+            tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE binary_data_filename = ?");
+            tableIdQuery.addBindValue(binFileInfo.fileName());
+            if (tableIdQuery.exec() && tableIdQuery.next())
+            {
+                tableId = tableIdQuery.value(0).toInt();
+            }
+            else
+            {
+                qWarning() << funcName << " - 备用方案也无法找到表ID";
+                return false;
+            }
+        }
+
         // 2. 查询分页所需的行索引信息
         QSqlQuery indexQuery(db);
         indexQuery.prepare(
@@ -579,13 +594,15 @@ namespace Persistence
             file.close();
             return false;
         }
-        
+
         QList<QPair<qint64, qint64>> rowPositions;
-        while(indexQuery.next()) {
+        while (indexQuery.next())
+        {
             rowPositions.append({indexQuery.value(0).toLongLong(), indexQuery.value(1).toLongLong()});
         }
-        
-        if (rowPositions.isEmpty() && numRows > 0) {
+
+        if (rowPositions.isEmpty() && numRows > 0)
+        {
             qDebug() << funcName << " - 在请求的范围内没有找到行索引数据。";
             file.close();
             return true; // 没有数据也是一种成功状态
@@ -599,7 +616,8 @@ namespace Persistence
             qint64 offset = pos.first;
             qint64 size = pos.second;
 
-            if (size <= 0) {
+            if (size <= 0)
+            {
                 qWarning() << funcName << " - 无效的行大小(" << size << ")，跳过。";
                 continue;
             }
@@ -607,7 +625,7 @@ namespace Persistence
             if (!file.seek(offset))
             {
                 qWarning() << funcName << " - 无法定位到文件偏移:" << offset;
-                continue; 
+                continue;
             }
 
             QByteArray rowData = file.read(size);
@@ -621,15 +639,17 @@ namespace Persistence
             if (deserializeRow(rowData, row))
             {
                 // 确保行数据与列数匹配
-                while (row.size() < columns.size()) {
+                while (row.size() < columns.size())
+                {
                     row.append(QVariant()); // 添加空值以匹配列数
                 }
-                
+
                 // 如果行数据超过列数，则截断
-                if (row.size() > columns.size()) {
+                if (row.size() > columns.size())
+                {
                     row = row.mid(0, columns.size());
                 }
-                
+
                 pageRows.append(row);
             }
             else
@@ -637,7 +657,8 @@ namespace Persistence
                 qWarning() << funcName << " - 行数据反序列化失败，偏移:" << offset << "大小:" << size;
                 // 添加一个空行，以保持行数一致
                 Vector::RowData emptyRow;
-                for (int i = 0; i < columns.size(); ++i) {
+                for (int i = 0; i < columns.size(); ++i)
+                {
                     emptyRow.append(QVariant());
                 }
                 pageRows.append(emptyRow);

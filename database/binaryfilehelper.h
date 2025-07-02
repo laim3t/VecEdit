@@ -25,7 +25,8 @@ namespace Vector
 namespace Persistence
 {
     // 用于HeaderData结构
-    struct HeaderData {
+    struct HeaderData
+    {
         quint32 magic_number;
         quint16 file_format_version;
         quint16 data_schema_version;
@@ -225,7 +226,7 @@ namespace Persistence
 
         // 初始化二进制文件，创建合法的头部结构
         static bool initBinaryFile(const QString &filePath, int columnCount, int schemaVersion);
-        
+
         // 读取并验证二进制文件头部
         static bool readAndValidateHeader(QFile &file, Persistence::HeaderData &headerData, int expectedSchemaVersion);
 

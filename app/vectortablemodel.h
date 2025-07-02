@@ -54,6 +54,9 @@ public:
     // 加载指定表格的所有数据（新轨道模式）
     void loadAllData(int tableId);
 
+    // 获取当前加载的表ID
+    int getCurrentTableId() const;
+
     // 设置每页行数
     void setPageSize(int pageSize) { m_pageSize = pageSize; }
 

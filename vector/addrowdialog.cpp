@@ -30,8 +30,8 @@ void AddRowDialog::setupUi()
     // 创建控件
     m_infoLabel = new QLabel(tr("请输入要添加的新行数："), this);
     m_rowCountSpinBox = new QSpinBox(this);
-    m_rowCountSpinBox->setRange(1, 1000000); // 设置一个合理的范围
-    m_rowCountSpinBox->setValue(12);         // 设置一个默认值
+    m_rowCountSpinBox->setRange(1, 9999999); // 将最大值提升到 9,999,999
+    m_rowCountSpinBox->setValue(1);          // 将默认值设置为 1
 
     // 将控件添加到布局
     formLayout->addRow(m_infoLabel, m_rowCountSpinBox);

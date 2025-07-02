@@ -1,17 +1,21 @@
 void MainWindow::onVectorTableSelectionChanged(int index)
 {
-    if (index < 0 || m_isUpdatingUI)
-        return;
-
-    // 设置标志防止循环更新
-    m_isUpdatingUI = true;
-
     const QString funcName = "MainWindow::onVectorTableSelectionChanged";
     qDebug() << funcName << " - 向量表选择已更改，索引:" << index;
+    if (index < 0)
+        return;
 
-    // 获取当前选中表ID
-    int tableId = m_vectorTableSelector->currentData().toInt();
+    int tableId = m_vectorTableSelector->itemData(index).toInt();
     qDebug() << funcName << " - 当前表ID:" << tableId;
+
+    // 【关键修复】
+    // 在执行任何操作之前，检查模型是否已在显示目标表格的数据。
+    // 如果是，则说明这是一个由UI刷新导致的冗余信号，直接跳过以避免重复加载。
+    if (m_vectorTableModel && m_vectorTableModel->getCurrentTableId() == tableId)
+    {
+        qDebug() << funcName << " - 模型已在显示表" << tableId << "的数据，跳过不必要的重复加载。";
+        return;
+    }
 
     // 清空波形图管脚选择器，以便在加载表格后重新填充
     if (m_waveformPinSelector)
@@ -19,163 +23,42 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         m_waveformPinSelector->clear();
     }
 
-    // 刷新代理的表ID缓存
+    // 更新代理的缓存
     if (m_itemDelegate)
     {
-        qDebug() << funcName << " - 刷新代理表ID缓存";
         m_itemDelegate->refreshTableIdCache();
     }
 
-    // 同步Tab页签选择
+    // 同步Tab页签与下拉框选择
     syncTabWithComboBox(index);
-
-    // 尝试修复当前表（如果需要）
-    bool needsFix = false;
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery checkQuery(db);
-    checkQuery.prepare("SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
-    checkQuery.addBindValue(tableId);
-    if (checkQuery.exec() && checkQuery.next())
-    {
-        int columnCount = checkQuery.value(0).toInt();
-        qDebug() << funcName << " - 表 " << tableId << " 当前有 " << columnCount << " 个列配置";
-        needsFix = (columnCount == 0);
-    }
-
-    if (needsFix)
-    {
-        qDebug() << funcName << " - 表 " << tableId << " 需要修复列配置";
-        fixExistingTableWithoutColumns(tableId);
-    }
-
-    // 重置分页状态
-    m_currentPage = 0;
-
-    // 获取总行数并更新页面信息
-    if (m_useNewDataHandler)
-    {
-        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
-    }
-    else
-    {
-        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-    }
-    m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-
-    // 更新分页信息显示
-    updatePaginationInfo();
 
     // 根据当前使用的视图类型选择不同的加载方法
     bool isUsingNewView = (m_vectorStackedWidget->currentWidget() == m_vectorTableView);
     if (isUsingNewView)
     {
-        // 使用Model/View架构加载数据
         qDebug() << funcName << " - 使用Model/View架构加载数据";
         if (m_vectorTableModel)
         {
             if (m_useNewDataHandler)
             {
-                // 新轨道模式：一次性加载所有数据
-                qDebug() << funcName << " - 新轨道模式：加载所有数据";
                 m_vectorTableModel->loadAllData(tableId);
             }
             else
             {
-                // 旧数据处理器但新视图的模式：分页加载
-                qDebug() << funcName << " - 旧数据处理器模式：加载页面";
-                m_vectorTableModel->loadPage(tableId, m_currentPage);
+                m_vectorTableModel->loadPage(tableId, 0); // 分页模式总是从第一页开始
             }
-
-            qDebug() << funcName << " - 新表格模型数据加载完成";
-            statusBar()->showMessage(QString("已加载向量表: %1").arg(m_vectorTableSelector->currentText()));
-        }
-        else
-        {
-            qWarning() << funcName << " - 表格模型未初始化，无法加载数据";
-            statusBar()->showMessage("加载向量表失败：表格模型未初始化");
         }
     }
     else
     {
-        // 使用旧的QTableWidget方式加载数据
-        qDebug() << funcName << " - 开始加载表格数据，表ID:" << tableId << "，使用分页加载，页码:" << m_currentPage << "，每页行数:" << m_pageSize;
-        bool loadResult;
-        if (m_useNewDataHandler)
-        {
-            loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-        }
-        else
-        {
-            loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-        }
-        qDebug() << funcName << " - VectorDataHandler::loadVectorTablePageData 返回:" << loadResult
-                 << "，表ID:" << tableId
-                 << "，列数:" << m_vectorTableWidget->columnCount();
-
-        if (loadResult)
-        {
-            qDebug() << funcName << " - 表格加载成功，列数:" << m_vectorTableWidget->columnCount();
-
-            // 更新波形图视图
-            if (m_isWaveformVisible && m_waveformPlot)
-            {
-                updateWaveformView();
-            }
-
-            // 如果列数太少（只有管脚列，没有标准列），可能需要重新加载
-            if (m_vectorTableWidget->columnCount() < 6)
-            {
-                qWarning() << funcName << " - 警告：列数太少（" << m_vectorTableWidget->columnCount()
-                           << "），可能缺少标准列。尝试修复...";
-                fixExistingTableWithoutColumns(tableId);
-                // 重新加载表格（使用分页）
-                if (m_useNewDataHandler)
-                {
-                    loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                }
-                else
-                {
-                    loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                }
-                qDebug() << funcName << " - 修复后重新加载，结果:" << loadResult
-                         << "，列数:" << m_vectorTableWidget->columnCount();
-            }
-
-            // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-            TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-
-            // 输出每一列的标题，用于调试
-            QStringList columnHeaders;
-            for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
-            {
-                QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-                columnHeaders << headerText;
-            }
-            qDebug() << funcName << " - 表头列表:" << columnHeaders.join(", ");
-
-            statusBar()->showMessage(QString("已加载向量表: %1，列数: %2").arg(m_vectorTableSelector->currentText()).arg(m_vectorTableWidget->columnCount()));
-
-            // 同时加载新模型数据，以保持两种视图的数据同步
-            qDebug() << funcName << " - 同步加载新表格模型数据，表ID:" << tableId;
-            if (m_useNewDataHandler)
-            {
-                m_vectorTableModel->loadAllData(tableId);
-            }
-            else
-            {
-                m_vectorTableModel->loadPage(tableId, m_currentPage);
-            }
-        }
-        else
-        {
-            qWarning() << funcName << " - 表格加载失败，表ID:" << tableId;
-            statusBar()->showMessage("加载向量表失败");
-        }
+        // 使用旧的QTableWidget加载数据
+        qDebug() << funcName << " - 使用QTableWidget加载数据";
+        m_currentPage = 0; // 切换表格时总是重置到第一页
+        loadCurrentPage(); // 该函数内部会处理分页和UI更新
     }
 
-    // 重置标志
-    m_isUpdatingUI = false;
+    // 无论使用哪种视图，都需要更新波形图
+    updateWaveformView();
 }
 
 void MainWindow::syncTabWithComboBox(int comboBoxIndex)
