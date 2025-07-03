@@ -295,15 +295,105 @@ void MainWindow::addRowToCurrentVectorTableModel()
 
         qDebug() << funcName << " - 准备在第" << insertionRow << "行插入" << rowCount << "行";
 
-        // 调用模型的方法来插入新行，模型内部会负责处理数据写入和刷新
-        if (m_vectorTableModel->insertRows(insertionRow, rowCount))
+        // 获取当前表ID
+        int currentTableId = m_vectorTableModel->getCurrentTableId();
+
+        // 如果是在末尾添加行，使用增量添加模式，避免全量重载
+        if (insertionRow >= m_vectorTableModel->rowCount())
         {
-            qDebug() << funcName << " - 成功插入" << rowCount << "行";
+            // 1. 获取当前表的列定义
+            QList<Vector::ColumnInfo> columns;
+            if (m_robustDataHandler)
+            {
+                columns = m_robustDataHandler->getVisibleColumns(currentTableId);
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("错误"), tr("数据处理器未初始化！"));
+                return;
+            }
+
+            if (columns.isEmpty())
+            {
+                QMessageBox::critical(this, tr("错误"), tr("获取列配置失败！"));
+                return;
+            }
+
+            // 2. 根据列定义创建带有默认值的新行
+            QList<QList<QVariant>> rowsToInsert;
+            for (int i = 0; i < rowCount; ++i)
+            {
+                QList<QVariant> newRow;
+                for (const auto &colInfo : columns)
+                {
+                    // 根据列类型设置合理的默认值
+                    switch (colInfo.type)
+                    {
+                    case Vector::ColumnDataType::TEXT:
+                        newRow.append(QString(""));
+                        break;
+                    case Vector::ColumnDataType::INSTRUCTION_ID:
+                        newRow.append(1); // 默认指令ID
+                        break;
+                    case Vector::ColumnDataType::TIMESET_ID:
+                        newRow.append(1); // 默认TimeSet ID
+                        break;
+                    case Vector::ColumnDataType::BOOLEAN: // Capture
+                        newRow.append(false);
+                        break;
+                    case Vector::ColumnDataType::PIN_STATE_ID:
+                        newRow.append("X"); // 默认管脚状态
+                        break;
+                    default:
+                        newRow.append(QVariant()); // 其他类型使用空的QVariant
+                        break;
+                    }
+                }
+                rowsToInsert.append(newRow);
+            }
+
+            // 3. 调用数据处理器将新数据写入磁盘
+            QString errorMessage;
+            bool success = false;
+
+            if (m_robustDataHandler)
+            {
+                success = m_robustDataHandler->insertVectorRows(currentTableId, insertionRow, rowsToInsert, errorMessage);
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("错误"), tr("数据处理器未初始化！"));
+                return;
+            }
+
+            if (success)
+            {
+                // 4. 使用增量添加模式更新模型，避免全量重载
+                m_vectorTableModel->appendRows(rowsToInsert);
+                qDebug() << funcName << " - 成功插入" << rowCount << "行（增量模式）";
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("错误"), tr("添加新行失败：%1").arg(errorMessage));
+                qWarning() << funcName << " - 添加行失败：" << errorMessage;
+            }
         }
         else
         {
-            QMessageBox::critical(this, tr("错误"), tr("添加新行失败！"));
+            // 如果是在中间插入行，仍然使用原有的insertRows方法
+            // 这种情况比较复杂，需要考虑行索引的调整，暂时保留原有逻辑
+            if (m_vectorTableModel->insertRows(insertionRow, rowCount))
+            {
+                qDebug() << funcName << " - 成功插入" << rowCount << "行（标准模式）";
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("错误"), tr("添加新行失败！"));
+            }
         }
+
+        // 刷新侧边栏导航树，确保Label同步
+        refreshSidebarNavigator();
     }
 }
 

@@ -80,13 +80,13 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
 
     // 完成行插入操作
     endInsertRows();
-    
+
     // 如果插入成功，重新加载所有数据以确保模型缓存与数据库同步
     if (success)
     {
         loadAllData(m_tableId);
     }
-    
+
     return success;
 }
 
