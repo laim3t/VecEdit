@@ -305,26 +305,16 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
     const QString funcName = "RobustVectorDataHandler::insertVectorRows";
     QSqlDatabase db = DatabaseManager::instance()->database();
 
-    // 在事务开始前获取当前的行数
     int oldRowCount = getVectorTableRowCount(tableId);
 
     if (!db.transaction())
     {
-        errorMessage = "Failed to start database transaction.";
-        qWarning() << funcName << "-" << errorMessage << db.lastError().text();
-        db.rollback();
+        errorMessage = "Failed to start database transaction: " + db.lastError().text();
+        qWarning() << funcName << "-" << errorMessage;
         return false;
     }
 
-    bool success = true;
-    QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
-    if (binFilePath.isEmpty())
-    {
-        db.rollback();
-        return false;
-    }
-
-    // 1. 如果不是在末尾插入，需要先更新现有行的逻辑顺序
+    // 1. 如果不是在末尾插入，需要先更新现有行的逻辑顺序 (此操作开销较大，但必须保留)
     if (logicalStartIndex < oldRowCount)
     {
         QSqlQuery shiftQuery(db);
@@ -341,7 +331,13 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         }
     }
 
-    // 2. 将新行写入二进制文件，并为其创建索引
+    QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (binFilePath.isEmpty())
+    {
+        db.rollback();
+        return false;
+    }
+
     QFile binFile(binFilePath);
     if (!binFile.open(QIODevice::Append))
     {
@@ -351,44 +347,75 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         return false;
     }
 
+    // 2. 准备批量写入
     QSqlQuery insertIndexQuery(db);
     insertIndexQuery.prepare(
         "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
         "VALUES (?, ?, ?, ?, 1)");
 
-    for (int i = 0; i < rows.count(); ++i)
+    bool success = true;
+    const int totalRowsToInsert = rows.count();
+    const int batchSize = 100000; // 设定合理的批次大小以平衡内存和性能
+
+    for (int batchStart = 0; batchStart < totalRowsToInsert; batchStart += batchSize)
     {
-        const Vector::RowData &row = rows.at(i);
-        qint64 offset = binFile.size();
+        int currentBatchSize = qMin(batchSize, totalRowsToInsert - batchStart);
 
-        QByteArray rowByteArray;
-        if (!Persistence::BinaryFileHelper::serializeRow(row, rowByteArray))
+        QByteArray batchBinBuffer;
+        QVariantList masterIds, logicalOrders, offsets, sizes;
+
+        qint64 batchStartOffset = binFile.size();
+        qint64 currentRelativeOffset = 0;
+
+        // 在内存中准备一整个批次的数据
+        for (int i = 0; i < currentBatchSize; ++i)
         {
-            errorMessage = QString("Failed to serialize row at logical index %1.").arg(logicalStartIndex + i);
+            int currentRowIndexInTotal = batchStart + i;
+            const Vector::RowData &row = rows.at(currentRowIndexInTotal);
+
+            QByteArray rowByteArray;
+            if (!Persistence::BinaryFileHelper::serializeRow(row, rowByteArray))
+            {
+                errorMessage = QString("Failed to serialize row at logical index %1.").arg(logicalStartIndex + currentRowIndexInTotal);
+                success = false;
+                break;
+            }
+
+            batchBinBuffer.append(rowByteArray);
+
+            masterIds.append(tableId);
+            logicalOrders.append(logicalStartIndex + currentRowIndexInTotal);
+            offsets.append(batchStartOffset + currentRelativeOffset);
+            sizes.append(rowByteArray.size());
+
+            currentRelativeOffset += rowByteArray.size();
+        }
+
+        if (!success)
+            break;
+
+        // 批量写入二进制文件
+        if (binFile.write(batchBinBuffer) != batchBinBuffer.size())
+        {
+            errorMessage = "Failed to write full batch to binary file.";
             success = false;
             break;
         }
 
-        qint64 bytesWritten = binFile.write(rowByteArray);
-        if (bytesWritten != rowByteArray.size())
-        {
-            errorMessage = QString("Failed to write full row to binary file at logical index %1.").arg(logicalStartIndex + i);
-            success = false;
-            break;
-        }
+        // 批量执行数据库插入
+        insertIndexQuery.addBindValue(masterIds);
+        insertIndexQuery.addBindValue(logicalOrders);
+        insertIndexQuery.addBindValue(offsets);
+        insertIndexQuery.addBindValue(sizes);
 
-        insertIndexQuery.bindValue(0, tableId);
-        insertIndexQuery.bindValue(1, logicalStartIndex + i);
-        insertIndexQuery.bindValue(2, offset);
-        insertIndexQuery.bindValue(3, rowByteArray.size());
-
-        if (!insertIndexQuery.exec())
+        if (!insertIndexQuery.execBatch())
         {
-            errorMessage = "Failed to insert row index into database: " + insertIndexQuery.lastError().text();
+            errorMessage = "Failed to execute batch insert for indexes: " + insertIndexQuery.lastError().text();
             success = false;
             break;
         }
     }
+
     binFile.close();
 
     // 3. 更新主记录和文件头中的总行数
@@ -396,7 +423,6 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
     {
         int newTotalRowCount = oldRowCount + rows.count();
 
-        // 更新数据库 Master Record
         QSqlQuery updateQuery(db);
         updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
         updateQuery.addBindValue(newTotalRowCount);
@@ -407,7 +433,6 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
             success = false;
         }
 
-        // 更新二进制文件头
         if (success)
         {
             if (!Persistence::BinaryFileHelper::updateRowCountInHeader(binFilePath, newTotalRowCount))
