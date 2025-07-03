@@ -1,5 +1,3 @@
-
-
 // Add this new function implementation
 QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 {
@@ -306,6 +304,22 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
     }
 
     qInfo() << funcName << " - Successfully added" << pinNames.count() << "pin columns to configuration for tableId:" << tableId;
+
+    // 4. 如果使用的是新的数据模型，更新模型的列信息
+    if (m_vectorTableModel && m_vectorTableModel->getCurrentTableId() == tableId)
+    {
+        // 清除缓存以确保获取最新的列信息
+        if (m_useNewDataHandler && m_robustDataHandler)
+        {
+            m_robustDataHandler->clearTableDataCache(tableId);
+        }
+
+        // 重新加载列信息，但保留现有行数据
+        m_vectorTableModel->refreshColumns(tableId);
+
+        qDebug() << funcName << " - Model columns refreshed for table ID:" << tableId;
+    }
+
     return true;
 }
 

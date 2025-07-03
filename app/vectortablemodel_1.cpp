@@ -3,7 +3,9 @@
 bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
 {
     if (parent.isValid() || count <= 0)
+    {
         return false;
+    }
 
     if (!m_robustDataHandler)
     {
@@ -30,10 +32,8 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
             switch (colInfo.type)
             {
             case Vector::ColumnDataType::TEXT:
-                // 例如，Label 和 Comment 列可以为空
                 if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
                 {
-                    // 不再为Label列生成默认值，使用空字符串
                     newRow.append(QString(""));
                 }
                 else
@@ -61,33 +61,29 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
         rowsToInsert.append(newRow);
     }
 
-    // 通知视图我们将要插入行
-    beginInsertRows(parent, row, row + count - 1);
-
-    // 3. 调用新的、正确的insertVectorRows接口插入到后端存储
+    // 3. 调用持久化层接口，将新行数据写入后端存储
     QString errorMessage;
     bool success = m_robustDataHandler->insertVectorRows(m_tableId, row, rowsToInsert, errorMessage);
 
-    if (success)
+    if (!success)
     {
-        // 更新总行数
-        m_totalRows += count;
-    }
-    else
-    {
-        qWarning() << "VectorTableModel::insertRows failed:" << errorMessage;
+        qWarning() << "VectorTableModel::insertRows - Backend insertion failed:" << errorMessage;
+        return false;
     }
 
-    // 完成行插入操作
+    // 4. 持久化成功后，再更新内存模型并通知视图
+    beginInsertRows(parent, row, row + count - 1);
+
+    for (int i = 0; i < rowsToInsert.count(); ++i)
+    {
+        m_pageData.insert(row + i, rowsToInsert.at(i));
+    }
+
+    m_totalRows += count;
+
     endInsertRows();
 
-    // 如果插入成功，重新加载所有数据以确保模型缓存与数据库同步
-    if (success)
-    {
-        loadAllData(m_tableId);
-    }
-
-    return success;
+    return true;
 }
 
 bool VectorTableModel::removeRows(int row, int count, const QModelIndex &parent)
@@ -323,4 +319,31 @@ void VectorTableModel::loadAllData(int tableId)
 int VectorTableModel::getCurrentTableId() const
 {
     return m_tableId;
+}
+
+void VectorTableModel::refreshColumns(int tableId)
+{
+    // 确保表ID有效
+    if (tableId <= 0 || tableId != m_tableId)
+    {
+        qWarning() << "VectorTableModel::refreshColumns - 无效的表ID或与当前加载的表ID不匹配";
+        return;
+    }
+
+    // 获取最新的列信息
+    if (m_useNewDataHandler)
+    {
+        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+    }
+    else
+    {
+        m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    }
+
+    // 通知视图列数可能已更改
+    beginResetModel();
+    endResetModel();
+
+    qDebug() << "VectorTableModel::refreshColumns - 成功刷新表ID:" << tableId
+             << "的列信息，当前列数:" << m_columns.size();
 }

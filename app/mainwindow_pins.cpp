@@ -305,9 +305,12 @@ void MainWindow::setupVectorTablePins()
 
     // 1. 获取更改前的完整列配置
     QList<Vector::ColumnInfo> oldColumns;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         oldColumns = m_robustDataHandler->getAllColumnInfo(tableId);
-    } else {
+    }
+    else
+    {
         oldColumns = VectorDataHandler::instance().getAllColumnInfo(tableId);
     }
 
@@ -541,9 +544,12 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
     file.close();
 
     // Corrected cache invalidation method name
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         m_robustDataHandler->clearTableDataCache(tableId);
-    } else {
+    }
+    else
+    {
         VectorDataHandler::instance().clearTableDataCache(tableId);
     }
     // Clearing data cache is often sufficient. If specific metadata cache for columns/schema

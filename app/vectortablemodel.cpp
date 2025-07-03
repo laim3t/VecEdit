@@ -32,31 +32,6 @@ void VectorTableModel::setUseNewDataHandler(bool useNew)
     qDebug() << "VectorTableModel::setUseNewDataHandler - Switched to useNewDataHandler:" << useNew;
 }
 
-// 增量添加行方法的实现
-void VectorTableModel::appendRows(const QList<QList<QVariant>> &newRows)
-{
-    if (newRows.isEmpty())
-    {
-        return;
-    }
-
-    qDebug() << "VectorTableModel::appendRows - 开始增量添加" << newRows.size() << "行数据";
-
-    // 通知视图我们将要插入行
-    beginInsertRows(QModelIndex(), m_pageData.count(), m_pageData.count() + newRows.count() - 1);
-
-    // 将新行添加到内存中的数据
-    m_pageData.append(newRows);
-
-    // 更新总行数
-    m_totalRows += newRows.count();
-
-    // 通知视图插入已完成
-    endInsertRows();
-
-    qDebug() << "VectorTableModel::appendRows - 增量添加完成，当前内存中共有" << m_pageData.size() << "行数据";
-}
-
 int VectorTableModel::rowCount(const QModelIndex &parent) const
 {
     // 父索引有效时意味着是树形结构中的子项，表格模型中不应该有子项

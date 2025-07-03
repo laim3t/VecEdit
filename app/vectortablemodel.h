@@ -48,9 +48,6 @@ public:
     bool deleteRowsInRange(int fromRow, int toRow, QString &errorMessage);
     bool addNewRow(int timesetId, const QMap<int, QString> &pinValues, QString &errorMessage);
 
-    // 增量添加行方法 - 用于高效添加大量数据时避免全量重载
-    void appendRows(const QList<QList<QVariant>> &newRows);
-
     // 加载指定表格的指定页数据
     void loadPage(int tableId, int page);
 
@@ -92,6 +89,9 @@ public:
 
     // 刷新指令和TimeSet的缓存
     void refreshCaches() const;
+
+    // 刷新列信息而不重新加载行数据
+    void refreshColumns(int tableId);
 
 private:
     // 分页状态相关成员变量
