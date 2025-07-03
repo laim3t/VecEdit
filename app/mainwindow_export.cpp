@@ -43,7 +43,7 @@ void MainWindow::exportConstructionFile()
 
     QTextStream out(&file);
     out.setCodec("UTF-8");
-    out.setGenerateByteOrderMark(true);
+    out.setGenerateByteOrderMark(false); // 不生成BOM标记，导出纯UTF-8格式
 
     // 明确指定数据库连接，防止 "database not open" 错误
     QSqlDatabase db = DatabaseManager::instance()->database();
