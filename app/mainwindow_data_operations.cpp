@@ -349,7 +349,7 @@ void MainWindow::addRowToCurrentVectorTableModel()
         }
         
         // 优化：根据系统性能动态调整批次大小
-        const int optimalBatchSize = 50000; // 优化后的批次大小
+        const int optimalBatchSize = 5000; // 降低批次大小，减少内存压力
         const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.5), optimalBatchSize);
         const int batches = (rowCount + maxSafeBatchSize - 1) / maxSafeBatchSize; // 向上取整
         
@@ -404,6 +404,13 @@ void MainWindow::addRowToCurrentVectorTableModel()
                                      .arg(static_cast<int>(rowsPerSecond))
                                      .arg(estimatedSecsRemaining));
                 progress.setValue(rowsInserted);
+                
+                // 每批次后强制清理内存
+                if (currentBatch % 2 == 0) {
+                    // 强制执行垃圾回收
+                    QApplication::processEvents();
+                    QApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+                }
             } else {
                 QMessageBox::critical(this, tr("错误"), tr("添加行批次 %1 失败！").arg(currentBatch));
                 break;

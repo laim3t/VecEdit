@@ -399,6 +399,9 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
             QList<qint64> offsets;
             QList<qint64> sizes;
             QList<int> logicalIndices;
+            offsets.reserve(serializedBatch.size());
+            sizes.reserve(serializedBatch.size());
+            logicalIndices.reserve(serializedBatch.size());
             
             for (int j = 0; j < serializedBatch.size(); j++) {
                 qint64 offset = binFile.pos();
@@ -420,30 +423,37 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
                 // 如果达到SQL批处理大小或是最后一批，执行SQL插入
                 if (offsets.size() >= SQL_BATCH_SIZE || j == serializedBatch.size() - 1) {
                     // 使用参数绑定执行批量插入
-                    QSqlQuery batchInsertQuery(db);
-                    batchInsertQuery.prepare(
-                        "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
-                        "VALUES (?, ?, ?, ?, 1)"
-                    );
-                    
-                    QVariantList tableIds, logicalOrders, offsetValues, sizeValues;
-                    for (int k = 0; k < offsets.size(); k++) {
-                        tableIds.append(tableId);
-                        logicalOrders.append(logicalIndices[k]);
-                        offsetValues.append(offsets[k]);
-                        sizeValues.append(sizes[k]);
-                    }
-                    
-                    batchInsertQuery.addBindValue(tableIds);
-                    batchInsertQuery.addBindValue(logicalOrders);
-                    batchInsertQuery.addBindValue(offsetValues);
-                    batchInsertQuery.addBindValue(sizeValues);
-                    
-                    if (!batchInsertQuery.execBatch()) {
-                        errorMessage = "Failed to insert row indexes into database: " + batchInsertQuery.lastError().text();
-                        success = false;
-                        break;
-                    }
+                    {
+                        QSqlQuery batchInsertQuery(db);
+                        batchInsertQuery.prepare(
+                            "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
+                            "VALUES (?, ?, ?, ?, 1)"
+                        );
+                        
+                        QVariantList tableIds, logicalOrders, offsetValues, sizeValues;
+                        tableIds.reserve(offsets.size());
+                        logicalOrders.reserve(offsets.size());
+                        offsetValues.reserve(offsets.size());
+                        sizeValues.reserve(offsets.size());
+                        
+                        for (int k = 0; k < offsets.size(); k++) {
+                            tableIds.append(tableId);
+                            logicalOrders.append(logicalIndices[k]);
+                            offsetValues.append(offsets[k]);
+                            sizeValues.append(sizes[k]);
+                        }
+                        
+                        batchInsertQuery.addBindValue(tableIds);
+                        batchInsertQuery.addBindValue(logicalOrders);
+                        batchInsertQuery.addBindValue(offsetValues);
+                        batchInsertQuery.addBindValue(sizeValues);
+                        
+                        if (!batchInsertQuery.execBatch()) {
+                            errorMessage = "Failed to insert row indexes into database: " + batchInsertQuery.lastError().text();
+                            success = false;
+                            break;
+                        }
+                    } // 使用作用域确保QSqlQuery被及时销毁
                     
                     // 清空收集的数据，准备下一批
                     offsets.clear();
@@ -452,10 +462,13 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
                 }
             }
             
-            if (!success) break;
-            i += serializedBatch.size();
+            // 主动释放内存
+            serializedBatch.clear();
             
-            // 每处理1000行，刷新UI
+            if (!success) break;
+            i += serializeBatchEnd - i;
+            
+            // 每处理1000行，刷新UI并强制垃圾回收
             if (i % 1000 == 0) {
                 QApplication::processEvents(); // 保持UI响应
             }
@@ -477,6 +490,22 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         
         if (!success) break;
         rowsProcessed = batchEnd;
+
+        // 强制垃圾回收
+        if (rowsProcessed < rows.count() && success) {
+            // 如果还有更多行要处理，先提交当前事务再开始新事务
+            if (!db.commit()) {
+                errorMessage = "Failed to commit batch transaction: " + db.lastError().text();
+                success = false;
+                break;
+            }
+            
+            if (!db.transaction()) {
+                errorMessage = "Failed to start new batch transaction: " + db.lastError().text();
+                success = false;
+                break;
+            }
+        }
     }
 
     if (success) {

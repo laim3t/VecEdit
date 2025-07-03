@@ -272,6 +272,9 @@ namespace Persistence
     {
         // 使用"长度前缀"协议，每个字段前面有一个4字节的长度标记
         outByteArray.clear();
+        // 预分配内存，避免频繁重新分配
+        outByteArray.reserve(rowData.size() * 16); // 假设每个字段平均16字节
+        
         QDataStream stream(&outByteArray, QIODevice::WriteOnly);
         stream.setByteOrder(QDataStream::LittleEndian);
         
@@ -284,6 +287,7 @@ namespace Persistence
         {
             // 将字段转换为字节数组
             QByteArray fieldBytes;
+            fieldBytes.reserve(16); // 预分配合理大小
             QDataStream fieldStream(&fieldBytes, QIODevice::WriteOnly);
             fieldStream.setByteOrder(QDataStream::LittleEndian);
             fieldStream << field;
