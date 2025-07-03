@@ -544,15 +544,11 @@ namespace Persistence
             return false;
         }
 
-        QFileInfo dbFileInfo(db.databaseName());
         QFileInfo binFileInfo(absoluteBinFilePath);
-        QString binDirName = binFileInfo.dir().dirName();
-        QString expectedDirNameSuffix = "_vbindata";
-        QString projectName = binDirName.left(binDirName.length() - expectedDirNameSuffix.length());
 
+        // 直接通过二进制文件名查询表ID
         QSqlQuery tableIdQuery(db);
-        tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE project_name = ? AND binary_data_filename = ?");
-        tableIdQuery.addBindValue(projectName);
+        tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE binary_data_filename = ?");
         tableIdQuery.addBindValue(binFileInfo.fileName());
 
         int tableId = -1;
@@ -562,19 +558,9 @@ namespace Persistence
         }
         else
         {
-            qWarning() << funcName << " - 无法从文件名反向解析表ID:" << binFileInfo.fileName();
-            // 这是一个备用方案，可能不准确
-            tableIdQuery.prepare("SELECT id FROM VectorTableMasterRecord WHERE binary_data_filename = ?");
-            tableIdQuery.addBindValue(binFileInfo.fileName());
-            if (tableIdQuery.exec() && tableIdQuery.next())
-            {
-                tableId = tableIdQuery.value(0).toInt();
-            }
-            else
-            {
-                qWarning() << funcName << " - 备用方案也无法找到表ID";
-                return false;
-            }
+            // 在这里也添加 lastError() 以提供更多上下文
+            qWarning() << funcName << " - 无法通过文件名找到表ID:" << binFileInfo.fileName() << "错误:" << tableIdQuery.lastError().text();
+            return false;
         }
 
         // 2. 查询分页所需的行索引信息
