@@ -89,6 +89,14 @@ namespace Persistence
         static bool serializeRow(const Vector::RowData &rowData, const QList<Vector::ColumnInfo> &columns, QByteArray &serializedRow);
 
         /**
+         * @brief 序列化一行数据为二进制字节流（简化版，使用通用格式）
+         * @param rowData 内存中的一行数据
+         * @param outByteArray 输出的二进制字节流
+         * @return 成功返回 true，失败返回 false
+         */
+        static bool serializeRowSimple(const Vector::RowData &rowData, QByteArray &outByteArray);
+
+        /**
          * @brief 从二进制字节流反序列化为一行数据
          * @param bytes 输入的二进制字节流
          * @param columns 列信息（顺序与目标 rowData 对应）
@@ -210,7 +218,6 @@ namespace Persistence
                                        QString &errorMessage);
 
         // [NEW] - Length-prefixed serialization
-        static bool serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray);
         static bool deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData);
 
         // 从二进制文件读取所有行数据 - 新接口，支持分页

@@ -27,6 +27,7 @@
 #include <QSpinBox>
 #include <QDockWidget>
 #include <QTreeWidget>
+#include <QProgressDialog>
 #include <stdexcept>
 #include "../vector/vector_data_types.h"
 #include "../vector/vectordatahandler.h"
@@ -37,6 +38,16 @@
 #include "vectortablemodel.h"
 #include "vector/vectordatahandler.h"
 #include "vector/vectortabledelegate.h"
+
+// 添加平台相关的内存检测头文件
+#ifdef Q_OS_WIN
+#include <windows.h>
+#elif defined(Q_OS_LINUX)
+#include <sys/sysinfo.h>
+#elif defined(Q_OS_MAC)
+#include <mach/mach.h>
+#include <mach/vm_statistics.h>
+#endif
 
 // 前置声明
 class VectorTableDelegate;
@@ -456,6 +467,9 @@ private:
     RobustVectorDataHandler *m_robustDataHandler = nullptr;
 
     bool updateSelectedPinsAsColumns(int tableId); // 声明新函数
+
+    // 获取系统可用内存（字节）
+    qint64 getAvailableSystemMemory();
 };
 
 #endif // MAINWINDOW_H

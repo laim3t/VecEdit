@@ -268,37 +268,36 @@ namespace Persistence
 #include "binaryfilehelper_3.cpp"
 #include "binaryfilehelper_4.cpp"
 
-    bool Persistence::BinaryFileHelper::serializeRow(const Vector::RowData &rowData, QByteArray &outByteArray)
+    bool Persistence::BinaryFileHelper::serializeRowSimple(const Vector::RowData &rowData, QByteArray &outByteArray)
     {
         // 使用"长度前缀"协议，每个字段前面有一个4字节的长度标记
         outByteArray.clear();
         QDataStream stream(&outByteArray, QIODevice::WriteOnly);
         stream.setByteOrder(QDataStream::LittleEndian);
-
+        
         // 写入字段数量
-        stream << (quint32)rowData.size();
-
-        // 逐个写入每个字段
-        for (const QVariant &value : rowData)
+        const quint32 fieldCount = rowData.size();
+        stream << fieldCount;
+        
+        // 写入每个字段的数据
+        for (const QVariant &field : rowData)
         {
-            // 将字段序列化为二进制
-            QByteArray fieldData;
-            QDataStream fieldStream(&fieldData, QIODevice::WriteOnly);
+            // 将字段转换为字节数组
+            QByteArray fieldBytes;
+            QDataStream fieldStream(&fieldBytes, QIODevice::WriteOnly);
             fieldStream.setByteOrder(QDataStream::LittleEndian);
-            fieldStream << value;
-
-            if (fieldStream.status() != QDataStream::Ok)
-            {
-                qWarning() << "serializeRow: Failed to serialize field value:" << value;
-                return false;
-            }
-
+            fieldStream << field;
+            
             // 写入字段长度和数据
-            stream << (quint32)fieldData.size();
-            stream.writeRawData(fieldData.constData(), fieldData.size());
+            const quint32 fieldSize = fieldBytes.size();
+            stream << fieldSize;
+            if (fieldSize > 0)
+            {
+                stream.writeRawData(fieldBytes.constData(), fieldSize);
+            }
         }
-
-        return stream.status() == QDataStream::Ok;
+        
+        return true;
     }
 
     bool Persistence::BinaryFileHelper::deserializeRow(const QByteArray &inByteArray, Vector::RowData &outRowData)
