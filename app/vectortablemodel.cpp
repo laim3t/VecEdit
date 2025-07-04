@@ -11,6 +11,7 @@
 VectorTableModel::VectorTableModel(QObject *parent, bool useNewDataHandler, RobustVectorDataHandler *robustDataHandler)
     : QAbstractTableModel(parent),
       m_tableId(0),
+      m_lastTableId(0),
       m_currentPage(0),
       m_pageSize(100), // 默认每页100行
       m_totalRows(0),

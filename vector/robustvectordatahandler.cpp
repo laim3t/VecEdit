@@ -308,15 +308,21 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
 
     // 优化SQLite性能设置
     QSqlQuery pragmaQuery(db);
-    pragmaQuery.exec("PRAGMA temp_store = MEMORY");       // 使用内存临时存储
-    pragmaQuery.exec("PRAGMA journal_mode = MEMORY");     // 内存日志模式
-    pragmaQuery.exec("PRAGMA synchronous = OFF");         // 关闭同步
-    pragmaQuery.exec("PRAGMA cache_size = 10000");        // 增加缓存大小
-    
-    // 分块处理常量
-    const int BATCH_SIZE = 10000; // 每批处理的行数
-    const int SQL_BATCH_SIZE = 100; // SQL批处理大小，降低为更安全的值
-    const int SERIALIZE_BATCH_SIZE = 500; // 序列化批处理大小
+    pragmaQuery.exec("PRAGMA temp_store = MEMORY");      // 使用内存临时存储
+    pragmaQuery.exec("PRAGMA journal_mode = MEMORY");    // 内存日志模式
+    pragmaQuery.exec("PRAGMA synchronous = OFF");        // 关闭同步
+    pragmaQuery.exec("PRAGMA cache_size = 200000");      // 极大增加缓存大小
+    pragmaQuery.exec("PRAGMA foreign_keys = OFF");       // 临时禁用外键约束，提高插入速度
+    pragmaQuery.exec("PRAGMA page_size = 8192");         // 增加页大小
+    pragmaQuery.exec("PRAGMA mmap_size = 268435456");    // 使用内存映射，256MB
+    pragmaQuery.exec("PRAGMA locking_mode = EXCLUSIVE"); // 独占锁定模式
+    // 禁用自动索引
+    pragmaQuery.exec("PRAGMA automatic_index = OFF");
+
+    // 分块处理常量 - 大幅增加以提高性能
+    const int BATCH_SIZE = 100000;         // 大幅提高批处理行数
+    const int SQL_BATCH_SIZE = 5000;       // 增加SQL批处理大小
+    const int SERIALIZE_BATCH_SIZE = 5000; // 增加序列化批处理大小
 
     int oldRowCount = getVectorTableRowCount(tableId);
 
@@ -360,41 +366,59 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         return false;
     }
 
+    // 使用顺序写入模式，优化文件IO
+    // 注意：Qt没有直接的API来优化文件写入缓冲区大小
+    // 我们依赖操作系统的默认优化和之前设置的SQLite参数
+
     // 2. 准备批量写入
     bool success = true;
     int rowsProcessed = 0;
-    
+
+    // 预编译SQL语句，以减少解析开销
+    QSqlQuery batchInsertQuery(db);
+    batchInsertQuery.prepare(
+        "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
+        "VALUES (?, ?, ?, ?, 1)");
+
     // 分批处理大量行，但使用单一事务
-    while (rowsProcessed < rows.count()) {
+    while (rowsProcessed < rows.count())
+    {
         int batchEnd = qMin(rowsProcessed + BATCH_SIZE, rows.count());
-        qDebug() << funcName << "- 正在处理批次，从" << rowsProcessed << "到" << (batchEnd-1) << "，共" << (batchEnd - rowsProcessed) << "行";
-        
+        // 注释掉批次日志，提高性能
+        // qDebug() << funcName << "- 正在处理批次，从" << rowsProcessed << "到" << (batchEnd-1) << "，共" << (batchEnd - rowsProcessed) << "行";
+
         // 处理当前批次
-        for (int i = rowsProcessed; i < batchEnd;) {
+        for (int i = rowsProcessed; i < batchEnd;)
+        {
             // 一次序列化多行数据以减少日志输出和函数调用开销
             int serializeBatchEnd = qMin(i + SERIALIZE_BATCH_SIZE, batchEnd);
             QList<QByteArray> serializedBatch;
             serializedBatch.reserve(serializeBatchEnd - i);
-            
-            for (int j = i; j < serializeBatchEnd; j++) {
+
+            for (int j = i; j < serializeBatchEnd; j++)
+            {
                 const Vector::RowData &row = rows.at(j);
                 QByteArray serializedRow;
-                
+
                 // 只对每100行输出一次日志，减少日志开销
-                if (j % 100 == 0) {
+                // 完全禁用日志，显著提高性能
+                /*if (j % 100 == 0)
+                {
                     qDebug() << funcName << "- 准备序列化行数据: " << j;
-                }
-                
-                if (!Persistence::BinaryFileHelper::serializeRowSimple(row, serializedRow)) {
+                }*/
+
+                if (!Persistence::BinaryFileHelper::serializeRowSimple(row, serializedRow))
+                {
                     errorMessage = QString("Failed to serialize row at logical index %1.").arg(logicalStartIndex + j);
                     success = false;
                     break;
                 }
                 serializedBatch.append(serializedRow);
             }
-            
-            if (!success) break;
-            
+
+            if (!success)
+                break;
+
             // 批量写入二进制文件
             QList<qint64> offsets;
             QList<qint64> sizes;
@@ -402,105 +426,113 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
             offsets.reserve(serializedBatch.size());
             sizes.reserve(serializedBatch.size());
             logicalIndices.reserve(serializedBatch.size());
-            
-            for (int j = 0; j < serializedBatch.size(); j++) {
+
+            for (int j = 0; j < serializedBatch.size(); j++)
+            {
                 qint64 offset = binFile.pos();
                 const QByteArray &serializedRow = serializedBatch[j];
                 qint64 size = serializedRow.size();
-                
+
                 qint64 bytesWritten = binFile.write(serializedRow);
-                if (bytesWritten != size) {
+                if (bytesWritten != size)
+                {
                     errorMessage = QString("Failed to write row to binary file at logical index %1.").arg(logicalStartIndex + i + j);
                     success = false;
                     break;
                 }
-                
+
                 // 收集SQL值用于批量插入
                 offsets.append(offset);
                 sizes.append(size);
                 logicalIndices.append(logicalStartIndex + i + j);
-                
+
                 // 如果达到SQL批处理大小或是最后一批，执行SQL插入
-                if (offsets.size() >= SQL_BATCH_SIZE || j == serializedBatch.size() - 1) {
+                if (offsets.size() >= SQL_BATCH_SIZE || j == serializedBatch.size() - 1)
+                {
                     // 使用参数绑定执行批量插入
                     {
-                        QSqlQuery batchInsertQuery(db);
-                        batchInsertQuery.prepare(
-                            "INSERT INTO VectorTableRowIndex (master_record_id, logical_row_order, offset, size, is_active) "
-                            "VALUES (?, ?, ?, ?, 1)"
-                        );
-                        
+                        // 使用之前预编译的语句，减少解析开销
                         QVariantList tableIds, logicalOrders, offsetValues, sizeValues;
                         tableIds.reserve(offsets.size());
                         logicalOrders.reserve(offsets.size());
                         offsetValues.reserve(offsets.size());
                         sizeValues.reserve(offsets.size());
-                        
-                        for (int k = 0; k < offsets.size(); k++) {
+
+                        for (int k = 0; k < offsets.size(); k++)
+                        {
                             tableIds.append(tableId);
                             logicalOrders.append(logicalIndices[k]);
                             offsetValues.append(offsets[k]);
                             sizeValues.append(sizes[k]);
                         }
-                        
+
                         batchInsertQuery.addBindValue(tableIds);
                         batchInsertQuery.addBindValue(logicalOrders);
                         batchInsertQuery.addBindValue(offsetValues);
                         batchInsertQuery.addBindValue(sizeValues);
-                        
-                        if (!batchInsertQuery.execBatch()) {
+
+                        if (!batchInsertQuery.execBatch())
+                        {
                             errorMessage = "Failed to insert row indexes into database: " + batchInsertQuery.lastError().text();
                             success = false;
                             break;
                         }
                     } // 使用作用域确保QSqlQuery被及时销毁
-                    
+
                     // 清空收集的数据，准备下一批
                     offsets.clear();
                     sizes.clear();
                     logicalIndices.clear();
                 }
             }
-            
+
             // 主动释放内存
             serializedBatch.clear();
-            
-            if (!success) break;
+
+            if (!success)
+                break;
             i += serializeBatchEnd - i;
-            
-            // 每处理1000行，刷新UI并强制垃圾回收
-            if (i % 1000 == 0) {
+
+            // 减少UI更新频率，每处理20000行才更新一次，极大提高性能
+            if (i % 20000 == 0)
+            {
                 QApplication::processEvents(); // 保持UI响应
             }
         }
-        
+
         // 执行剩余的SQL批处理
-        if (success) {
+        if (success)
+        {
             // 更新主表记录中的行数
             QSqlQuery updateQuery(db);
             updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count + ? WHERE id = ?");
             updateQuery.addBindValue(rows.count());
             updateQuery.addBindValue(tableId);
-            
-            if (!updateQuery.exec()) {
+
+            if (!updateQuery.exec())
+            {
                 errorMessage = "Failed to update master record row count: " + updateQuery.lastError().text();
                 success = false;
             }
         }
-        
-        if (!success) break;
+
+        if (!success)
+            break;
         rowsProcessed = batchEnd;
 
         // 强制垃圾回收
-        if (rowsProcessed < rows.count() && success) {
+        if (rowsProcessed < rows.count() && success)
+        {
             // 如果还有更多行要处理，先提交当前事务再开始新事务
-            if (!db.commit()) {
+            if (!db.commit())
+            {
                 errorMessage = "Failed to commit batch transaction: " + db.lastError().text();
                 success = false;
                 break;
             }
-            
-            if (!db.transaction()) {
+
+            if (!db.transaction())
+            {
                 errorMessage = "Failed to start new batch transaction: " + db.lastError().text();
                 success = false;
                 break;
@@ -508,35 +540,43 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         }
     }
 
-    if (success) {
+    if (success)
+    {
         // 更新主表记录中的行数
         QSqlQuery updateQuery(db);
         updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count + ? WHERE id = ?");
         updateQuery.addBindValue(rows.count());
         updateQuery.addBindValue(tableId);
-        
-        if (!updateQuery.exec()) {
+
+        if (!updateQuery.exec())
+        {
             errorMessage = "Failed to update master record row count: " + updateQuery.lastError().text();
             success = false;
         }
     }
 
     // 根据操作结果提交或回滚事务
-    if (success) {
-        if (!db.commit()) {
+    if (success)
+    {
+        if (!db.commit())
+        {
             errorMessage = "Failed to commit final transaction: " + db.lastError().text();
             db.rollback();
             success = false;
         }
+#ifdef QT_DEBUG
         qDebug() << funcName << "- 成功批量插入" << rows.count() << "行数据";
-    } else {
+#endif
+    }
+    else
+    {
         db.rollback();
         qWarning() << funcName << "- 批量插入失败：" << errorMessage;
     }
 
     // 关闭文件
     binFile.close();
-    
+
     return success;
 }
 

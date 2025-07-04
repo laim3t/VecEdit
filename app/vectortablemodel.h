@@ -95,9 +95,10 @@ public:
 
 private:
     // 分页状态相关成员变量
-    int m_tableId;     // 当前向量表ID
-    int m_currentPage; // 当前页码（从0开始）
-    int m_pageSize;    // 每页显示的行数
+    int m_tableId;     // 当前表ID
+    int m_lastTableId; // 上一次缓存列信息的表ID
+    int m_currentPage; // 当前页码
+    int m_pageSize;    // 每页行数
     int m_totalRows;   // 总行数
 
     // 数据存储

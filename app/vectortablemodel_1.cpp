@@ -13,52 +13,61 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
         return false;
     }
 
-    // 1. 获取当前表的列定义，以构建新行的数据结构
-    QList<Vector::ColumnInfo> columns = m_robustDataHandler->getVisibleColumns(m_tableId);
+    // 性能优化：预先获取列信息
+    static QList<Vector::ColumnInfo> columns;
+    // 如果列信息为空或表ID变更，重新获取列信息
+    if (columns.isEmpty() || m_lastTableId != m_tableId)
+    {
+        columns = m_robustDataHandler->getVisibleColumns(m_tableId);
+        m_lastTableId = m_tableId;
+    }
+
     if (columns.isEmpty())
     {
         qWarning() << "VectorTableModel::insertRows - Failed to get column info for table" << m_tableId;
         return false;
     }
 
-    // 2. 根据列定义创建'count'个带有默认值的新行
+    // 性能优化：预分配内存空间，减少重新分配次数
     QList<Vector::RowData> rowsToInsert;
+    rowsToInsert.reserve(count);
+
+    // 2. 高效创建新行数据 - 使用固定模板减少循环开销
+    Vector::RowData templateRow;
+    templateRow.reserve(columns.size());
+
+    // 创建一个模板行，后续直接复制
+    for (const auto &colInfo : columns)
+    {
+        // 根据列类型设置合理的默认值
+        switch (colInfo.type)
+        {
+        case Vector::ColumnDataType::TEXT:
+            templateRow.append(QString(""));
+            break;
+        case Vector::ColumnDataType::INSTRUCTION_ID:
+            templateRow.append(1); // 默认指令ID
+            break;
+        case Vector::ColumnDataType::TIMESET_ID:
+            templateRow.append(1); // 默认TimeSet ID
+            break;
+        case Vector::ColumnDataType::BOOLEAN: // Capture
+            templateRow.append(false);
+            break;
+        case Vector::ColumnDataType::PIN_STATE_ID:
+            templateRow.append("X"); // 默认管脚状态
+            break;
+        default:
+            templateRow.append(QVariant()); // 其他类型使用空的QVariant
+            break;
+        }
+    }
+
+    // 性能优化：批量生成所有行，避免多次循环
     for (int i = 0; i < count; ++i)
     {
-        Vector::RowData newRow;
-        for (const auto &colInfo : columns)
-        {
-            // 根据列类型设置合理的默认值
-            switch (colInfo.type)
-            {
-            case Vector::ColumnDataType::TEXT:
-                if (colInfo.name.compare("Label", Qt::CaseInsensitive) == 0)
-                {
-                    newRow.append(QString(""));
-                }
-                else
-                {
-                    newRow.append(QString(""));
-                }
-                break;
-            case Vector::ColumnDataType::INSTRUCTION_ID:
-                newRow.append(1); // 默认指令ID
-                break;
-            case Vector::ColumnDataType::TIMESET_ID:
-                newRow.append(1); // 默认TimeSet ID
-                break;
-            case Vector::ColumnDataType::BOOLEAN: // Capture
-                newRow.append(false);
-                break;
-            case Vector::ColumnDataType::PIN_STATE_ID:
-                newRow.append("X"); // 默认管脚状态
-                break;
-            default:
-                newRow.append(QVariant()); // 其他类型使用空的QVariant
-                break;
-            }
-        }
-        rowsToInsert.append(newRow);
+        // 直接复制模板行，避免重复创建
+        rowsToInsert.append(templateRow);
     }
 
     // 3. 调用持久化层接口，将新行数据写入后端存储
@@ -74,9 +83,19 @@ bool VectorTableModel::insertRows(int row, int count, const QModelIndex &parent)
     // 4. 持久化成功后，再更新内存模型并通知视图
     beginInsertRows(parent, row, row + count - 1);
 
-    for (int i = 0; i < rowsToInsert.count(); ++i)
+    // 性能优化：避免逐个插入，使用更高效的方法
+    if (row == m_pageData.size())
     {
-        m_pageData.insert(row + i, rowsToInsert.at(i));
+        // 如果是在末尾添加，直接附加
+        m_pageData.append(rowsToInsert);
+    }
+    else
+    {
+        // 如果是在中间插入，先预留空间
+        for (int i = 0; i < count; ++i)
+        {
+            m_pageData.insert(row + i, rowsToInsert.at(i));
+        }
     }
 
     m_totalRows += count;

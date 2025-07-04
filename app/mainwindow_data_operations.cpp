@@ -358,20 +358,18 @@ void MainWindow::addRowToCurrentVectorTableModel()
         }
 
         // 优化：根据系统性能动态调整批次大小
-        const int optimalBatchSize = 5000; // 降低批次大小，减少内存压力
-        const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.5), optimalBatchSize);
+        const int optimalBatchSize = 50000; // 大幅提高批次大小，显著增加处理速度
+        const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.9), optimalBatchSize);
         const int batches = (rowCount + maxSafeBatchSize - 1) / maxSafeBatchSize; // 向上取整
 
-        if (batches > 1)
+        // 优化数据库性能
         {
-            QMessageBox::StandardButton reply = QMessageBox::question(this, "大量数据添加",
-                                                                      QString("添加 %1 行将分成 %2 批处理以提高性能。是否继续?").arg(rowCount).arg(batches),
-                                                                      QMessageBox::Yes | QMessageBox::No);
-
-            if (reply != QMessageBox::Yes)
-            {
-                return;
-            }
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            QSqlQuery pragmaQuery(db);
+            pragmaQuery.exec("PRAGMA temp_store = MEMORY");   // 使用内存临时存储
+            pragmaQuery.exec("PRAGMA journal_mode = MEMORY"); // 内存日志模式
+            pragmaQuery.exec("PRAGMA synchronous = OFF");     // 关闭同步
+            pragmaQuery.exec("PRAGMA cache_size = 50000");    // 显著增加缓存大小，提高性能
         }
 
         int remainingRows = rowCount;
@@ -395,13 +393,14 @@ void MainWindow::addRowToCurrentVectorTableModel()
         // 添加更新控制变量
         QElapsedTimer updateTimer;
         updateTimer.start();
-        const int updateIntervalMs = 300; // 每300毫秒才更新一次界面
+        const int updateIntervalMs = 1000; // 增加更新间隔到1000毫秒，显著减少UI更新开销
 
         while (remainingRows > 0 && !progress.wasCanceled())
         {
             int batchSize = qMin(maxSafeBatchSize, remainingRows);
-            qDebug() << funcName << " - 批次 " << currentBatch << "/" << batches
-                     << "，添加" << batchSize << "行，起始位置:" << (insertionRow + rowsInserted);
+            // 注释掉批次处理日志，提高性能
+            // qDebug() << funcName << " - 批次 " << currentBatch << "/" << batches
+            //          << "，添加" << batchSize << "行，起始位置:" << (insertionRow + rowsInserted);
 
             // 仅在更新间隔后才刷新进度对话框
             bool shouldUpdateUI = updateTimer.elapsed() >= updateIntervalMs;
@@ -435,8 +434,8 @@ void MainWindow::addRowToCurrentVectorTableModel()
                 remainingRows -= batchSize;
                 currentBatch++;
 
-                // 每批次后强制清理内存，但减少频率
-                if (currentBatch % 5 == 0)
+                // 显著减少内存清理频率，每20批次才清理一次
+                if (currentBatch % 20 == 0)
                 {
                     // 强制执行垃圾回收
                     QApplication::processEvents();
@@ -453,7 +452,9 @@ void MainWindow::addRowToCurrentVectorTableModel()
         // 最终更新进度为100%
         progress.setValue(rowCount);
         double totalTime = timer.elapsed() / 1000.0;
+#ifdef QT_DEBUG
         qDebug() << funcName << " - 成功添加共 " << rowsInserted << " 行，用时: " << totalTime << " 秒";
+#endif
 
         if (progress.wasCanceled())
         {

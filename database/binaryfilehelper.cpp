@@ -274,14 +274,14 @@ namespace Persistence
         outByteArray.clear();
         // 预分配内存，避免频繁重新分配
         outByteArray.reserve(rowData.size() * 16); // 假设每个字段平均16字节
-        
+
         QDataStream stream(&outByteArray, QIODevice::WriteOnly);
         stream.setByteOrder(QDataStream::LittleEndian);
-        
+
         // 写入字段数量
         const quint32 fieldCount = rowData.size();
         stream << fieldCount;
-        
+
         // 写入每个字段的数据
         for (const QVariant &field : rowData)
         {
@@ -291,7 +291,7 @@ namespace Persistence
             QDataStream fieldStream(&fieldBytes, QIODevice::WriteOnly);
             fieldStream.setByteOrder(QDataStream::LittleEndian);
             fieldStream << field;
-            
+
             // 写入字段长度和数据
             const quint32 fieldSize = fieldBytes.size();
             stream << fieldSize;
@@ -300,7 +300,7 @@ namespace Persistence
                 stream.writeRawData(fieldBytes.constData(), fieldSize);
             }
         }
-        
+
         return true;
     }
 
