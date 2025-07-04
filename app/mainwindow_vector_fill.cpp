@@ -249,7 +249,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap)
     qDebug() << "向量填充 - 填充行数: " << rowValueMap.size();
 
     // 根据当前使用的是新轨道还是旧轨道选择不同的实现
-    if (m_useNewDataView)
+    if (m_useNewDataHandler)
     {
         // 使用新轨道的实现
         fillVectorWithPatternNewTrack(rowValueMap);
@@ -316,7 +316,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
     try
     {
         // 获取当前向量表的所有列信息
-        QList<Vector::ColumnInfo> columns = m_robustVectorDataHandler->getAllColumnInfo(tableId);
+        QList<Vector::ColumnInfo> columns = m_robustDataHandler->getAllColumnInfo(tableId);
 
         // 找到目标列在列配置中的索引
         int targetColumnIndex = -1;
@@ -347,7 +347,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
 
             // 1. 先获取该行的完整数据
             QString errorMsg;
-            QList<QList<QVariant>> rowDataList = m_robustVectorDataHandler->getPageData(tableId, rowIdx, 1);
+            QList<QList<QVariant>> rowDataList = m_robustDataHandler->getPageData(tableId, rowIdx, 1);
 
             if (rowDataList.isEmpty())
             {
@@ -366,7 +366,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
                 qDebug() << "向量填充(新轨道) - 设置行" << rowIdx << "列" << targetColumnIndex << "的值为" << value;
 
                 // 3. 保存修改后的行数据
-                if (!m_robustVectorDataHandler->updateVectorRow(tableId, rowIdx, rowData, errorMsg))
+                if (!m_robustDataHandler->updateVectorRow(tableId, rowIdx, rowData, errorMsg))
                 {
                     qWarning() << "向量填充(新轨道) - 更新行数据失败:" << errorMsg;
                 }
@@ -378,7 +378,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         }
 
         // 刷新表格显示
-        bool refreshSuccess = m_robustVectorDataHandler->loadVectorTablePageDataForModel(
+        bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
             tableId, m_vectorTableModel, currentPage, pageSize);
 
         if (!refreshSuccess)
@@ -408,6 +408,10 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         }
 
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
+        
+        // 自动刷新表格数据，确保用户可以立即看到更新后的结果
+        refreshVectorTableData();
+        
         qDebug() << "向量填充(新轨道) - 操作成功完成";
     }
     catch (const std::exception &e)
