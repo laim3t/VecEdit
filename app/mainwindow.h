@@ -470,6 +470,10 @@ private:
 
     // 获取系统可用内存（字节）
     qint64 getAvailableSystemMemory();
+
+    // 向量填充辅助函数
+    void fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValueMap);
+    void fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap);
 };
 
 #endif // MAINWINDOW_H
