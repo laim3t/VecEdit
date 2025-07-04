@@ -270,42 +270,51 @@ void MainWindow::addRowToCurrentVectorTable()
 qint64 MainWindow::getAvailableSystemMemory()
 {
     qint64 availableMemory = 0;
-    
-    // Windows平台实现
-    #ifdef Q_OS_WIN
-        MEMORYSTATUSEX memInfo;
-        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-        if (GlobalMemoryStatusEx(&memInfo)) {
-            availableMemory = static_cast<qint64>(memInfo.ullAvailPhys);
-        } else {
-            qWarning() << "获取可用内存失败，使用默认值";
-            availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
-        }
-    // Linux平台实现
-    #elif defined(Q_OS_LINUX)
-        struct sysinfo memInfo;
-        if (sysinfo(&memInfo) == 0) {
-            availableMemory = static_cast<qint64>(memInfo.freeram) * memInfo.mem_unit;
-        } else {
-            qWarning() << "获取可用内存失败，使用默认值";
-            availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
-        }
-    // macOS平台实现
-    #elif defined(Q_OS_MAC)
-        vm_statistics64_data_t vmStats;
-        mach_msg_type_number_t infoCount = HOST_VM_INFO64_COUNT;
-        if (host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmStats, &infoCount) == KERN_SUCCESS) {
-            availableMemory = static_cast<int64_t>(vmStats.free_count) * PAGE_SIZE;
-        } else {
-            qWarning() << "获取可用内存失败，使用默认值";
-            availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
-        }
-    #else
-        // 默认返回值
-        availableMemory = 2LL * 1024 * 1024 * 1024; // 假设有2GB可用内存
-        qWarning() << "不支持的平台，使用默认内存值2GB";
-    #endif
-    
+
+// Windows平台实现
+#ifdef Q_OS_WIN
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    if (GlobalMemoryStatusEx(&memInfo))
+    {
+        availableMemory = static_cast<qint64>(memInfo.ullAvailPhys);
+    }
+    else
+    {
+        qWarning() << "获取可用内存失败，使用默认值";
+        availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
+    }
+// Linux平台实现
+#elif defined(Q_OS_LINUX)
+    struct sysinfo memInfo;
+    if (sysinfo(&memInfo) == 0)
+    {
+        availableMemory = static_cast<qint64>(memInfo.freeram) * memInfo.mem_unit;
+    }
+    else
+    {
+        qWarning() << "获取可用内存失败，使用默认值";
+        availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
+    }
+// macOS平台实现
+#elif defined(Q_OS_MAC)
+    vm_statistics64_data_t vmStats;
+    mach_msg_type_number_t infoCount = HOST_VM_INFO64_COUNT;
+    if (host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmStats, &infoCount) == KERN_SUCCESS)
+    {
+        availableMemory = static_cast<int64_t>(vmStats.free_count) * PAGE_SIZE;
+    }
+    else
+    {
+        qWarning() << "获取可用内存失败，使用默认值";
+        availableMemory = 2LL * 1024 * 1024 * 1024; // 默认2GB
+    }
+#else
+    // 默认返回值
+    availableMemory = 2LL * 1024 * 1024 * 1024; // 假设有2GB可用内存
+    qWarning() << "不支持的平台，使用默认内存值2GB";
+#endif
+
     qDebug() << "系统可用内存:" << (availableMemory / 1024 / 1024) << "MB";
     return availableMemory;
 }
@@ -336,10 +345,10 @@ void MainWindow::addRowToCurrentVectorTableModel()
         const qint64 totalEstimatedMemory = static_cast<qint64>(rowCount) * estimatedMemoryPerRow;
         const qint64 availableMemory = getAvailableSystemMemory();
         const qint64 safetyThreshold = availableMemory * 0.7; // 70% 安全阈值
-        
-        qDebug() << funcName << " - 估计内存需求:" << (totalEstimatedMemory / 1024 / 1024) << "MB, 可用内存:" 
+
+        qDebug() << funcName << " - 估计内存需求:" << (totalEstimatedMemory / 1024 / 1024) << "MB, 可用内存:"
                  << (availableMemory / 1024 / 1024) << "MB";
-        
+
         // 确定插入位置
         int insertionRow = m_vectorTableModel->rowCount(); // 默认为末尾
         QModelIndexList selectedRows = m_vectorTableView->selectionModel()->selectedRows();
@@ -347,92 +356,122 @@ void MainWindow::addRowToCurrentVectorTableModel()
         {
             insertionRow = selectedRows.first().row();
         }
-        
+
         // 优化：根据系统性能动态调整批次大小
         const int optimalBatchSize = 5000; // 降低批次大小，减少内存压力
         const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.5), optimalBatchSize);
         const int batches = (rowCount + maxSafeBatchSize - 1) / maxSafeBatchSize; // 向上取整
-        
-        if (batches > 1) {
-            QMessageBox::StandardButton reply = QMessageBox::question(this, "大量数据添加", 
-                QString("添加 %1 行将分成 %2 批处理以提高性能。是否继续?").arg(rowCount).arg(batches),
-                QMessageBox::Yes | QMessageBox::No);
-            
-            if (reply != QMessageBox::Yes) {
+
+        if (batches > 1)
+        {
+            QMessageBox::StandardButton reply = QMessageBox::question(this, "大量数据添加",
+                                                                      QString("添加 %1 行将分成 %2 批处理以提高性能。是否继续?").arg(rowCount).arg(batches),
+                                                                      QMessageBox::Yes | QMessageBox::No);
+
+            if (reply != QMessageBox::Yes)
+            {
                 return;
             }
         }
-        
+
         int remainingRows = rowCount;
         int currentBatch = 1;
         int rowsInserted = 0;
-        
+
         // 创建进度对话框，但增加更多细节
         QProgressDialog progress("添加行数据...", "取消", 0, rowCount, this);
         progress.setWindowModality(Qt::WindowModal);
         progress.setMinimumDuration(0); // 立即显示
         progress.setValue(0);
+        // 设置进度条更新频率控制
+        progress.setMinimumWidth(350); // 设置最小宽度，避免窗口大小变化
+        progress.setAutoReset(false);
+        progress.setAutoClose(false);
         progress.show();
-        
+
         QElapsedTimer timer;
         timer.start();
-        
-        while (remainingRows > 0 && !progress.wasCanceled()) {
+
+        // 添加更新控制变量
+        QElapsedTimer updateTimer;
+        updateTimer.start();
+        const int updateIntervalMs = 300; // 每300毫秒才更新一次界面
+
+        while (remainingRows > 0 && !progress.wasCanceled())
+        {
             int batchSize = qMin(maxSafeBatchSize, remainingRows);
             qDebug() << funcName << " - 批次 " << currentBatch << "/" << batches
                      << "，添加" << batchSize << "行，起始位置:" << (insertionRow + rowsInserted);
-            
-            // 更新进度对话框
-            progress.setLabelText(QString("正在添加行 (%1/%2)...\n已完成: %3/%4 行")
-                                 .arg(currentBatch).arg(batches)
-                                 .arg(rowsInserted).arg(rowCount));
-            progress.setValue(rowsInserted);
-            
-            if (m_vectorTableModel->insertRows(insertionRow + rowsInserted, batchSize)) {
+
+            // 仅在更新间隔后才刷新进度对话框
+            bool shouldUpdateUI = updateTimer.elapsed() >= updateIntervalMs;
+            if (shouldUpdateUI)
+            {
+                // 计算并显示估计剩余时间
+                double elapsedSecs = timer.elapsed() / 1000.0;
+                double rowsPerSecond = rowsInserted > 0 ? (rowsInserted / elapsedSecs) : 0;
+                int estimatedSecsRemaining = rowsPerSecond > 0 ? static_cast<int>(remainingRows / rowsPerSecond) : 0;
+
+                // 一次性更新文本和进度值
+                progress.setLabelText(QString("正在添加行 (%1/%2)...\n已完成: %3/%4 行\n速度: %5行/秒\n预计剩余时间: %6秒")
+                                          .arg(currentBatch)
+                                          .arg(batches)
+                                          .arg(rowsInserted)
+                                          .arg(rowCount)
+                                          .arg(static_cast<int>(rowsPerSecond))
+                                          .arg(estimatedSecsRemaining));
+                progress.setValue(rowsInserted);
+
+                // 重置更新定时器
+                updateTimer.restart();
+
+                // 处理事件，但不要过于频繁
+                QApplication::processEvents();
+            }
+
+            if (m_vectorTableModel->insertRows(insertionRow + rowsInserted, batchSize))
+            {
                 rowsInserted += batchSize;
                 remainingRows -= batchSize;
                 currentBatch++;
-                
-                // 计算并显示估计剩余时间
-                double elapsedSecs = timer.elapsed() / 1000.0;
-                double rowsPerSecond = rowsInserted / elapsedSecs;
-                int estimatedSecsRemaining = static_cast<int>(remainingRows / rowsPerSecond);
-                
-                progress.setLabelText(QString("正在添加行 (%1/%2)...\n已完成: %3/%4 行\n速度: %5行/秒\n预计剩余时间: %6秒")
-                                     .arg(currentBatch).arg(batches)
-                                     .arg(rowsInserted).arg(rowCount)
-                                     .arg(static_cast<int>(rowsPerSecond))
-                                     .arg(estimatedSecsRemaining));
-                progress.setValue(rowsInserted);
-                
-                // 每批次后强制清理内存
-                if (currentBatch % 2 == 0) {
+
+                // 每批次后强制清理内存，但减少频率
+                if (currentBatch % 5 == 0)
+                {
                     // 强制执行垃圾回收
                     QApplication::processEvents();
                     QApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
                 }
-            } else {
+            }
+            else
+            {
                 QMessageBox::critical(this, tr("错误"), tr("添加行批次 %1 失败！").arg(currentBatch));
                 break;
             }
-            
-            QApplication::processEvents();
         }
-        
+
+        // 最终更新进度为100%
         progress.setValue(rowCount);
         double totalTime = timer.elapsed() / 1000.0;
         qDebug() << funcName << " - 成功添加共 " << rowsInserted << " 行，用时: " << totalTime << " 秒";
-        
-        if (progress.wasCanceled()) {
-            QMessageBox::information(this, tr("操作取消"), 
-                tr("添加行操作已取消。已成功添加 %1 行。").arg(rowsInserted));
-        } else if (rowsInserted == rowCount) {
-            QMessageBox::information(this, tr("添加成功"), 
-                tr("成功添加 %1 行数据，用时 %2 秒。").arg(rowsInserted).arg(totalTime, 0, 'f', 1));
-        } else {
-            QMessageBox::warning(this, tr("部分成功"), 
-                tr("只添加了 %1 行，还有 %2 行未添加。用时 %3 秒。")
-                .arg(rowsInserted).arg(rowCount - rowsInserted).arg(totalTime, 0, 'f', 1));
+
+        if (progress.wasCanceled())
+        {
+            QMessageBox::information(this, tr("操作取消"),
+                                     tr("添加行操作已取消。已成功添加 %1 行。").arg(rowsInserted));
+        }
+        else if (rowsInserted == rowCount)
+        {
+            QMessageBox::information(this, tr("添加成功"),
+                                     tr("成功添加 %1 行数据，用时 %2 秒。").arg(rowsInserted).arg(totalTime, 0, 'f', 1));
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("部分成功"),
+                                 tr("只添加了 %1 行，还有 %2 行未添加。用时 %3 秒。")
+                                     .arg(rowsInserted)
+                                     .arg(rowCount - rowsInserted)
+                                     .arg(totalTime, 0, 'f', 1));
         }
     }
 }
