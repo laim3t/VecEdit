@@ -502,20 +502,7 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         }
 
         // 执行剩余的SQL批处理
-        if (success)
-        {
-            // 更新主表记录中的行数
-            QSqlQuery updateQuery(db);
-            updateQuery.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count + ? WHERE id = ?");
-            updateQuery.addBindValue(rows.count());
-            updateQuery.addBindValue(tableId);
-
-            if (!updateQuery.exec())
-            {
-                errorMessage = "Failed to update master record row count: " + updateQuery.lastError().text();
-                success = false;
-            }
-        }
+        // 注意：row_count的更新已移至最后统一执行，避免重复更新
 
         if (!success)
             break;
