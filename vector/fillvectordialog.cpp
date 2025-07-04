@@ -66,7 +66,7 @@ void FillVectorDialog::setupUI()
     // 从行输入框组合布局 (从1开始)
     QHBoxLayout *startRowLayout = new QHBoxLayout();
     m_startRowEdit = new QLineEdit(this);
-    m_startRowEdit->setValidator(new QIntValidator(1, 9999, this));
+    m_startRowEdit->setValidator(new QIntValidator(1, 9999999, this));
     m_startLabelCombo = new QComboBox(this);
     m_startLabelCombo->addItem(tr("选择标签"));
     startRowLayout->addWidget(m_startRowEdit);
@@ -76,7 +76,7 @@ void FillVectorDialog::setupUI()
     // 到行输入框组合布局 (从1开始)
     QHBoxLayout *endRowLayout = new QHBoxLayout();
     m_endRowEdit = new QLineEdit(this);
-    m_endRowEdit->setValidator(new QIntValidator(1, 9999, this));
+    m_endRowEdit->setValidator(new QIntValidator(1, 9999999, this));
     m_endLabelCombo = new QComboBox(this);
     m_endLabelCombo->addItem(tr("选择标签"));
     endRowLayout->addWidget(m_endRowEdit);
