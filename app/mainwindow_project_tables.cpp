@@ -439,7 +439,8 @@ void MainWindow::closeCurrentProject()
 
 void MainWindow::loadVectorTable()
 {
-    qDebug() << "MainWindow::loadVectorTable - 开始加载向量表";
+    const QString funcName = "MainWindow::loadVectorTable";
+    qDebug() << funcName << " - 开始加载向量表";
 
     // 清空当前选择框
     m_vectorTableSelector->clear();
@@ -452,17 +453,17 @@ void MainWindow::loadVectorTable()
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
-        qDebug() << "MainWindow::loadVectorTable - 错误：数据库未打开";
+        qDebug() << funcName << " - 错误：数据库未打开";
         statusBar()->showMessage("错误：数据库未打开");
         return;
     }
 
-    qDebug() << "MainWindow::loadVectorTable - 数据库已打开，开始查询向量表";
+    qDebug() << funcName << " - 数据库已打开，开始查询向量表";
 
     // 刷新itemDelegate的缓存，确保TimeSet选项是最新的
     if (m_itemDelegate)
     {
-        qDebug() << "MainWindow::loadVectorTable - 刷新TimeSet选项缓存";
+        qDebug() << funcName << " - 刷新TimeSet选项缓存";
         m_itemDelegate->refreshCache();
     }
 
@@ -470,7 +471,7 @@ void MainWindow::loadVectorTable()
     QSqlQuery tableQuery(db);
     if (tableQuery.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
     {
-        qDebug() << "MainWindow::loadVectorTable - 向量表查询执行成功";
+        qDebug() << funcName << " - 向量表查询执行成功";
         int count = 0;
         while (tableQuery.next())
         {
@@ -484,20 +485,53 @@ void MainWindow::loadVectorTable()
             addVectorTableTab(tableId, tableName);
 
             count++;
-            qDebug() << "MainWindow::loadVectorTable - 找到向量表:" << tableName << "ID:" << tableId;
+            qDebug() << funcName << " - 找到向量表:" << tableName << "ID:" << tableId;
         }
 
-        qDebug() << "MainWindow::loadVectorTable - 总共找到" << count << "个向量表";
+        qDebug() << funcName << " - 总共找到" << count << "个向量表";
     }
     else
     {
-        qDebug() << "MainWindow::loadVectorTable - 向量表查询失败:" << tableQuery.lastError().text();
+        qDebug() << funcName << " - 向量表查询失败:" << tableQuery.lastError().text();
+    }
+
+    // 根据当前使用的视图和数据处理器设置分页控件的可见性
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentWidget() == m_vectorTableView);
+    if (isUsingNewView && m_useNewDataHandler)
+    {
+        // 新轨道模式下隐藏分页控件
+        if (m_paginationWidget)
+        {
+            m_paginationWidget->setVisible(false);
+            m_prevPageButton->setVisible(false);
+            m_nextPageButton->setVisible(false);
+            m_pageInfoLabel->setVisible(false);
+            m_pageSizeSelector->setVisible(false);
+            m_pageJumper->setVisible(false);
+            m_jumpButton->setVisible(false);
+            qDebug() << funcName << " - 新轨道模式，隐藏所有分页控件";
+        }
+    }
+    else
+    {
+        // 旧轨道或旧视图模式：显示分页控件
+        if (m_paginationWidget)
+        {
+            m_paginationWidget->setVisible(true);
+            m_prevPageButton->setVisible(true);
+            m_nextPageButton->setVisible(true);
+            m_pageInfoLabel->setVisible(true);
+            m_pageSizeSelector->setVisible(true);
+            m_pageJumper->setVisible(true);
+            m_jumpButton->setVisible(true);
+            qDebug() << funcName << " - 显示所有分页控件";
+        }
     }
 
     // 如果有向量表，显示向量表窗口，否则显示欢迎窗口
     if (m_vectorTableSelector->count() > 0)
     {
-        qDebug() << "MainWindow::loadVectorTable - 有向量表，显示向量表窗口";
+        qDebug() << funcName << " - 有向量表，显示向量表窗口";
         m_welcomeWidget->setVisible(false);
         m_vectorTableContainer->setVisible(true);
 
@@ -506,7 +540,7 @@ void MainWindow::loadVectorTable()
     }
     else
     {
-        qDebug() << "MainWindow::loadVectorTable - 没有找到向量表，显示欢迎窗口";
+        qDebug() << funcName << " - 没有找到向量表，显示欢迎窗口";
         m_welcomeWidget->setVisible(true);
         m_vectorTableContainer->setVisible(false);
         QMessageBox::information(this, "提示", "没有找到向量表，请先创建向量表");

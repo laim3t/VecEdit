@@ -10,14 +10,28 @@ void MainWindow::updatePaginationInfo()
     // 在新轨道下隐藏分页控件（新视图不需要手动分页功能）
     if (isUsingNewView && m_useNewDataHandler)
     {
+        // 确保所有分页相关控件都被隐藏
         m_paginationWidget->setVisible(false);
-        qDebug() << funcName << " - 新轨道模式，隐藏分页控件";
+        m_prevPageButton->setVisible(false);
+        m_nextPageButton->setVisible(false);
+        m_pageInfoLabel->setVisible(false);
+        m_pageSizeSelector->setVisible(false);
+        m_pageJumper->setVisible(false);
+        m_jumpButton->setVisible(false);
+
+        qDebug() << funcName << " - 新轨道模式，隐藏所有分页控件";
         return;
     }
     else
     {
         // 旧轨道模式，显示分页控件
         m_paginationWidget->setVisible(true);
+        m_prevPageButton->setVisible(true);
+        m_nextPageButton->setVisible(true);
+        m_pageInfoLabel->setVisible(true);
+        m_pageSizeSelector->setVisible(true);
+        m_pageJumper->setVisible(true);
+        m_jumpButton->setVisible(true);
     }
 
     // 更新页码信息标签

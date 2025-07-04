@@ -492,13 +492,38 @@ void MainWindow::setupVectorTableUI()
         // 更新分页控件的显示状态
         bool isUsingNewView = (nextIndex == 1); // 索引1是新视图
         if (isUsingNewView && m_useNewDataHandler) {
-            // 新轨道模式：隐藏分页控件
+            // 新轨道模式：隐藏所有分页控件
             m_paginationWidget->setVisible(false);
-            qDebug() << "视图切换 - 新轨道模式，隐藏分页控件";
+            m_prevPageButton->setVisible(false);
+            m_nextPageButton->setVisible(false);
+            m_pageInfoLabel->setVisible(false);
+            m_pageSizeSelector->setVisible(false);
+            m_pageJumper->setVisible(false);
+            m_jumpButton->setVisible(false);
+            qDebug() << "视图切换 - 新轨道模式，隐藏所有分页控件";
+            
+            // 在新轨道模式下，重新加载全部数据
+            int tabIndex = m_vectorTabWidget->currentIndex();
+            if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex)) {
+                int tableId = m_tabToTableId[tabIndex];
+                qDebug() << "视图切换 - 新轨道模式，加载表ID:" << tableId << "的全部数据";
+                if (m_vectorTableModel) {
+                    m_vectorTableModel->loadAllData(tableId);
+                }
+            }
         } else {
             // 旧轨道或旧视图模式：显示分页控件
             m_paginationWidget->setVisible(true);
-            qDebug() << "视图切换 - 显示分页控件";
+            m_prevPageButton->setVisible(true);
+            m_nextPageButton->setVisible(true);
+            m_pageInfoLabel->setVisible(true);
+            m_pageSizeSelector->setVisible(true);
+            m_pageJumper->setVisible(true);
+            m_jumpButton->setVisible(true);
+            qDebug() << "视图切换 - 显示所有分页控件";
+            
+            // 刷新分页信息
+            updatePaginationInfo();
         }
         
         // 在视图切换后更新向量列属性栏
@@ -511,18 +536,6 @@ void MainWindow::setupVectorTableUI()
             }
         } else {
             // 切换到新视图 (QTableView)
-            // 如果是新轨道模式，重新加载数据，确保显示所有行
-            if (m_useNewDataHandler) {
-                int tabIndex = m_vectorTabWidget->currentIndex();
-                if (tabIndex >= 0 && m_tabToTableId.contains(tabIndex)) {
-                    int tableId = m_tabToTableId[tabIndex];
-                    qDebug() << "视图切换 - 新轨道模式，加载表ID:" << tableId << "的全部数据";
-                    if (m_vectorTableModel) {
-                        m_vectorTableModel->loadAllData(tableId);
-                    }
-                }
-            }
-            
             if (m_vectorTableView->selectionModel()->hasSelection()) {
                 QModelIndexList indexes = m_vectorTableView->selectionModel()->selectedIndexes();
                 if (!indexes.isEmpty()) {
