@@ -358,18 +358,20 @@ void MainWindow::addRowToCurrentVectorTableModel()
         }
 
         // 优化：根据系统性能动态调整批次大小
-        const int optimalBatchSize = 50000; // 大幅提高批次大小，显著增加处理速度
-        const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.9), optimalBatchSize);
+        const int optimalBatchSize = 250000; // 大幅提高批次大小，极大提升处理速度
+        const int maxSafeBatchSize = qMin(static_cast<int>((safetyThreshold / estimatedMemoryPerRow) * 0.95), optimalBatchSize);
         const int batches = (rowCount + maxSafeBatchSize - 1) / maxSafeBatchSize; // 向上取整
 
         // 优化数据库性能
         {
             QSqlDatabase db = DatabaseManager::instance()->database();
             QSqlQuery pragmaQuery(db);
-            pragmaQuery.exec("PRAGMA temp_store = MEMORY");   // 使用内存临时存储
-            pragmaQuery.exec("PRAGMA journal_mode = MEMORY"); // 内存日志模式
-            pragmaQuery.exec("PRAGMA synchronous = OFF");     // 关闭同步
-            pragmaQuery.exec("PRAGMA cache_size = 50000");    // 显著增加缓存大小，提高性能
+            pragmaQuery.exec("PRAGMA temp_store = MEMORY");      // 使用内存临时存储
+            pragmaQuery.exec("PRAGMA journal_mode = MEMORY");    // 内存日志模式
+            pragmaQuery.exec("PRAGMA synchronous = OFF");        // 关闭同步
+            pragmaQuery.exec("PRAGMA cache_size = 500000");      // 极大增加缓存大小，显著提高性能
+            pragmaQuery.exec("PRAGMA foreign_keys = OFF");       // 禁用外键约束
+            pragmaQuery.exec("PRAGMA locking_mode = EXCLUSIVE"); // 独占锁定
         }
 
         int remainingRows = rowCount;
@@ -393,7 +395,14 @@ void MainWindow::addRowToCurrentVectorTableModel()
         // 添加更新控制变量
         QElapsedTimer updateTimer;
         updateTimer.start();
-        const int updateIntervalMs = 1000; // 增加更新间隔到1000毫秒，显著减少UI更新开销
+
+        // 进度条更新平衡策略
+        // 1. 对于小批量数据(< 100万行)，使用较短间隔保证流畅体验
+        // 2. 对于大批量数据(>= 100万行)，使用较长间隔提高性能
+        const int updateIntervalMs = (rowCount < 1000000) ? 300 : 700;
+
+        // 优化UI更新策略：使用智能更新
+        int lastDisplayedPercent = 0; // 记录上次显示的百分比
 
         while (remainingRows > 0 && !progress.wasCanceled())
         {
@@ -404,6 +413,11 @@ void MainWindow::addRowToCurrentVectorTableModel()
 
             // 仅在更新间隔后才刷新进度对话框
             bool shouldUpdateUI = updateTimer.elapsed() >= updateIntervalMs;
+
+            // 智能更新策略：如果进度百分比变化，也触发更新
+            int currentPercent = static_cast<int>(static_cast<double>(rowsInserted) / rowCount * 100);
+            shouldUpdateUI = shouldUpdateUI || (currentPercent > lastDisplayedPercent);
+
             if (shouldUpdateUI)
             {
                 // 计算并显示估计剩余时间
@@ -421,6 +435,9 @@ void MainWindow::addRowToCurrentVectorTableModel()
                                           .arg(estimatedSecsRemaining));
                 progress.setValue(rowsInserted);
 
+                // 更新上次显示的百分比
+                lastDisplayedPercent = currentPercent;
+
                 // 重置更新定时器
                 updateTimer.restart();
 
@@ -434,8 +451,8 @@ void MainWindow::addRowToCurrentVectorTableModel()
                 remainingRows -= batchSize;
                 currentBatch++;
 
-                // 显著减少内存清理频率，每20批次才清理一次
-                if (currentBatch % 20 == 0)
+                // 极大减少内存清理频率，每100批次才清理一次
+                if (currentBatch % 100 == 0)
                 {
                     // 强制执行垃圾回收
                     QApplication::processEvents();

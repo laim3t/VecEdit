@@ -311,18 +311,19 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
     pragmaQuery.exec("PRAGMA temp_store = MEMORY");      // 使用内存临时存储
     pragmaQuery.exec("PRAGMA journal_mode = MEMORY");    // 内存日志模式
     pragmaQuery.exec("PRAGMA synchronous = OFF");        // 关闭同步
-    pragmaQuery.exec("PRAGMA cache_size = 200000");      // 极大增加缓存大小
+    pragmaQuery.exec("PRAGMA cache_size = 500000");      // 极大增加缓存大小
     pragmaQuery.exec("PRAGMA foreign_keys = OFF");       // 临时禁用外键约束，提高插入速度
     pragmaQuery.exec("PRAGMA page_size = 8192");         // 增加页大小
-    pragmaQuery.exec("PRAGMA mmap_size = 268435456");    // 使用内存映射，256MB
+    pragmaQuery.exec("PRAGMA mmap_size = 536870912");    // 使用内存映射，512MB
     pragmaQuery.exec("PRAGMA locking_mode = EXCLUSIVE"); // 独占锁定模式
+    pragmaQuery.exec("PRAGMA count_changes = OFF");      // 禁用变更计数
     // 禁用自动索引
     pragmaQuery.exec("PRAGMA automatic_index = OFF");
 
-    // 分块处理常量 - 大幅增加以提高性能
-    const int BATCH_SIZE = 100000;         // 大幅提高批处理行数
-    const int SQL_BATCH_SIZE = 5000;       // 增加SQL批处理大小
-    const int SERIALIZE_BATCH_SIZE = 5000; // 增加序列化批处理大小
+    // 分块处理常量 - 极大增加以提高性能
+    const int BATCH_SIZE = 300000;          // 极大提高批处理行数
+    const int SQL_BATCH_SIZE = 10000;       // 大幅增加SQL批处理大小
+    const int SERIALIZE_BATCH_SIZE = 10000; // 大幅增加序列化批处理大小
 
     int oldRowCount = getVectorTableRowCount(tableId);
 
@@ -493,8 +494,8 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
                 break;
             i += serializeBatchEnd - i;
 
-            // 减少UI更新频率，每处理20000行才更新一次，极大提高性能
-            if (i % 20000 == 0)
+            // 极大减少UI更新频率，每处理100000行才更新一次，大幅提高性能
+            if (i % 100000 == 0)
             {
                 QApplication::processEvents(); // 保持UI响应
             }
@@ -524,18 +525,22 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
         if (rowsProcessed < rows.count() && success)
         {
             // 如果还有更多行要处理，先提交当前事务再开始新事务
-            if (!db.commit())
+            // 减少事务数量：仅在处理超过100万行后才提交事务，大幅提高性能
+            if (rowsProcessed >= 1000000)
             {
-                errorMessage = "Failed to commit batch transaction: " + db.lastError().text();
-                success = false;
-                break;
-            }
+                if (!db.commit())
+                {
+                    errorMessage = "Failed to commit batch transaction: " + db.lastError().text();
+                    success = false;
+                    break;
+                }
 
-            if (!db.transaction())
-            {
-                errorMessage = "Failed to start new batch transaction: " + db.lastError().text();
-                success = false;
-                break;
+                if (!db.transaction())
+                {
+                    errorMessage = "Failed to start new batch transaction: " + db.lastError().text();
+                    success = false;
+                    break;
+                }
             }
         }
     }
