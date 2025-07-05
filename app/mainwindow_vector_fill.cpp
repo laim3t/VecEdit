@@ -334,50 +334,39 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
             throw std::runtime_error(QString("找不到对应列: %1").arg(targetColumnName).toStdString());
         }
 
-        // 开始批量更新
+        // 将字符串值映射转换为QVariant值映射
+        QMap<int, QVariant> rowVariantMap;
         QMap<int, QString>::const_iterator it;
-        int currentPage = m_currentPage;
-        int pageSize = m_pageSize;
-
-        // 使用RobustVectorDataHandler逐行更新数据
         for (it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
         {
-            int rowIdx = it.key(); // 逻辑行索引（从0开始）
-            QString value = it.value();
-
-            // 1. 先获取该行的完整数据
-            QString errorMsg;
-            QList<QList<QVariant>> rowDataList = m_robustDataHandler->getPageData(tableId, rowIdx, 1);
-
-            if (rowDataList.isEmpty())
-            {
-                qWarning() << "向量填充(新轨道) - 无法获取行数据，行索引:" << rowIdx;
-                continue;
-            }
-
-            // 2. 修改指定列的值
-            Vector::RowData rowData = rowDataList.first();
-
-            // 确保列索引有效
-            if (targetColumnIndex < rowData.size())
-            {
-                // 更新数据
-                rowData[targetColumnIndex] = QVariant(value);
-                qDebug() << "向量填充(新轨道) - 设置行" << rowIdx << "列" << targetColumnIndex << "的值为" << value;
-
-                // 3. 保存修改后的行数据
-                if (!m_robustDataHandler->updateVectorRow(tableId, rowIdx, rowData, errorMsg))
-                {
-                    qWarning() << "向量填充(新轨道) - 更新行数据失败:" << errorMsg;
-                }
-            }
-            else
-            {
-                qWarning() << "向量填充(新轨道) - 列索引超出范围:" << targetColumnIndex;
-            }
+            rowVariantMap[it.key()] = QVariant(it.value());
         }
 
+        // 使用高性能批量更新方法
+        QString errorMsg;
+        QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
+        progress.setWindowModality(Qt::WindowModal);
+        progress.setMinimumDuration(500); // 如果操作少于500ms就不显示进度对话框
+
+        // 连接进度信号
+        connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
+                &progress, &QProgressDialog::setValue);
+
+        progress.show();
+
+        if (!m_robustDataHandler->batchUpdateVectorColumn(tableId, targetColumnIndex, rowVariantMap, errorMsg))
+        {
+            qWarning() << "向量填充(新轨道) - 批量更新失败:" << errorMsg;
+            throw std::runtime_error(QString("填充失败: %1").arg(errorMsg).toStdString());
+        }
+
+        // 断开进度信号连接
+        disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
+                   &progress, &QProgressDialog::setValue);
+
         // 刷新表格显示
+        int currentPage = m_currentPage;
+        int pageSize = m_pageSize;
         bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
             tableId, m_vectorTableModel, currentPage, pageSize);
 
@@ -408,10 +397,10 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         }
 
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-        
+
         // 自动刷新表格数据，确保用户可以立即看到更新后的结果
         refreshVectorTableData();
-        
+
         qDebug() << "向量填充(新轨道) - 操作成功完成";
     }
     catch (const std::exception &e)

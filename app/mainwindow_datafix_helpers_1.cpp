@@ -24,7 +24,16 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
         return columns;
     }
 
-    qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << colQuery.size() << "列配置。";
+    // 修改此处以避免显示"-1列配置"
+    int columnCount = colQuery.size();
+    if (columnCount >= 0)
+    {
+        qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << columnCount << "列配置。";
+    }
+    else
+    {
+        qDebug() << funcName << " - 为表ID:" << tableId << "获取列配置。未找到配置或查询不支持size()。";
+    }
 
     while (colQuery.next())
     {

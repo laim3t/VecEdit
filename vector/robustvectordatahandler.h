@@ -80,6 +80,37 @@ public:
     // 更新单个向量行
     bool updateVectorRow(int tableId, int rowIndex, const Vector::RowData &rowData, QString &errorMessage);
 
+    /**
+     * @brief 批量更新向量表中指定列的多行数据
+     * @param tableId 表ID
+     * @param columnIndex 要更新的列索引
+     * @param rowValueMap 行索引到值的映射，键是行索引，值是新的列值
+     * @param errorMessage 错误信息输出参数
+     * @return 是否成功执行批量更新
+     */
+    bool batchUpdateVectorColumn(int tableId, int columnIndex, const QMap<int, QVariant> &rowValueMap, QString &errorMessage);
+
+    /**
+     * @brief 批量填充TimeSet值到指定范围的行
+     * @param tableId 表ID
+     * @param rowIndexes 要更新的行索引列表
+     * @param timeSetId 要设置的TimeSet ID
+     * @param errorMessage 错误信息输出参数
+     * @return 是否成功执行批量更新
+     */
+    bool batchFillTimeSet(int tableId, const QList<int> &rowIndexes, int timeSetId, QString &errorMessage);
+
+    /**
+     * @brief 批量替换TimeSet值
+     * @param tableId 表ID
+     * @param fromTimeSetId 要被替换的TimeSet ID
+     * @param toTimeSetId 替换后的TimeSet ID
+     * @param rowIndexes 要处理的行索引列表，如果为空则处理所有行
+     * @param errorMessage 错误信息输出参数
+     * @return 是否成功执行批量替换
+     */
+    bool batchReplaceTimeSet(int tableId, int fromTimeSetId, int toTimeSetId, const QList<int> &rowIndexes, QString &errorMessage);
+
     // 跳转到指定行
     bool gotoLine(int tableId, int lineNumber);
 

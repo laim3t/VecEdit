@@ -498,9 +498,12 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             int tableId = m_tabToTableId[currentIndex];
 
             // 清除当前表的数据缓存，但不改变页码
-            if (m_useNewDataHandler) {
+            if (m_useNewDataHandler)
+            {
                 m_robustDataHandler->clearTableDataCache(tableId);
-            } else {
+            }
+            else
+            {
                 VectorDataHandler::instance().clearTableDataCache(tableId);
             }
 
@@ -512,10 +515,13 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             {
                 // 新视图 (QTableView)
                 qDebug() << "填充TimeSet - 使用新视图刷新当前页数据，保持在页码:" << m_currentPage;
-                if (m_useNewDataHandler) {
+                if (m_useNewDataHandler)
+                {
                     refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
                         tableId, m_vectorTableModel, m_currentPage, m_pageSize);
-                } else {
+                }
+                else
+                {
                     refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
                         tableId, m_vectorTableModel, m_currentPage, m_pageSize);
                 }
@@ -524,10 +530,13 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             {
                 // 旧视图 (QTableWidget)
                 qDebug() << "填充TimeSet - 使用旧视图刷新当前页数据，保持在页码:" << m_currentPage;
-                if (m_useNewDataHandler) {
+                if (m_useNewDataHandler)
+                {
                     refreshSuccess = m_robustDataHandler->loadVectorTablePageData(
                         tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                } else {
+                }
+                else
+                {
                     refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
                         tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
                 }
@@ -598,9 +607,12 @@ void MainWindow::showFillTimeSetDialog()
 
     // 获取向量表行数
     int rowCount;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         rowCount = m_robustDataHandler->getVectorTableRowCount(tableId);
-    } else {
+    }
+    else
+    {
         rowCount = VectorDataHandler::instance().getVectorTableRowCount(tableId);
     }
     if (rowCount <= 0)
