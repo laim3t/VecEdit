@@ -24,19 +24,10 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
         return columns;
     }
 
-    // 修改此处以避免显示"-1列配置"
-    int columnCount = colQuery.size();
-    if (columnCount >= 0)
-    {
-        qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << columnCount << "列配置。";
-    }
-    else
-    {
-        qDebug() << funcName << " - 为表ID:" << tableId << "获取列配置。未找到配置或查询不支持size()。";
-    }
-
-    while (colQuery.next())
-    {
+    // 获取列数量
+    int columnCount = 0;
+    while (colQuery.next()) {
+        columnCount++;
         Vector::ColumnInfo col;
         // 按索引取值以匹配 SELECT *
         col.id = colQuery.value(0).toInt();
@@ -58,6 +49,14 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 
         columns.append(col);
     }
+    
+    // 记录结果
+    if (columnCount > 0) {
+        qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << columnCount << "列配置。";
+    } else {
+        qDebug() << funcName << " - 为表ID:" << tableId << "获取列配置。未找到配置。";
+    }
+
     return columns;
 }
 
