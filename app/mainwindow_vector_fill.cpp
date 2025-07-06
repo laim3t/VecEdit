@@ -313,6 +313,13 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
     targetColumnName = targetColumnName.section('\n', 0, 0);
     qDebug() << "向量填充(新轨道) - 目标列名:" << targetColumnName;
 
+    // 方案一：延迟UI更新机制
+    // 1. 暂停UI更新
+    m_vectorTableView->setUpdatesEnabled(false);
+    
+    // 2. 禁用选择变更信号
+    QSignalBlocker blocker(m_vectorTableView->selectionModel());
+
     try
     {
         // 获取当前向量表的所有列信息
@@ -364,9 +371,11 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
                    &progress, &QProgressDialog::setValue);
 
-        // 刷新表格显示
+        // 直接更新模型数据，而不是重新加载整个表
         int currentPage = m_currentPage;
         int pageSize = m_pageSize;
+        
+        // 只加载当前页的数据，减少数据加载量
         bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
             tableId, m_vectorTableModel, currentPage, pageSize);
 
@@ -375,7 +384,8 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
             qWarning() << "向量填充(新轨道) - 刷新表格数据失败";
         }
 
-        // 选中原来的行
+        // 批量选中所有行（一次性操作，而不是逐行选中）
+        QItemSelection selection;
         for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
         {
             int rowIdx = it.key();
@@ -387,24 +397,43 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
                 // 将数据库索引转换为UI表格索引
                 int uiRowIdx = rowIdx - pageOffset;
 
-                // 选中行和列
+                // 添加到选择集合中
                 if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableModel->rowCount())
                 {
                     QModelIndex index = m_vectorTableModel->index(uiRowIdx, targetColumn);
-                    m_vectorTableView->selectionModel()->select(index, QItemSelectionModel::Select);
+                    selection.select(index, index);
                 }
             }
         }
-
-        QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-
-        // 自动刷新表格数据，确保用户可以立即看到更新后的结果
+        
+        // 3. 恢复UI更新（blocker在作用域结束时自动解除阻塞）
+        m_vectorTableView->setUpdatesEnabled(true);
+        
+        // 4. 一次性设置选择状态，而不是逐行设置
+        m_vectorTableView->selectionModel()->select(selection, QItemSelectionModel::ClearAndSelect);
+        
+        // 5. 自动执行全局刷新，确保所有数据和UI都更新到最新状态
+        qDebug() << "向量填充(新轨道) - 自动执行全局刷新";
         refreshVectorTableData();
-
+        
+        // 显示完成消息
+        QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
+        
         qDebug() << "向量填充(新轨道) - 操作成功完成";
     }
     catch (const std::exception &e)
     {
+        // 即使发生异常也要恢复UI更新
+        m_vectorTableView->setUpdatesEnabled(true);
+        
+        // 尝试刷新表格，确保UI显示最新状态
+        try {
+            qDebug() << "向量填充(新轨道) - 异常后尝试刷新表格";
+            refreshVectorTableData();
+        } catch (...) {
+            qWarning() << "向量填充(新轨道) - 异常后刷新表格失败";
+        }
+        
         QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
         qDebug() << "向量填充(新轨道) - 异常:" << e.what();
     }
