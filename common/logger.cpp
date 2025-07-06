@@ -57,6 +57,7 @@ void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel lev
         if (m_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
         {
             m_logStream.setDevice(&m_logFile);
+            m_logStream.setCodec("UTF-8"); // 设置文本流编码为UTF-8
             qDebug() << "Logger::initialize - 日志文件已打开:" << logFilePath;
         }
         else
