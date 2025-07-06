@@ -148,6 +148,12 @@ private slots:
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
     void fillVectorWithPattern(const QMap<int, QString> &rowValueMap);
 
+    // 批量填充向量的优化实现
+    bool batchFillVector(int tableId, int startRow, int endRow, int targetColumnIndex, const QVariant& value, QString& errorMsg);
+
+    // 垃圾回收 - 优化存储空间
+    void optimizeStorageSpace();
+
     // 填充TimeSet
     void showFillTimeSetDialog();
     void fillTimeSetForVectorTable(int timeSetId, const QList<int> &selectedUiRows);
@@ -474,6 +480,9 @@ private:
     // 向量填充辅助函数
     void fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValueMap);
     void fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap);
+
+    // 获取当前向量表ID
+    int getCurrentVectorTableId();
 };
 
 #endif // MAINWINDOW_H

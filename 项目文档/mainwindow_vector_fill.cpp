@@ -1,7 +1,7 @@
 // ==========================================================
-//  Vector Fill Implementation: mainwindow_vector_fill.cpp
+//  Headers for: mainwindow_vector_fill.cpp
 // ==========================================================
-#include "mainwindow.h"
+#include "app/mainwindow.h"
 
 // Qt Widgets & Core
 #include <QMessageBox>
@@ -11,12 +11,10 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QFile>
-#include <QProgressDialog>
-#include <QtConcurrent/QtConcurrent>
 
 // Project-specific headers
-#include "vector/robustvectordatahandler.h"
-#include "vector/fillvectordialog.h"
+#include "vector/vectordatahandler.h"
+#include "vector/fillvectordialog.h" // 假设存在这个对话框
 #include "database/databasemanager.h"
 #include "common/utils/pathutils.h"
 
@@ -177,60 +175,27 @@ void MainWindow::showFillVectorDialog()
 
     // 尝试找到Label列（通常是第一列）
     int labelColumnIndex = -1;
-    if (m_vectorStackedWidget->currentIndex() == 0)
+    for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
     {
-        // 旧视图模式
-        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
+        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+        if (headerItem && (headerItem->text().toLower() == "label" || headerItem->text() == "标签"))
         {
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
-            if (headerItem && (headerItem->text().toLower() == "label" || headerItem->text() == "标签"))
-            {
-                labelColumnIndex = col;
-                break;
-            }
-        }
-
-        // 如果找到了Label列，收集标签和对应的行号
-        if (labelColumnIndex >= 0)
-        {
-            for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
-            {
-                QTableWidgetItem *labelItem = m_vectorTableWidget->item(row, labelColumnIndex);
-                if (labelItem && !labelItem->text().trimmed().isEmpty())
-                {
-                    // 将UI行号转换为绝对行号（1-based）
-                    int absoluteRow = pageOffset + row + 1;
-                    labelRows.append(QPair<QString, int>(labelItem->text().trimmed(), absoluteRow));
-                }
-            }
+            labelColumnIndex = col;
+            break;
         }
     }
-    else
-    {
-        // 新视图模式
-        for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
-        {
-            QString headerText = m_vectorTableModel->headerData(col, Qt::Horizontal).toString();
-            if (headerText.toLower() == "label" || headerText == "标签")
-            {
-                labelColumnIndex = col;
-                break;
-            }
-        }
 
-        // 如果找到了Label列，收集标签和对应的行号
-        if (labelColumnIndex >= 0)
+    // 如果找到了Label列，收集标签和对应的行号
+    if (labelColumnIndex >= 0)
+    {
+        for (int row = 0; row < m_vectorTableWidget->rowCount(); ++row)
         {
-            for (int row = 0; row < m_vectorTableModel->rowCount(); ++row)
+            QTableWidgetItem *labelItem = m_vectorTableWidget->item(row, labelColumnIndex);
+            if (labelItem && !labelItem->text().trimmed().isEmpty())
             {
-                QModelIndex labelIndex = m_vectorTableModel->index(row, labelColumnIndex);
-                QString labelText = m_vectorTableModel->data(labelIndex, Qt::DisplayRole).toString().trimmed();
-                if (!labelText.isEmpty())
-                {
-                    // 将UI行号转换为绝对行号（1-based）
-                    int absoluteRow = pageOffset + row + 1;
-                    labelRows.append(QPair<QString, int>(labelText, absoluteRow));
-                }
+                // 将UI行号转换为绝对行号（1-based）
+                int absoluteRow = pageOffset + row + 1;
+                labelRows.append(QPair<QString, int>(labelItem->text().trimmed(), absoluteRow));
             }
         }
     }
@@ -249,8 +214,8 @@ void MainWindow::showFillVectorDialog()
         }
 
         // 使用对话框中设置的范围
-        int fromRow = dialog.getStartRow() - 1; // 转换为0-based
-        int toRow = dialog.getEndRow() - 1;     // 转换为0-based
+        int fromRow = dialog.getStartRow(); // 0-based
+        int toRow = dialog.getEndRow();     // 0-based
 
         // 确保范围有效
         if (fromRow < 0 || toRow < fromRow || toRow >= rowCount)
@@ -260,88 +225,19 @@ void MainWindow::showFillVectorDialog()
         }
 
         // 准备要更新的行和值的映射
-        QMap<int, QVariant> rowValueMap;
+        QMap<int, QString> rowValueMap;
         int patternSize = patternValues.size();
 
         // 使用模式进行循环填充
         for (int i = fromRow; i <= toRow; ++i)
         {
             int patternIndex = (i - fromRow) % patternSize;
-            rowValueMap[i] = QVariant(patternValues[patternIndex]);
+            rowValueMap[i] = patternValues[patternIndex];
         }
 
-        // 调用优化后的批量填充方法
-        QString errorMsg;
-        if (!batchFillVector(tableId, fromRow, toRow, targetColumn, rowValueMap[fromRow], errorMsg))
-        {
-            QMessageBox::warning(this, "填充失败", "向量填充失败: " + errorMsg);
-            return;
-        }
-
-        // 刷新表格显示
-        refreshVectorTableData();
+        // 调用执行循环填充的函数
+        fillVectorWithPattern(rowValueMap);
     }
-}
-
-// 批量填充向量的具体实现
-bool MainWindow::batchFillVector(int tableId, int startRow, int endRow, 
-                                int targetColumnIndex, const QVariant& value, 
-                                QString& errorMsg)
-{
-    qDebug() << "开始执行批量填充向量: 表ID=" << tableId 
-             << ", 起始行=" << startRow 
-             << ", 结束行=" << endRow
-             << ", 目标列=" << targetColumnIndex;
-
-    // 创建行号到值的映射
-    QMap<int, QVariant> rowVariantMap;
-    for (int row = startRow; row <= endRow; ++row) {
-        rowVariantMap[row] = value;
-    }
-
-    // 使用优化的批量更新方法
-    if (!m_robustDataHandler->batchUpdateVectorColumnOptimized(tableId, targetColumnIndex, rowVariantMap, errorMsg))
-    {
-        qWarning() << "批量填充向量失败: " << errorMsg;
-        return false;
-    }
-
-    // 检查是否需要执行垃圾回收
-    double invalidDataRatio = 0.0;
-    if (m_robustDataHandler->needsGarbageCollection(tableId, invalidDataRatio, errorMsg))
-    {
-        qDebug() << "检测到无效数据比例较高: " << invalidDataRatio * 100 << "%，开始执行垃圾回收";
-        
-        // 显示垃圾回收进度对话框
-        QProgressDialog progressDialog(tr("正在执行存储优化..."), tr("取消"), 0, 100, this);
-        progressDialog.setWindowModality(Qt::WindowModal);
-        progressDialog.setMinimumDuration(1000);
-        
-        // 连接进度更新信号
-        connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                &progressDialog, &QProgressDialog::setValue);
-                
-        // 在后台线程中执行垃圾回收
-        QFuture<bool> future = QtConcurrent::run([=]() {
-            QString garbageErrorMsg;
-            return m_robustDataHandler->collectGarbage(tableId, false, garbageErrorMsg);
-        });
-        
-        // 显示进度对话框
-        progressDialog.exec();
-        
-        // 如果用户取消了垃圾回收
-        if (progressDialog.wasCanceled()) {
-            qWarning() << "用户取消了垃圾回收操作";
-        }
-        
-        // 断开信号连接
-        disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                   &progressDialog, &QProgressDialog::setValue);
-    }
-
-    qDebug() << "批量填充向量完成";
-    return true;
 }
 
 // 使用模式对向量表进行循环填充
@@ -465,8 +361,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
 
         progress.show();
 
-        // 使用优化的批量更新方法
-        if (!m_robustDataHandler->batchUpdateVectorColumnOptimized(tableId, targetColumnIndex, rowVariantMap, errorMsg))
+        if (!m_robustDataHandler->batchUpdateVectorColumn(tableId, targetColumnIndex, rowVariantMap, errorMsg))
         {
             qWarning() << "向量填充(新轨道) - 批量更新失败:" << errorMsg;
             throw std::runtime_error(QString("填充失败: %1").arg(errorMsg).toStdString());
@@ -887,92 +782,3 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
     // 调用模式填充方法
     fillVectorWithPattern(rowValueMap);
 }
-
-// 获取当前向量表ID
-int MainWindow::getCurrentVectorTableId()
-{
-    int currentIndex = m_vectorTableSelector->currentIndex();
-    if (currentIndex < 0)
-    {
-        return -1;
-    }
-    return m_vectorTableSelector->currentData().toInt();
-}
-
-// 垃圾回收 - 优化存储空间
-void MainWindow::optimizeStorageSpace()
-{
-    // 获取当前选中的向量表ID
-    int tableId = getCurrentVectorTableId();
-    if (tableId < 0)
-    {
-        QMessageBox::warning(this, tr("优化存储空间"), tr("请先选择一个向量表"));
-        qDebug() << "优化存储空间 - 未选择向量表，操作取消";
-        return;
-    }
-
-    // 检查是否使用新数据处理器
-    if (!m_useNewDataHandler || !m_robustDataHandler)
-    {
-        QMessageBox::warning(this, tr("优化存储空间"), tr("该功能需要新数据处理器"));
-        qDebug() << "优化存储空间 - 需要新数据处理器，操作取消";
-        return;
-    }
-    
-    // 确认对话框
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, tr("优化存储空间"),
-        tr("此操作将整理二进制文件，清除无效数据，可能需要一些时间。是否继续？"),
-        QMessageBox::Yes | QMessageBox::No);
-        
-    if (reply != QMessageBox::Yes)
-    {
-        qDebug() << "优化存储空间 - 用户取消操作";
-        return;
-    }
-
-    // 创建进度对话框
-    QProgressDialog progress(tr("正在优化存储空间..."), tr("取消"), 0, 100, this);
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(500); // 如果操作少于500ms就不显示进度对话框
-
-    // 连接进度信号
-    connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-            &progress, &QProgressDialog::setValue);
-    
-    // 显示进度对话框
-    progress.show();
-
-    // 执行垃圾回收
-    QString errorMsg;
-    bool success = m_robustDataHandler->collectGarbage(tableId, true, errorMsg);
-    
-    // 断开信号连接
-    disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-               &progress, &QProgressDialog::setValue);
-    
-    // 关闭进度对话框
-    progress.close();
-
-    // 显示结果
-    if (success)
-    {
-        QMessageBox::information(this, tr("优化存储空间"), tr("存储空间优化完成"));
-        // 刷新表格显示
-        refreshVectorTableData();
-        qDebug() << "优化存储空间 - 成功完成";
-    }
-    else
-    {
-        QMessageBox::critical(this, tr("优化存储空间"), 
-                           tr("优化存储空间失败: %1").arg(errorMsg));
-        qDebug() << "优化存储空间 - 失败:" << errorMsg;
-    }
-}
-
-// 注释掉重复的函数实现 - 这个函数已经在前面实现过了
-// bool MainWindow::batchFillVector(int tableId, int startRow, int endRow, int targetColumnIndex, const QVariant& value, QString& errorMsg)
-// {
-//     // 代码已移至上面的同名函数实现中
-//     return false;
-// } 

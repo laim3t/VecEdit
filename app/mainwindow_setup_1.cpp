@@ -234,6 +234,14 @@ void MainWindow::setupMenu()
     m_toggleWaveformAction = m_waveformDock->toggleViewAction();
     m_toggleWaveformAction->setText(tr("波形图视图"));
     m_viewMenu->addAction(m_toggleWaveformAction);
+
+    // 添加"工具"菜单
+    QMenu *toolsMenu = menuBar()->addMenu(tr("工具"));
+    
+    // 添加"优化存储空间"菜单项
+    QAction *optimizeStorageAction = new QAction(tr("优化存储空间"), this);
+    connect(optimizeStorageAction, &QAction::triggered, this, &MainWindow::optimizeStorageSpace);
+    toolsMenu->addAction(optimizeStorageAction);
 }
 
 void MainWindow::setupVectorTableUI()
