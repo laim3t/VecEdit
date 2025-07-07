@@ -31,6 +31,15 @@ void MainWindow::updatePaginationInfo()
         m_jumpButton->setVisible(false);
 
         qDebug() << funcName << " - 新轨道模式，隐藏所有分页控件";
+        
+        // 如果有正在显示的刷新数据提示框，关闭它
+        if (s_refreshingMessageBox) {
+            s_refreshingMessageBox->close();
+            s_refreshingMessageBox->deleteLater();
+            s_refreshingMessageBox = nullptr;
+            qDebug() << funcName << " - 数据刷新完成，关闭提示框";
+        }
+        
         return;
     }
     else
@@ -43,6 +52,14 @@ void MainWindow::updatePaginationInfo()
         m_pageSizeSelector->setVisible(true);
         m_pageJumper->setVisible(true);
         m_jumpButton->setVisible(true);
+        
+        // 旧轨道模式也需要关闭刷新数据提示框
+        if (s_refreshingMessageBox) {
+            s_refreshingMessageBox->close();
+            s_refreshingMessageBox->deleteLater();
+            s_refreshingMessageBox = nullptr;
+            qDebug() << funcName << " - 数据刷新完成，关闭提示框";
+        }
     }
 
     // 更新页码信息标签

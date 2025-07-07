@@ -147,6 +147,9 @@ private slots:
     void showFillVectorDialog();
     void fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
+    
+    // 填充向量完成后调用
+    void onFillVectorComplete();
 
     // 填充TimeSet
     void showFillTimeSetDialog();
@@ -479,6 +482,9 @@ private:
 
     // 进度监控函数
     static void connectProgressSignal(RobustVectorDataHandler *handler, QObject *receiver, const char *slot);
+
+    // 数据刷新提示框
+    static QMessageBox *s_refreshingMessageBox;
 };
 
 #endif // MAINWINDOW_H

@@ -411,43 +411,39 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
         // 获取结果
         ResultType result = watcher->result();
         bool success = result.first;
-        QString errorMsg = result.second;
-
-        if (success)
-        {
-            // 不要直接调用refreshVectorTableData，而是使用QueuedConnection通过信号-槽方式更新UI
-            QMetaObject::invokeMethod(this, "refreshVectorTableData", Qt::QueuedConnection);
-            
-            // 操作成功消息放入队列，只在状态栏显示而不弹出对话框
-            QMetaObject::invokeMethod(this, [this]() {
-                statusBar()->showMessage(tr("向量填充完成"), 3000);
-                qDebug() << "向量填充 - 操作成功完成";
-            }, Qt::QueuedConnection);
+        QString errorMessage = result.second;
+        
+        // 如果是我们创建的进度对话框，需要删除它
+        if (!usingExternalProgress && progressDialog && progressDialog->isVisible()) {
+            progressDialog->setValue(100); // 确保进度条显示完成
+            progressDialog->close();
         }
-        else
-        {
-            QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(errorMsg));
-            qDebug() << "向量填充 - 异常:" << errorMsg;
+        
+        // 根据结果显示消息
+        if (success) {
+            // 显示成功消息
+            statusBar()->showMessage("填充操作完成", 3000);
+            qDebug() << "向量填充 - 操作成功完成";
+            
+            // 刷新表格数据
+            refreshVectorTableData();
+            
+            // 显示正在刷新的提示框
+            QTimer::singleShot(200, this, &MainWindow::onFillVectorComplete);
+        } else {
+            // 显示错误消息
+            QMessageBox::critical(this, "填充失败", "填充过程中发生错误: " + errorMessage);
+            statusBar()->showMessage("填充操作失败: " + errorMessage, 5000);
             
             // 即使失败也尝试刷新表格，确保UI显示最新状态
-            try
-            {
-                QMetaObject::invokeMethod(this, "refreshVectorTableData", Qt::QueuedConnection);
-            }
-            catch (...)
-            {
+            try {
+                refreshVectorTableData();
+            } catch (...) {
                 qWarning() << "向量填充 - 异常后刷新表格失败";
             }
         }
-
-        // 如果是我们创建的进度对话框，需要删除它
-        if (!usingExternalProgress && progressDialog)
-        {
-            progressDialog->setValue(100); // 确保进度条显示完成
-            progressDialog->deleteLater();
-        }
-
-        // 释放watcher资源
+        
+        // 清理资源
         watcher->deleteLater();
     });
 
@@ -731,5 +727,65 @@ void MainWindow::connectProgressSignal(RobustVectorDataHandler *handler, QObject
 {
     if (handler && receiver) {
         QObject::connect(handler, SIGNAL(progressUpdated(int)), receiver, slot);
+    }
+}
+
+// 添加一个静态变量，用于跟踪数据刷新的提示框
+QMessageBox* MainWindow::s_refreshingMessageBox = nullptr;
+
+// 当fillVectorWithPattern函数中的异步操作完成后调用
+void MainWindow::onFillVectorComplete()
+{
+    // 显示刷新数据提示框
+    if (!s_refreshingMessageBox) {
+        s_refreshingMessageBox = new QMessageBox(this);
+        s_refreshingMessageBox->setWindowTitle("数据刷新");
+        s_refreshingMessageBox->setText("正在刷新数据显示...");
+        s_refreshingMessageBox->setStandardButtons(QMessageBox::NoButton);
+        s_refreshingMessageBox->setIcon(QMessageBox::Information);
+        
+        // 非模态显示
+        s_refreshingMessageBox->setModal(false);
+        s_refreshingMessageBox->show();
+        
+        // 确保UI更新
+        QCoreApplication::processEvents();
+        
+        // 连接一个定时器，在updatePaginationInfo函数被调用后关闭提示框
+        QTimer* checkTimer = new QTimer(this);
+        connect(checkTimer, &QTimer::timeout, this, [this, checkTimer]() {
+            // 检查日志中是否出现了"updatePaginationInfo - 新轨道模式，隐藏所有分页控件"的信息
+            // 由于我们无法直接监控日志，我们可以在代码中修改updatePaginationInfo函数来发出信号
+            // 这里我们简单地设置一个超时时间，假设数据刷新过程在此期间会完成
+            static int counter = 0;
+            counter++;
+            
+            // 如果超过10秒，或者s_refreshingMessageBox已被删除，就停止计时器
+            if (counter > 20 || !s_refreshingMessageBox) {
+                checkTimer->stop();
+                if (s_refreshingMessageBox) {
+                    s_refreshingMessageBox->close();
+                    s_refreshingMessageBox->deleteLater();
+                    s_refreshingMessageBox = nullptr;
+                }
+                checkTimer->deleteLater();
+                return;
+            }
+            
+            // 如果当前没有显示表格(如表格已被关闭)，也停止计时器
+            if (m_vectorTabWidget && m_vectorTabWidget->count() == 0) {
+                checkTimer->stop();
+                if (s_refreshingMessageBox) {
+                    s_refreshingMessageBox->close();
+                    s_refreshingMessageBox->deleteLater();
+                    s_refreshingMessageBox = nullptr;
+                }
+                checkTimer->deleteLater();
+                return;
+            }
+        });
+        
+        // 每500毫秒检查一次
+        checkTimer->start(500);
     }
 }
