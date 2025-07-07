@@ -253,20 +253,20 @@ int RobustVectorDataHandler::getVectorTableRowCount(int tableId)
 QList<Vector::ColumnInfo> RobustVectorDataHandler::getAllColumnInfo(int tableId)
 {
     const QString funcName = "RobustVectorDataHandler::getAllColumnInfo";
-    
+
     // 准备需要的变量来调用loadVectorTableMeta
     QString binFileName;
     QList<Vector::ColumnInfo> columns;
     int schemaVersion = 0;
     int totalRowCount = 0;
-    
+
     // 调用loadVectorTableMeta加载表的元数据
     if (loadVectorTableMeta(tableId, binFileName, columns, schemaVersion, totalRowCount))
     {
         qDebug() << funcName << " - 成功获取表ID:" << tableId << "的列信息，共" << columns.size() << "列";
         return columns;
     }
-    
+
     qWarning() << funcName << " - 无法获取表ID:" << tableId << "的列信息";
     return {};
 }
@@ -733,3 +733,5 @@ void RobustVectorDataHandler::clearCache()
 }
 
 #include "robustvectordatahandler_1.cpp"
+#include "robustvectordatahandler_2.cpp"
+#include "robustvectordatahandler_3.cpp"

@@ -100,17 +100,7 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             }
 
             // 刷新表格显示
-            m_robustDataHandler->clearTableDataCache(tableId);
-            bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
-                tableId, m_vectorTableModel, m_currentPage, m_pageSize);
-
-            if (!refreshSuccess)
-            {
-                qWarning() << "替换TimeSet - 刷新表格数据失败";
-            }
-
-            // 更新分页信息
-            updatePaginationInfo();
+            refreshVectorTableData();
 
             // 更新波形图以反映TimeSet变更
             if (m_isWaveformVisible && m_waveformPlot)
@@ -553,7 +543,10 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
             qDebug() << "替换TimeSet - 成功替换" << updatedRows << "行数据";
             QMessageBox::information(this, "操作成功", QString("成功将 %1 行数据的TimeSet从 %2 替换为 %3").arg(updatedRows).arg(fromTimeSetName).arg(toTimeSetName));
 
-            // 刷新当前页面
+            // 刷新当前页面数据
+            refreshVectorTableData(); // 使用统一的刷新方法自动刷新页面数据
+
+            /*
             VectorDataHandler::instance().clearTableDataCache(tableId);
 
             // 根据当前视图模式刷新
@@ -582,15 +575,7 @@ void MainWindow::replaceTimeSetForVectorTable(int fromTimeSetId, int toTimeSetId
 
             // 更新分页信息显示
             updatePaginationInfo();
-
-            // 更新波形图以反映TimeSet变更
-            if (m_isWaveformVisible && m_waveformPlot)
-            {
-                QTimer::singleShot(100, this, [this]()
-                                   {
-                qDebug() << "MainWindow::replaceTimeSetForVectorTable - 延迟更新波形图";
-                updateWaveformView(); });
-            }
+            */
         }
         catch (const std::exception &e)
         {
