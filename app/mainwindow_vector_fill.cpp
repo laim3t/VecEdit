@@ -15,6 +15,9 @@
 #include <QSignalBlocker>
 #include <QElapsedTimer>
 #include <QCoreApplication>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QTimer>
 
 // Project-specific headers
 #include "vector/vectordatahandler.h"
@@ -353,6 +356,15 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
     // 2. 禁用选择变更信号
     QSignalBlocker blocker(m_vectorTableView->selectionModel());
 
+    // 创建一个状态提示对话框，在整个过程中显示
+    QDialog *statusDialog = new QDialog(this, Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+    statusDialog->setWindowTitle(tr("正在处理"));
+    QVBoxLayout *layout = new QVBoxLayout(statusDialog);
+    QLabel *statusLabel = new QLabel(tr("正在进行向量填充操作..."), statusDialog);
+    layout->addWidget(statusLabel);
+    statusDialog->setFixedSize(300, 100);
+    statusDialog->setWindowModality(Qt::WindowModal);
+
     try
     {
         // 获取当前向量表的所有列信息
@@ -432,6 +444,15 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
             delete progressDialog;
         }
 
+        // 进度条完成后，显示状态对话框，表明操作还在继续
+        statusDialog->show();
+        statusLabel->setText("正在刷新数据，请稍候...");
+        QCoreApplication::processEvents();
+
+        // 计时更新数据操作
+        QElapsedTimer refreshTimer;
+        refreshTimer.start();
+
         // 直接更新模型数据，而不是重新加载整个表
         int currentPage = m_currentPage;
         int pageSize = m_pageSize;
@@ -444,6 +465,12 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         {
             qWarning() << "向量填充(新轨道) - 刷新表格数据失败";
         }
+
+        qDebug() << "向量填充(新轨道) - 刷新表格数据耗时：" << refreshTimer.elapsed() << "ms";
+
+        // 更新状态对话框
+        statusLabel->setText("正在更新界面显示...");
+        QCoreApplication::processEvents();
 
         // 批量选中所有行（一次性操作，而不是逐行选中）
         QItemSelection selection;
@@ -473,9 +500,16 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         // 4. 一次性设置选择状态，而不是逐行设置
         m_vectorTableView->selectionModel()->select(selection, QItemSelectionModel::ClearAndSelect);
 
+        // 关闭状态对话框
+        statusDialog->close();
+        delete statusDialog;
+
         // 5. 自动执行全局刷新，确保所有数据和UI都更新到最新状态
-        qDebug() << "向量填充(新轨道) - 自动执行全局刷新";
-        refreshVectorTableData();
+        // 避免这个耗时操作阻塞UI
+        QTimer::singleShot(100, this, [this]()
+                           {
+            qDebug() << "向量填充(新轨道) - 延迟执行全局刷新";
+            refreshVectorTableData(); });
 
         // 显示完成消息
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
@@ -487,11 +521,16 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         // 即使发生异常也要恢复UI更新
         m_vectorTableView->setUpdatesEnabled(true);
 
+        // 关闭状态对话框
+        statusDialog->close();
+        delete statusDialog;
+
         // 尝试刷新表格，确保UI显示最新状态
         try
         {
             qDebug() << "向量填充(新轨道) - 异常后尝试刷新表格";
-            refreshVectorTableData();
+            // 使用延时执行避免阻塞UI
+            QTimer::singleShot(100, this, &MainWindow::refreshVectorTableData);
         }
         catch (...)
         {
