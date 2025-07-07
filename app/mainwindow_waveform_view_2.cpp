@@ -311,9 +311,12 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
     int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
 
     int totalRows;
-    if (m_useNewDataHandler) {
+    if (m_useNewDataHandler)
+    {
         totalRows = m_robustDataHandler->getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
-    } else {
+    }
+    else
+    {
         totalRows = VectorDataHandler::instance().getVectorTableRowCount(m_vectorTableSelector->currentData().toInt());
     }
 
@@ -572,7 +575,7 @@ QString MainWindow::getPinNameById(int pinId)
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT name FROM pin_list WHERE id = ?");
+    query.prepare("SELECT pin_name FROM pin_list WHERE id = ?");
     query.addBindValue(pinId);
 
     if (!query.exec())
