@@ -91,6 +91,24 @@ public:
     bool batchUpdateVectorColumn(int tableId, int columnIndex, const QMap<int, QVariant> &rowValueMap, QString &errorMessage);
 
     /**
+     * @brief 批量更新向量表列数据的优化版本 (批量追加-批量索引更新模式)
+     *
+     * 该方法使用高效的批量操作，通过以下步骤优化性能：
+     * 1. 将所有新行数据一次性追加到二进制文件末尾
+     * 2. 在内存中构建索引更新操作，然后批量提交到数据库
+     *
+     * 这种方法避免了传统的逐行读取-修改-写入循环，显著减少了I/O操作
+     * 和磁盘同步次数，特别适合大批量数据更新场景。
+     *
+     * @param tableId 向量表ID
+     * @param columnIndex 要更新的列索引
+     * @param rowValueMap 行索引到新值的映射
+     * @param errorMessage 错误信息输出
+     * @return 操作是否成功
+     */
+    bool batchUpdateVectorColumnOptimized(int tableId, int columnIndex, const QMap<int, QVariant> &rowValueMap, QString &errorMessage);
+
+    /**
      * @brief 批量填充TimeSet值到指定范围的行
      * @param tableId 表ID
      * @param rowIndexes 要更新的行索引列表

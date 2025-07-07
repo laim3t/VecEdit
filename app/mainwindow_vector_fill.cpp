@@ -11,6 +11,9 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QFile>
+#include <QProgressDialog>
+#include <QSignalBlocker>
+#include <QElapsedTimer>
 
 // Project-specific headers
 #include "vector/vectordatahandler.h"
@@ -316,7 +319,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
     // 方案一：延迟UI更新机制
     // 1. 暂停UI更新
     m_vectorTableView->setUpdatesEnabled(false);
-    
+
     // 2. 禁用选择变更信号
     QSignalBlocker blocker(m_vectorTableView->selectionModel());
 
@@ -349,8 +352,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
             rowVariantMap[it.key()] = QVariant(it.value());
         }
 
-        // 使用高性能批量更新方法
-        QString errorMsg;
+        // 创建进度对话框
         QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
         progress.setWindowModality(Qt::WindowModal);
         progress.setMinimumDuration(500); // 如果操作少于500ms就不显示进度对话框
@@ -361,11 +363,20 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
 
         progress.show();
 
-        if (!m_robustDataHandler->batchUpdateVectorColumn(tableId, targetColumnIndex, rowVariantMap, errorMsg))
+        // 使用优化版的批量更新方法（批量追加-批量索引更新模式）
+        QString errorMsg;
+        QElapsedTimer timer;
+        timer.start();
+
+        qDebug() << "向量填充(新轨道) - 开始使用批量追加-批量索引更新模式，行数：" << rowVariantMap.size();
+
+        if (!m_robustDataHandler->batchUpdateVectorColumnOptimized(tableId, targetColumnIndex, rowVariantMap, errorMsg))
         {
             qWarning() << "向量填充(新轨道) - 批量更新失败:" << errorMsg;
             throw std::runtime_error(QString("填充失败: %1").arg(errorMsg).toStdString());
         }
+
+        qDebug() << "向量填充(新轨道) - 批量追加-批量索引更新模式完成，耗时：" << timer.elapsed() << "ms";
 
         // 断开进度信号连接
         disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
@@ -374,7 +385,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
         // 直接更新模型数据，而不是重新加载整个表
         int currentPage = m_currentPage;
         int pageSize = m_pageSize;
-        
+
         // 只加载当前页的数据，减少数据加载量
         bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
             tableId, m_vectorTableModel, currentPage, pageSize);
@@ -405,35 +416,38 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
                 }
             }
         }
-        
+
         // 3. 恢复UI更新（blocker在作用域结束时自动解除阻塞）
         m_vectorTableView->setUpdatesEnabled(true);
-        
+
         // 4. 一次性设置选择状态，而不是逐行设置
         m_vectorTableView->selectionModel()->select(selection, QItemSelectionModel::ClearAndSelect);
-        
+
         // 5. 自动执行全局刷新，确保所有数据和UI都更新到最新状态
         qDebug() << "向量填充(新轨道) - 自动执行全局刷新";
         refreshVectorTableData();
-        
+
         // 显示完成消息
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-        
+
         qDebug() << "向量填充(新轨道) - 操作成功完成";
     }
     catch (const std::exception &e)
     {
         // 即使发生异常也要恢复UI更新
         m_vectorTableView->setUpdatesEnabled(true);
-        
+
         // 尝试刷新表格，确保UI显示最新状态
-        try {
+        try
+        {
             qDebug() << "向量填充(新轨道) - 异常后尝试刷新表格";
             refreshVectorTableData();
-        } catch (...) {
+        }
+        catch (...)
+        {
             qWarning() << "向量填充(新轨道) - 异常后刷新表格失败";
         }
-        
+
         QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
         qDebug() << "向量填充(新轨道) - 异常:" << e.what();
     }
