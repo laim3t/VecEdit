@@ -423,56 +423,137 @@ bool MainWindow::fixColumnTypeStorageFormat()
             {
                 newTypeStr = columnNameTypeMap[columnName];
             }
-            // 然后检查是否是已知的管脚名称
-            else if (pinNames.contains(columnName))
+            // 检查是否是管脚列名（已知管脚列表、Pin前缀或单字母）
+            else if (pinNames.contains(columnName) || 
+                     columnName.startsWith("Pin") ||
+                     (columnName.length() == 1 && columnName[0].isLetter()))
             {
                 newTypeStr = "PIN_STATE_ID";
-                qDebug() << funcName << " - 识别到管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
+                qDebug() << funcName << " - 识别到管脚列: \"" << columnName << "\" ，设置类型为PIN_STATE_ID";
             }
+            // 尝试转换数字
+            else if (currentTypeStr.toInt() >= 0 && currentTypeStr.toInt() <= 7)
+            {
+                int typeNum = currentTypeStr.toInt();
+                newTypeStr = typeMap.value(typeNum, "TEXT"); // 默认为TEXT
+            }
+            // 其他情况
             else
             {
-                // 如果不是标准列名或已知管脚，检查当前类型是否为数字
-                bool isInt;
-                int typeInt = currentTypeStr.toInt(&isInt);
-
-                if (isInt && typeMap.contains(typeInt))
-                {
-                    newTypeStr = typeMap[typeInt];
-                }
-                else if (currentTypeStr.startsWith("PIN") || columnName.startsWith("Pin"))
-                {
-                    // 管脚列特殊处理（备用规则，以防pin_list表不完整）
-                    newTypeStr = "PIN_STATE_ID";
-                    qDebug() << funcName << " - 通过命名规则识别到管脚列:" << columnName << "，设置类型为PIN_STATE_ID";
-                }
-                else
-                {
-                    // 如果无法确定类型，保持不变
-                    newTypeStr = currentTypeStr;
-                }
+                newTypeStr = "TEXT"; // 默认为TEXT
             }
 
-            // 仅当类型发生变化时才更新
+            // 仅当类型需要更新时
             if (newTypeStr != currentTypeStr)
             {
                 updateQuery.bindValue(0, newTypeStr);
                 updateQuery.bindValue(1, id);
-
                 if (!updateQuery.exec())
                 {
-                    throw QString("更新列类型失败: " + updateQuery.lastError().text());
+                    throw QString("更新列类型失败, 列名: " + columnName + ", 错误: " + updateQuery.lastError().text());
                 }
-
                 updatedCount++;
             }
         }
 
+        // 提交事务
         if (!db.commit())
         {
             throw QString("提交事务失败: " + db.lastError().text());
         }
 
-        qDebug() << funcName << " - 成功修复了" << updatedCount << "条列类型记录";
+        qDebug() << funcName << " - 成功修复了 " << updatedCount << " 条列类型记录";
+        return true;
+    }
+    catch (const QString &error)
+    {
+        qCritical() << funcName << " - 错误: " << error;
+        db.rollback();
+        return false;
+    }
+}
+
+/**
+ * @brief 修复管脚列类型值
+ * 
+ * 这个函数检查数据库中的管脚列，确保它们的类型值正确设置为PIN_STATE_ID (5)
+ * 根据项目规则：除了固定的六列（Label、Instruction、TimeSet、Capture、EXT、Comment）外，
+ * 所有其他列都是管脚列。
+ *
+ * @return bool 成功返回true，失败返回false
+ */
+bool MainWindow::fixPinColumnTypes()
+{
+    const QString funcName = "MainWindow::fixPinColumnTypes";
+    qDebug() << funcName << " - 开始修复管脚列类型值";
+
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qCritical() << funcName << " - 数据库未打开";
+        return false;
+    }
+
+    // 创建标准列名集合
+    QSet<QString> standardColumns;
+    standardColumns << "Label" << "Instruction" << "TimeSet" << "Capture" << "EXT" << "Comment";
+
+    // 开始事务
+    if (!db.transaction())
+    {
+        qCritical() << funcName << " - 无法开始事务:" << db.lastError().text();
+        return false;
+    }
+
+    try
+    {
+        // 查询所有列配置
+        QSqlQuery query(db);
+        query.prepare("SELECT id, column_name, column_type FROM VectorTableColumnConfiguration");
+
+        if (!query.exec())
+        {
+            throw QString("查询列配置失败: " + query.lastError().text());
+        }
+
+        int updatedCount = 0;
+        QSqlQuery updateQuery(db);
+        updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET column_type = '5' WHERE id = ?");
+
+        while (query.next())
+        {
+            int id = query.value(0).toInt();
+            QString columnName = query.value(1).toString();
+            QString currentTypeStr = query.value(2).toString();
+
+            // 检查是否是管脚列 - 除了标准列名外，所有列都是管脚列
+            bool isPinColumn = !standardColumns.contains(columnName);
+            
+            if (isPinColumn)
+            {
+                qDebug() << funcName << " - 识别到管脚列:" << columnName;
+                
+                // 如果当前类型不是PIN_STATE_ID (5)，则更新
+                if (currentTypeStr != "5")
+                {
+                    updateQuery.bindValue(0, id);
+                    if (!updateQuery.exec())
+                    {
+                        throw QString("更新管脚列类型失败, 列名: " + columnName + ", 错误: " + updateQuery.lastError().text());
+                    }
+                    updatedCount++;
+                    qDebug() << funcName << " - 已修复管脚列 \"" << columnName << "\" 的类型从 \"" << currentTypeStr << "\" 到 \"5\" (PIN_STATE_ID)";
+                }
+            }
+        }
+
+        // 提交事务
+        if (!db.commit())
+        {
+            throw QString("提交事务失败: " + db.lastError().text());
+        }
+
+        qDebug() << funcName << " - 成功修复了 " << updatedCount << " 个管脚列的类型值";
         return true;
     }
     catch (const QString &error)

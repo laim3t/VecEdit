@@ -88,33 +88,6 @@ namespace Vector
         // 这是一个紧急修复，后续应该通过修复数据库中的值来解决根本问题
         if (!columnName.isEmpty())
         {
-            static QSet<QString> pinNames;
-            static bool initialized = false;
-
-            // 首次调用时，从数据库加载所有管脚名称
-            if (!initialized)
-            {
-                QSqlDatabase db = QSqlDatabase::database();
-                if (db.isOpen())
-                {
-                    QSqlQuery pinQuery(db);
-                    pinQuery.prepare("SELECT pin_name FROM pin_list");
-                    if (pinQuery.exec())
-                    {
-                        while (pinQuery.next())
-                        {
-                            pinNames.insert(pinQuery.value(0).toString());
-                        }
-                        qDebug() << "columnDataTypeFromString - 从pin_list表加载了" << pinNames.size() << "个管脚名称";
-                    }
-                    else
-                    {
-                        qWarning() << "columnDataTypeFromString - 无法查询pin_list表:" << pinQuery.lastError().text();
-                    }
-                }
-                initialized = true;
-            }
-
             // 检查是否是标准列名
             if (columnName == "Label")
                 return ColumnDataType::TEXT;
@@ -126,12 +99,11 @@ namespace Vector
                 return ColumnDataType::BOOLEAN; // 这是关键修复：Capture列应该使用布尔类型编辑器
             else if (columnName == "EXT" || columnName == "Comment")
                 return ColumnDataType::TEXT;
-            // 检查是否是已知的管脚名称
-            else if (pinNames.contains(columnName))
-                return ColumnDataType::PIN_STATE_ID;
-            // 备用规则，以防pin_list表不完整
-            else if (columnName.startsWith("Pin"))
-                return ColumnDataType::PIN_STATE_ID;
+            
+            // 除了上述固定列名外，所有其他列名都视为管脚列
+            // 这是最简单有效的方式，因为根据项目规则，除了固定的六列外，其他列都是管脚列
+            qDebug() << "columnDataTypeFromString - 非标准列名:" << columnName << "识别为管脚列(PIN_STATE_ID)";
+            return ColumnDataType::PIN_STATE_ID;
         }
 
         // 检查是否是数字（在数据库中，类型存储为数字形式 "0", "1", "2" 等）

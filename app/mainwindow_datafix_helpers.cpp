@@ -375,6 +375,16 @@ void MainWindow::checkAndFixAllVectorTables()
         qWarning() << funcName << " - 修复数据库中的列类型格式失败，但将继续检查列配置";
     }
 
+    // 执行管脚列类型值修复
+    if (fixPinColumnTypes())
+    {
+        qDebug() << funcName << " - 成功修复了管脚列的类型值";
+    }
+    else
+    {
+        qWarning() << funcName << " - 修复管脚列类型值失败，但将继续检查列配置";
+    }
+
     // 获取所有向量表主记录
     QSqlQuery query(db);
     query.prepare("SELECT id FROM VectorTableMasterRecord");
