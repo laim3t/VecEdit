@@ -416,9 +416,9 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
             // 不要直接调用refreshVectorTableData，而是使用QueuedConnection通过信号-槽方式更新UI
             QMetaObject::invokeMethod(this, "refreshVectorTableData", Qt::QueuedConnection);
             
-            // 操作成功消息也放入队列，确保在表格刷新后显示
+            // 操作成功消息放入队列，只在状态栏显示而不弹出对话框
             QMetaObject::invokeMethod(this, [this]() {
-                QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
+                statusBar()->showMessage(tr("向量填充完成"), 3000);
                 qDebug() << "向量填充 - 操作成功完成";
             }, Qt::QueuedConnection);
         }

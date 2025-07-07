@@ -134,8 +134,7 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
                                    { updateWaveformView(); });
             }
 
-            QMessageBox::information(this, tr("完成"),
-                                     tr("已将 %1 填充到选中区域").arg(timeSetName));
+            statusBar()->showMessage(tr("已将 %1 填充到选中区域").arg(timeSetName), 3000);
 
             qDebug() << "填充TimeSet - 操作成功完成";
             refreshVectorTableData(); // 自动刷新页面数据
@@ -580,8 +579,8 @@ void MainWindow::fillTimeSetForVectorTable(int timeSetId, const QList<int> &sele
             // 注意：不要在这里调用onVectorTableSelectionChanged，因为它会重置页码
             qDebug() << "填充TimeSet - 准备重新加载表格数据，将保留当前页码:" << m_currentPage;
 
-            // 显示成功消息
-            QMessageBox::information(this, tr("成功"), tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount));
+            // 显示成功消息，使用状态栏而非对话框
+            statusBar()->showMessage(tr("已将 %1 填充到选中区域，共更新了 %2 行数据").arg(timeSetName).arg(updatedRowCount), 3000);
             qDebug() << "填充TimeSet - 操作成功完成";
             refreshVectorTableData(); // 自动刷新页面数据
         }
