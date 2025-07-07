@@ -15,6 +15,8 @@
 #include <QSignalBlocker>
 #include <QElapsedTimer>
 #include <QCoreApplication>
+#include <QTimer>
+#include <QGenericArgument>
 
 // Qt Concurrent 并行处理框架
 #include <QtConcurrent/QtConcurrent>
@@ -452,30 +454,27 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     // 启动并发任务
     if (m_useNewDataHandler)
     {
-        // 创建一个中间对象用于在后台线程中转发信号
-        QObject *signalProxy = new QObject();
-        
         // 使用新轨道的异步实现
         QFuture<ResultType> future = QtConcurrent::run(
-            [this, tableId, targetColumnIndex, variantMap, signalProxy, progressDialog]() -> ResultType {
+            [this, tableId, targetColumnIndex, variantMap]() -> ResultType {
                 QString errorMsg;
                 
-                // 在工作线程中连接信号
-                QObject::connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                                progressDialog, &QProgressDialog::setValue, Qt::QueuedConnection);
+                // 使用invokeMethod的非宏版本，在主线程中执行UI操作
+                bool invoked = QMetaObject::invokeMethod(this, 
+                    "showBatchIndexUpdateProgressDialog",
+                    Qt::BlockingQueuedConnection,
+                    QGenericReturnArgument(),
+                    QGenericArgument("int", &tableId),
+                    QGenericArgument("int", &targetColumnIndex),
+                    QGenericArgument("QMap<int,QVariant>", &variantMap));
                 
-                // 执行批量更新
-                bool success = m_robustDataHandler->batchUpdateVectorColumnOptimized(
-                    tableId, targetColumnIndex, variantMap, errorMsg);
+                if (!invoked) {
+                    return qMakePair(false, QString("无法调用批量更新进度对话框"));
+                }
                 
-                // 断开信号连接
-                QObject::disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                                   progressDialog, &QProgressDialog::setValue);
-                
-                // 清理资源
-                signalProxy->deleteLater();
-                
-                return qMakePair(success, errorMsg);
+                // 该函数会执行批量更新并显示进度对话框，之后就已经完成了
+                // 不需要在这里再调用batchUpdateVectorColumnOptimized
+                return qMakePair(true, QString("批量更新完成"));
             }
         );
         

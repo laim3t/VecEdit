@@ -16,6 +16,7 @@
 #include <QProgressDialog>
 #include <QElapsedTimer>
 #include <QTimer>
+#include <QVBoxLayout>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -922,5 +923,79 @@ bool MainWindow::hasUnsavedChanges() const
     else
     {
         return VectorDataHandler::instance().isRowModified(tableId, -1);
+    }
+}
+
+// 显示批量索引更新进度对话框
+void MainWindow::showBatchIndexUpdateProgressDialog(int tableId, int columnIndex, QMap<int, QVariant> rowValueMap)
+{
+    // 创建进度对话框
+    QProgressDialog *progressDialog = new QProgressDialog("正在进行批量索引更新...", "取消", 0, 100, this);
+    progressDialog->setWindowTitle("批量索引更新进度");
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumDuration(0);  // 立即显示
+    progressDialog->setValue(0);
+    
+    // 添加额外信息标签
+    QLabel *detailLabel = new QLabel("准备中...");
+    detailLabel->setAlignment(Qt::AlignCenter);
+    detailLabel->setMinimumWidth(300);
+    
+    // 获取进度对话框的布局，添加详情标签
+    QVBoxLayout *layout = qobject_cast<QVBoxLayout*>(progressDialog->layout());
+    if (layout) {
+        layout->insertWidget(1, detailLabel);
+    }
+    
+    progressDialog->show();
+    QCoreApplication::processEvents();  // 确保UI更新
+    
+    // 获取RobustVectorDataHandler实例
+    RobustVectorDataHandler *handler = &RobustVectorDataHandler::instance();
+    
+    // 更新详情标签的槽函数
+    auto updateDetailLabel = [detailLabel, rowValueMap](int percentage) {
+        int totalRows = rowValueMap.size();
+        int processedRows = (percentage * totalRows) / 100;
+        
+        if (percentage <= 50) {
+            // 批量追加阶段
+            detailLabel->setText(QString("批量追加阶段: 已处理 %1 行，共 %2 行 (%3%)").
+                              arg(processedRows).arg(totalRows).arg(percentage*2));
+        } else {
+            // 批量索引更新阶段
+            detailLabel->setText(QString("批量索引更新阶段: 已处理 %1 行，共 %2 行 (%3%)").
+                              arg(processedRows).arg(totalRows).arg((percentage-50)*2));
+        }
+    };
+    
+    // 连接进度信号到进度对话框的setValue槽
+    QMetaObject::Connection progressConnection = 
+        QObject::connect(handler, &RobustVectorDataHandler::progressUpdated, 
+                    progressDialog, &QProgressDialog::setValue);
+    
+    // 连接进度信号到更新详情标签的槽
+    QMetaObject::Connection detailConnection = 
+        QObject::connect(handler, &RobustVectorDataHandler::progressUpdated, updateDetailLabel);
+    
+    // 执行批量更新操作
+    QString errorMessage;
+    bool success = handler->batchUpdateVectorColumnOptimized(tableId, columnIndex, rowValueMap, errorMessage);
+    
+    // 断开信号连接
+    QObject::disconnect(progressConnection);
+    QObject::disconnect(detailConnection);
+    
+    // 关闭进度对话框
+    progressDialog->close();
+    progressDialog->deleteLater();
+    
+    // 显示结果
+    if (success) {
+        QMessageBox::information(this, "批量更新完成", 
+                               QString("成功更新了 %1 行数据").arg(rowValueMap.size()));
+    } else {
+        QMessageBox::critical(this, "批量更新失败", 
+                            QString("更新过程中发生错误: %1").arg(errorMessage));
     }
 }

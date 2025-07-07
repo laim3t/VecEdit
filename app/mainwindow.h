@@ -171,6 +171,9 @@ private slots:
     // 跳转到指定行
     void gotoLine();
 
+    // 显示批量索引更新进度对话框
+    Q_INVOKABLE void showBatchIndexUpdateProgressDialog(int tableId, int columnIndex, QMap<int, QVariant> rowValueMap);
+
     void onFontZoomSliderValueChanged(int value);
     void onFontZoomReset();
     void closeTab(int index);
