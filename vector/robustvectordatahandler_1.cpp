@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QElapsedTimer> // 添加QElapsedTimer头文件
+#include <QHash>
 
 void RobustVectorDataHandler::clearTableDataCache(int tableId)
 {
@@ -1802,8 +1803,13 @@ bool RobustVectorDataHandler::batchUpdateVectorColumnOptimized(
     QElapsedTimer operationTimer;
 
     // 在内存中预读所有需要的行数据
-    QMap<int, Vector::RowData> rowDataMap; // 行索引 -> 行数据
-    QMap<int, QByteArray> oldRowBytesMap;  // 行索引 -> 原始二进制数据
+    QHash<int, Vector::RowData> rowDataMap; // 行索引 -> 行数据
+    // 移除不必要的中间存储，减少内存使用
+    // QHash<int, QByteArray> oldRowBytesMap;  // 行索引 -> 原始二进制数据
+
+    // 预分配容量，减少重新分配次数
+    rowDataMap.reserve(rowOffsetMap.size());
+    // oldRowBytesMap.reserve(rowOffsetMap.size());
 
     // 一次性读取所有行数据
     for (auto it = rowOffsetMap.constBegin(); it != rowOffsetMap.constEnd(); ++it)
@@ -1831,7 +1837,8 @@ bool RobustVectorDataHandler::batchUpdateVectorColumnOptimized(
             continue;
         }
 
-        oldRowBytesMap[rowIndex] = rowBytes;
+        // 移除不必要的存储
+        // oldRowBytesMap[rowIndex] = rowBytes;
 
         // 反序列化行数据
         operationTimer.restart();
@@ -1852,8 +1859,8 @@ bool RobustVectorDataHandler::batchUpdateVectorColumnOptimized(
         // 更新列值
         rowData[columnIndex] = rowValueMap[rowIndex];
 
-        // 保存修改后的行数据到映射中
-        rowDataMap[rowIndex] = rowData;
+        // 保存修改后的行数据到映射中，使用移动语义避免复制
+        rowDataMap[rowIndex] = std::move(rowData);
     }
 
     qint64 stageTime = stageTimer.elapsed();
@@ -1873,7 +1880,8 @@ bool RobustVectorDataHandler::batchUpdateVectorColumnOptimized(
         qint64 newOffset;
         quint32 newSize;
     };
-    QMap<int, IndexUpdateInfo> indexUpdates; // 行索引 -> 新索引信息
+    QHash<int, IndexUpdateInfo> indexUpdates; // 行索引 -> 新索引信息
+    indexUpdates.reserve(rowDataMap.size());  // 预分配容量
 
     int totalRows = rowDataMap.size();
     int processedCount = 0;
