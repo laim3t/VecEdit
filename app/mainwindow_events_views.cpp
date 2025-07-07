@@ -9,9 +9,15 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     qDebug() << funcName << " - 当前表ID:" << tableId;
 
     // 【关键修复】
-    // 在执行任何操作之前，检查模型是否已在显示目标表格的数据。
-    // 如果是，则说明这是一个由UI刷新导致的冗余信号，直接跳过以避免重复加载。
-    if (m_vectorTableModel && m_vectorTableModel->getCurrentTableId() == tableId)
+    // 检查模型是否已在显示目标表格的数据，但仅在以下情况下跳过加载：
+    // 1. 模型不为空
+    // 2. 模型的当前表ID与新表ID相同
+    // 3. 模型的当前表ID不是无效值(-1)
+    // 4. 模型中有数据
+    if (m_vectorTableModel &&
+        m_vectorTableModel->getCurrentTableId() == tableId &&
+        m_vectorTableModel->getCurrentTableId() != -1 &&
+        m_vectorTableModel->rowCount() > 0)
     {
         qDebug() << funcName << " - 模型已在显示表" << tableId << "的数据，跳过不必要的重复加载。";
         return;

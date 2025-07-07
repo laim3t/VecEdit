@@ -425,6 +425,14 @@ void MainWindow::closeCurrentProject()
             m_vectorTableContainer->setVisible(false);
         }
 
+        // 重置向量表模型状态
+        if (m_vectorTableModel)
+        {
+            // 重置模型，使其与当前表脱离关联
+            m_vectorTableModel->resetModel();
+            qDebug() << "MainWindow::closeCurrentProject - 已重置向量表模型状态";
+        }
+
         // 清理侧边导航栏
         resetSidebarNavigator();
 

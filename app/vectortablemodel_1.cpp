@@ -334,12 +334,6 @@ void VectorTableModel::loadAllData(int tableId)
              << "，加载行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
 }
 
-// 获取当前加载的表ID
-int VectorTableModel::getCurrentTableId() const
-{
-    return m_tableId;
-}
-
 void VectorTableModel::refreshColumns(int tableId)
 {
     // 确保表ID有效

@@ -543,4 +543,33 @@ int VectorTableModel::getTimeSetId(const QString &timeSetName) const
     return -1;
 }
 
+// 重置模型状态
+void VectorTableModel::resetModel()
+{
+    beginResetModel();
+
+    // 重置表ID为无效值
+    m_tableId = -1;
+    m_lastTableId = -1;
+
+    // 清空数据
+    m_pageData.clear();
+    m_columns.clear();
+
+    // 重置计数器
+    m_totalRows = 0;
+    m_currentPage = 0;
+
+    // 清空缓存
+    m_instructionCache.clear();
+    m_instructionNameToIdCache.clear();
+    m_timeSetCache.clear();
+    m_timeSetNameToIdCache.clear();
+    m_cachesInitialized = false;
+
+    endResetModel();
+
+    qDebug() << "VectorTableModel::resetModel - 模型状态已重置";
+}
+
 #include "vectortablemodel_1.cpp"

@@ -55,7 +55,10 @@ public:
     void loadAllData(int tableId);
 
     // 获取当前加载的表ID
-    int getCurrentTableId() const;
+    int getCurrentTableId() const { return m_tableId; }
+
+    // 重置模型状态，清空当前表ID和数据
+    void resetModel();
 
     // 设置每页行数
     void setPageSize(int pageSize) { m_pageSize = pageSize; }
