@@ -15,6 +15,7 @@
 #include <QApplication>
 #include <QProgressDialog>
 #include <QElapsedTimer>
+#include <QTimer>
 
 // Project-specific headers
 #include "database/databasemanager.h"
@@ -844,6 +845,10 @@ void MainWindow::refreshVectorTableData()
         VectorDataHandler::instance().clearTableDataCache(tableId);
     }
 
+    // 创建一个超时计时器，确保UI每100毫秒可以处理事件
+    QElapsedTimer timer;
+    timer.start();
+    
     // 重新获取总行数
     if (m_useNewDataHandler)
     {
@@ -867,15 +872,24 @@ void MainWindow::refreshVectorTableData()
              << ", 总页数:" << m_totalPages
              << ", 当前页:" << m_currentPage;
 
-    // 重新加载当前页面数据
-    loadCurrentPage();
-
-    // 刷新侧边导航栏
-    refreshSidebarNavigator();
-
-    // 显示刷新成功消息
-    statusBar()->showMessage("向量表数据已刷新", 3000); // 显示3秒
-    qDebug() << funcName << " - 向量表数据刷新完成";
+    // 创建一个QTimer延迟加载当前页面，使UI线程可以先更新界面
+    QTimer::singleShot(10, this, [this, tableId, funcName]() {
+        // 重新加载当前页面数据
+        loadCurrentPage();
+        
+        // 允许UI更新
+        QCoreApplication::processEvents();
+        
+        // 延迟加载侧边栏导航，进一步避免UI阻塞
+        QTimer::singleShot(10, this, [this, funcName]() {
+            // 刷新侧边导航栏
+            refreshSidebarNavigator();
+            
+            // 显示刷新成功消息
+            statusBar()->showMessage("向量表数据已刷新", 3000); // 显示3秒
+            qDebug() << funcName << " - 向量表数据刷新完成";
+        });
+    });
 }
 
 // 判断是否有未保存的内容

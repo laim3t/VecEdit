@@ -1,3 +1,14 @@
+#include <QDebug>
+#include <QMessageBox>
+#include <QProgressDialog>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QElapsedTimer>
+#include <QCoreApplication>
+#include <QtConcurrent/QtConcurrent>
+#include <QFutureWatcher>
+#include <QTimer>
+
 // 更新分页信息显示
 void MainWindow::updatePaginationInfo()
 {
@@ -92,63 +103,109 @@ void MainWindow::loadCurrentPage()
     // 检查是否使用新视图 (QTableView)
     bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentWidget() == m_vectorTableView);
 
-    // 根据当前使用的视图类型选择不同的加载方法
-    bool success = false;
-    if (isUsingNewView)
+    // 如果是使用新视图和新轨道模式（大数据模式），使用异步加载
+    if (isUsingNewView && m_useNewDataHandler && m_vectorTableModel)
     {
-        // 使用Model/View架构加载数据
-        qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId;
-        if (m_vectorTableModel)
-        {
-            if (m_useNewDataHandler)
-            {
+        // 为UI显示一个等待消息
+        statusBar()->showMessage("正在加载数据，请稍候...");
+        
+        // 使用QtConcurrent在后台加载数据
+        QFuture<bool> future = QtConcurrent::run([this, tableId]() -> bool {
+            try {
                 // 新轨道模式：一次性加载所有数据，忽略分页
-                qDebug() << funcName << " - 新轨道模式：一次性加载所有数据";
+                qDebug() << "后台线程 - 新轨道模式：一次性加载所有数据";
                 m_vectorTableModel->loadAllData(tableId);
+                return true;
             }
-            else
-            {
-                // 旧数据处理器模式：仍然使用分页
-                qDebug() << funcName << " - 旧数据处理器模式：加载页面数据";
-                // 确保模型使用与MainWindow相同的页面大小
-                if (m_vectorTableModel->pageSize() != m_pageSize)
-                {
-                    qDebug() << funcName << " - 更新模型的页面大小从" << m_vectorTableModel->pageSize() << "到" << m_pageSize;
-                    // 使用新添加的setPageSize方法
-                    m_vectorTableModel->setPageSize(m_pageSize);
-                }
-                m_vectorTableModel->loadPage(tableId, m_currentPage);
+            catch (const std::exception &e) {
+                qWarning() << "后台线程 - 加载数据异常:" << e.what();
+                return false;
             }
-            success = true; // 假设loadPage总是成功
-            qDebug() << funcName << " - 新表格模型数据加载完成";
-        }
-        else
-        {
-            qWarning() << funcName << " - 表格模型未初始化，无法加载数据";
-            success = false;
-        }
+        });
+        
+        // 创建监视器来处理完成事件
+        QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+        watcher->setFuture(future);
+        
+        // 连接完成信号
+        connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, funcName]() {
+            bool success = watcher->result();
+            
+            if (success) {
+                qDebug() << funcName << " - 新表格模型数据加载完成";
+                statusBar()->showMessage("数据加载完成", 3000);
+            } else {
+                qWarning() << funcName << " - 表格数据加载失败";
+                statusBar()->showMessage("数据加载失败", 3000);
+            }
+            
+            // 更新分页信息显示
+            updatePaginationInfo();
+            
+            // 清理资源
+            watcher->deleteLater();
+        });
     }
     else
     {
-        // 使用旧的QTableWidget方式加载数据
-        qDebug() << funcName << " - 使用QTableWidget加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
-        if (m_useNewDataHandler)
+        // 原有的同步加载逻辑 - 对于较小数据集或旧模式
+        bool success = false;
+        if (isUsingNewView)
         {
-            success = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            // 使用Model/View架构加载数据
+            qDebug() << funcName << " - 使用Model/View架构加载数据，表ID:" << tableId;
+            if (m_vectorTableModel)
+            {
+                if (m_useNewDataHandler)
+                {
+                    // 新轨道模式：一次性加载所有数据，忽略分页
+                    qDebug() << funcName << " - 新轨道模式：一次性加载所有数据";
+                    m_vectorTableModel->loadAllData(tableId);
+                }
+                else
+                {
+                    // 旧数据处理器模式：仍然使用分页
+                    qDebug() << funcName << " - 旧数据处理器模式：加载页面数据";
+                    // 确保模型使用与MainWindow相同的页面大小
+                    if (m_vectorTableModel->pageSize() != m_pageSize)
+                    {
+                        qDebug() << funcName << " - 更新模型的页面大小从" << m_vectorTableModel->pageSize() << "到" << m_pageSize;
+                        // 使用新添加的setPageSize方法
+                        m_vectorTableModel->setPageSize(m_pageSize);
+                    }
+                    m_vectorTableModel->loadPage(tableId, m_currentPage);
+                }
+                success = true; // 假设loadPage总是成功
+                qDebug() << funcName << " - 新表格模型数据加载完成";
+            }
+            else
+            {
+                qWarning() << funcName << " - 表格模型未初始化，无法加载数据";
+                success = false;
+            }
         }
         else
         {
-            success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            // 使用旧的QTableWidget方式加载数据
+            qDebug() << funcName << " - 使用QTableWidget加载数据，表ID:" << tableId << "，页码:" << m_currentPage;
+            if (m_useNewDataHandler)
+            {
+                success = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            }
+            else
+            {
+                success = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
+            }
         }
-    }
 
-    if (!success)
-    {
-        qWarning() << funcName << " - 加载页面数据失败";
-    }
+        if (!success)
+        {
+            qWarning() << funcName << " - 加载页面数据失败";
+        }
 
-    // 更新分页信息显示
-    updatePaginationInfo();
+        // 更新分页信息显示
+        updatePaginationInfo();
+    }
 }
 
 // 加载下一页

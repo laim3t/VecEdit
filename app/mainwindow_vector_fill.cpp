@@ -413,10 +413,14 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
 
         if (success)
         {
-            // 刷新表格显示
-            refreshVectorTableData();
-            QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-            qDebug() << "向量填充 - 操作成功完成";
+            // 不要直接调用refreshVectorTableData，而是使用QueuedConnection通过信号-槽方式更新UI
+            QMetaObject::invokeMethod(this, "refreshVectorTableData", Qt::QueuedConnection);
+            
+            // 操作成功消息也放入队列，确保在表格刷新后显示
+            QMetaObject::invokeMethod(this, [this]() {
+                QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
+                qDebug() << "向量填充 - 操作成功完成";
+            }, Qt::QueuedConnection);
         }
         else
         {
@@ -426,7 +430,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
             // 即使失败也尝试刷新表格，确保UI显示最新状态
             try
             {
-                refreshVectorTableData();
+                QMetaObject::invokeMethod(this, "refreshVectorTableData", Qt::QueuedConnection);
             }
             catch (...)
             {
@@ -458,7 +462,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                 
                 // 在工作线程中连接信号
                 QObject::connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                                progressDialog, &QProgressDialog::setValue, Qt::BlockingQueuedConnection);
+                                progressDialog, &QProgressDialog::setValue, Qt::QueuedConnection);
                 
                 // 执行批量更新
                 bool success = m_robustDataHandler->batchUpdateVectorColumnOptimized(
