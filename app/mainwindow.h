@@ -146,8 +146,6 @@ private slots:
     // 向量填充
     void showFillVectorDialog();
     void fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
-    void fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
-    void fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap);
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
 
     // 填充TimeSet
@@ -472,6 +470,9 @@ private:
 
     // 获取系统可用内存（字节）
     qint64 getAvailableSystemMemory();
+
+    // 进度监控函数
+    static void connectProgressSignal(RobustVectorDataHandler *handler, QObject *receiver, const char *slot);
 };
 
 #endif // MAINWINDOW_H

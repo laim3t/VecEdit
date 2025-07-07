@@ -16,6 +16,11 @@
 #include <QElapsedTimer>
 #include <QCoreApplication>
 
+// Qt Concurrent 并行处理框架
+#include <QtConcurrent/QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
+
 // Project-specific headers
 #include "vector/vectordatahandler.h"
 #include "vector/fillvectordialog.h" // 假设存在这个对话框
@@ -281,85 +286,70 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     // 输出填充信息
     qDebug() << "向量填充 - 填充行数: " << rowValueMap.size();
 
-    // 根据当前使用的是新轨道还是旧轨道选择不同的实现
-    if (m_useNewDataHandler)
-    {
-        // 使用新轨道的实现
-        fillVectorWithPatternNewTrack(rowValueMap, progress);
-    }
-    else
-    {
-        // 原来旧轨道的实现
-        fillVectorWithPatternOldTrack(rowValueMap);
-    }
-}
-
-// 新轨道实现的填充向量功能 - 使用RobustVectorDataHandler和Model/View架构
-void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValueMap, QProgressDialog *progress)
-{
-    qDebug() << "向量填充(新轨道) - 开始模式循环填充过程";
-
     // 获取当前选择的向量表
     int currentIndex = m_vectorTableSelector->currentIndex();
     if (currentIndex < 0)
     {
         QMessageBox::warning(this, tr("警告"), tr("请先选择一个向量表"));
-        qDebug() << "向量填充(新轨道) - 未选择向量表，操作取消";
+        qDebug() << "向量填充 - 未选择向量表，操作取消";
         return;
     }
 
     int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
     QString tableName = m_vectorTableSelector->currentText();
-    qDebug() << "向量填充(新轨道) - 当前向量表ID:" << tableId << ", 名称:" << tableName;
+    qDebug() << "向量填充 - 当前向量表ID:" << tableId << ", 名称:" << tableName;
 
-    // 获取选中的列
-    QModelIndexList selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
-    if (selectedIndexes.isEmpty())
-    {
-        QMessageBox::warning(this, tr("警告"), tr("请选择要填充的单元格"));
-        qDebug() << "向量填充(新轨道) - 未选择单元格，操作取消";
-        return;
-    }
+    // 根据当前使用的是新轨道还是旧轨道获取选中的列
+    QModelIndexList selectedIndexes;
+    int targetColumn = -1;
+    QString targetColumnName;
+    bool isUsingNewView = (m_vectorStackedWidget->currentIndex() == 1);
 
-    // 确保所有选中的单元格在同一列
-    int targetColumn = selectedIndexes.first().column();
-    bool sameColumn = true;
-    for (const QModelIndex &index : selectedIndexes)
+    if (isUsingNewView)
     {
-        if (index.column() != targetColumn)
+        // 新视图 (QTableView)
+        selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
+        if (!selectedIndexes.isEmpty())
         {
-            sameColumn = false;
-            break;
+            targetColumn = selectedIndexes.first().column();
+            targetColumnName = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
+            targetColumnName = targetColumnName.section('\n', 0, 0); // 如果是多行列标题，只取第一行
+        }
+    }
+    else
+    {
+        // 旧视图 (QTableWidget)
+        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
+        if (!selectedIndexes.isEmpty())
+        {
+            targetColumn = selectedIndexes.first().column();
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
+            QString headerText = headerItem ? headerItem->text() : "";
+            targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
         }
     }
 
-    if (!sameColumn)
+    if (selectedIndexes.isEmpty() || targetColumn < 0)
     {
-        QMessageBox::warning(this, tr("警告"), tr("请只选择同一列的单元格"));
-        qDebug() << "向量填充(新轨道) - 选择了多列单元格，操作取消";
+        QMessageBox::warning(this, tr("警告"), tr("请选择要填充的单元格"));
+        qDebug() << "向量填充 - 未选择单元格，操作取消";
         return;
     }
 
-    // 获取列名
-    QString targetColumnName = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
-    // 如果是多行列标题，只取第一行
-    targetColumnName = targetColumnName.section('\n', 0, 0);
-    qDebug() << "向量填充(新轨道) - 目标列名:" << targetColumnName;
-
-    // 方案一：延迟UI更新机制
-    // 1. 暂停UI更新
-    m_vectorTableView->setUpdatesEnabled(false);
-
-    // 2. 禁用选择变更信号
-    QSignalBlocker blocker(m_vectorTableView->selectionModel());
-
-    try
+    // 转换为QVariant映射
+    QMap<int, QVariant> variantMap;
+    for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
     {
-        // 获取当前向量表的所有列信息
-        QList<Vector::ColumnInfo> columns = m_robustDataHandler->getAllColumnInfo(tableId);
+        variantMap[it.key()] = QVariant(it.value());
+    }
 
-        // 找到目标列在列配置中的索引
-        int targetColumnIndex = -1;
+    // 根据当前使用的是新轨道还是旧轨道准备工作
+    int targetColumnIndex = -1;
+
+    if (m_useNewDataHandler)
+    {
+        // 新轨道获取列索引
+        QList<Vector::ColumnInfo> columns = m_robustDataHandler->getAllColumnInfo(tableId);
         for (int i = 0; i < columns.size(); i++)
         {
             if (columns[i].name == targetColumnName)
@@ -368,467 +358,346 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
                 break;
             }
         }
-
-        if (targetColumnIndex < 0)
-        {
-            throw std::runtime_error(QString("找不到对应列: %1").arg(targetColumnName).toStdString());
-        }
-
-        // 将字符串值映射转换为QVariant值映射
-        QMap<int, QVariant> rowVariantMap;
-        QMap<int, QString>::const_iterator it;
-        for (it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
-        {
-            rowVariantMap[it.key()] = QVariant(it.value());
-        }
-
-        // 使用传入的进度对话框而不是创建新的
-        QProgressDialog *progressDialog = progress;
-        bool usingExternalProgress = (progressDialog != nullptr);
-
-        // 如果没有传入进度对话框，则创建一个新的
-        if (!progressDialog)
-        {
-            progressDialog = new QProgressDialog("正在填充向量数据...", "取消", 0, 100, this);
-            progressDialog->setWindowModality(Qt::WindowModal);
-            progressDialog->setMinimumDuration(0); // 立即显示
-            progressDialog->show();
-        }
-        else
-        {
-            // 使用传入的进度对话框，更新文本
-            progressDialog->setLabelText("正在填充向量数据...");
-        }
-
-        // 确保UI已更新
-        QCoreApplication::processEvents();
-
-        // 连接进度信号
-        connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                progressDialog, &QProgressDialog::setValue);
-
-        // 使用优化版的批量更新方法（批量追加-批量索引更新模式）
-        QString errorMsg;
-        QElapsedTimer timer;
-        timer.start();
-
-        qDebug() << "向量填充(新轨道) - 开始使用批量追加-批量索引更新模式，行数：" << rowVariantMap.size();
-
-        if (!m_robustDataHandler->batchUpdateVectorColumnOptimized(tableId, targetColumnIndex, rowVariantMap, errorMsg))
-        {
-            qWarning() << "向量填充(新轨道) - 批量更新失败:" << errorMsg;
-            throw std::runtime_error(QString("填充失败: %1").arg(errorMsg).toStdString());
-        }
-
-        qDebug() << "向量填充(新轨道) - 批量追加-批量索引更新模式完成，耗时：" << timer.elapsed() << "ms";
-
-        // 断开进度信号连接
-        disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
-                   progressDialog, &QProgressDialog::setValue);
-
-        // 如果是我们创建的进度对话框，需要删除它
-        if (!usingExternalProgress)
-        {
-            delete progressDialog;
-        }
-
-        // 直接更新模型数据，而不是重新加载整个表
-        int currentPage = m_currentPage;
-        int pageSize = m_pageSize;
-
-        // 只加载当前页的数据，减少数据加载量
-        bool refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
-            tableId, m_vectorTableModel, currentPage, pageSize);
-
-        if (!refreshSuccess)
-        {
-            qWarning() << "向量填充(新轨道) - 刷新表格数据失败";
-        }
-
-        // 批量选中所有行（一次性操作，而不是逐行选中）
-        QItemSelection selection;
-        for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
-        {
-            int rowIdx = it.key();
-            // 检查行是否在当前页面
-            int pageOffset = currentPage * pageSize;
-
-            if (rowIdx >= pageOffset && rowIdx < pageOffset + pageSize)
-            {
-                // 将数据库索引转换为UI表格索引
-                int uiRowIdx = rowIdx - pageOffset;
-
-                // 添加到选择集合中
-                if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableModel->rowCount())
-                {
-                    QModelIndex index = m_vectorTableModel->index(uiRowIdx, targetColumn);
-                    selection.select(index, index);
-                }
-            }
-        }
-
-        // 3. 恢复UI更新（blocker在作用域结束时自动解除阻塞）
-        m_vectorTableView->setUpdatesEnabled(true);
-
-        // 4. 一次性设置选择状态，而不是逐行设置
-        m_vectorTableView->selectionModel()->select(selection, QItemSelectionModel::ClearAndSelect);
-
-        // 5. 自动执行全局刷新，确保所有数据和UI都更新到最新状态
-        qDebug() << "向量填充(新轨道) - 自动执行全局刷新";
-        refreshVectorTableData();
-
-        // 显示完成消息
-        QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-
-        qDebug() << "向量填充(新轨道) - 操作成功完成";
-    }
-    catch (const std::exception &e)
-    {
-        // 即使发生异常也要恢复UI更新
-        m_vectorTableView->setUpdatesEnabled(true);
-
-        // 尝试刷新表格，确保UI显示最新状态
-        try
-        {
-            qDebug() << "向量填充(新轨道) - 异常后尝试刷新表格";
-            refreshVectorTableData();
-        }
-        catch (...)
-        {
-            qWarning() << "向量填充(新轨道) - 异常后刷新表格失败";
-        }
-
-        QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
-        qDebug() << "向量填充(新轨道) - 异常:" << e.what();
-    }
-}
-
-// 旧轨道实现的填充向量功能 - 直接使用原有的实现代码
-void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap)
-{
-    qDebug() << "向量填充(旧轨道) - 开始模式循环填充过程";
-
-    // 获取当前选择的向量表
-    int currentIndex = m_vectorTableSelector->currentIndex();
-    if (currentIndex < 0)
-    {
-        QMessageBox::warning(this, tr("警告"), tr("请先选择一个向量表"));
-        qDebug() << "向量填充(旧轨道) - 未选择向量表，操作取消";
-        return;
-    }
-
-    int tableId = m_vectorTableSelector->itemData(currentIndex).toInt();
-    QString tableName = m_vectorTableSelector->currentText();
-    qDebug() << "向量填充(旧轨道) - 当前向量表ID:" << tableId << ", 名称:" << tableName;
-
-    // 获取选中的列 - 根据当前使用的视图
-    QModelIndexList selectedIndexes;
-    int targetColumn = -1;
-    bool isUsingNewView = (m_vectorStackedWidget->currentIndex() == 1);
-
-    if (isUsingNewView)
-    {
-        // 新视图 (QTableView)
-        selectedIndexes = m_vectorTableView->selectionModel()->selectedIndexes();
     }
     else
     {
-        // 旧视图 (QTableWidget)
-        selectedIndexes = m_vectorTableWidget->selectionModel()->selectedIndexes();
-    }
-
-    if (selectedIndexes.isEmpty())
-    {
-        QMessageBox::warning(this, tr("警告"), tr("请选择要填充的单元格"));
-        qDebug() << "向量填充(旧轨道) - 未选择单元格，操作取消";
-        return;
-    }
-
-    // 确保所有选中的单元格在同一列
-    targetColumn = selectedIndexes.first().column();
-    bool sameColumn = true;
-    for (const QModelIndex &index : selectedIndexes)
-    {
-        if (index.column() != targetColumn)
-        {
-            sameColumn = false;
-            break;
-        }
-    }
-
-    if (!sameColumn)
-    {
-        QMessageBox::warning(this, tr("警告"), tr("请只选择同一列的单元格"));
-        qDebug() << "向量填充(旧轨道) - 选择了多列单元格，操作取消";
-        return;
-    }
-
-    // 获取数据库连接
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        QMessageBox::critical(this, tr("错误"), tr("数据库连接失败"));
-        qDebug() << "向量填充(旧轨道)失败 - 数据库连接失败";
-        return;
-    }
-
-    // 开始事务
-    db.transaction();
-
-    try
-    {
-        // 1. 查询表对应的二进制文件路径
-        QSqlQuery fileQuery(db);
-        fileQuery.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
-        fileQuery.addBindValue(tableId);
-        if (!fileQuery.exec() || !fileQuery.next())
-        {
-            QString errorText = fileQuery.lastError().text();
-            qDebug() << "向量填充(旧轨道) - 查询二进制文件名失败:" << errorText;
-            throw std::runtime_error(("查询二进制文件名失败: " + errorText).toStdString());
-        }
-
-        QString binFileName = fileQuery.value(0).toString();
-        if (binFileName.isEmpty())
-        {
-            qDebug() << "向量填充(旧轨道) - 二进制文件名为空，无法进行填充操作";
-            throw std::runtime_error("向量表未配置二进制文件存储，无法进行填充操作");
-        }
-
-        // 2. 解析二进制文件路径
-        // 使用PathUtils获取项目二进制数据目录
-        QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
-        if (projectBinaryDataDir.isEmpty())
-        {
-            QString errorMsg = QString("无法为数据库 '%1' 生成二进制数据目录路径").arg(m_currentDbPath);
-            qWarning() << "向量填充(旧轨道) - " << errorMsg;
-            throw std::runtime_error(errorMsg.toStdString());
-        }
-
-        qDebug() << "向量填充(旧轨道) - 项目二进制数据目录:" << projectBinaryDataDir;
-
-        // 相对路径转绝对路径
-        QString absoluteBinFilePath;
-        if (QFileInfo(binFileName).isRelative())
-        {
-            absoluteBinFilePath = QDir(projectBinaryDataDir).absoluteFilePath(binFileName);
-            qDebug() << "向量填充(旧轨道) - 相对路径转换为绝对路径:" << binFileName << " -> " << absoluteBinFilePath;
-        }
-        else
-        {
-            absoluteBinFilePath = binFileName;
-        }
-
-        // 3. 检查二进制文件是否存在
-        if (!QFile::exists(absoluteBinFilePath))
-        {
-            qWarning() << "向量填充(旧轨道) - 二进制文件不存在:" << absoluteBinFilePath;
-            throw std::runtime_error(("二进制文件不存在: " + absoluteBinFilePath).toStdString());
-        }
-
-        // 4. 查询列定义，找出对应UI列的数据库列
-        QSqlQuery colQuery(db);
-        colQuery.prepare("SELECT id, column_name, column_order, column_type "
-                         "FROM VectorTableColumnConfiguration "
-                         "WHERE master_record_id = ? ORDER BY column_order");
-        colQuery.addBindValue(tableId);
-
-        if (!colQuery.exec())
-        {
-            QString errorText = colQuery.lastError().text();
-            qDebug() << "向量填充(旧轨道) - 查询列配置失败:" << errorText;
-            throw std::runtime_error(("查询列配置失败: " + errorText).toStdString());
-        }
-
-        // 收集列信息
-        QList<Vector::ColumnInfo> columns;
-        while (colQuery.next())
-        {
-            Vector::ColumnInfo col;
-            col.id = colQuery.value(0).toInt();
-            col.name = colQuery.value(1).toString();
-            col.order = colQuery.value(2).toInt();
-            col.type = Vector::columnDataTypeFromString(colQuery.value(3).toString());
-
-            columns.append(col);
-        }
-
-        // 5. 打开二进制文件进行操作
-        QFile file(absoluteBinFilePath);
-        if (!file.open(QIODevice::ReadWrite))
-        {
-            qWarning() << "向量填充(旧轨道) - 无法打开二进制文件:" << absoluteBinFilePath;
-            throw std::runtime_error(("无法打开二进制文件: " + absoluteBinFilePath).toStdString());
-        }
-
-        // 记录UI表头列名和实际二进制文件列之间的映射关系
-        int targetBinaryColumn = -1;
-        QString targetColumnName;
-
-        // 根据当前视图获取列标题
-        if (isUsingNewView)
-        {
-            // 新视图 (QTableView)
-            targetColumnName = m_vectorTableModel->headerData(targetColumn, Qt::Horizontal).toString();
-            // 如果是多行列标题，只取第一行
-            targetColumnName = targetColumnName.section('\n', 0, 0);
-        }
-        else
-        {
-            // 旧视图 (QTableWidget)
-            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(targetColumn);
-            QString headerText = headerItem ? headerItem->text() : "";
-            targetColumnName = headerText.section('\n', 0, 0); // 获取第一行作为列名
-        }
-
-        qDebug() << "向量填充(旧轨道) - 目标列名 (处理后):" << targetColumnName;
-
+        // 旧轨道获取列索引
+        QList<Vector::ColumnInfo> columns = VectorDataHandler::instance().getAllColumnInfo(tableId);
         for (int i = 0; i < columns.size(); i++)
         {
             if (columns[i].name == targetColumnName)
             {
-                targetBinaryColumn = i;
+                targetColumnIndex = i;
                 break;
             }
         }
+    }
 
-        if (targetBinaryColumn < 0)
+    if (targetColumnIndex < 0)
+    {
+        QMessageBox::warning(this, tr("错误"), tr("找不到对应列: %1").arg(targetColumnName));
+        qDebug() << "向量填充 - 找不到对应列:" << targetColumnName;
+        return;
+    }
+
+    // 确保进度对话框可用且设置正确
+    bool usingExternalProgress = (progress != nullptr);
+    QProgressDialog *progressDialog = progress;
+    
+    if (!progressDialog)
+    {
+        progressDialog = new QProgressDialog("正在填充向量数据...", "取消", 0, 100, this);
+        progressDialog->setWindowModality(Qt::WindowModal);
+        progressDialog->setMinimumDuration(0); // 立即显示
+        progressDialog->show();
+    }
+    else
+    {
+        // 使用传入的进度对话框，更新文本
+        progressDialog->setLabelText("正在填充向量数据...");
+    }
+    
+    // 确保UI已更新
+    QCoreApplication::processEvents();
+
+    // 创建FutureWatcher监视异步操作
+    using ResultType = QPair<bool, QString>; // 第一个是成功标志，第二个是错误消息
+    QFutureWatcher<ResultType> *watcher = new QFutureWatcher<ResultType>(this);
+
+    // 连接信号
+    connect(watcher, &QFutureWatcher<ResultType>::finished, this, [this, watcher, progressDialog, usingExternalProgress, isUsingNewView]() {
+        // 获取结果
+        ResultType result = watcher->result();
+        bool success = result.first;
+        QString errorMsg = result.second;
+
+        if (success)
         {
-            qWarning() << "向量填充(旧轨道) - 找不到对应列:" << targetColumnName;
-            throw std::runtime_error(("找不到对应列: " + targetColumnName).toStdString());
-        }
-
-        // 6. 循环读取和修改每一行
-        QList<Vector::RowData> allRows;
-        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, 1, allRows))
-        {
-            qWarning() << "向量填充(旧轨道) - 读取二进制数据失败";
-            throw std::runtime_error("读取二进制数据失败");
-        }
-
-        // 对每一个需要更新的行，应用模式值
-        QMap<int, QString>::const_iterator it;
-        for (it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
-        {
-            int rowIdx = it.key();
-            QString value = it.value();
-
-            // 确保行索引有效
-            if (rowIdx >= 0 && rowIdx < allRows.size())
-            {
-                // 修改数据
-                QVariant newValue(value);
-
-                // 确保列索引有效
-                if (targetBinaryColumn < allRows[rowIdx].size())
-                {
-                    // 更新数据
-                    allRows[rowIdx][targetBinaryColumn] = newValue;
-                    qDebug() << "向量填充(旧轨道) - 设置行" << rowIdx << "列" << targetBinaryColumn << "的值为" << value;
-                }
-                else
-                {
-                    qWarning() << "向量填充(旧轨道) - 列索引超出范围:" << targetBinaryColumn;
-                }
-            }
-            else
-            {
-                qWarning() << "向量填充(旧轨道) - 行索引超出范围:" << rowIdx;
-            }
-        }
-
-        // 回写到二进制文件
-        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, 1, allRows))
-        {
-            qWarning() << "向量填充(旧轨道) - 写入二进制数据失败";
-            throw std::runtime_error("写入二进制数据失败");
-        }
-
-        // 提交事务
-        db.commit();
-
-        // 刷新表格显示
-        int currentPage = m_currentPage;
-
-        // 根据当前视图刷新表格
-        bool refreshSuccess = false;
-        if (isUsingNewView)
-        {
-            // 新视图 (QTableView)
-            if (m_useNewDataHandler)
-            {
-                refreshSuccess = m_robustDataHandler->loadVectorTablePageDataForModel(
-                    tableId, m_vectorTableModel, currentPage, m_pageSize);
-            }
-            else
-            {
-                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageDataForModel(
-                    tableId, m_vectorTableModel, currentPage, m_pageSize);
-            }
+            // 刷新表格显示
+            refreshVectorTableData();
+            QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
+            qDebug() << "向量填充 - 操作成功完成";
         }
         else
         {
-            // 旧视图 (QTableWidget)
-            if (m_useNewDataHandler)
+            QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(errorMsg));
+            qDebug() << "向量填充 - 异常:" << errorMsg;
+            
+            // 即使失败也尝试刷新表格，确保UI显示最新状态
+            try
             {
-                refreshSuccess = m_robustDataHandler->loadVectorTablePageData(
-                    tableId, m_vectorTableWidget, currentPage, m_pageSize);
+                refreshVectorTableData();
             }
-            else
+            catch (...)
             {
-                refreshSuccess = VectorDataHandler::instance().loadVectorTablePageData(
-                    tableId, m_vectorTableWidget, currentPage, m_pageSize);
+                qWarning() << "向量填充 - 异常后刷新表格失败";
             }
         }
 
-        if (!refreshSuccess)
+        // 如果是我们创建的进度对话框，需要删除它
+        if (!usingExternalProgress && progressDialog)
         {
-            qWarning() << "向量填充(旧轨道) - 刷新表格数据失败";
+            progressDialog->setValue(100); // 确保进度条显示完成
+            progressDialog->deleteLater();
         }
 
-        // 选中原来的行
-        for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
-        {
-            int rowIdx = it.key();
-            // 检查行是否在当前页面
-            int pageSize = m_pageSize;
-            int pageOffset = currentPage * pageSize;
+        // 释放watcher资源
+        watcher->deleteLater();
+    });
 
-            if (rowIdx >= pageOffset && rowIdx < pageOffset + pageSize)
-            {
-                // 将数据库索引转换为UI表格索引
-                int uiRowIdx = rowIdx - pageOffset;
-
-                if (isUsingNewView)
-                {
-                    // 新视图选中行和列
-                    if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableModel->rowCount())
-                    {
-                        QModelIndex index = m_vectorTableModel->index(uiRowIdx, targetColumn);
-                        m_vectorTableView->selectionModel()->select(index, QItemSelectionModel::Select);
-                    }
-                }
-                else
-                {
-                    // 旧视图选中行和列
-                    if (uiRowIdx >= 0 && uiRowIdx < m_vectorTableWidget->rowCount())
-                    {
-                        QModelIndex index = m_vectorTableWidget->model()->index(uiRowIdx, targetColumn);
-                        m_vectorTableWidget->selectionModel()->select(index, QItemSelectionModel::Select);
-                    }
-                }
-            }
-        }
-
-        QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
-        qDebug() << "向量填充(旧轨道) - 操作成功完成";
-    }
-    catch (const std::exception &e)
+    // 启动并发任务
+    if (m_useNewDataHandler)
     {
-        // 回滚事务
-        db.rollback();
-        QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
-        qDebug() << "向量填充(旧轨道) - 异常:" << e.what();
+        // 创建一个中间对象用于在后台线程中转发信号
+        QObject *signalProxy = new QObject();
+        
+        // 使用新轨道的异步实现
+        QFuture<ResultType> future = QtConcurrent::run(
+            [this, tableId, targetColumnIndex, variantMap, signalProxy, progressDialog]() -> ResultType {
+                QString errorMsg;
+                
+                // 在工作线程中连接信号
+                QObject::connect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
+                                progressDialog, &QProgressDialog::setValue, Qt::BlockingQueuedConnection);
+                
+                // 执行批量更新
+                bool success = m_robustDataHandler->batchUpdateVectorColumnOptimized(
+                    tableId, targetColumnIndex, variantMap, errorMsg);
+                
+                // 断开信号连接
+                QObject::disconnect(m_robustDataHandler, &RobustVectorDataHandler::progressUpdated,
+                                   progressDialog, &QProgressDialog::setValue);
+                
+                // 清理资源
+                signalProxy->deleteLater();
+                
+                return qMakePair(success, errorMsg);
+            }
+        );
+        
+        // 设置监视器
+        watcher->setFuture(future);
+    }
+    else
+    {
+        // 使用旧轨道的异步实现
+        QFuture<ResultType> future = QtConcurrent::run(
+            [this, tableId, targetColumnIndex, variantMap, targetColumnName, progressDialog]() -> ResultType {
+                try
+                {
+                    // 设置初始进度
+                    if (progressDialog) {
+                        QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                Q_ARG(int, 10));
+                    }
+                    
+                    // 获取数据库连接
+                    QSqlDatabase db = DatabaseManager::instance()->database();
+                    if (!db.isOpen())
+                    {
+                        return qMakePair(false, QString("数据库连接失败"));
+                    }
+
+                    // 开始事务
+                    db.transaction();
+
+                    try
+                    {
+                        // 设置准备阶段进度
+                        if (progressDialog) {
+                            QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                    Q_ARG(int, 20));
+                        }
+                        
+                        // 旧轨道的批量更新逻辑（参照原来的实现）
+                        // 查询表对应的二进制文件路径...
+                        // 以下是原来fillVectorWithPatternOldTrack的核心逻辑，移除UI交互部分
+                        
+                        // 1. 查询表对应的二进制文件路径
+                        QSqlQuery fileQuery(db);
+                        fileQuery.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
+                        fileQuery.addBindValue(tableId);
+                        if (!fileQuery.exec() || !fileQuery.next())
+                        {
+                            QString errorText = fileQuery.lastError().text();
+                            throw std::runtime_error(("查询二进制文件名失败: " + errorText).toStdString());
+                        }
+
+                        QString binFileName = fileQuery.value(0).toString();
+                        if (binFileName.isEmpty())
+                        {
+                            throw std::runtime_error("向量表未配置二进制文件存储，无法进行填充操作");
+                        }
+
+                        // 2. 解析二进制文件路径
+                        // 使用PathUtils获取项目二进制数据目录
+                        QString projectBinaryDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(m_currentDbPath);
+                        if (projectBinaryDataDir.isEmpty())
+                        {
+                            QString errorMsg = QString("无法为数据库 '%1' 生成二进制数据目录路径").arg(m_currentDbPath);
+                            throw std::runtime_error(errorMsg.toStdString());
+                        }
+
+                        // 相对路径转绝对路径
+                        QString absoluteBinFilePath;
+                        if (QFileInfo(binFileName).isRelative())
+                        {
+                            absoluteBinFilePath = QDir(projectBinaryDataDir).absoluteFilePath(binFileName);
+                        }
+                        else
+                        {
+                            absoluteBinFilePath = binFileName;
+                        }
+
+                        // 3. 检查二进制文件是否存在
+                        if (!QFile::exists(absoluteBinFilePath))
+                        {
+                            throw std::runtime_error(("二进制文件不存在: " + absoluteBinFilePath).toStdString());
+                        }
+
+                        // 4. 查询列定义，找出对应UI列的数据库列
+                        QSqlQuery colQuery(db);
+                        colQuery.prepare("SELECT id, column_name, column_order, column_type "
+                                        "FROM VectorTableColumnConfiguration "
+                                        "WHERE master_record_id = ? ORDER BY column_order");
+                        colQuery.addBindValue(tableId);
+
+                        if (!colQuery.exec())
+                        {
+                            QString errorText = colQuery.lastError().text();
+                            throw std::runtime_error(("查询列配置失败: " + errorText).toStdString());
+                        }
+
+                        // 收集列信息
+                        QList<Vector::ColumnInfo> columns;
+                        while (colQuery.next())
+                        {
+                            Vector::ColumnInfo col;
+                            col.id = colQuery.value(0).toInt();
+                            col.name = colQuery.value(1).toString();
+                            col.order = colQuery.value(2).toInt();
+                            col.type = Vector::columnDataTypeFromString(colQuery.value(3).toString());
+
+                            columns.append(col);
+                        }
+
+                        // 5. 打开二进制文件进行操作
+                        QFile file(absoluteBinFilePath);
+                        if (!file.open(QIODevice::ReadWrite))
+                        {
+                            throw std::runtime_error(("无法打开二进制文件: " + absoluteBinFilePath).toStdString());
+                        }
+
+                        // 记录UI表头列名和实际二进制文件列之间的映射关系
+                        int targetBinaryColumn = -1;
+
+                        for (int i = 0; i < columns.size(); i++)
+                        {
+                            if (columns[i].name == targetColumnName)
+                            {
+                                targetBinaryColumn = i;
+                                break;
+                            }
+                        }
+
+                        if (targetBinaryColumn < 0)
+                        {
+                            throw std::runtime_error(("找不到对应列: " + targetColumnName).toStdString());
+                        }
+
+                        // 6. 循环读取和修改每一行
+                        QList<Vector::RowData> allRows;
+                        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, 1, allRows))
+                        {
+                            throw std::runtime_error("读取二进制数据失败");
+                        }
+
+                        // 设置读取完成进度
+                        if (progressDialog) {
+                            QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                   Q_ARG(int, 40));
+                        }
+
+                        // 对每一个需要更新的行，应用模式值
+                        QMap<int, QVariant>::const_iterator it;
+                        int processedRows = 0;
+                        int totalRows = variantMap.size();
+                        
+                        for (it = variantMap.begin(); it != variantMap.end(); ++it)
+                        {
+                            int rowIdx = it.key();
+                            QVariant value = it.value();
+
+                            // 确保行索引有效
+                            if (rowIdx >= 0 && rowIdx < allRows.size())
+                            {
+                                // 确保列索引有效
+                                if (targetBinaryColumn < allRows[rowIdx].size())
+                                {
+                                    // 更新数据
+                                    allRows[rowIdx][targetBinaryColumn] = value;
+                                }
+                            }
+                            
+                            // 每处理100行更新一次进度
+                            processedRows++;
+                            if (processedRows % 100 == 0 || processedRows == totalRows) {
+                                int percentage = 40 + (processedRows * 30) / totalRows;
+                                if (progressDialog) {
+                                    QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                           Q_ARG(int, percentage));
+                                }
+                            }
+                        }
+
+                        // 设置写入前进度
+                        if (progressDialog) {
+                            QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                   Q_ARG(int, 70));
+                        }
+
+                        // 回写到二进制文件
+                        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, 1, allRows))
+                        {
+                            throw std::runtime_error("写入二进制数据失败");
+                        }
+
+                        // 设置完成进度
+                        if (progressDialog) {
+                            QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
+                                                   Q_ARG(int, 100));
+                        }
+
+                        // 提交事务
+                        db.commit();
+                        return qMakePair(true, QString());
+                    }
+                    catch (const std::exception &e)
+                    {
+                        // 回滚事务
+                        db.rollback();
+                        return qMakePair(false, QString(e.what()));
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    return qMakePair(false, QString(e.what()));
+                }
+            }
+        );
+        
+        // 设置监视器
+        watcher->setFuture(future);
+    }
+
+    // 连接进度条取消按钮（可选，取决于你的需求）
+    if (progressDialog)
+    {
+        // 注意：QtConcurrent任务不能轻易取消，所以这里只是关闭进度对话框
+        connect(progressDialog, &QProgressDialog::canceled, [progressDialog]() {
+            progressDialog->setLabelText("正在完成当前操作，请稍候...");
+            progressDialog->setCancelButton(nullptr); // 禁用取消按钮
+        });
     }
 }
 
@@ -843,22 +712,21 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
         rowValueMap[row] = value;
     }
 
-    // 只有新轨道才需要进度对话框
-    if (m_useNewDataHandler)
-    {
-        // 创建进度对话框
-        QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
-        progress.setWindowModality(Qt::WindowModal);
-        progress.setMinimumDuration(0); // 立即显示
-        progress.show();
-        QCoreApplication::processEvents(); // 确保UI更新
+    // 创建进度对话框
+    QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(0); // 立即显示
+    progress.show();
+    QCoreApplication::processEvents(); // 确保UI更新
 
-        // 调用模式填充方法，传递进度对话框
-        fillVectorWithPattern(rowValueMap, &progress);
-    }
-    else
-    {
-        // 旧轨道不使用进度对话框
-        fillVectorWithPattern(rowValueMap);
+    // 调用通用的填充方法，并传递进度对话框
+    fillVectorWithPattern(rowValueMap, &progress);
+}
+
+// 用于连接RobustVectorDataHandler的进度信号到其他对象
+void MainWindow::connectProgressSignal(RobustVectorDataHandler *handler, QObject *receiver, const char *slot)
+{
+    if (handler && receiver) {
+        QObject::connect(handler, SIGNAL(progressUpdated(int)), receiver, slot);
     }
 }
