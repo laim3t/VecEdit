@@ -11,6 +11,7 @@
 #include <QMap>   // 添加QMap用于缓存结构
 #include <QMutex> // 添加QMutex用于线程安全
 #include "vector/vector_data_types.h"
+#include <QProgressDialog>
 
 // Forward declarations for placeholder types (replace with actual types later)
 // class MemoryRowObject; // Placeholder for the actual C++ data structure for a row
@@ -183,6 +184,31 @@ namespace Persistence
                                              const QList<Vector::ColumnInfo> &columns,
                                              int schemaVersion,
                                              const QMap<int, Vector::RowData> &modifiedRows);
+
+        /**
+         * @brief 强健的增量更新实现，针对单列数据更新的特殊优化版本
+         *
+         * 这个版本专门用于向量填充场景，针对单列数据批量更新进行了优化
+         * 可以接收QProgressDialog参数用于显示进度
+         *
+         * @param binFilePath 二进制文件路径
+         * @param columns 列定义信息
+         * @param schemaVersion 数据库Schema版本
+         * @param rowValueMap 行索引到值的映射，键是行索引，值是新的列值
+         * @param targetColumnIndex 要更新的目标列索引
+         * @param progressDialog 进度对话框指针，用于显示进度（可为nullptr）
+         * @param progressStart 进度开始值（默认为0）
+         * @param progressEnd 进度结束值（默认为100）
+         * @return bool 操作是否成功
+         */
+        static bool robustUpdateRowsInBinary(const QString &binFilePath,
+                                             const QList<Vector::ColumnInfo> &columns,
+                                             int schemaVersion,
+                                             const QMap<int, QVariant> &rowValueMap,
+                                             int targetColumnIndex,
+                                             QProgressDialog *progressDialog = nullptr,
+                                             int progressStart = 0,
+                                             int progressEnd = 100);
 
         /**
          * @brief 清除指定文件的行偏移缓存

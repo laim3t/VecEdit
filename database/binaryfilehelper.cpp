@@ -18,6 +18,8 @@
 #include "common/binary_file_format.h" // For Header struct
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QProgressDialog>
+#include <QCoreApplication>
 
 // 初始化静态成员
 QMap<QString, Persistence::BinaryFileHelper::RowOffsetCache> Persistence::BinaryFileHelper::s_fileRowOffsetCache;
@@ -658,5 +660,291 @@ namespace Persistence
         qDebug() << funcName << " - 读取完成，成功反序列化" << pageRows.size() << "行。";
 
         return true;
+    }
+
+    bool Persistence::BinaryFileHelper::robustUpdateRowsInBinary(
+        const QString &binFilePath,
+        const QList<Vector::ColumnInfo> &columns,
+        int schemaVersion,
+        const QMap<int, QVariant> &rowValueMap,
+        int targetColumnIndex,
+        QProgressDialog *progressDialog,
+        int progressStart,
+        int progressEnd)
+    {
+        const QString funcName = "BinaryFileHelper::robustUpdateRowsInBinary[SingleColumn]";
+        qDebug() << funcName << " - 开始针对单列数据的批量更新";
+
+        // 检查参数有效性
+        if (binFilePath.isEmpty())
+        {
+            qWarning() << funcName << " - 无效的二进制文件路径";
+            return false;
+        }
+
+        if (columns.isEmpty())
+        {
+            qWarning() << funcName << " - 列定义为空";
+            return false;
+        }
+
+        if (targetColumnIndex < 0 || targetColumnIndex >= columns.size())
+        {
+            qWarning() << funcName << " - 无效的目标列索引:" << targetColumnIndex;
+            return false;
+        }
+
+        if (rowValueMap.isEmpty())
+        {
+            qDebug() << funcName << " - 没有需要更新的行数据";
+            return true; // 无需更新，视为成功
+        }
+
+        // 用于记录性能数据
+        QElapsedTimer totalTimer;
+        totalTimer.start();
+
+        // 打开文件
+        QFile file(binFilePath);
+        if (!file.open(QIODevice::ReadWrite))
+        {
+            qWarning() << funcName << " - 无法打开文件:" << binFilePath;
+            return false;
+        }
+
+        // 验证文件头
+        Persistence::HeaderData headerData;
+        if (!readAndValidateHeader(file, headerData, schemaVersion))
+        {
+            qWarning() << funcName << " - 文件头验证失败";
+            file.close();
+            return false;
+        }
+
+        // 初始化进度
+        if (progressDialog)
+        {
+            progressDialog->setRange(progressStart, progressEnd);
+            progressDialog->setValue(progressStart);
+            progressDialog->setLabelText("正在索引数据位置...");
+            QCoreApplication::processEvents();
+        }
+
+        // 构建行位置映射表
+        QMap<int, qint64> rowPositions;
+        int totalRows = headerData.row_count;
+
+        // 前进到第一个数据行的位置（跳过头部）
+        file.seek(sizeof(BinaryFileHeader));
+
+        // 循环读取每一行的位置和大小
+        int currentProgress = progressStart;
+        int progressRange = progressEnd - progressStart;
+        int prevProgress = currentProgress;
+
+        for (int rowIdx = 0; rowIdx < totalRows; ++rowIdx)
+        {
+            qint64 rowPos = file.pos();
+
+            // 读取行大小
+            quint32 rowSize = 0;
+            QDataStream sizeStream(&file);
+            sizeStream.setByteOrder(QDataStream::LittleEndian);
+            sizeStream >> rowSize;
+
+            if (rowSize == 0 || rowSize > 1024 * 1024) // 1MB是合理的最大行大小
+            {
+                qWarning() << funcName << " - 无效的行大小:" << rowSize << "，行:" << rowIdx;
+                continue;
+            }
+
+            // 记录行位置（指向数据区域，不包含大小字段）
+            rowPositions[rowIdx] = rowPos;
+
+            // 跳过行数据
+            file.seek(file.pos() + rowSize);
+
+            // 更新进度
+            if (progressDialog && rowIdx % 1000 == 0)
+            {
+                currentProgress = progressStart + (rowIdx * progressRange * 0.5) / totalRows;
+                if (currentProgress != prevProgress)
+                {
+                    progressDialog->setValue(currentProgress);
+                    progressDialog->setLabelText(QString("正在索引数据位置... (%1/%2)").arg(rowIdx).arg(totalRows));
+                    QCoreApplication::processEvents();
+                    prevProgress = currentProgress;
+
+                    // 检查取消
+                    if (progressDialog->wasCanceled())
+                    {
+                        qDebug() << funcName << " - 用户取消操作";
+                        file.close();
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // 开始批量更新操作
+        if (progressDialog)
+        {
+            progressDialog->setValue(progressStart + progressRange * 0.5);
+            progressDialog->setLabelText("正在批量更新数据...");
+            QCoreApplication::processEvents();
+        }
+
+        // 在文件末尾准备追加新数据
+        qint64 appendPos = file.size();
+        file.seek(appendPos);
+
+        // 记录更新情况
+        int successCount = 0;
+        int failCount = 0;
+        int processedCount = 0;
+        int totalToUpdate = rowValueMap.size();
+
+        // 对每一行进行处理
+        for (auto it = rowValueMap.constBegin(); it != rowValueMap.constEnd(); ++it)
+        {
+            int rowIdx = it.key();
+            QVariant newValue = it.value();
+
+            processedCount++;
+
+            // 跳过不存在的行
+            if (!rowPositions.contains(rowIdx))
+            {
+                qWarning() << funcName << " - 找不到行索引:" << rowIdx;
+                failCount++;
+                continue;
+            }
+
+            // 定位到行位置
+            qint64 rowPos = rowPositions[rowIdx];
+            file.seek(rowPos);
+
+            // 读取行大小
+            quint32 rowSize = 0;
+            QDataStream sizeStream(&file);
+            sizeStream.setByteOrder(QDataStream::LittleEndian);
+            sizeStream >> rowSize;
+
+            // 读取行数据
+            QByteArray rowBytes = file.read(rowSize);
+            if (rowBytes.size() != rowSize)
+            {
+                qWarning() << funcName << " - 读取行数据失败，行:" << rowIdx;
+                failCount++;
+                continue;
+            }
+
+            // 反序列化行数据
+            Vector::RowData rowData;
+            if (!deserializeRow(rowBytes, columns, schemaVersion, rowData))
+            {
+                qWarning() << funcName << " - 反序列化行数据失败，行:" << rowIdx;
+                failCount++;
+                continue;
+            }
+
+            // 确保行数据大小正确
+            while (rowData.size() <= targetColumnIndex)
+            {
+                rowData.append(QVariant());
+            }
+
+            // 更新目标列的值
+            rowData[targetColumnIndex] = newValue;
+
+            // 序列化修改后的行数据
+            QByteArray newRowBytes;
+            if (!serializeRow(rowData, columns, newRowBytes))
+            {
+                qWarning() << funcName << " - 序列化行数据失败，行:" << rowIdx;
+                failCount++;
+                continue;
+            }
+
+            // 获取新的行大小
+            quint32 newRowSize = newRowBytes.size();
+
+            // 检查是否可以原地更新
+            if (newRowSize <= rowSize)
+            {
+                // 可以原地更新
+                file.seek(rowPos);
+                QDataStream outStream(&file);
+                outStream.setByteOrder(QDataStream::LittleEndian);
+                outStream << newRowSize;
+
+                if (file.write(newRowBytes) != newRowSize)
+                {
+                    qWarning() << funcName << " - 写入行数据失败，行:" << rowIdx;
+                    failCount++;
+                    continue;
+                }
+            }
+            else
+            {
+                // 需要追加到文件末尾并更新重定位标记
+                qint64 newRowPos = appendPos;
+
+                // 将新数据追加到文件末尾
+                file.seek(newRowPos);
+                QDataStream outStream(&file);
+                outStream.setByteOrder(QDataStream::LittleEndian);
+                outStream << newRowSize;
+
+                if (file.write(newRowBytes) != newRowSize)
+                {
+                    qWarning() << funcName << " - 追加行数据失败，行:" << rowIdx;
+                    failCount++;
+                    continue;
+                }
+
+                // 更新重定位标记
+                file.seek(rowPos);
+                outStream.setDevice(&file);
+
+                // 写入重定位标记(0xFFFFFFFF)
+                quint32 relocMarker = 0xFFFFFFFF;
+                outStream << relocMarker;
+
+                // 写入新位置
+                qint64 newPosValue = newRowPos;
+                outStream << newPosValue;
+
+                // 更新追加位置
+                appendPos = file.size();
+            }
+
+            successCount++;
+
+            // 更新进度
+            if (progressDialog && (processedCount % 100 == 0 || processedCount == totalToUpdate))
+            {
+                int currentProgress = progressStart + progressRange * 0.5 +
+                                      (processedCount * progressRange * 0.5) / totalToUpdate;
+                progressDialog->setValue(currentProgress);
+                progressDialog->setLabelText(QString("正在更新数据... (%1/%2)").arg(processedCount).arg(totalToUpdate));
+                QCoreApplication::processEvents();
+
+                // 检查取消
+                if (progressDialog->wasCanceled())
+                {
+                    qDebug() << funcName << " - 用户取消操作";
+                    file.close();
+                    return false;
+                }
+            }
+        }
+
+        file.close();
+
+        qDebug() << funcName << " - 批量更新完成，成功:" << successCount << "，失败:" << failCount
+                 << "，总耗时:" << totalTimer.elapsed() << "ms";
+
+        return successCount > 0;
     }
 } // namespace Persistence
