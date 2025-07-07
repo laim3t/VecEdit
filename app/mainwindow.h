@@ -147,7 +147,7 @@ private slots:
     void showFillVectorDialog();
     void fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
     void fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
-    void fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
+    void fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap);
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
 
     // 填充TimeSet

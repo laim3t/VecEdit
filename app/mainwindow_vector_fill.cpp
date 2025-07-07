@@ -274,7 +274,7 @@ void MainWindow::showFillVectorDialog()
 }
 
 // 使用模式对向量表进行循环填充
-void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr)
+void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress)
 {
     qDebug() << "向量填充 - 开始模式循环填充过程";
 
@@ -290,7 +290,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     else
     {
         // 原来旧轨道的实现
-        fillVectorWithPatternOldTrack(rowValueMap, progress);
+        fillVectorWithPatternOldTrack(rowValueMap);
     }
 }
 
@@ -504,7 +504,7 @@ void MainWindow::fillVectorWithPatternNewTrack(const QMap<int, QString> &rowValu
 }
 
 // 旧轨道实现的填充向量功能 - 直接使用原有的实现代码
-void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap, QProgressDialog *progress)
+void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValueMap)
 {
     qDebug() << "向量填充(旧轨道) - 开始模式循环填充过程";
 
@@ -563,35 +563,12 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
         return;
     }
 
-    // 使用或创建进度对话框
-    QProgressDialog *progressDialog = progress;
-    bool usingExternalProgress = (progressDialog != nullptr);
-
-    if (!progressDialog)
-    {
-        progressDialog = new QProgressDialog("正在填充向量数据...", "取消", 0, 100, this);
-        progressDialog->setWindowModality(Qt::WindowModal);
-        progressDialog->setMinimumDuration(0); // 立即显示
-        progressDialog->show();
-    }
-    else
-    {
-        // 使用传入的进度对话框，更新文本
-        progressDialog->setLabelText("正在处理向量数据...");
-        progressDialog->setValue(15); // 更新进度
-    }
-
-    // 确保UI已更新
-    QCoreApplication::processEvents();
-
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
     if (!db.isOpen())
     {
         QMessageBox::critical(this, tr("错误"), tr("数据库连接失败"));
         qDebug() << "向量填充(旧轨道)失败 - 数据库连接失败";
-        if (!usingExternalProgress)
-            delete progressDialog;
         return;
     }
 
@@ -600,11 +577,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
 
     try
     {
-        // 更新进度
-        progressDialog->setLabelText("正在查询数据...");
-        progressDialog->setValue(20);
-        QCoreApplication::processEvents();
-
         // 1. 查询表对应的二进制文件路径
         QSqlQuery fileQuery(db);
         fileQuery.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
@@ -654,11 +626,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
             throw std::runtime_error(("二进制文件不存在: " + absoluteBinFilePath).toStdString());
         }
 
-        // 更新进度
-        progressDialog->setLabelText("正在查询列信息...");
-        progressDialog->setValue(25);
-        QCoreApplication::processEvents();
-
         // 4. 查询列定义，找出对应UI列的数据库列
         QSqlQuery colQuery(db);
         colQuery.prepare("SELECT id, column_name, column_order, column_type "
@@ -685,11 +652,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
 
             columns.append(col);
         }
-
-        // 更新进度
-        progressDialog->setLabelText("正在打开数据文件...");
-        progressDialog->setValue(30);
-        QCoreApplication::processEvents();
 
         // 5. 打开二进制文件进行操作
         QFile file(absoluteBinFilePath);
@@ -736,36 +698,51 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
             throw std::runtime_error(("找不到对应列: " + targetColumnName).toStdString());
         }
 
-        // 更新进度
-        progressDialog->setLabelText("正在准备批量更新...");
-        progressDialog->setValue(35);
-        QCoreApplication::processEvents();
-
-        // 性能优化：使用新轨道的批量更新逻辑
-        // 将字符串值映射转换为QVariant值映射
-        QMap<int, QVariant> rowVariantMap;
-        for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
+        // 6. 循环读取和修改每一行
+        QList<Vector::RowData> allRows;
+        if (!Persistence::BinaryFileHelper::readAllRowsFromBinary(absoluteBinFilePath, columns, 1, allRows))
         {
-            rowVariantMap[it.key()] = QVariant(it.value());
+            qWarning() << "向量填充(旧轨道) - 读取二进制数据失败";
+            throw std::runtime_error("读取二进制数据失败");
         }
 
-        // 更新进度
-        progressDialog->setLabelText("正在填充向量数据...");
-        progressDialog->setValue(40);
-        QCoreApplication::processEvents();
-
-        // 使用批量更新函数 - 这是一个更高效的实现
-        QString errorMsg;
-        if (!Persistence::BinaryFileHelper::robustUpdateRowsInBinary(absoluteBinFilePath, columns, schemaVersion, rowVariantMap, targetBinaryColumn, progressDialog, 40, 90))
+        // 对每一个需要更新的行，应用模式值
+        QMap<int, QString>::const_iterator it;
+        for (it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
         {
-            qWarning() << "向量填充(旧轨道) - 批量更新二进制数据失败";
-            throw std::runtime_error("批量更新二进制数据失败");
+            int rowIdx = it.key();
+            QString value = it.value();
+
+            // 确保行索引有效
+            if (rowIdx >= 0 && rowIdx < allRows.size())
+            {
+                // 修改数据
+                QVariant newValue(value);
+
+                // 确保列索引有效
+                if (targetBinaryColumn < allRows[rowIdx].size())
+                {
+                    // 更新数据
+                    allRows[rowIdx][targetBinaryColumn] = newValue;
+                    qDebug() << "向量填充(旧轨道) - 设置行" << rowIdx << "列" << targetBinaryColumn << "的值为" << value;
+                }
+                else
+                {
+                    qWarning() << "向量填充(旧轨道) - 列索引超出范围:" << targetBinaryColumn;
+                }
+            }
+            else
+            {
+                qWarning() << "向量填充(旧轨道) - 行索引超出范围:" << rowIdx;
+            }
         }
 
-        // 更新进度
-        progressDialog->setLabelText("正在提交更改...");
-        progressDialog->setValue(95);
-        QCoreApplication::processEvents();
+        // 回写到二进制文件
+        if (!Persistence::BinaryFileHelper::writeAllRowsToBinary(absoluteBinFilePath, columns, 1, allRows))
+        {
+            qWarning() << "向量填充(旧轨道) - 写入二进制数据失败";
+            throw std::runtime_error("写入二进制数据失败");
+        }
 
         // 提交事务
         db.commit();
@@ -809,10 +786,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
             qWarning() << "向量填充(旧轨道) - 刷新表格数据失败";
         }
 
-        // 更新进度
-        progressDialog->setValue(100);
-        QCoreApplication::processEvents();
-
         // 选中原来的行
         for (auto it = rowValueMap.begin(); it != rowValueMap.end(); ++it)
         {
@@ -847,12 +820,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
             }
         }
 
-        // 如果是我们创建的进度对话框，需要删除它
-        if (!usingExternalProgress)
-        {
-            delete progressDialog;
-        }
-
         QMessageBox::information(this, tr("完成"), tr("向量填充完成"));
         qDebug() << "向量填充(旧轨道) - 操作成功完成";
     }
@@ -860,13 +827,6 @@ void MainWindow::fillVectorWithPatternOldTrack(const QMap<int, QString> &rowValu
     {
         // 回滚事务
         db.rollback();
-
-        // 如果是我们创建的进度对话框，需要删除它
-        if (!usingExternalProgress)
-        {
-            delete progressDialog;
-        }
-
         QMessageBox::critical(this, tr("错误"), tr("向量填充失败: %1").arg(e.what()));
         qDebug() << "向量填充(旧轨道) - 异常:" << e.what();
     }
@@ -883,13 +843,22 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
         rowValueMap[row] = value;
     }
 
-    // 创建进度对话框
-    QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(0); // 立即显示
-    progress.show();
-    QCoreApplication::processEvents(); // 确保UI更新
+    // 只有新轨道才需要进度对话框
+    if (m_useNewDataHandler)
+    {
+        // 创建进度对话框
+        QProgressDialog progress("正在填充向量数据...", "取消", 0, 100, this);
+        progress.setWindowModality(Qt::WindowModal);
+        progress.setMinimumDuration(0); // 立即显示
+        progress.show();
+        QCoreApplication::processEvents(); // 确保UI更新
 
-    // 调用模式填充方法，传递进度对话框
-    fillVectorWithPattern(rowValueMap, &progress);
+        // 调用模式填充方法，传递进度对话框
+        fillVectorWithPattern(rowValueMap, &progress);
+    }
+    else
+    {
+        // 旧轨道不使用进度对话框
+        fillVectorWithPattern(rowValueMap);
+    }
 }
