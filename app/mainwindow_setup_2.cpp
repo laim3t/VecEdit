@@ -19,7 +19,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         QMessageBox::StandardButton reply = QMessageBox::question(
             this,
             "保存修改",
-            "当前有未保存的内容，是否保存？",
+            "关闭项目前，是否保存当前未保存的内容？",
             QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
         if (reply == QMessageBox::Yes)
@@ -40,7 +40,12 @@ void MainWindow::closeEvent(QCloseEvent *event)
             event->ignore();
             return;
         }
-        // 如果是No，则不保存直接关闭，继续执行
+        else if (reply == QMessageBox::No)
+        {
+            // 用户选择不保存，重置未保存标志，避免再次弹出对话框
+            m_hasUnsavedChanges = false;
+        }
+        // 继续执行关闭流程
     }
 
     saveWindowState();

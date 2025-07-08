@@ -46,78 +46,69 @@ public:
     // 自定义表格行操作方法
     bool deleteSelectedRows(const QList<int> &rowIndexes, QString &errorMessage);
     bool deleteRowsInRange(int fromRow, int toRow, QString &errorMessage);
-    bool addNewRow(int timesetId, const QMap<int, QString> &pinValues, QString &errorMessage);
+    bool addNewRow(int timesetId, const QMap<int, QString> &pinValues, QString &errorMessage); // 实现在vectortablemodel_1.cpp中
 
-    // 加载指定表格的指定页数据
+    // 分页相关方法
     void loadPage(int tableId, int page);
-
-    // 加载指定表格的所有数据（新轨道模式）
-    void loadAllData(int tableId);
-
-    // 获取当前加载的表ID
-    int getCurrentTableId() const { return m_tableId; }
-
-    // 重置模型状态，清空当前表ID和数据
-    void resetModel();
-
-    // 设置每页行数
+    int getPageSize() const { return m_pageSize; }
     void setPageSize(int pageSize) { m_pageSize = pageSize; }
+    int getCurrentPage() const { return m_currentPage; }
+    int getTotalRows() const { return m_totalRows; }
+    int getTotalPages() const { return (m_totalRows + m_pageSize - 1) / m_pageSize; }
+    int getTableId() const { return m_tableId; }
 
-    // 保存当前修改的数据
+    // 兼容旧代码的方法
+    void loadAllData(int tableId);                         // 完整实现在vectortablemodel.cpp中
+    int currentPage() const { return getCurrentPage(); }   // 兼容旧代码
+    int pageSize() const { return getPageSize(); }         // 兼容旧代码
+    int getCurrentTableId() const { return getTableId(); } // 兼容旧代码
+    void refreshColumns(int tableId);                      // 完整实现在vectortablemodel.cpp中
+
+    // 保存数据
     bool saveData(QString &errorMessage);
 
-    // 获取当前表ID
-    int tableId() const { return m_tableId; }
+    // 重置模型，清空所有数据
+    void resetModel();
 
-    // 获取当前页码
-    int currentPage() const { return m_currentPage; }
+signals:
+    // 数据修改信号，当模型数据被修改时发出
+    void dataModified(int row);
 
-    // 获取每页行数
-    int pageSize() const { return m_pageSize; }
-
-    // 获取总行数
-    int totalRows() const { return m_totalRows; }
-
-    // 获取指令ID（根据名称）
+private:
+    // 获取指令名称（根据ID）和ID（根据名称）
+    QString getInstructionName(int instructionId) const;
     int getInstructionId(const QString &instructionName) const;
 
-    // 获取TimeSet ID（根据名称）
-    int getTimeSetId(const QString &timeSetName) const;
-
-    // 获取指令名称（根据ID）
-    QString getInstructionName(int instructionId) const;
-
-    // 获取TimeSet名称（根据ID）
+    // 获取TimeSet名称（根据ID）和ID（根据名称）
     QString getTimeSetName(int timeSetId) const;
+    int getTimeSetId(const QString &timeSetName) const;
 
     // 刷新指令和TimeSet的缓存
     void refreshCaches() const;
 
-    // 刷新列信息而不重新加载行数据
-    void refreshColumns(int tableId);
+    // 表ID
+    int m_tableId;
+    int m_lastTableId; // 用于跟踪表ID变化
 
-private:
-    // 分页状态相关成员变量
-    int m_tableId;     // 当前表ID
-    int m_lastTableId; // 上一次缓存列信息的表ID
-    int m_currentPage; // 当前页码
-    int m_pageSize;    // 每页行数
-    int m_totalRows;   // 总行数
+    // 页面数据
+    int m_currentPage;
+    int m_pageSize;
+    int m_totalRows;
 
     // 数据存储
-    QList<Vector::RowData> m_pageData;   // 当前页的行数据
-    QList<Vector::ColumnInfo> m_columns; // 列信息
+    QList<Vector::RowData> m_pageData;   // 当前页的所有行数据
+    QList<Vector::ColumnInfo> m_columns; // 所有列的信息
 
     // 缓存
-    mutable QMap<int, QString> m_instructionCache;         // 指令ID到名称的映射
-    mutable QMap<QString, int> m_instructionNameToIdCache; // 指令名称到ID的映射
-    mutable QMap<int, QString> m_timeSetCache;             // TimeSet ID到名称的映射
-    mutable QMap<QString, int> m_timeSetNameToIdCache;     // TimeSet名称到ID的映射
-    mutable bool m_cachesInitialized;                      // 缓存是否已初始化
+    mutable bool m_cachesInitialized;
+    mutable QMap<int, QString> m_instructionCache;         // 指令ID -> 名称缓存
+    mutable QMap<QString, int> m_instructionNameToIdCache; // 名称 -> 指令ID缓存
+    mutable QMap<int, QString> m_timeSetCache;             // TimeSet ID -> 名称缓存
+    mutable QMap<QString, int> m_timeSetNameToIdCache;     // 名称 -> TimeSet ID缓存
 
-    // 新数据处理器相关
-    bool m_useNewDataHandler;                     // 是否使用新的数据处理器
-    RobustVectorDataHandler *m_robustDataHandler; // 指向新数据处理器的指针
+    // 数据处理器相关
+    bool m_useNewDataHandler;
+    RobustVectorDataHandler *m_robustDataHandler;
 };
 
 #endif // VECTORTABLEMODEL_H

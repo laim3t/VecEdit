@@ -314,6 +314,9 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
     // 发出数据更改信号
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
 
+    // 发出自定义数据修改信号
+    emit dataModified(index.row());
+
     qDebug() << "VectorTableModel::setData - 数据已更新，行:" << index.row()
              << "，全局行索引:" << globalRowIndex
              << "，列:" << index.column()
@@ -546,30 +549,109 @@ int VectorTableModel::getTimeSetId(const QString &timeSetName) const
 // 重置模型状态
 void VectorTableModel::resetModel()
 {
-    beginResetModel();
-
-    // 重置表ID为无效值
+    // 重置成员变量
     m_tableId = -1;
+    m_currentPage = 0;
+    m_totalRows = 0;
     m_lastTableId = -1;
 
     // 清空数据
-    m_pageData.clear();
+    beginResetModel();
     m_columns.clear();
-
-    // 重置计数器
-    m_totalRows = 0;
-    m_currentPage = 0;
-
-    // 清空缓存
-    m_instructionCache.clear();
-    m_instructionNameToIdCache.clear();
-    m_timeSetCache.clear();
-    m_timeSetNameToIdCache.clear();
-    m_cachesInitialized = false;
-
+    m_pageData.clear();
     endResetModel();
 
     qDebug() << "VectorTableModel::resetModel - 模型状态已重置";
 }
+
+// 添加loadAllData的完整实现
+void VectorTableModel::loadAllData(int tableId)
+{
+    qDebug() << "VectorTableModel::loadAllData - 一次性加载表ID:" << tableId << "的所有数据";
+
+    // 保存新的表ID
+    m_tableId = tableId;
+    m_currentPage = 0; // 在全量数据模式下，页码概念不再重要，但保持为0
+
+    // 刷新指令和TimeSet的缓存
+    refreshCaches();
+
+    // 告诉视图我们要开始修改数据了
+    beginResetModel();
+
+    // 获取列信息
+    if (m_useNewDataHandler)
+    {
+        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+    }
+    else
+    {
+        m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    }
+
+    // 获取总行数
+    if (m_useNewDataHandler)
+    {
+        m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+    }
+    else
+    {
+        m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
+
+    // 获取所有数据或第一页数据
+    if (m_useNewDataHandler)
+    {
+        bool ok = false;
+        m_pageData = m_robustDataHandler->getAllVectorRows(tableId, ok);
+        if (!ok)
+        {
+            qWarning() << "VectorTableModel::loadAllData - 加载全部数据失败";
+            m_pageData.clear();
+        }
+    }
+    else
+    {
+        // 使用分页加载的第一页
+        m_pageData = VectorDataHandler::instance().getPageData(tableId, 0, m_pageSize);
+        qWarning() << "VectorTableModel::loadAllData - 旧数据处理器不支持全量加载，已加载第一页" << m_pageData.size() << "行";
+    }
+
+    // 告诉视图我们已经修改完数据
+    endResetModel();
+
+    qDebug() << "VectorTableModel::loadAllData - 加载完成，列数:" << m_columns.size()
+             << "，加载行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
+}
+
+// 添加refreshColumns的完整实现
+void VectorTableModel::refreshColumns(int tableId)
+{
+    // 确保表ID有效
+    if (tableId <= 0 || tableId != m_tableId)
+    {
+        qWarning() << "VectorTableModel::refreshColumns - 无效的表ID或与当前加载的表ID不匹配";
+        return;
+    }
+
+    // 获取最新的列信息
+    if (m_useNewDataHandler)
+    {
+        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+    }
+    else
+    {
+        m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
+    }
+
+    // 通知视图列数可能已更改
+    beginResetModel();
+    endResetModel();
+
+    qDebug() << "VectorTableModel::refreshColumns - 成功刷新表ID:" << tableId
+             << "的列信息，当前列数:" << m_columns.size();
+}
+
+// 注意：addNewRow方法已经在vectortablemodel_1.cpp中实现，此处删除
 
 #include "vectortablemodel_1.cpp"

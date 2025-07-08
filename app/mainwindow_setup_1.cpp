@@ -405,14 +405,39 @@ void MainWindow::setupVectorTableUI()
     // 创建项委托，处理单元格编辑
     m_itemDelegate = new VectorTableDelegate(this);
 
-    // 创建新的表格视图模型和视图
-    m_vectorTableModel = new VectorTableModel(this, m_useNewDataHandler, m_robustDataHandler);
+    // 创建向量表视图和模型
     m_vectorTableView = new QTableView(this);
-    m_vectorTableView->setAlternatingRowColors(true);
+    m_vectorTableModel = new VectorTableModel(this, m_useNewDataHandler, m_robustDataHandler);
+
+    // 连接dataModified信号，更新未保存状态
+    connect(m_vectorTableModel, &VectorTableModel::dataModified, this, [this](int row)
+            {
+        m_hasUnsavedChanges = true;
+        updateWindowTitle(m_currentDbPath);
+        qDebug() << "Model数据已修改，行:" << row << "，已更新未保存状态和窗口标题"; });
+
+    // 设置自定义委托
+    m_vectorTableView->setItemDelegate(m_itemDelegate);
+
+    // 设置视图属性
+    m_vectorTableView->setModel(m_vectorTableModel);
     m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_vectorTableView->setModel(m_vectorTableModel);
+    m_vectorTableView->setAlternatingRowColors(true);
+    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
+    m_vectorTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
+
+    // 连接模型的数据修改信号，更新未保存状态
+    connect(m_vectorTableModel, &VectorTableModel::dataModified, this, [this](int row)
+            {
+        // 标记为已修改
+        m_hasUnsavedChanges = true;
+        // 更新窗口标题以显示修改状态
+        updateWindowTitle(m_currentDbPath);
+        
+        qDebug() << "MainWindow - 模型数据修改，行:" << row << "，更新修改状态"; });
 
     // 设置新视图表头和样式，与老视图保持一致
     m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
