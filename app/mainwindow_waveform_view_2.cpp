@@ -98,12 +98,13 @@ void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
     double pinHighY = pinBaseY + PIN_HEIGHT;
     double pinLowY = pinBaseY;
 
-    // 创建一个只高亮特定管脚的矩形
+    // 创建一个只高亮特定管脚的矩形，确保高亮区域从y轴的0开始，并覆盖整数区域
     QCPItemRect *highlightRect = new QCPItemRect(m_waveformPlot);
     highlightRect->setLayer("selection");
     highlightRect->setProperty("isSelectionHighlight", true);
-    highlightRect->topLeft->setCoords(rowIndex + pin_t1rRatio, pinHighY);
-    highlightRect->bottomRight->setCoords(rowIndex + 1 + pin_t1rRatio, pinLowY);
+    // 确保高亮区域从整数行号开始，到下一个整数行号结束
+    highlightRect->topLeft->setCoords(rowIndex, pinHighY);
+    highlightRect->bottomRight->setCoords(rowIndex + 1, pinLowY);
     highlightRect->setPen(QPen(Qt::blue, 2, Qt::DotLine));
     highlightRect->setBrush(QBrush(QColor(0, 0, 255, 30)));
 
@@ -147,7 +148,7 @@ void MainWindow::highlightWaveformPoint(int rowIndex, int pinIndex)
         QCPItemText *valueLabel = new QCPItemText(m_waveformPlot);
         valueLabel->setLayer("selection");
         valueLabel->setProperty("isHexValueLabel", true);
-        valueLabel->position->setCoords(rowIndex + 0.5 + pin_t1rRatio, pinBaseY + PIN_HEIGHT / 2);
+        valueLabel->position->setCoords(rowIndex + 0.5, pinBaseY + PIN_HEIGHT / 2); // 确保文本位于整数区域中心
         valueLabel->setText(cellValue);
         valueLabel->setFont(QFont("Arial", 10, QFont::Bold));
         valueLabel->setColor(Qt::blue);
@@ -206,8 +207,8 @@ void MainWindow::setupWaveformClickHandling()
                 pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
             }
 
-            // 在计算行索引时考虑该管脚的特定偏移量
-            int rowIndex = static_cast<int>(floor(key - pin_t1rRatio));
+            // 直接使用整数位置计算行号，不考虑T1R偏移，确保高亮从整数位置开始
+            int rowIndex = static_cast<int>(floor(key));
             
             // 检查索引是否有效（只响应正坐标）
             int totalRows;

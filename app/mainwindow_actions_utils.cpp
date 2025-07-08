@@ -245,7 +245,7 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
     // 3. 确保rowIndex在可见范围内并高亮显示
     if (m_waveformPlot)
     {
-        // 获取管脚特定的T1R偏移
+        // 不再使用T1R偏移调整行索引，确保高亮区域从整数位置开始
         QString selectedPinName;
         if (m_showAllPins && selectedPinIndex < allPinColumns.size())
         {
@@ -256,20 +256,15 @@ void MainWindow::jumpToWaveformPoint(int rowIndex, const QString &pinName)
             selectedPinName = m_waveformPinSelector->currentText();
         }
 
-        // 获取管脚ID和对应的T1R比例
-        int pinId = getPinIdByName(selectedPinName);
-        double pin_t1rRatio = m_pinT1rRatios.value(pinId, 0.0);
-        double adjustedRowIndex = rowIndex + pin_t1rRatio;
-
         // 调整视图范围确保点可见
         double currentMin = m_waveformPlot->xAxis->range().lower;
         double currentMax = m_waveformPlot->xAxis->range().upper;
         double rangeSize = currentMax - currentMin;
 
-        if (adjustedRowIndex < currentMin || adjustedRowIndex > currentMax)
+        if (rowIndex < currentMin || rowIndex > currentMax)
         {
-            // 计算新的范围，使调整后的rowIndex在中间
-            double newMin = qMax(0.0, adjustedRowIndex - rangeSize / 2);
+            // 计算新的范围，使行索引在中间
+            double newMin = qMax(0.0, rowIndex - rangeSize / 2);
             double newMax = newMin + rangeSize;
 
             // 确保不超过数据范围
