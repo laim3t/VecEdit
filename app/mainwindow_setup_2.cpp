@@ -228,6 +228,7 @@ void MainWindow::updateMenuState()
     m_newProjectAction->setEnabled(!projectOpen);
     m_openProjectAction->setEnabled(!projectOpen);
     m_closeProjectAction->setEnabled(projectOpen);
+    m_exportConstructionFileAction->setEnabled(projectOpen); // 仅在项目打开时启用导出功能
 }
 
 // 创建水平分隔线的辅助函数

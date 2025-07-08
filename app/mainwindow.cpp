@@ -42,3 +42,4 @@
 #include "mainwindow_waveform_timeset.cpp"
 #include "mainwindow_waveform_types.cpp"
 #include "mainwindow_column_properties_view.cpp"
+#include "mainwindow_export.cpp"

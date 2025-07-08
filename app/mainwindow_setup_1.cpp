@@ -138,6 +138,14 @@ void MainWindow::setupMenu()
     // 分隔符
     fileMenu->addSeparator();
 
+    // 导出菜单
+    QMenu *exportMenu = fileMenu->addMenu(tr("导出(&E)"));
+    m_exportConstructionFileAction = exportMenu->addAction(tr("导出构造文件"));
+    connect(m_exportConstructionFileAction, &QAction::triggered, this, &MainWindow::exportConstructionFile);
+
+    // 分隔符
+    fileMenu->addSeparator();
+
     // 退出
     QAction *exitAction = fileMenu->addAction(tr("退出(&Q)"));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);

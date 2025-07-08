@@ -147,7 +147,7 @@ private slots:
     void showFillVectorDialog();
     void fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QProgressDialog *progress = nullptr);
     void fillVectorForVectorTable(const QString &value, const QList<int> &selectedUiRows);
-    
+
     // 填充向量完成后调用
     void onFillVectorComplete();
 
@@ -319,6 +319,10 @@ private:
     QAction *m_newProjectAction;
     QAction *m_openProjectAction;
     QAction *m_closeProjectAction;
+    QAction *m_exportConstructionFileAction; // 导出构造文件动作
+
+    // 导出功能
+    void exportConstructionFile();
 
     // 向量表显示相关的UI组件
     QStackedWidget *m_vectorStackedWidget; // 用于切换旧表格和新表格的堆栈窗口
