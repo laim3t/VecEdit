@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(VecEdit VERSION 0.0.4 LANGUAGES CXX)
+project(VecEdit VERSION 0.6.2.289 LANGUAGES CXX)
 
 # 启用 Qt 的自动化功能
 set(CMAKE_AUTOMOC ON)

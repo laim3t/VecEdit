@@ -45,8 +45,8 @@ public:
      * @param level 日志级别，默认为Debug
      * @param enableConsole 是否创建日志控制台窗口，默认为true
      */
-    // void initialize(bool logToFile = false, const QString &logFilePath = "application.log", LogLevel level = LogLevel::Debug, bool enableConsole = true);
-    void initialize(bool logToFile = false, const QString &logFilePath = "application.log", LogLevel level = LogLevel::Debug, bool enableConsole = false);
+    void initialize(bool logToFile = false, const QString &logFilePath = "application.log", LogLevel level = LogLevel::Debug, bool enableConsole = true);
+    // void initialize(bool logToFile = false, const QString &logFilePath = "application.log", LogLevel level = LogLevel::Debug, bool enableConsole = false);
     /**
      * @brief 设置日志级别
      * @param level 要设置的日志级别
