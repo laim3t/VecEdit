@@ -670,3 +670,21 @@ int VectorTableModel::getTimeSetColumnIndex() const
     // 如果没有找到，返回-1
     return -1;
 }
+
+QMap<int, QString> VectorTableModel::getPinColumnInfo() const
+{
+    QMap<int, QString> pinInfo;
+    for (int i = 0; i < m_columns.size(); ++i)
+    {
+        const auto &col = m_columns.at(i);
+        // 通过类型判断是否为管脚列
+        if (col.type == Vector::ColumnDataType::PIN_STATE_ID)
+        {
+            // 使用列的索引作为顺序，名称作为值
+            pinInfo.insert(i, col.name);
+        }
+    }
+    return pinInfo;
+}
+
+// 兼容旧代码的方法

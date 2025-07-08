@@ -58,6 +58,14 @@ AddRowDialog::AddRowDialog(QWidget *parent)
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &AddRowDialog::reject);
 }
 
+AddRowDialog::AddRowDialog(const QMap<int, QString> &pinInfo, QWidget *parent)
+    : AddRowDialog(parent) // 调用委托构造函数
+{
+    // 存储传入的管脚信息并重新设置表格
+    m_pinInfo = pinInfo;
+    setupTable(); // 再次调用以使用新的管脚信息
+}
+
 AddRowDialog::~AddRowDialog()
 {
 }
@@ -170,6 +178,51 @@ void AddRowDialog::setupUi()
 
 void AddRowDialog::setupTable()
 {
+    m_previewTable->clear(); // 清空旧内容
+
+    // 优先使用通过构造函数传入的管脚信息
+    if (!m_pinInfo.isEmpty())
+    {
+        m_pinOptions = m_pinInfo; // 使用传入的管脚信息
+        m_previewTable->setColumnCount(m_pinInfo.size());
+
+        QList<QString> pinNames = m_pinInfo.values();
+        QSqlDatabase db = DatabaseManager::instance()->database();
+
+        for (int i = 0; i < pinNames.size(); ++i)
+        {
+            const QString &pinName = pinNames.at(i);
+            
+            // 查询管脚类型
+            QSqlQuery pinQuery(db);
+            pinQuery.prepare("SELECT type_id FROM pin_list WHERE pin_name = ?");
+            pinQuery.addBindValue(pinName);
+
+            QString typeName = "In"; // 默认类型
+            if (pinQuery.exec() && pinQuery.next())
+            {
+                int typeId = pinQuery.value(0).toInt();
+                QSqlQuery typeQuery(db);
+                typeQuery.prepare("SELECT type_name FROM pin_types WHERE id = ?");
+                typeQuery.addBindValue(typeId);
+                if (typeQuery.exec() && typeQuery.next())
+                {
+                    typeName = typeQuery.value(0).toString();
+                }
+            }
+
+            QString headerText = QString("%1\nx1\n%2").arg(pinName).arg(typeName);
+            QTableWidgetItem *headerItem = new QTableWidgetItem(headerText);
+            headerItem->setTextAlignment(Qt::AlignCenter);
+            m_previewTable->setHorizontalHeaderItem(i, headerItem);
+        }
+
+        m_previewTable->setRowCount(1); // 默认显示一行
+        return; // 使用传入数据后直接返回
+    }
+
+    // --- Fallback Logic ---
+    // 如果没有传入管脚信息，则执行旧的数据库查询逻辑
     // 在新架构下获取当前表的管脚信息，用于设置表格列
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
@@ -435,4 +488,9 @@ QList<QStringList> AddRowDialog::getTableData() const
     }
 
     return result;
+}
+
+const QMap<int, QString>& AddRowDialog::getPinOptions() const
+{
+    return m_pinOptions;
 }

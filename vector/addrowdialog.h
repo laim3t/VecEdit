@@ -29,6 +29,7 @@ class AddRowDialog : public QDialog
 
 public:
     explicit AddRowDialog(QWidget *parent = nullptr);
+    explicit AddRowDialog(const QMap<int, QString> &pinInfo, QWidget *parent = nullptr);
     ~AddRowDialog() override;
 
     /**
@@ -60,6 +61,12 @@ public:
      * @return 表格数据列表
      */
     QList<QStringList> getTableData() const;
+
+    /**
+     * @brief 获取管脚列信息
+     * @return 管脚列的映射 (列索引 -> 名称)
+     */
+    const QMap<int, QString>& getPinOptions() const;
 
 private slots:
     void onAppendToEndStateChanged(int state);
@@ -102,6 +109,7 @@ private:
     QComboBox *m_timeSetComboBox;
 
     // 数据缓存
+    QMap<int, QString> m_pinInfo; // 用于存储管脚信息
     QMap<int, QString> m_timeSetOptions;
     QMap<int, QString> m_pinOptions;
     int m_totalRows;
