@@ -138,14 +138,6 @@ void MainWindow::setupMenu()
     // 分隔符
     fileMenu->addSeparator();
 
-    // 导出菜单
-    QMenu *exportMenu = fileMenu->addMenu(tr("导出(&E)"));
-    m_exportConstructionFileAction = exportMenu->addAction(tr("导出构造文件"));
-    connect(m_exportConstructionFileAction, &QAction::triggered, this, &MainWindow::exportConstructionFile);
-
-    // 分隔符
-    fileMenu->addSeparator();
-
     // 退出
     QAction *exitAction = fileMenu->addAction(tr("退出(&Q)"));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
@@ -228,6 +220,11 @@ void MainWindow::setupMenu()
             // 设置新的窗口大小
             resize(width, height);
         } });
+
+    // 创建导出菜单（位于查看和视图菜单之间）
+    QMenu *exportMenu = menuBar()->addMenu(tr("导出(&E)"));
+    m_exportConstructionFileAction = exportMenu->addAction(tr("导出构造文件"));
+    connect(m_exportConstructionFileAction, &QAction::triggered, this, &MainWindow::exportConstructionFile);
 
     // 创建"视图"菜单 (用于控制Dock部件的显示/隐藏)
     m_viewMenu = menuBar()->addMenu(tr("视图(&I)"));
