@@ -113,6 +113,7 @@ void MainWindow::setupMenu()
     // 新建项目
     m_newProjectAction = fileMenu->addAction(tr("新建项目(&N)"));
     connect(m_newProjectAction, &QAction::triggered, this, &MainWindow::createNewProject);
+    m_newProjectAction->setVisible(false); // 隐藏"新建项目"选项
 
     // 新建项目(新架构)
     QAction *newProjectNewArchAction = fileMenu->addAction(tr("新建项目(新架构)"));
@@ -121,6 +122,7 @@ void MainWindow::setupMenu()
     // 打开项目
     m_openProjectAction = fileMenu->addAction(tr("打开项目(&O)"));
     connect(m_openProjectAction, &QAction::triggered, this, &MainWindow::openExistingProject);
+    m_openProjectAction->setVisible(false); // 隐藏"打开项目"选项
 
     // 打开项目(新架构)
     QAction *openProjectNewArchAction = fileMenu->addAction(tr("打开项目(新架构)"));

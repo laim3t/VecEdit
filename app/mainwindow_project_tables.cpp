@@ -218,7 +218,7 @@ void MainWindow::createNewProjectWithNewArch()
         // 更新菜单状态
         updateMenuState();
 
-        QMessageBox::information(this, tr("成功"), tr("已使用新架构创建项目，将使用RobustVectorDataHandler进行数据处理"));
+        // QMessageBox::information(this, tr("成功"), tr("已使用新架构创建项目，将使用RobustVectorDataHandler进行数据处理"));
     }
     else
     {
