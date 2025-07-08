@@ -428,7 +428,7 @@ void MainWindow::setupVectorTableUI()
 
     // 设置视图属性
     m_vectorTableView->setModel(m_vectorTableModel);
-    m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectItems);
+    m_vectorTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableView->setAlternatingRowColors(true);
