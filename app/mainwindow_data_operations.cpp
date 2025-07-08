@@ -332,7 +332,7 @@ void MainWindow::addRowToCurrentVectorTableModel()
         return;
     }
 
-    // 创建并显示新的、轻量级的添加行对话框
+    // 创建并显示新的、扩展的添加行对话框
     AddRowDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted)
     {
@@ -342,6 +342,17 @@ void MainWindow::addRowToCurrentVectorTableModel()
             return;
         }
 
+        // 获取是否添加到最后以及起始行位置
+        bool appendToEnd = dialog.isAppendToEnd();
+        int startRow = appendToEnd ? m_vectorTableModel->rowCount() : dialog.getStartRow() - 1; // 转换为0基索引
+
+        // 获取选中的TimeSet ID
+        int timeSetId = dialog.getSelectedTimeSetId();
+
+        // 获取表格预览数据
+        QList<QStringList> tableData = dialog.getTableData();
+        int previewRowCount = tableData.size();
+
         // 添加内存安全检查
         const qint64 estimatedMemoryPerRow = 200; // 每行估计内存占用（字节）
         const qint64 totalEstimatedMemory = static_cast<qint64>(rowCount) * estimatedMemoryPerRow;
@@ -350,14 +361,9 @@ void MainWindow::addRowToCurrentVectorTableModel()
 
         qDebug() << funcName << " - 估计内存需求:" << (totalEstimatedMemory / 1024 / 1024) << "MB, 可用内存:"
                  << (availableMemory / 1024 / 1024) << "MB";
-
-        // 确定插入位置
-        int insertionRow = m_vectorTableModel->rowCount(); // 默认为末尾
-        QModelIndexList selectedRows = m_vectorTableView->selectionModel()->selectedRows();
-        if (!selectedRows.isEmpty())
-        {
-            insertionRow = selectedRows.first().row();
-        }
+        qDebug() << funcName << " - 添加位置:" << (appendToEnd ? "末尾" : QString("第%1行").arg(startRow + 1))
+                 << "，添加总行数:" << rowCount << "，预览行数:" << previewRowCount
+                 << "，使用TimeSet ID:" << timeSetId;
 
         // 优化：根据系统性能动态调整批次大小
         const int optimalBatchSize = 250000; // 大幅提高批次大小，极大提升处理速度
@@ -379,6 +385,10 @@ void MainWindow::addRowToCurrentVectorTableModel()
         int remainingRows = rowCount;
         int currentBatch = 1;
         int rowsInserted = 0;
+
+        // 如果有预览数据和TimeSet设置，准备插入预览行的数据
+        bool hasPreviewData = !tableData.isEmpty();
+        int currentTableId = m_vectorTableModel->getTableId();
 
         // 创建进度对话框，但增加更多细节
         QProgressDialog progress("添加行数据...", "取消", 0, rowCount, this);
@@ -411,7 +421,7 @@ void MainWindow::addRowToCurrentVectorTableModel()
             int batchSize = qMin(maxSafeBatchSize, remainingRows);
             // 注释掉批次处理日志，提高性能
             // qDebug() << funcName << " - 批次 " << currentBatch << "/" << batches
-            //          << "，添加" << batchSize << "行，起始位置:" << (insertionRow + rowsInserted);
+            //          << "，添加" << batchSize << "行，起始位置:" << (startRow + rowsInserted);
 
             // 仅在更新间隔后才刷新进度对话框
             bool shouldUpdateUI = updateTimer.elapsed() >= updateIntervalMs;
@@ -447,8 +457,59 @@ void MainWindow::addRowToCurrentVectorTableModel()
                 QApplication::processEvents();
             }
 
-            if (m_vectorTableModel->insertRows(insertionRow + rowsInserted, batchSize))
+            // 插入行到模型
+            if (m_vectorTableModel->insertRows(startRow + rowsInserted, batchSize))
             {
+                // 如果有预览数据和TimeSet设置，填充预览行的数据
+                if (hasPreviewData && currentBatch == 1)
+                {
+                    // 填充预览行数据
+                    for (int i = 0; i < previewRowCount && i < batchSize; ++i)
+                    {
+                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + i, m_vectorTableModel->getTimeSetColumnIndex());
+                        if (timesetIndex.isValid())
+                        {
+                            m_vectorTableModel->setData(timesetIndex, timeSetId);
+                        }
+
+                        // 填充表格中的数据
+                        const QStringList &rowData = tableData.at(i);
+                        for (int col = 0; col < rowData.size() && col < m_vectorTableModel->columnCount(); ++col)
+                        {
+                            QModelIndex index = m_vectorTableModel->index(startRow + i, col);
+                            if (index.isValid() && !rowData.at(col).isEmpty())
+                            {
+                                m_vectorTableModel->setData(index, rowData.at(col));
+                            }
+                        }
+                    }
+
+                    // 如果剩余行数超过预览行数，为其他行设置相同的TimeSet
+                    if (batchSize > previewRowCount)
+                    {
+                        for (int i = previewRowCount; i < batchSize; ++i)
+                        {
+                            QModelIndex timesetIndex = m_vectorTableModel->index(startRow + i, m_vectorTableModel->getTimeSetColumnIndex());
+                            if (timesetIndex.isValid())
+                            {
+                                m_vectorTableModel->setData(timesetIndex, timeSetId);
+                            }
+                        }
+                    }
+                }
+                // 对于后续批次，只设置TimeSet ID
+                else if (timeSetId > 0)
+                {
+                    for (int i = 0; i < batchSize; ++i)
+                    {
+                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + rowsInserted + i, m_vectorTableModel->getTimeSetColumnIndex());
+                        if (timesetIndex.isValid())
+                        {
+                            m_vectorTableModel->setData(timesetIndex, timeSetId);
+                        }
+                    }
+                }
+
                 rowsInserted += batchSize;
                 remainingRows -= batchSize;
                 currentBatch++;
@@ -849,7 +910,7 @@ void MainWindow::refreshVectorTableData()
     // 创建一个超时计时器，确保UI每100毫秒可以处理事件
     QElapsedTimer timer;
     timer.start();
-    
+
     // 重新获取总行数
     if (m_useNewDataHandler)
     {
@@ -874,7 +935,8 @@ void MainWindow::refreshVectorTableData()
              << ", 当前页:" << m_currentPage;
 
     // 创建一个QTimer延迟加载当前页面，使UI线程可以先更新界面
-    QTimer::singleShot(10, this, [this, tableId, funcName]() {
+    QTimer::singleShot(10, this, [this, tableId, funcName]()
+                       {
         // 重新加载当前页面数据
         loadCurrentPage();
         
@@ -889,8 +951,7 @@ void MainWindow::refreshVectorTableData()
             // 显示刷新成功消息
             statusBar()->showMessage("向量表数据已刷新", 3000); // 显示3秒
             qDebug() << funcName << " - 向量表数据刷新完成";
-        });
-    });
+        }); });
 }
 
 // 判断是否有未保存的内容
@@ -933,69 +994,75 @@ void MainWindow::showBatchIndexUpdateProgressDialog(int tableId, int columnIndex
     QProgressDialog *progressDialog = new QProgressDialog("正在进行批量索引更新...", "取消", 0, 100, this);
     progressDialog->setWindowTitle("批量索引更新进度");
     progressDialog->setWindowModality(Qt::WindowModal);
-    progressDialog->setMinimumDuration(0);  // 立即显示
+    progressDialog->setMinimumDuration(0); // 立即显示
     progressDialog->setValue(0);
-    
+
     // 添加额外信息标签
     QLabel *detailLabel = new QLabel("准备中...");
     detailLabel->setAlignment(Qt::AlignCenter);
     detailLabel->setMinimumWidth(300);
-    
+
     // 获取进度对话框的布局，添加详情标签
-    QVBoxLayout *layout = qobject_cast<QVBoxLayout*>(progressDialog->layout());
-    if (layout) {
+    QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(progressDialog->layout());
+    if (layout)
+    {
         layout->insertWidget(1, detailLabel);
     }
-    
+
     progressDialog->show();
-    QCoreApplication::processEvents();  // 确保UI更新
-    
+    QCoreApplication::processEvents(); // 确保UI更新
+
     // 获取RobustVectorDataHandler实例
     RobustVectorDataHandler *handler = &RobustVectorDataHandler::instance();
-    
+
     // 更新详情标签的槽函数
-    auto updateDetailLabel = [detailLabel, rowValueMap](int percentage) {
+    auto updateDetailLabel = [detailLabel, rowValueMap](int percentage)
+    {
         int totalRows = rowValueMap.size();
         int processedRows = (percentage * totalRows) / 100;
-        
-        if (percentage <= 50) {
+
+        if (percentage <= 50)
+        {
             // 批量追加阶段
-            detailLabel->setText(QString("批量追加阶段: 已处理 %1 行，共 %2 行 (%3%)").
-                              arg(processedRows).arg(totalRows).arg(percentage*2));
-        } else {
+            detailLabel->setText(QString("批量追加阶段: 已处理 %1 行，共 %2 行 (%3%)").arg(processedRows).arg(totalRows).arg(percentage * 2));
+        }
+        else
+        {
             // 批量索引更新阶段
-            detailLabel->setText(QString("批量索引更新阶段: 已处理 %1 行，共 %2 行 (%3%)").
-                              arg(processedRows).arg(totalRows).arg((percentage-50)*2));
+            detailLabel->setText(QString("批量索引更新阶段: 已处理 %1 行，共 %2 行 (%3%)").arg(processedRows).arg(totalRows).arg((percentage - 50) * 2));
         }
     };
-    
+
     // 连接进度信号到进度对话框的setValue槽
-    QMetaObject::Connection progressConnection = 
-        QObject::connect(handler, &RobustVectorDataHandler::progressUpdated, 
-                    progressDialog, &QProgressDialog::setValue);
-    
+    QMetaObject::Connection progressConnection =
+        QObject::connect(handler, &RobustVectorDataHandler::progressUpdated,
+                         progressDialog, &QProgressDialog::setValue);
+
     // 连接进度信号到更新详情标签的槽
-    QMetaObject::Connection detailConnection = 
+    QMetaObject::Connection detailConnection =
         QObject::connect(handler, &RobustVectorDataHandler::progressUpdated, updateDetailLabel);
-    
+
     // 执行批量更新操作
     QString errorMessage;
     bool success = handler->batchUpdateVectorColumnOptimized(tableId, columnIndex, rowValueMap, errorMessage);
-    
+
     // 断开信号连接
     QObject::disconnect(progressConnection);
     QObject::disconnect(detailConnection);
-    
+
     // 关闭进度对话框
     progressDialog->close();
     progressDialog->deleteLater();
-    
+
     // 显示结果
-    if (success) {
-        QMessageBox::information(this, "批量更新完成", 
-                               QString("成功更新了 %1 行数据").arg(rowValueMap.size()));
-    } else {
-        QMessageBox::critical(this, "批量更新失败", 
-                            QString("更新过程中发生错误: %1").arg(errorMessage));
+    if (success)
+    {
+        QMessageBox::information(this, "批量更新完成",
+                                 QString("成功更新了 %1 行数据").arg(rowValueMap.size()));
+    }
+    else
+    {
+        QMessageBox::critical(this, "批量更新失败",
+                              QString("更新过程中发生错误: %1").arg(errorMessage));
     }
 }

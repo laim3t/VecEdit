@@ -57,6 +57,9 @@ public:
     int getTotalPages() const { return (m_totalRows + m_pageSize - 1) / m_pageSize; }
     int getTableId() const { return m_tableId; }
 
+    // 获取TimeSet列的索引
+    int getTimeSetColumnIndex() const;
+
     // 兼容旧代码的方法
     void loadAllData(int tableId);                         // 完整实现在vectortablemodel.cpp中
     int currentPage() const { return getCurrentPage(); }   // 兼容旧代码

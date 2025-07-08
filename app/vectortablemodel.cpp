@@ -655,3 +655,18 @@ void VectorTableModel::refreshColumns(int tableId)
 // 注意：addNewRow方法已经在vectortablemodel_1.cpp中实现，此处删除
 
 #include "vectortablemodel_1.cpp"
+
+int VectorTableModel::getTimeSetColumnIndex() const
+{
+    // 查找TIMESET_ID类型的列
+    for (int i = 0; i < m_columns.size(); ++i)
+    {
+        if (m_columns[i].type == Vector::ColumnDataType::TIMESET_ID)
+        {
+            return i;
+        }
+    }
+
+    // 如果没有找到，返回-1
+    return -1;
+}
