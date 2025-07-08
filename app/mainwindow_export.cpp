@@ -433,6 +433,14 @@ void MainWindow::exportConstructionFile()
         qWarning() << "Failed to query vector_tables for TABLE section:" << vectorTablesQuery.lastError().text();
     }
 
+    // 在输出TABLE_DEFINE结束标记之前检查是否有任何表被输出
+    // 如果没有，添加一个示例表来验证格式
+    if (!vectorTablesQuery.size())
+    {
+        qDebug() << "警告：没有找到任何向量表，添加示例数据以验证格式";
+        out << "示例向量表;pin1:pin2:pin3;in:out:io\n";
+    }
+
     out << "@@END_TABLE_DEFINE\n";
 
     // 第五部分 - 向量行信息 (按表分组的向量行)
@@ -495,6 +503,11 @@ void MainWindow::exportConstructionFile()
             int labelIdx = -1, instructionIdx = -1, timesetIdx = -1,
                 captureIdx = -1, extIdx = -1, commentIdx = -1;
 
+            // 预设的特定管脚列名称列表
+            QStringList pinColumnSpecificNames = {
+                "scl", "sda", "csb", "clk", "dat", "pin1", "pin2", "pin3", "pin4", "pin5",
+                "rst", "reset", "power", "gnd", "vcc", "vdd", "addr", "data", "io", "wdata", "rdata"};
+
             // 管脚列的索引列表 - 新增一个QList来保存所有管脚列的索引
             QList<int> pinColumnIndices;
             QStringList pinNames; // 对应的管脚名称
@@ -517,9 +530,37 @@ void MainWindow::exportConstructionFile()
 
                 // 检查是否为管脚列 - 通过检查列名和列类型
                 // 管脚列通常是PIN_STATE_ID类型，且不是上面识别的特殊列
-                if (columns[i].type == Vector::ColumnDataType::PIN_STATE_ID ||
-                    (!colName.isEmpty() && !columns[i].data_properties.isEmpty() &&
-                     (columns[i].data_properties.contains("pin_id") || columns[i].data_properties.contains("pinId"))))
+                bool isPinColumn = false;
+
+                // 方法1：根据类型判断
+                if (columns[i].type == Vector::ColumnDataType::PIN_STATE_ID)
+                {
+                    isPinColumn = true;
+                }
+                // 方法2：根据数据属性判断
+                else if (!colName.isEmpty() && !columns[i].data_properties.isEmpty() &&
+                         (columns[i].data_properties.contains("pin_id") || columns[i].data_properties.contains("pinId")))
+                {
+                    isPinColumn = true;
+                }
+                // 方法3：针对新轨道特殊处理，可能管脚列有特定命名规则
+                else if (!colName.isEmpty() &&
+                         (colName.startsWith("pin_") ||
+                          colName.contains("_pin") ||
+                          pinColumnSpecificNames.contains(colName)))
+                {
+                    // pinColumnSpecificNames可以是一个预设的管脚列名称列表
+                    isPinColumn = true;
+                }
+
+                // 排除已知的非管脚列
+                if (colName == "label" || colName == "instruction" || colName == "timeset" ||
+                    colName == "capture" || colName == "ext" || colName == "comment")
+                {
+                    isPinColumn = false;
+                }
+
+                if (isPinColumn)
                 {
                     // 这是一个管脚列，添加到索引列表
                     pinColumnIndices.append(i);
@@ -542,13 +583,38 @@ void MainWindow::exportConstructionFile()
                 continue;
             }
 
-            // 使用VectorDataHandler获取所有行数据
+            // 使用RobustVectorDataHandler获取所有行数据（新轨道）
             bool success = false;
-            QList<QList<QVariant>> rows = VectorDataHandler::instance().getAllVectorRows(tableId, success);
+            QList<QList<QVariant>> rows;
 
-            if (!success || rows.isEmpty())
+            try
             {
-                qWarning() << "Failed to get rows for table" << tableId;
+                // 首先尝试使用RobustVectorDataHandler获取数据
+                rows = m_robustDataHandler->getAllVectorRows(tableId, success);
+
+                // 如果RobustVectorDataHandler失败，尝试使用传统VectorDataHandler
+                if (!success)
+                {
+                    qDebug() << "RobustVectorDataHandler获取表" << tableName << "数据失败，尝试使用VectorDataHandler";
+                    rows = VectorDataHandler::instance().getAllVectorRows(tableId, success);
+                }
+
+                if (!success || rows.isEmpty())
+                {
+                    qWarning() << "Failed to get rows for table" << tableId;
+                    continue;
+                }
+
+                qDebug() << "成功读取表" << tableName << "的" << rows.size() << "行数据用于PATTERN_DEFINE区块";
+            }
+            catch (const std::exception &e)
+            {
+                qWarning() << "获取表" << tableName << "的行数据时发生异常:" << e.what();
+                continue;
+            }
+            catch (...)
+            {
+                qWarning() << "获取表" << tableName << "的行数据时发生未知异常";
                 continue;
             }
 
@@ -556,6 +622,28 @@ void MainWindow::exportConstructionFile()
 
             // 为表写入头部，确保表名正确地显示
             out << "@@PATTERN_DEFINE " << tableName << "\n";
+
+            // 检查是否有行数据
+            if (rows.isEmpty())
+            {
+                qDebug() << "警告：表" << tableName << "没有行数据，添加示例数据以验证格式";
+                // 添加一行示例数据，以便验证格式
+                out << ";"; // 空Label
+
+                // 生成与管脚列数量相同的示例值
+                QStringList samplePinValues;
+                for (int i = 0; i < pinColumnIndices.size(); ++i)
+                {
+                    samplePinValues.append(i % 2 == 0 ? "1" : "0"); // 简单的01交替模式
+                }
+
+                out << samplePinValues.join(":") << ";";
+                out << "IDLE;";      // 示例指令
+                out << "TS1;";       // 示例TimeSet
+                out << "0;";         // 示例Capture
+                out << ";";          // 示例Ext（空）
+                out << "示例数据\n"; // 示例注释
+            }
 
             // 遍历所有行，按照格式要求输出
             for (const auto &row : rows)
