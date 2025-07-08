@@ -2,13 +2,13 @@
 #define VERSION_H
 
 // Version components defined by CMake from project(VERSION ...)
-#define VECEDIT_VERSION_MAJOR @PROJECT_VERSION_MAJOR @
-#define VECEDIT_VERSION_MINOR @PROJECT_VERSION_MINOR @
-#define VECEDIT_VERSION_PATCH @PROJECT_VERSION_PATCH @
-#define VECEDIT_VERSION_TWEAK @PROJECT_VERSION_TWEAK @
+#define VECEDIT_VERSION_MAJOR 0
+#define VECEDIT_VERSION_MINOR 6
+#define VECEDIT_VERSION_PATCH 2
+#define VECEDIT_VERSION_TWEAK 289
 
 // Full version string e.g., "0.0.0.3"
-#define VECEDIT_VERSION_STRING "0.0.4"
+#define VECEDIT_VERSION_STRING "0.6.2.289"
 
 // Helper macros to stringify version components
 #define VECEDIT_VERSION_TO_STRING_HELPER(x) #x

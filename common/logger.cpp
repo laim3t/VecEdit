@@ -9,7 +9,7 @@
 QMutex Logger::m_mutex;
 Logger *Logger::m_instance = nullptr;
 
-Logger::Logger(QObject *parent) : QObject(parent), m_logToFile(false), m_logLevel(LogLevel::Debug)
+Logger::Logger(QObject *parent) : QObject(parent), m_logToFile(false), m_logLevel(LogLevel::Debug), m_enableConsole(false)
 {
     qDebug() << "Logger::Logger - 日志处理器初始化";
 }
@@ -42,6 +42,7 @@ void Logger::initialize(bool logToFile, const QString &logFilePath, LogLevel lev
 {
     m_logToFile = logToFile;
     m_logLevel = level;
+    m_enableConsole = enableConsole; // 保存控制台启用状态
 
     if (m_logToFile)
     {
@@ -273,42 +274,45 @@ void Logger::messageHandler(QtMsgType type, const QMessageLogContext &context, c
 
     QMutexLocker locker(&m_mutex);
 
-    // 输出到控制台
-#ifdef Q_OS_WIN
-    // 在Windows上，使用控制台API直接输出
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    // 根据消息类型设置不同的颜色
-    WORD attributes = FOREGROUND_INTENSITY;
-
-    switch (type)
+    // 输出到控制台，仅当enableConsole为true时
+    if (logger.m_enableConsole)
     {
-    case QtDebugMsg:
-        attributes |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; // 白色
-        break;
-    case QtInfoMsg:
-        attributes |= FOREGROUND_GREEN | FOREGROUND_BLUE; // 青色
-        break;
-    case QtWarningMsg:
-        attributes |= FOREGROUND_RED | FOREGROUND_GREEN; // 黄色
-        break;
-    case QtCriticalMsg:
-    case QtFatalMsg:
-        attributes |= FOREGROUND_RED; // 红色
-        break;
-    }
+#ifdef Q_OS_WIN
+        // 在Windows上，使用控制台API直接输出
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    SetConsoleTextAttribute(hConsole, attributes);
+        // 根据消息类型设置不同的颜色
+        WORD attributes = FOREGROUND_INTENSITY;
 
-    // 直接使用UTF-8输出截断后的消息
-    std::cout << displayMessage.toStdString() << std::endl;
+        switch (type)
+        {
+        case QtDebugMsg:
+            attributes |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; // 白色
+            break;
+        case QtInfoMsg:
+            attributes |= FOREGROUND_GREEN | FOREGROUND_BLUE; // 青色
+            break;
+        case QtWarningMsg:
+            attributes |= FOREGROUND_RED | FOREGROUND_GREEN; // 黄色
+            break;
+        case QtCriticalMsg:
+        case QtFatalMsg:
+            attributes |= FOREGROUND_RED; // 红色
+            break;
+        }
 
-    // 恢复默认颜色
-    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        SetConsoleTextAttribute(hConsole, attributes);
+
+        // 直接使用UTF-8输出截断后的消息
+        std::cout << displayMessage.toStdString() << std::endl;
+
+        // 恢复默认颜色
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
-    // 其他平台使用标准输出
-    std::cout << displayMessage.toStdString() << std::endl;
+        // 其他平台使用标准输出
+        std::cout << displayMessage.toStdString() << std::endl;
 #endif
+    }
 
     // 如果启用了文件日志，写入完整的消息到文件
     if (logger.m_logToFile && logger.m_logFile.isOpen())

@@ -1,0 +1,24 @@
+^C:\VECEDIT\BUILD_TEST\CMAKEFILES\2C5956E20570382459374F702C0E583B\QRC_ICONS.CPP.RULE
+setlocal
+cd C:\VecEdit\build_test
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\CMake\bin\cmake.exe" -E cmake_autorcc C:/VecEdit/build_test/CMakeFiles/VecEdit_autogen.dir/AutoRcc_icons_BUURKL3RHA_Info.json Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\VECEDIT\CMAKELISTS.TXT
+setlocal
+"C:\Program Files (x86)\CMake\bin\cmake.exe" -SC:/VecEdit -BC:/VecEdit/build_test --check-stamp-file C:/VecEdit/build_test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
