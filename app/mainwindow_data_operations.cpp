@@ -359,6 +359,21 @@ void MainWindow::addRowToCurrentVectorTableModel()
         // 获取选中的TimeSet ID
         int timeSetId = dialog.getSelectedTimeSetId();
 
+        // 添加详细的TimeSet ID调试日志
+        qDebug() << funcName << " - 从对话框获取的TimeSet ID:" << timeSetId;
+
+        // 如果TimeSet ID无效，尝试获取第一个可用的TimeSet
+        if (timeSetId <= 0)
+        {
+            QSqlDatabase db = DatabaseManager::instance()->database();
+            QSqlQuery query(db);
+            if (query.exec("SELECT id FROM timeset_list ORDER BY id LIMIT 1") && query.next())
+            {
+                timeSetId = query.value(0).toInt();
+                qDebug() << funcName << " - TimeSet ID无效，使用第一个可用的TimeSet ID:" << timeSetId;
+            }
+        }
+
         // 获取表格预览数据
         QList<QStringList> tableData = dialog.getTableData();
         int previewRowCount = tableData.size();
@@ -497,23 +512,38 @@ void MainWindow::addRowToCurrentVectorTableModel()
                             }
                         }
 
-                        // 设置TimeSet
-                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + totalRowIndex, m_vectorTableModel->getTimeSetColumnIndex());
-                        if (timesetIndex.isValid())
+                        // 设置TimeSet - 确保使用大于0的有效timeSetId
+                        if (timeSetId > 0)
                         {
-                            m_vectorTableModel->setData(timesetIndex, timeSetId);
+                            QModelIndex timesetIndex = m_vectorTableModel->index(startRow + totalRowIndex, m_vectorTableModel->getTimeSetColumnIndex());
+                            if (timesetIndex.isValid())
+                            {
+                                // 直接传递timeSetId而不是名称字符串，确保正确设置ID值
+                                bool success = m_vectorTableModel->setData(timesetIndex, QVariant(timeSetId));
+                                if (!success)
+                                {
+                                    qWarning() << funcName << " - 设置TimeSet ID失败，行:" << (startRow + totalRowIndex)
+                                               << "，TimeSet ID:" << timeSetId;
+                                }
+                            }
                         }
                     }
                 }
                 // 对于后续批次，只设置TimeSet ID
-                else if (timeSetId > 0)
+                else if (timeSetId > 0) // 确保只有当timeSetId有效时才设置
                 {
                     for (int i = 0; i < batchSize; ++i)
                     {
                         QModelIndex timesetIndex = m_vectorTableModel->index(startRow + rowsInserted + i, m_vectorTableModel->getTimeSetColumnIndex());
                         if (timesetIndex.isValid())
                         {
-                            m_vectorTableModel->setData(timesetIndex, timeSetId);
+                            // 直接传递timeSetId而不是名称字符串，确保正确设置ID值
+                            bool success = m_vectorTableModel->setData(timesetIndex, QVariant(timeSetId));
+                            if (!success)
+                            {
+                                qWarning() << funcName << " - 设置TimeSet ID失败，行:" << (startRow + rowsInserted + i)
+                                           << "，TimeSet ID:" << timeSetId;
+                            }
                         }
                     }
                 }

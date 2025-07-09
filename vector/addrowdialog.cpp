@@ -35,6 +35,15 @@ AddRowDialog::AddRowDialog(QWidget *parent)
     setupConnections();
     loadTimeSets();
 
+    // 确保默认选择第一个TimeSet
+    if (m_timeSetComboBox->count() > 0)
+    {
+        m_timeSetComboBox->setCurrentIndex(0);
+        qDebug() << "AddRowDialog构造函数 - 默认选择第一个TimeSet:"
+                 << "名称=" << m_timeSetComboBox->currentText()
+                 << "，ID=" << m_timeSetComboBox->currentData().toInt();
+    }
+
     // 获取当前选中的向量表ID
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
@@ -382,8 +391,18 @@ void AddRowDialog::loadTimeSets()
 
     if (query.exec("SELECT id, timeset_name FROM timeset_list ORDER BY id"))
     {
+        // 保存当前选择的TimeSet ID（如果有）
+        int currentSelectedId = -1;
+        if (m_timeSetComboBox->count() > 0)
+        {
+            currentSelectedId = m_timeSetComboBox->currentData().toInt();
+        }
+
         m_timeSetComboBox->clear();
         m_timeSetOptions.clear();
+
+        int indexToSelect = 0; // 默认选择第一个
+        int itemCount = 0;
 
         while (query.next())
         {
@@ -392,6 +411,29 @@ void AddRowDialog::loadTimeSets()
 
             m_timeSetOptions[timesetId] = timesetName;
             m_timeSetComboBox->addItem(timesetName, timesetId);
+
+            // 如果这是之前选择的ID，记录它的索引
+            if (timesetId == currentSelectedId)
+            {
+                indexToSelect = itemCount;
+            }
+
+            itemCount++;
+        }
+
+        // 如果有项目，设置选择
+        if (m_timeSetComboBox->count() > 0)
+        {
+            // 如果之前有选择并且仍然存在，选择它；否则选择第一个
+            m_timeSetComboBox->setCurrentIndex(indexToSelect);
+
+            // 添加调试日志
+            int selectedId = m_timeSetComboBox->currentData().toInt();
+            QString selectedName = m_timeSetComboBox->currentText();
+            qDebug() << "AddRowDialog::loadTimeSets - 已选择TimeSet:" << selectedName
+                     << "，ID:" << selectedId
+                     << "，索引:" << indexToSelect
+                     << "，总项数:" << m_timeSetComboBox->count();
         }
     }
     else
@@ -591,7 +633,21 @@ bool AddRowDialog::isAppendToEnd() const
 
 int AddRowDialog::getSelectedTimeSetId() const
 {
-    return m_timeSetComboBox->currentData().toInt();
+    int timeSetId = m_timeSetComboBox->currentData().toInt();
+
+    // 添加调试日志，帮助诊断问题
+    qDebug() << "AddRowDialog::getSelectedTimeSetId - 选择的TimeSet ID:" << timeSetId
+             << "，对应的名称:" << m_timeSetComboBox->currentText();
+
+    // 确保返回有效的TimeSet ID
+    if (timeSetId <= 0 && m_timeSetComboBox->count() > 0)
+    {
+        // 如果ID无效但有可选项，尝试获取当前选择的项
+        timeSetId = m_timeSetComboBox->currentData().toInt();
+        qDebug() << "AddRowDialog::getSelectedTimeSetId - 尝试重新获取ID:" << timeSetId;
+    }
+
+    return timeSetId;
 }
 
 QList<QStringList> AddRowDialog::getTableData() const

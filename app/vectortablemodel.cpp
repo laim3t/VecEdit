@@ -285,8 +285,23 @@ bool VectorTableModel::setData(const QModelIndex &index, const QVariant &value, 
         convertedValue = getInstructionId(value.toString());
         break;
     case Vector::ColumnDataType::TIMESET_ID:
-        // 将TimeSet名称转换为ID
-        convertedValue = getTimeSetId(value.toString());
+        // 处理TimeSet ID - 可能是整数ID或名称字符串
+        if (value.type() == QVariant::Int || value.type() == QVariant::UInt ||
+            value.type() == QVariant::LongLong || value.type() == QVariant::ULongLong)
+        {
+            // 如果传入的是整数类型，直接使用该整数作为ID
+            convertedValue = value.toInt();
+            qDebug() << "VectorTableModel::setData - 直接使用整数TimeSet ID:" << convertedValue.toInt();
+        }
+        else
+        {
+            // 如果传入的是字符串，尝试转换为ID
+            QString timeSetName = value.toString();
+            int timeSetId = getTimeSetId(timeSetName);
+            convertedValue = timeSetId;
+            qDebug() << "VectorTableModel::setData - 将TimeSet名称" << timeSetName
+                     << "转换为ID:" << timeSetId;
+        }
         break;
     default:
         // 其他类型保持原样
@@ -447,6 +462,12 @@ QString VectorTableModel::getInstructionName(int instructionId) const
 // 获取TimeSet名称（根据ID）
 QString VectorTableModel::getTimeSetName(int timeSetId) const
 {
+    // 如果timeSetId为负数或零，返回一个默认值
+    if (timeSetId <= 0)
+    {
+        return "请选择TimeSet";
+    }
+
     // 如果缓存未初始化，则初始化缓存
     if (!m_cachesInitialized)
     {
@@ -474,8 +495,8 @@ QString VectorTableModel::getTimeSetName(int timeSetId) const
         return name;
     }
 
-    // 如果找不到对应的名称，返回格式化的字符串
-    return QString("timeset_%1").arg(timeSetId);
+    // 如果找不到对应的名称，不再返回"timeset_负数"格式，而是返回一个更友好的提示
+    return "请选择TimeSet";
 }
 
 // 获取指令ID（根据名称）
