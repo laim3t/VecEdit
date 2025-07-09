@@ -39,6 +39,9 @@ public:
     // 重写setData方法，实现数据编辑
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
+    // 批量设置行数据
+    bool setRowData(int row, const QMap<int, QVariant> &pinValues, int timeSetId);
+
     // 表格行操作相关方法 - 重写QAbstractTableModel的标准方法
     bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
     bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;

@@ -709,3 +709,52 @@ QMap<int, QString> VectorTableModel::getPinColumnInfo() const
 }
 
 // 兼容旧代码的方法
+
+// 批量设置行数据
+bool VectorTableModel::setRowData(int row, const QMap<int, QVariant> &pinValues, int timeSetId)
+{
+    if (row < 0 || row >= m_pageData.size())
+    {
+        return false;
+    }
+
+    bool changed = false;
+
+    // 直接修改行数据
+    Vector::RowData &rowData = m_pageData[row];
+
+    // 1. 批量更新管脚值
+    for (auto it = pinValues.constBegin(); it != pinValues.constEnd(); ++it)
+    {
+        int column = it.key();
+        if (column >= 0 && column < rowData.size())
+        {
+            if (rowData[column] != it.value())
+            {
+                rowData[column] = it.value();
+                changed = true;
+            }
+        }
+    }
+
+    // 2. 更新TimeSet ID
+    int timeSetCol = getTimeSetColumnIndex();
+    if (timeSetId > 0 && timeSetCol >= 0 && timeSetCol < rowData.size())
+    {
+        if (rowData[timeSetCol].toInt() != timeSetId)
+        {
+            rowData[timeSetCol] = timeSetId;
+            changed = true;
+        }
+    }
+
+    // 3. 如果数据有变，则发射信号通知视图更新整行
+    if (changed)
+    {
+        QModelIndex topLeft = index(row, 0);
+        QModelIndex bottomRight = index(row, columnCount() - 1);
+        emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::EditRole});
+    }
+
+    return changed;
+}

@@ -485,66 +485,39 @@ void MainWindow::addRowToCurrentVectorTableModel()
             // 插入行到模型
             if (m_vectorTableModel->insertRows(startRow + rowsInserted, batchSize))
             {
-                // 如果有预览数据和TimeSet设置，对所有行应用模式数据
-                if (hasPreviewData)
+                // 如果有预览数据或TimeSet设置，对所有行应用模式数据
+                if (hasPreviewData || timeSetId > 0)
                 {
                     // 循环应用模式数据到当前批次的所有行
                     for (int i = 0; i < batchSize; ++i)
                     {
-                        // 计算总行索引和对应的模式行索引（循环重复）
-                        int totalRowIndex = rowsInserted + i;
-                        int patternRowIndex = totalRowIndex % previewRowCount;
-                        const QStringList &patternRowData = tableData.at(patternRowIndex);
-
-                        // 应用模式行数据
-                        const QMap<int, QString> &pinOptions = dialog.getPinOptions();
-                        int previewCol = 0;
-                        for (auto it = pinOptions.constBegin(); it != pinOptions.constEnd(); ++it)
+                        QMap<int, QVariant> rowDataMap; // 每次循环都创建一个新的Map
+                        if (hasPreviewData)
                         {
-                            if (previewCol < patternRowData.size())
-                            {
-                                QModelIndex index = m_vectorTableModel->index(startRow + totalRowIndex, it.key());
-                                if (index.isValid() && !patternRowData.at(previewCol).isEmpty())
-                                {
-                                    m_vectorTableModel->setData(index, patternRowData.at(previewCol));
-                                }
-                                previewCol++;
-                            }
-                        }
+                            // 计算总行索引和对应的模式行索引（循环重复）
+                            int totalRowIndex = rowsInserted + i;
+                            int patternRowIndex = totalRowIndex % previewRowCount;
+                            const QStringList &patternRowData = tableData.at(patternRowIndex);
 
-                        // 设置TimeSet - 确保使用大于0的有效timeSetId
-                        if (timeSetId > 0)
-                        {
-                            QModelIndex timesetIndex = m_vectorTableModel->index(startRow + totalRowIndex, m_vectorTableModel->getTimeSetColumnIndex());
-                            if (timesetIndex.isValid())
+                            // 从对话框获取管脚列信息
+                            const QMap<int, QString> &pinOptions = dialog.getPinOptions();
+                            int previewCol = 0;
+                            for (auto it = pinOptions.constBegin(); it != pinOptions.constEnd(); ++it)
                             {
-                                // 直接传递timeSetId而不是名称字符串，确保正确设置ID值
-                                bool success = m_vectorTableModel->setData(timesetIndex, QVariant(timeSetId));
-                                if (!success)
+                                if (previewCol < patternRowData.size())
                                 {
-                                    qWarning() << funcName << " - 设置TimeSet ID失败，行:" << (startRow + totalRowIndex)
-                                               << "，TimeSet ID:" << timeSetId;
+                                    if (!patternRowData.at(previewCol).isEmpty())
+                                    {
+                                        rowDataMap.insert(it.key(), patternRowData.at(previewCol));
+                                    }
+                                    previewCol++;
                                 }
                             }
                         }
-                    }
-                }
-                // 对于后续批次，只设置TimeSet ID
-                else if (timeSetId > 0) // 确保只有当timeSetId有效时才设置
-                {
-                    for (int i = 0; i < batchSize; ++i)
-                    {
-                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + rowsInserted + i, m_vectorTableModel->getTimeSetColumnIndex());
-                        if (timesetIndex.isValid())
-                        {
-                            // 直接传递timeSetId而不是名称字符串，确保正确设置ID值
-                            bool success = m_vectorTableModel->setData(timesetIndex, QVariant(timeSetId));
-                            if (!success)
-                            {
-                                qWarning() << funcName << " - 设置TimeSet ID失败，行:" << (startRow + rowsInserted + i)
-                                           << "，TimeSet ID:" << timeSetId;
-                            }
-                        }
+
+                        int currentRow = startRow + rowsInserted + i;
+                        // 统一调用新的批量更新方法
+                        m_vectorTableModel->setRowData(currentRow, rowDataMap, timeSetId);
                     }
                 }
 
