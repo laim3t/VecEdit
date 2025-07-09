@@ -3,6 +3,7 @@
 #include "../vector/vectordatahandler.h"
 #include "../timeset/timesetdialog.h"
 #include "../timeset/timesetdataaccess.h"
+#include "../pin/pinvalueedit.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -235,7 +236,14 @@ void AddRowDialog::setupTable()
         }
 
         m_previewTable->setRowCount(1); // 默认显示一行
-        return;                         // 使用传入数据后直接返回
+
+        // 初始化第一行的所有单元格为默认值"X"
+        initializeRowWithDefaultValues(0);
+
+        // 调整表格列宽
+        m_previewTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+        return; // 使用传入数据后直接返回
     }
 
     // --- Fallback Logic ---
@@ -329,12 +337,7 @@ void AddRowDialog::setupTable()
 
             // 默认添加一行
             m_previewTable->setRowCount(1);
-            for (int col = 0; col < m_previewTable->columnCount(); col++)
-            {
-                QTableWidgetItem *item = new QTableWidgetItem("X");
-                item->setTextAlignment(Qt::AlignCenter); // 确保文本居中显示
-                m_previewTable->setItem(0, col, item);
-            }
+            initializeRowWithDefaultValues(0);
 
             // 调整表格列宽
             m_previewTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -346,8 +349,11 @@ void AddRowDialog::setupTable()
             m_previewTable->setColumnCount(1);
             m_previewTable->setHorizontalHeaderItem(0, new QTableWidgetItem("请先添加管脚"));
             m_previewTable->setRowCount(1);
+
+            // 这里不使用PinValueLineEdit，因为这是一个提示信息而不是数据输入
             QTableWidgetItem *item = new QTableWidgetItem("未配置管脚");
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            item->setTextAlignment(Qt::AlignCenter);
             m_previewTable->setItem(0, 0, item);
         }
     }
@@ -364,6 +370,29 @@ void AddRowDialog::setupConnections()
     // 行数变化时更新剩余可用行数显示并验证整数倍关系
     connect(m_rowCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &AddRowDialog::validateRowCount);
     connect(m_rowCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &AddRowDialog::updateRemainingRowsDisplay);
+
+    // 连接表格的itemChanged信号，用于处理直接编辑QTableWidgetItem的情况
+    connect(m_previewTable, &QTableWidget::itemChanged, this, [this](QTableWidgetItem *item)
+            {
+        // 对于非PinValueLineEdit的单元格，手动验证输入
+        if (item) {
+            QString text = item->text();
+            if (!text.isEmpty()) {
+                QString validChars = "01LlHhXxSsVvMm";
+                QChar ch = text[0];
+                
+                // 检查是否为有效字符
+                if (!validChars.contains(ch)) {
+                    item->setText("X"); // 无效字符，设为默认值
+                } else if (ch.isLower()) {
+                    // 将小写字母转换为大写
+                    item->setText(text.toUpper());
+                }
+            }
+        }
+        
+        // 更新行数验证
+        validateRowCount(m_rowCountSpinBox->value()); });
 
     // 确保表格行选择行为
     ensureRowSelectionBehavior();
@@ -506,13 +535,8 @@ void AddRowDialog::onAddRowButtonClicked()
     int currentRowCount = m_previewTable->rowCount();
     m_previewTable->setRowCount(currentRowCount + 1);
 
-    // 添加默认"X"值单元格
-    for (int col = 0; col < m_previewTable->columnCount(); col++)
-    {
-        QTableWidgetItem *item = new QTableWidgetItem("X");
-        item->setTextAlignment(Qt::AlignCenter); // 确保文本居中显示
-        m_previewTable->setItem(currentRowCount, col, item);
-    }
+    // 使用辅助方法初始化新行的单元格为默认值"X"
+    initializeRowWithDefaultValues(currentRowCount);
 
     // 在添加行后立即重新验证行数
     validateRowCount(m_rowCountSpinBox->value());
@@ -659,8 +683,21 @@ QList<QStringList> AddRowDialog::getTableData() const
         QStringList rowData;
         for (int col = 0; col < m_previewTable->columnCount(); col++)
         {
-            QTableWidgetItem *item = m_previewTable->item(row, col);
-            QString cellText = (item && !item->text().isEmpty()) ? item->text() : "X";
+            // 获取单元格中的PinValueLineEdit控件
+            PinValueLineEdit *editor = qobject_cast<PinValueLineEdit *>(m_previewTable->cellWidget(row, col));
+            QString cellText;
+
+            if (editor)
+            {
+                // 如果是PinValueLineEdit控件，获取其文本
+                cellText = editor->text();
+            }
+            else
+            {
+                // 如果不是PinValueLineEdit控件（例如特殊单元格），尝试获取QTableWidgetItem
+                QTableWidgetItem *item = m_previewTable->item(row, col);
+                cellText = (item && !item->text().isEmpty()) ? item->text() : "X";
+            }
 
             // 确保大写并验证有效字符
             if (cellText.length() > 0)
@@ -692,4 +729,27 @@ QList<QStringList> AddRowDialog::getTableData() const
 const QMap<int, QString> &AddRowDialog::getPinOptions() const
 {
     return m_pinOptions;
+}
+
+// 初始化行的默认值为"X"
+void AddRowDialog::initializeRowWithDefaultValues(int rowIndex)
+{
+    // 确保行索引有效
+    if (rowIndex < 0 || rowIndex >= m_previewTable->rowCount())
+        return;
+
+    // 为该行的每个单元格设置默认值"X"并使用PinValueLineEdit控件
+    for (int col = 0; col < m_previewTable->columnCount(); col++)
+    {
+        // 创建自定义的PinValueLineEdit控件，具有输入限制和大小写转换功能
+        PinValueLineEdit *editor = new PinValueLineEdit(m_previewTable);
+        editor->setText("X");
+
+        // 将编辑器添加到表格
+        m_previewTable->setCellWidget(rowIndex, col, editor);
+
+        // 连接编辑完成信号，确保在用户完成编辑后更新行数验证
+        connect(editor, &QLineEdit::editingFinished, this, [this]()
+                { validateRowCount(m_rowCountSpinBox->value()); });
+    }
 }

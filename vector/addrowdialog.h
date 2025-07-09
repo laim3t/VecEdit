@@ -84,7 +84,8 @@ private:
     void setupConnections();
     void loadTimeSets();
     void updateRemainingRowsDisplay();
-    void ensureRowSelectionBehavior(); // 新增：确保点击单元格会选中整行
+    void ensureRowSelectionBehavior();                 // 新增：确保点击单元格会选中整行
+    void initializeRowWithDefaultValues(int rowIndex); // 新增：初始化行的默认值为"X"
 
     QLabel *m_infoLabel;
     QSpinBox *m_rowCountSpinBox;
