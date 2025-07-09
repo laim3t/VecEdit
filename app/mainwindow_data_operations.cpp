@@ -470,76 +470,38 @@ void MainWindow::addRowToCurrentVectorTableModel()
             // 插入行到模型
             if (m_vectorTableModel->insertRows(startRow + rowsInserted, batchSize))
             {
-                // 如果有预览数据和TimeSet设置，填充预览行的数据
-                if (hasPreviewData && currentBatch == 1)
+                // 如果有预览数据和TimeSet设置，对所有行应用模式数据
+                if (hasPreviewData)
                 {
-                    // 填充预览行数据
-                    for (int i = 0; i < previewRowCount && i < batchSize; ++i)
+                    // 循环应用模式数据到当前批次的所有行
+                    for (int i = 0; i < batchSize; ++i)
                     {
-                        // 获取预览数据中的行
-                        const QStringList &rowData = tableData.at(i);
+                        // 计算总行索引和对应的模式行索引（循环重复）
+                        int totalRowIndex = rowsInserted + i;
+                        int patternRowIndex = totalRowIndex % previewRowCount;
+                        const QStringList &patternRowData = tableData.at(patternRowIndex);
 
-                        // 填充表格中的数据
-                        const QMap<int, QString> &pinOptions = dialog.getPinOptions(); // 从对话框获取管脚列映射
+                        // 应用模式行数据
+                        const QMap<int, QString> &pinOptions = dialog.getPinOptions();
                         int previewCol = 0;
                         for (auto it = pinOptions.constBegin(); it != pinOptions.constEnd(); ++it)
                         {
-                            if (previewCol < rowData.size())
+                            if (previewCol < patternRowData.size())
                             {
-                                QModelIndex index = m_vectorTableModel->index(startRow + i, it.key());
-                                if (index.isValid() && !rowData.at(previewCol).isEmpty())
+                                QModelIndex index = m_vectorTableModel->index(startRow + totalRowIndex, it.key());
+                                if (index.isValid() && !patternRowData.at(previewCol).isEmpty())
                                 {
-                                    m_vectorTableModel->setData(index, rowData.at(previewCol));
+                                    m_vectorTableModel->setData(index, patternRowData.at(previewCol));
                                 }
                                 previewCol++;
                             }
                         }
 
-                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + i, m_vectorTableModel->getTimeSetColumnIndex());
+                        // 设置TimeSet
+                        QModelIndex timesetIndex = m_vectorTableModel->index(startRow + totalRowIndex, m_vectorTableModel->getTimeSetColumnIndex());
                         if (timesetIndex.isValid())
                         {
                             m_vectorTableModel->setData(timesetIndex, timeSetId);
-                        }
-                    }
-
-                    // 如果剩余行数超过预览行数，为其他行设置相同的TimeSet
-                    if (batchSize > previewRowCount)
-                    {
-                        // 获取预览行中的管脚值，用于应用到所有其他行
-                        QMap<int, QVariant> pinValues;
-                        if (previewRowCount > 0)
-                        {
-                            const QStringList &firstRowData = tableData.at(0);
-                            const QMap<int, QString> &pinOptions = dialog.getPinOptions();
-                            int previewCol = 0;
-                            for (auto it = pinOptions.constBegin(); it != pinOptions.constEnd(); ++it)
-                            {
-                                if (previewCol < firstRowData.size() && !firstRowData.at(previewCol).isEmpty())
-                                {
-                                    pinValues.insert(it.key(), firstRowData.at(previewCol));
-                                }
-                                previewCol++;
-                            }
-                        }
-
-                        for (int i = previewRowCount; i < batchSize; ++i)
-                        {
-                            // 设置TimeSet
-                            QModelIndex timesetIndex = m_vectorTableModel->index(startRow + i, m_vectorTableModel->getTimeSetColumnIndex());
-                            if (timesetIndex.isValid())
-                            {
-                                m_vectorTableModel->setData(timesetIndex, timeSetId);
-                            }
-
-                            // 设置管脚值
-                            for (auto it = pinValues.constBegin(); it != pinValues.constEnd(); ++it)
-                            {
-                                QModelIndex index = m_vectorTableModel->index(startRow + i, it.key());
-                                if (index.isValid())
-                                {
-                                    m_vectorTableModel->setData(index, it.value());
-                                }
-                            }
                         }
                     }
                 }

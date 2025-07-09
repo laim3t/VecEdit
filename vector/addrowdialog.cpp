@@ -21,6 +21,8 @@
 #include <QSqlError>
 #include <QMessageBox>
 #include <QDebug>
+#include <QProgressDialog>
+#include <QCoreApplication>
 
 AddRowDialog::AddRowDialog(QWidget *parent)
     : QDialog(parent),
@@ -87,10 +89,16 @@ void AddRowDialog::setupUi()
     topLayout->addStretch(); // 推动按钮到左侧
     mainLayout->addLayout(topLayout);
 
-    // 添加注释标签
-    QLabel *noteLabel = new QLabel(tr("注释: 请确保添加的数据下方表格中行和列的值。"), this);
+    // 添加注释标签 - 更新内容以匹配旧轨道
+    QLabel *noteLabel = new QLabel(tr("注释: 请确保添加的行数是下方表格中行数的倍数。"), this);
     noteLabel->setStyleSheet("color: black;");
     mainLayout->addWidget(noteLabel);
+
+    // 添加警告标签 - 用于显示整数倍验证失败的消息
+    m_warningLabel = new QLabel("", this);
+    m_warningLabel->setStyleSheet("color: red; font-weight: bold;");
+    m_warningLabel->setVisible(false); // 默认隐藏
+    mainLayout->addWidget(m_warningLabel);
 
     // 创建表格预览区域
     m_previewTable = new QTableWidget(this);
@@ -192,7 +200,7 @@ void AddRowDialog::setupTable()
         for (int i = 0; i < pinNames.size(); ++i)
         {
             const QString &pinName = pinNames.at(i);
-            
+
             // 查询管脚类型
             QSqlQuery pinQuery(db);
             pinQuery.prepare("SELECT type_id FROM pin_list WHERE pin_name = ?");
@@ -218,7 +226,7 @@ void AddRowDialog::setupTable()
         }
 
         m_previewTable->setRowCount(1); // 默认显示一行
-        return; // 使用传入数据后直接返回
+        return;                         // 使用传入数据后直接返回
     }
 
     // --- Fallback Logic ---
@@ -315,6 +323,7 @@ void AddRowDialog::setupTable()
             for (int col = 0; col < m_previewTable->columnCount(); col++)
             {
                 QTableWidgetItem *item = new QTableWidgetItem("X");
+                item->setTextAlignment(Qt::AlignCenter); // 确保文本居中显示
                 m_previewTable->setItem(0, col, item);
             }
 
@@ -343,9 +352,26 @@ void AddRowDialog::setupConnections()
     connect(m_removeRowButton, &QPushButton::clicked, this, &AddRowDialog::onRemoveRowButtonClicked);
     connect(m_timeSetButton, &QPushButton::clicked, this, &AddRowDialog::onTimeSetButtonClicked);
 
-    // 行数变化时更新剩余可用行数显示
-    connect(m_rowCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [this](int value)
-            { updateRemainingRowsDisplay(); });
+    // 行数变化时更新剩余可用行数显示并验证整数倍关系
+    connect(m_rowCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &AddRowDialog::validateRowCount);
+    connect(m_rowCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &AddRowDialog::updateRemainingRowsDisplay);
+
+    // 确保表格行选择行为
+    ensureRowSelectionBehavior();
+}
+
+void AddRowDialog::ensureRowSelectionBehavior()
+{
+    // 确保点击单元格会选中整行
+    m_previewTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    // 连接单元格点击事件，确保选中整行
+    connect(m_previewTable, &QTableWidget::cellClicked, [this](int row, int column)
+            {
+        // 清除当前选择
+        m_previewTable->clearSelection();
+        // 选择整行
+        m_previewTable->selectRow(row); });
 }
 
 void AddRowDialog::loadTimeSets()
@@ -395,6 +421,37 @@ void AddRowDialog::updateRemainingRowsDisplay()
     m_remainingRowsLabel->setText(QString::number(remainingAfterAdd));
 }
 
+void AddRowDialog::validateRowCount(int value)
+{
+    int previewRows = m_previewTable->rowCount();
+
+    if (previewRows > 0)
+    {
+        if (value % previewRows != 0)
+        {
+            // 不是整数倍，显示警告
+            m_rowCountSpinBox->setStyleSheet("QSpinBox { background-color: #FFDDDD; }");
+            m_warningLabel->setText(tr("警告: 行数(%1)必须是模式行数(%2)的整数倍!").arg(value).arg(previewRows));
+            m_warningLabel->setVisible(true);
+            m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+        }
+        else
+        {
+            // 是整数倍，清除警告
+            m_rowCountSpinBox->setStyleSheet("");
+            m_warningLabel->setVisible(false);
+            m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+        }
+    }
+    else
+    {
+        // 没有预览行，不进行验证
+        m_rowCountSpinBox->setStyleSheet("");
+        m_warningLabel->setVisible(false);
+        m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+    }
+}
+
 void AddRowDialog::onAppendToEndStateChanged(int state)
 {
     // 启用或禁用"向量插入"输入框
@@ -407,12 +464,16 @@ void AddRowDialog::onAddRowButtonClicked()
     int currentRowCount = m_previewTable->rowCount();
     m_previewTable->setRowCount(currentRowCount + 1);
 
-    // 添加空单元格
+    // 添加默认"X"值单元格
     for (int col = 0; col < m_previewTable->columnCount(); col++)
     {
-        QTableWidgetItem *item = new QTableWidgetItem("");
+        QTableWidgetItem *item = new QTableWidgetItem("X");
+        item->setTextAlignment(Qt::AlignCenter); // 确保文本居中显示
         m_previewTable->setItem(currentRowCount, col, item);
     }
+
+    // 在添加行后立即重新验证行数
+    validateRowCount(m_rowCountSpinBox->value());
 }
 
 void AddRowDialog::onRemoveRowButtonClicked()
@@ -427,6 +488,9 @@ void AddRowDialog::onRemoveRowButtonClicked()
         if (m_previewTable->rowCount() > 1)
         {
             m_previewTable->removeRow(row);
+
+            // 删除行后重新验证行数
+            validateRowCount(m_rowCountSpinBox->value());
         }
         else
         {
@@ -449,6 +513,65 @@ void AddRowDialog::onTimeSetButtonClicked()
         // 刷新TimeSet列表
         loadTimeSets();
     }
+}
+
+void AddRowDialog::accept()
+{
+    // 最终验证行数是否是模式行数的整数倍
+    int rowCount = m_rowCountSpinBox->value();
+    int previewRows = m_previewTable->rowCount();
+
+    if (previewRows > 0 && rowCount % previewRows != 0)
+    {
+        QMessageBox::warning(this, tr("验证失败"),
+                             tr("设置的总行数必须是表格模式行数的整数倍！\n"
+                                "当前表格有 %1 行，总行数 %2 不是其整数倍。")
+                                 .arg(previewRows)
+                                 .arg(rowCount));
+        return;
+    }
+
+    // 检查是否超出可用行数
+    if (rowCount > m_remainingRows)
+    {
+        QMessageBox::warning(this, tr("验证失败"),
+                             tr("添加的行数超出了系统可用行数！\n"
+                                "当前可用行数: %1, 设置的行数: %2")
+                                 .arg(m_remainingRows)
+                                 .arg(rowCount));
+        return;
+    }
+
+    // 对于大量数据（超过1000行），显示进度对话框
+    if (rowCount > 1000)
+    {
+        // 创建并显示不可取消的进度对话框（仅提供视觉反馈）
+        QProgressDialog progressDialog(tr("正在准备数据..."), tr("处理中"), 0, 100, this);
+        progressDialog.setWindowTitle(tr("添加向量行"));
+        progressDialog.setWindowModality(Qt::WindowModal);
+        progressDialog.setCancelButton(nullptr); // 不允许取消
+        progressDialog.setMinimumDuration(0);    // 立即显示
+        progressDialog.setValue(10);
+
+        // 处理事件，确保对话框显示
+        QCoreApplication::processEvents();
+
+        // 模拟数据准备进度
+        progressDialog.setLabelText(tr("正在验证数据..."));
+        progressDialog.setValue(30);
+        QCoreApplication::processEvents();
+
+        progressDialog.setLabelText(tr("正在生成模式..."));
+        progressDialog.setValue(60);
+        QCoreApplication::processEvents();
+
+        progressDialog.setLabelText(tr("即将完成..."));
+        progressDialog.setValue(90);
+        QCoreApplication::processEvents();
+    }
+
+    // 继续标准接受操作
+    QDialog::accept();
 }
 
 int AddRowDialog::getRowCount() const
@@ -481,8 +604,28 @@ QList<QStringList> AddRowDialog::getTableData() const
         for (int col = 0; col < m_previewTable->columnCount(); col++)
         {
             QTableWidgetItem *item = m_previewTable->item(row, col);
-            // 如果单元格为空或内容为空，返回"X"以匹配旧轨道的行为
-            rowData.append(item && !item->text().isEmpty() ? item->text() : "X");
+            QString cellText = (item && !item->text().isEmpty()) ? item->text() : "X";
+
+            // 确保大写并验证有效字符
+            if (cellText.length() > 0)
+            {
+                QString validChars = "01LHXSVM";
+                QChar firstChar = cellText[0].toUpper();
+                if (!validChars.contains(firstChar))
+                {
+                    cellText = "X"; // 如果无效，使用默认值
+                }
+                else
+                {
+                    cellText = QString(firstChar); // 只取第一个字符并确保大写
+                }
+            }
+            else
+            {
+                cellText = "X"; // 空文本使用默认值
+            }
+
+            rowData.append(cellText);
         }
         result.append(rowData);
     }
@@ -490,7 +633,7 @@ QList<QStringList> AddRowDialog::getTableData() const
     return result;
 }
 
-const QMap<int, QString>& AddRowDialog::getPinOptions() const
+const QMap<int, QString> &AddRowDialog::getPinOptions() const
 {
     return m_pinOptions;
 }

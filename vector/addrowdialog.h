@@ -66,13 +66,17 @@ public:
      * @brief 获取管脚列信息
      * @return 管脚列的映射 (列索引 -> 名称)
      */
-    const QMap<int, QString>& getPinOptions() const;
+    const QMap<int, QString> &getPinOptions() const;
 
 private slots:
     void onAppendToEndStateChanged(int state);
     void onAddRowButtonClicked();
     void onRemoveRowButtonClicked();
     void onTimeSetButtonClicked();
+    void validateRowCount(int value); // 新增：验证行数是否是表格行数的整数倍
+
+    // 重写accept方法实现提交前的验证和进度显示
+    void accept() override;
 
 private:
     void setupUi();
@@ -80,6 +84,7 @@ private:
     void setupConnections();
     void loadTimeSets();
     void updateRemainingRowsDisplay();
+    void ensureRowSelectionBehavior(); // 新增：确保点击单元格会选中整行
 
     QLabel *m_infoLabel;
     QSpinBox *m_rowCountSpinBox;
@@ -115,6 +120,9 @@ private:
     int m_totalRows;
     int m_remainingRows;
     int m_tableId;
+
+    // 警告标签 - 用于显示行数不是整数倍时的警告
+    QLabel *m_warningLabel;
 };
 
 #endif // ADDROWDIALOG_H
