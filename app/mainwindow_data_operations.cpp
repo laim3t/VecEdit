@@ -332,18 +332,25 @@ void MainWindow::addRowToCurrentVectorTableModel()
         return;
     }
 
+    int tableId = m_vectorTableSelector->currentData().toInt();
+    if (tableId <= 0)
+    {
+        QMessageBox::warning(this, "错误", "无法获取有效的向量表ID。");
+        return;
+    }
+
     // 从模型获取管脚信息
     QMap<int, QString> pinInfo = m_vectorTableModel->getPinColumnInfo();
 
     // 如果没有管脚信息，则可能无法正确添加行数据
     if (pinInfo.isEmpty())
     {
-        QMessageBox::warning(this, "无管脚信息", "当前向量表没有定义任何管脚列，无法添加行。");
+        QMessageBox::information(this, "提示", "当前向量表没有配置管脚信息，无法添加数据。");
         return;
     }
 
     // 创建并显示新的、扩展的添加行对话框
-    AddRowDialog dialog(pinInfo, this);
+    AddRowDialog dialog(tableId, pinInfo, this);
     if (dialog.exec() == QDialog::Accepted)
     {
         int rowCount = dialog.getRowCount();

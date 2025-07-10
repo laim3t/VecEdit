@@ -610,8 +610,40 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
         col.type = Vector::columnDataTypeFromString(col.original_type_str);
         col.is_visible = colQuery.value(4).toBool();
 
-        // data_properties is no longer used in this simplified schema.
-        // The logic to parse it has been removed.
+        // 如果是管脚列类型，添加类型信息到data_properties
+        if (col.type == Vector::ColumnDataType::PIN_STATE_ID)
+        {
+            // 查询管脚类型信息
+            QSqlQuery pinQuery(db);
+            pinQuery.prepare("SELECT pin_type FROM vector_table_pins WHERE table_id = ? AND pin_id = (SELECT id FROM pin_list WHERE pin_name = ?)");
+            pinQuery.addBindValue(tableId);
+            pinQuery.addBindValue(col.name);
+
+            if (pinQuery.exec() && pinQuery.next())
+            {
+                int typeId = pinQuery.value(0).toInt();
+
+                // 存储管脚通道数和类型ID
+                col.data_properties["pin_type_id"] = typeId;
+                col.data_properties["channel_count"] = 1; // 默认值
+
+                // 查询类型名称
+                QSqlQuery typeQuery(db);
+                typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
+                typeQuery.addBindValue(typeId);
+                if (typeQuery.exec() && typeQuery.next())
+                {
+                    QString typeName = typeQuery.value(0).toString();
+                    col.data_properties["pin_type_name"] = typeName;
+                }
+            }
+            else
+            {
+                // 如果查询失败，使用默认值
+                col.data_properties["pin_type_name"] = "In";
+                col.data_properties["channel_count"] = 1;
+            }
+        }
 
         columns.append(col);
     }

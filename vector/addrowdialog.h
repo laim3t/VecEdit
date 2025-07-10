@@ -28,8 +28,7 @@ class AddRowDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AddRowDialog(QWidget *parent = nullptr);
-    explicit AddRowDialog(const QMap<int, QString> &pinInfo, QWidget *parent = nullptr);
+    explicit AddRowDialog(int tableId, const QMap<int, QString> &pinInfo, QWidget *parent = nullptr);
     ~AddRowDialog() override;
 
     /**

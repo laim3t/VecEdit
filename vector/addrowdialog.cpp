@@ -25,11 +25,12 @@
 #include <QProgressDialog>
 #include <QCoreApplication>
 
-AddRowDialog::AddRowDialog(QWidget *parent)
+AddRowDialog::AddRowDialog(int tableId, const QMap<int, QString> &pinInfo, QWidget *parent)
     : QDialog(parent),
       m_totalRows(0),
       m_remainingRows(8388608), // 默认最大行数
-      m_tableId(0)
+      m_tableId(tableId),
+      m_pinInfo(pinInfo)
 {
     setupUi();
     setupTable();
@@ -45,37 +46,22 @@ AddRowDialog::AddRowDialog(QWidget *parent)
                  << "，ID=" << m_timeSetComboBox->currentData().toInt();
     }
 
-    // 获取当前选中的向量表ID
+    // 获取当前表的总行数
     QSqlDatabase db = DatabaseManager::instance()->database();
     QSqlQuery query(db);
-    query.prepare("SELECT id FROM vector_tables WHERE is_current = 1 LIMIT 1");
+    query.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
+    query.addBindValue(m_tableId);
     if (query.exec() && query.next())
     {
-        m_tableId = query.value(0).toInt();
+        m_totalRows = query.value(0).toInt();
+        m_totalRowsLabel->setText(QString::number(m_totalRows));
 
-        // 获取当前表的总行数
-        query.prepare("SELECT COUNT(*) FROM vector_table_data WHERE table_id = ?");
-        query.addBindValue(m_tableId);
-        if (query.exec() && query.next())
-        {
-            m_totalRows = query.value(0).toInt();
-            m_totalRowsLabel->setText(QString::number(m_totalRows));
-
-            // 更新剩余可用行数
-            updateRemainingRowsDisplay();
-        }
+        // 更新剩余可用行数
+        updateRemainingRowsDisplay();
     }
 
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &AddRowDialog::accept);
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &AddRowDialog::reject);
-}
-
-AddRowDialog::AddRowDialog(const QMap<int, QString> &pinInfo, QWidget *parent)
-    : AddRowDialog(parent) // 调用委托构造函数
-{
-    // 存储传入的管脚信息并重新设置表格
-    m_pinInfo = pinInfo;
-    setupTable(); // 再次调用以使用新的管脚信息
 }
 
 AddRowDialog::~AddRowDialog()
@@ -85,9 +71,10 @@ AddRowDialog::~AddRowDialog()
 void AddRowDialog::setupUi()
 {
     setWindowTitle(tr("向量行数据录入"));
-    setMinimumWidth(600);
-    setMinimumHeight(500);
-    setModal(true); // 设置为模态对话框
+    setMinimumWidth(700);  // 增加宽度
+    setMinimumHeight(600); // 增加高度
+    resize(800, 650);      // 设置默认大小
+    setModal(true);        // 设置为模态对话框
 
     // 创建主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -198,30 +185,67 @@ void AddRowDialog::setupTable()
 {
     m_previewTable->clear(); // 清空旧内容
 
-    // 优先使用通过构造函数传入的管脚信息
+    // --- Fallback Logic ---
+    // 如果没有传入管脚信息，则执行旧的数据库查询逻辑
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // 如果没有传入管脚信息，则从数据库查询
+    if (m_pinInfo.isEmpty() && m_tableId > 0)
+    {
+        QSqlQuery query(db);
+        // 查询当前表的所有列配置，并过滤出管脚列
+        QList<QPair<QString, int>> pinColumns; // 存储管脚名称和顺序
+
+        // 从VectorTableColumnConfiguration表获取所有列信息
+        query.prepare("SELECT column_name, column_order FROM VectorTableColumnConfiguration "
+                      "WHERE master_record_id = (SELECT id FROM VectorTableMasterRecord WHERE original_vector_table_id = ?) "
+                      "AND column_type = 'Pin' "
+                      "ORDER BY column_order");
+        query.addBindValue(m_tableId);
+
+        if (query.exec())
+        {
+            while (query.next())
+            {
+                QString columnName = query.value(0).toString();
+                int columnOrder = query.value(1).toInt();
+                pinColumns.append(qMakePair(columnName, columnOrder));
+                m_pinInfo[columnOrder] = columnName; // 填充m_pinInfo
+            }
+        }
+        else
+        {
+            qWarning() << "查询向量表列配置失败:" << query.lastError().text();
+        }
+    }
+
+    // 再次检查m_pinInfo，如果填充了数据，则继续设置表格
     if (!m_pinInfo.isEmpty())
     {
-        m_pinOptions = m_pinInfo; // 使用传入的管脚信息
+        m_pinOptions = m_pinInfo;
         m_previewTable->setColumnCount(m_pinInfo.size());
 
         QList<QString> pinNames = m_pinInfo.values();
-        QSqlDatabase db = DatabaseManager::instance()->database();
 
-        for (int i = 0; i < pinNames.size(); ++i)
+        // 查询每个管脚的信息（类型）
+        for (int i = 0; i < pinNames.size(); i++)
         {
             const QString &pinName = pinNames.at(i);
 
-            // 查询管脚类型
+            // 从vector_table_pins表查询管脚类型
             QSqlQuery pinQuery(db);
-            pinQuery.prepare("SELECT type_id FROM pin_list WHERE pin_name = ?");
+            pinQuery.prepare("SELECT pin_type FROM vector_table_pins WHERE table_id = ? AND pin_id = (SELECT id FROM pin_list WHERE pin_name = ?)");
+            pinQuery.addBindValue(m_tableId);
             pinQuery.addBindValue(pinName);
 
             QString typeName = "In"; // 默认类型
             if (pinQuery.exec() && pinQuery.next())
             {
                 int typeId = pinQuery.value(0).toInt();
+
+                // 查询类型名称
                 QSqlQuery typeQuery(db);
-                typeQuery.prepare("SELECT type_name FROM pin_types WHERE id = ?");
+                typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
                 typeQuery.addBindValue(typeId);
                 if (typeQuery.exec() && typeQuery.next())
                 {
@@ -229,133 +253,52 @@ void AddRowDialog::setupTable()
                 }
             }
 
-            QString headerText = QString("%1\nx1\n%2").arg(pinName).arg(typeName);
+            // 创建表头项
+            QString headerText = pinName + "\nx1\n" + typeName;
             QTableWidgetItem *headerItem = new QTableWidgetItem(headerText);
             headerItem->setTextAlignment(Qt::AlignCenter);
+            QFont headerFont = headerItem->font();
+            headerFont.setBold(true);
+            headerItem->setFont(headerFont);
+
             m_previewTable->setHorizontalHeaderItem(i, headerItem);
         }
 
-        m_previewTable->setRowCount(1); // 默认显示一行
-
-        // 初始化第一行的所有单元格为默认值"X"
+        // 默认添加一行
+        m_previewTable->setRowCount(1);
         initializeRowWithDefaultValues(0);
 
-        // 调整表格列宽
-        m_previewTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+        // 调整表格列宽 - 使用自定义的列宽策略
+        // 首先让表格根据内容调整列宽
+        m_previewTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-        return; // 使用传入数据后直接返回
+        // 确保表格能够滚动显示所有内容
+        m_previewTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        m_previewTable->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+        // 设置较大的行高，以便完整显示表头
+        m_previewTable->verticalHeader()->setDefaultSectionSize(25);
+
+        // 设置表头高度足够显示多行文本
+        m_previewTable->horizontalHeader()->setMinimumHeight(60);
+        m_previewTable->horizontalHeader()->setMaximumHeight(60);
+
+        // 确保表格有足够的高度
+        m_previewTable->setMinimumHeight(200);
     }
-
-    // --- Fallback Logic ---
-    // 如果没有传入管脚信息，则执行旧的数据库查询逻辑
-    // 在新架构下获取当前表的管脚信息，用于设置表格列
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    QSqlQuery query(db);
-
-    // 获取当前选中的向量表ID
-    query.prepare("SELECT id FROM vector_tables WHERE is_current = 1 LIMIT 1");
-    if (query.exec() && query.next())
+    else
     {
-        int tableId = query.value(0).toInt();
-        m_tableId = tableId;
+        qWarning() << "未找到管脚列";
+        // 创建一个空表格，提示用户先添加管脚
+        m_previewTable->setColumnCount(1);
+        m_previewTable->setHorizontalHeaderItem(0, new QTableWidgetItem("请先添加管脚"));
+        m_previewTable->setRowCount(1);
 
-        // 查询当前表的所有列配置，并过滤出管脚列
-        QList<QPair<QString, int>> pinColumns; // 存储管脚名称和顺序
-
-        // 从VectorTableColumnConfiguration表获取所有列信息，使用正确的列名
-        query.prepare("SELECT id, column_name, column_order, column_type, default_value, is_visible FROM VectorTableColumnConfiguration "
-                      "WHERE master_record_id = (SELECT id FROM VectorTableMasterRecord WHERE original_vector_table_id = ?) "
-                      "ORDER BY column_order");
-        query.addBindValue(tableId);
-
-        if (query.exec())
-        {
-            while (query.next())
-            {
-                QString columnName = query.value(1).toString();
-                int columnOrder = query.value(2).toInt();
-                QString columnType = query.value(3).toString();
-
-                // 根据Vector::columnDataTypeFromString函数的逻辑，除了标准列名外，其他列名都视为管脚列
-                if (columnName != "Label" && columnName != "Instruction" &&
-                    columnName != "TimeSet" && columnName != "Capture" &&
-                    columnName != "EXT" && columnName != "Comment")
-                {
-                    // 确认这是一个管脚列
-                    pinColumns.append(qMakePair(columnName, columnOrder));
-                    // 保存到选项映射
-                    m_pinOptions[columnOrder] = columnName;
-                }
-            }
-        }
-        else
-        {
-            qWarning() << "查询向量表列配置失败:" << query.lastError().text();
-        }
-
-        // 设置表格列数和表头
-        if (!pinColumns.isEmpty())
-        {
-            m_previewTable->setColumnCount(pinColumns.size());
-
-            // 查询每个管脚的信息（类型）
-            for (int i = 0; i < pinColumns.size(); i++)
-            {
-                const auto &pinInfo = pinColumns[i];
-                const QString &pinName = pinInfo.first;
-
-                // 尝试从pin_list表查询管脚信息
-                QSqlQuery pinQuery(db);
-                pinQuery.prepare("SELECT type_id FROM pin_list WHERE pin_name = ?");
-                pinQuery.addBindValue(pinName);
-
-                QString typeName = "In"; // 默认类型
-                if (pinQuery.exec() && pinQuery.next())
-                {
-                    int typeId = pinQuery.value(0).toInt();
-
-                    // 查询类型名称
-                    QSqlQuery typeQuery(db);
-                    typeQuery.prepare("SELECT type_name FROM pin_types WHERE id = ?");
-                    typeQuery.addBindValue(typeId);
-                    if (typeQuery.exec() && typeQuery.next())
-                    {
-                        typeName = typeQuery.value(0).toString();
-                    }
-                }
-
-                // 创建表头项
-                QString headerText = pinName + "\nx1\n" + typeName;
-                QTableWidgetItem *headerItem = new QTableWidgetItem(headerText);
-                headerItem->setTextAlignment(Qt::AlignCenter);
-                QFont headerFont = headerItem->font();
-                headerFont.setBold(true);
-                headerItem->setFont(headerFont);
-
-                m_previewTable->setHorizontalHeaderItem(i, headerItem);
-            }
-
-            // 默认添加一行
-            m_previewTable->setRowCount(1);
-            initializeRowWithDefaultValues(0);
-
-            // 调整表格列宽
-            m_previewTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-        }
-        else
-        {
-            qWarning() << "未找到管脚列";
-            // 创建一个空表格，提示用户先添加管脚
-            m_previewTable->setColumnCount(1);
-            m_previewTable->setHorizontalHeaderItem(0, new QTableWidgetItem("请先添加管脚"));
-            m_previewTable->setRowCount(1);
-
-            // 这里不使用PinValueLineEdit，因为这是一个提示信息而不是数据输入
-            QTableWidgetItem *item = new QTableWidgetItem("未配置管脚");
-            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-            item->setTextAlignment(Qt::AlignCenter);
-            m_previewTable->setItem(0, 0, item);
-        }
+        // 这里不使用PinValueLineEdit，因为这是一个提示信息而不是数据输入
+        QTableWidgetItem *item = new QTableWidgetItem("未配置管脚");
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        item->setTextAlignment(Qt::AlignCenter);
+        m_previewTable->setItem(0, 0, item);
     }
 }
 

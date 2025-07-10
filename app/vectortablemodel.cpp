@@ -140,8 +140,28 @@ QVariant VectorTableModel::headerData(int section, Qt::Orientation orientation, 
                 // 获取管脚属性
                 int channelCount = colInfo.data_properties["channel_count"].toInt(1);
 
-                // 创建带有管脚信息的表头
-                return QString("%1\nx%2").arg(colInfo.name).arg(channelCount);
+                // 获取管脚类型（如果有）
+                QString typeName = "In"; // 默认类型
+                if (colInfo.data_properties.contains("pin_type_name"))
+                {
+                    typeName = colInfo.data_properties["pin_type_name"].toString();
+                }
+                else if (colInfo.data_properties.contains("pin_type_id"))
+                {
+                    // 如果有类型ID，可以从数据库获取类型名称
+                    int typeId = colInfo.data_properties["pin_type_id"].toInt();
+                    QSqlDatabase db = DatabaseManager::instance()->database();
+                    QSqlQuery typeQuery(db);
+                    typeQuery.prepare("SELECT type_name FROM type_options WHERE id = ?");
+                    typeQuery.addBindValue(typeId);
+                    if (typeQuery.exec() && typeQuery.next())
+                    {
+                        typeName = typeQuery.value(0).toString();
+                    }
+                }
+
+                // 创建带有管脚信息的表头，包括类型
+                return QString("%1\nx%2\n%3").arg(colInfo.name).arg(channelCount).arg(typeName);
             }
             else
             {
