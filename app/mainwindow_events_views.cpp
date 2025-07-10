@@ -119,72 +119,10 @@ void MainWindow::syncComboBoxWithTab(int tabIndex)
     {
         if (m_vectorTableSelector->itemData(i).toInt() == tableId)
         {
+            // 设置下拉框的当前索引。
+            // 这将触发 onVectorTableSelectionChanged 信号，
+            // 该信号是处理数据加载的唯一正确途径。
             m_vectorTableSelector->setCurrentIndex(i);
-
-            // 刷新代理的表ID缓存
-            if (m_itemDelegate)
-            {
-                qDebug() << "MainWindow::syncComboBoxWithTab - 刷新代理表ID缓存";
-                m_itemDelegate->refreshTableIdCache();
-            }
-
-            // 检查当前是否显示向量表界面，如果不是则切换
-            if (m_welcomeWidget->isVisible())
-            {
-                m_welcomeWidget->setVisible(false);
-                m_vectorTableContainer->setVisible(true);
-            }
-
-            // 重新加载数据
-            if (tableId > 0)
-            {
-                // 重置分页状态
-                m_currentPage = 0;
-
-                // 获取总行数并更新页面信息
-                if (m_useNewDataHandler)
-                {
-                    m_totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
-                }
-                else
-                {
-                    m_totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
-                }
-                m_totalPages = (m_totalRows + m_pageSize - 1) / m_pageSize; // 向上取整
-
-                // 更新分页信息显示
-                updatePaginationInfo();
-
-                // 使用分页方式加载数据
-                bool loadResult;
-                if (m_useNewDataHandler)
-                {
-                    loadResult = m_robustDataHandler->loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                }
-                else
-                {
-                    loadResult = VectorDataHandler::instance().loadVectorTablePageData(tableId, m_vectorTableWidget, m_currentPage, m_pageSize);
-                }
-
-                if (loadResult)
-                {
-                    qDebug() << "MainWindow::syncComboBoxWithTab - 成功重新加载表格数据，页码:" << m_currentPage
-                             << "，每页行数:" << m_pageSize << "，列数:" << m_vectorTableWidget->columnCount();
-                    // 应用表格样式（优化版本，一次性完成所有样式设置，包括列宽和对齐）
-                    TableStyleManager::applyBatchTableStyle(m_vectorTableWidget);
-
-                    // 输出每一列的标题，用于调试
-                    QStringList columnHeaders;
-                    for (int i = 0; i < m_vectorTableWidget->columnCount(); i++)
-                    {
-                        QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(i);
-                        QString headerText = headerItem ? headerItem->text() : QString("列%1").arg(i);
-                        columnHeaders << headerText;
-                    }
-                    qDebug() << "MainWindow::syncComboBoxWithTab - 表头列表:" << columnHeaders.join(", ");
-                }
-            }
-
             break;
         }
     }

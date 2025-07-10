@@ -385,7 +385,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     // 确保进度对话框可用且设置正确
     bool usingExternalProgress = (progress != nullptr);
     QProgressDialog *progressDialog = progress;
-    
+
     if (!progressDialog)
     {
         progressDialog = new QProgressDialog("正在填充向量数据...", "取消", 0, 100, this);
@@ -398,7 +398,7 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
         // 使用传入的进度对话框，更新文本
         progressDialog->setLabelText("正在填充向量数据...");
     }
-    
+
     // 确保UI已更新
     QCoreApplication::processEvents();
 
@@ -407,7 +407,8 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     QFutureWatcher<ResultType> *watcher = new QFutureWatcher<ResultType>(this);
 
     // 连接信号
-    connect(watcher, &QFutureWatcher<ResultType>::finished, this, [this, watcher, progressDialog, usingExternalProgress, isUsingNewView]() {
+    connect(watcher, &QFutureWatcher<ResultType>::finished, this, [this, watcher, progressDialog, usingExternalProgress, isUsingNewView]()
+            {
         // 获取结果
         ResultType result = watcher->result();
         bool success = result.first;
@@ -444,36 +445,36 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
         }
         
         // 清理资源
-        watcher->deleteLater();
-    });
+        watcher->deleteLater(); });
 
     // 启动并发任务
     if (m_useNewDataHandler)
     {
         // 使用新轨道的异步实现
         QFuture<ResultType> future = QtConcurrent::run(
-            [this, tableId, targetColumnIndex, variantMap]() -> ResultType {
+            [this, tableId, targetColumnIndex, variantMap]() -> ResultType
+            {
                 QString errorMsg;
-                
+
                 // 使用invokeMethod的非宏版本，在主线程中执行UI操作
-                bool invoked = QMetaObject::invokeMethod(this, 
-                    "showBatchIndexUpdateProgressDialog",
-                    Qt::BlockingQueuedConnection,
-                    QGenericReturnArgument(),
-                    QGenericArgument("int", &tableId),
-                    QGenericArgument("int", &targetColumnIndex),
-                    QGenericArgument("QMap<int,QVariant>", &variantMap));
-                
-                if (!invoked) {
+                bool invoked = QMetaObject::invokeMethod(this,
+                                                         "showBatchIndexUpdateProgressDialog",
+                                                         Qt::BlockingQueuedConnection,
+                                                         QGenericReturnArgument(),
+                                                         QGenericArgument("int", &tableId),
+                                                         QGenericArgument("int", &targetColumnIndex),
+                                                         QGenericArgument("QMap<int,QVariant>", &variantMap));
+
+                if (!invoked)
+                {
                     return qMakePair(false, QString("无法调用批量更新进度对话框"));
                 }
-                
+
                 // 该函数会执行批量更新并显示进度对话框，之后就已经完成了
                 // 不需要在这里再调用batchUpdateVectorColumnOptimized
                 return qMakePair(true, QString("批量更新完成"));
-            }
-        );
-        
+            });
+
         // 设置监视器
         watcher->setFuture(future);
     }
@@ -481,15 +482,17 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     {
         // 使用旧轨道的异步实现
         QFuture<ResultType> future = QtConcurrent::run(
-            [this, tableId, targetColumnIndex, variantMap, targetColumnName, progressDialog]() -> ResultType {
+            [this, tableId, targetColumnIndex, variantMap, targetColumnName, progressDialog]() -> ResultType
+            {
                 try
                 {
                     // 设置初始进度
-                    if (progressDialog) {
+                    if (progressDialog)
+                    {
                         QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                Q_ARG(int, 10));
+                                                  Q_ARG(int, 10));
                     }
-                    
+
                     // 获取数据库连接
                     QSqlDatabase db = DatabaseManager::instance()->database();
                     if (!db.isOpen())
@@ -503,15 +506,16 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                     try
                     {
                         // 设置准备阶段进度
-                        if (progressDialog) {
+                        if (progressDialog)
+                        {
                             QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                    Q_ARG(int, 20));
+                                                      Q_ARG(int, 20));
                         }
-                        
+
                         // 旧轨道的批量更新逻辑（参照原来的实现）
                         // 查询表对应的二进制文件路径...
                         // 以下是原来fillVectorWithPatternOldTrack的核心逻辑，移除UI交互部分
-                        
+
                         // 1. 查询表对应的二进制文件路径
                         QSqlQuery fileQuery(db);
                         fileQuery.prepare("SELECT binary_data_filename FROM VectorTableMasterRecord WHERE id = ?");
@@ -557,8 +561,8 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                         // 4. 查询列定义，找出对应UI列的数据库列
                         QSqlQuery colQuery(db);
                         colQuery.prepare("SELECT id, column_name, column_order, column_type "
-                                        "FROM VectorTableColumnConfiguration "
-                                        "WHERE master_record_id = ? ORDER BY column_order");
+                                         "FROM VectorTableColumnConfiguration "
+                                         "WHERE master_record_id = ? ORDER BY column_order");
                         colQuery.addBindValue(tableId);
 
                         if (!colQuery.exec())
@@ -612,16 +616,17 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                         }
 
                         // 设置读取完成进度
-                        if (progressDialog) {
+                        if (progressDialog)
+                        {
                             QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                   Q_ARG(int, 40));
+                                                      Q_ARG(int, 40));
                         }
 
                         // 对每一个需要更新的行，应用模式值
                         QMap<int, QVariant>::const_iterator it;
                         int processedRows = 0;
                         int totalRows = variantMap.size();
-                        
+
                         for (it = variantMap.begin(); it != variantMap.end(); ++it)
                         {
                             int rowIdx = it.key();
@@ -637,22 +642,25 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                                     allRows[rowIdx][targetBinaryColumn] = value;
                                 }
                             }
-                            
+
                             // 每处理100行更新一次进度
                             processedRows++;
-                            if (processedRows % 100 == 0 || processedRows == totalRows) {
+                            if (processedRows % 100 == 0 || processedRows == totalRows)
+                            {
                                 int percentage = 40 + (processedRows * 30) / totalRows;
-                                if (progressDialog) {
+                                if (progressDialog)
+                                {
                                     QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                           Q_ARG(int, percentage));
+                                                              Q_ARG(int, percentage));
                                 }
                             }
                         }
 
                         // 设置写入前进度
-                        if (progressDialog) {
+                        if (progressDialog)
+                        {
                             QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                   Q_ARG(int, 70));
+                                                      Q_ARG(int, 70));
                         }
 
                         // 回写到二进制文件
@@ -662,9 +670,10 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                         }
 
                         // 设置完成进度
-                        if (progressDialog) {
+                        if (progressDialog)
+                        {
                             QMetaObject::invokeMethod(progressDialog, "setValue", Qt::QueuedConnection,
-                                                   Q_ARG(int, 100));
+                                                      Q_ARG(int, 100));
                         }
 
                         // 提交事务
@@ -682,9 +691,8 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
                 {
                     return qMakePair(false, QString(e.what()));
                 }
-            }
-        );
-        
+            });
+
         // 设置监视器
         watcher->setFuture(future);
     }
@@ -693,10 +701,11 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
     if (progressDialog)
     {
         // 注意：QtConcurrent任务不能轻易取消，所以这里只是关闭进度对话框
-        connect(progressDialog, &QProgressDialog::canceled, [progressDialog]() {
-            progressDialog->setLabelText("正在完成当前操作，请稍候...");
-            progressDialog->setCancelButton(nullptr); // 禁用取消按钮
-        });
+        connect(progressDialog, &QProgressDialog::canceled, [progressDialog]()
+                {
+                    progressDialog->setLabelText("正在完成当前操作，请稍候...");
+                    progressDialog->setCancelButton(nullptr); // 禁用取消按钮
+                });
     }
 }
 
@@ -725,43 +734,79 @@ void MainWindow::fillVectorForVectorTable(const QString &value, const QList<int>
 // 用于连接RobustVectorDataHandler的进度信号到其他对象
 void MainWindow::connectProgressSignal(RobustVectorDataHandler *handler, QObject *receiver, const char *slot)
 {
-    if (handler && receiver) {
+    if (handler && receiver)
+    {
         QObject::connect(handler, SIGNAL(progressUpdated(int)), receiver, slot);
     }
 }
 
 // 添加一个静态变量，用于跟踪数据刷新的提示框
-QMessageBox* MainWindow::s_refreshingMessageBox = nullptr;
+QMessageBox *MainWindow::s_refreshingMessageBox = nullptr;
 
 // 当fillVectorWithPattern函数中的异步操作完成后调用
 void MainWindow::onFillVectorComplete()
 {
+    // 获取当前选中的向量表ID
+    int tabIndex = m_vectorTabWidget->currentIndex();
+    if (tabIndex < 0 || !m_tabToTableId.contains(tabIndex))
+    {
+        qDebug() << "onFillVectorComplete - 没有选中有效的向量表";
+        return;
+    }
+
+    int tableId = m_tabToTableId[tabIndex];
+
+    // 获取当前表的总行数
+    int totalRows = 0;
+    if (m_useNewDataHandler)
+    {
+        totalRows = m_robustDataHandler->getVectorTableRowCount(tableId);
+    }
+    else
+    {
+        totalRows = VectorDataHandler::instance().getVectorTableRowCount(tableId);
+    }
+
+    // 只有在数据量较大时才显示刷新提示框（大于100行）
+    const int DATA_REFRESH_THRESHOLD = 30000;
+
+    // 如果数据量小于阈值，则直接刷新而不显示对话框
+    if (totalRows < DATA_REFRESH_THRESHOLD)
+    {
+        qDebug() << "onFillVectorComplete - 数据量较小(" << totalRows << "行)，跳过显示刷新提示框";
+        refreshVectorTableData();
+        return;
+    }
+
     // 显示刷新数据提示框
-    if (!s_refreshingMessageBox) {
+    if (!s_refreshingMessageBox)
+    {
         s_refreshingMessageBox = new QMessageBox(this);
         s_refreshingMessageBox->setWindowTitle("数据刷新");
         s_refreshingMessageBox->setText("正在刷新数据显示...");
         s_refreshingMessageBox->setStandardButtons(QMessageBox::NoButton);
         s_refreshingMessageBox->setIcon(QMessageBox::Information);
-        
+
         // 非模态显示
         s_refreshingMessageBox->setModal(false);
         s_refreshingMessageBox->show();
-        
+
         // 确保UI更新
         QCoreApplication::processEvents();
-        
+
         // 连接一个定时器，在updatePaginationInfo函数被调用后关闭提示框
-        QTimer* checkTimer = new QTimer(this);
-        connect(checkTimer, &QTimer::timeout, this, [this, checkTimer]() {
+        QTimer *checkTimer = new QTimer(this);
+        connect(checkTimer, &QTimer::timeout, this, [this, checkTimer]()
+                {
             // 检查日志中是否出现了"updatePaginationInfo - 新轨道模式，隐藏所有分页控件"的信息
             // 由于我们无法直接监控日志，我们可以在代码中修改updatePaginationInfo函数来发出信号
             // 这里我们简单地设置一个超时时间，假设数据刷新过程在此期间会完成
             static int counter = 0;
             counter++;
             
-            // 如果超过10秒，或者s_refreshingMessageBox已被删除，就停止计时器
-            if (counter > 20 || !s_refreshingMessageBox) {
+            // 如果超过5秒，或者s_refreshingMessageBox已被删除，就停止计时器
+            // 将原来的20次(10秒)缩短为10次(5秒)
+            if (counter > 10 || !s_refreshingMessageBox) {
                 checkTimer->stop();
                 if (s_refreshingMessageBox) {
                     s_refreshingMessageBox->close();
@@ -782,9 +827,8 @@ void MainWindow::onFillVectorComplete()
                 }
                 checkTimer->deleteLater();
                 return;
-            }
-        });
-        
+            } });
+
         // 每500毫秒检查一次
         checkTimer->start(500);
     }
