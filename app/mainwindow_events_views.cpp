@@ -45,6 +45,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
 
     // 根据当前使用的视图类型选择不同的加载方法
     bool isUsingNewView = (m_vectorStackedWidget->currentWidget() == m_vectorTableView);
+    
     if (isUsingNewView)
     {
         qDebug() << funcName << " - 使用Model/View架构加载数据";
@@ -76,8 +77,15 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         loadCurrentPage(); // 该函数内部会处理分页和UI更新
     }
 
-    // 无论使用哪种视图，都需要更新波形图
-    updateWaveformView();
+    // 根据自动更新标志决定是否更新波形图
+    if (m_autoUpdateWaveform)
+    {
+        updateWaveformView();
+    }
+    else
+    {
+        qDebug() << funcName << " - 自动更新波形图已禁用，跳过波形图更新";
+    }
 }
 
 void MainWindow::syncTabWithComboBox(int comboBoxIndex)

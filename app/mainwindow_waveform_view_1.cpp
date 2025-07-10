@@ -13,10 +13,10 @@
 void MainWindow::setupWaveformView()
 {
     // 创建波形图停靠窗口
-    m_waveformDock = new QDockWidget(tr("波形图视图"), this);
+    m_waveformDock = new QDockWidget(tr("波形图"), this);
     m_waveformDock->setObjectName("waveformDock");
     m_waveformDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    m_waveformDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
+    m_waveformDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
     // 添加边框线样式，与其他停靠窗口保持一致
     m_waveformDock->setStyleSheet(
@@ -33,7 +33,8 @@ void MainWindow::setupWaveformView()
     m_waveformContainer = new QWidget(m_waveformDock);
     m_waveformContainer->setObjectName("waveformContainer");
     QVBoxLayout *waveformLayout = new QVBoxLayout(m_waveformContainer);
-    waveformLayout->setContentsMargins(5, 5, 5, 5);
+    waveformLayout->setContentsMargins(2, 2, 2, 2);
+    waveformLayout->setSpacing(2);
 
     // 设置容器样式，与其他停靠窗口保持一致
     QString containerStyle = R"(
@@ -49,6 +50,7 @@ void MainWindow::setupWaveformView()
     QWidget *toolbarWidget = new QWidget(m_waveformContainer);
     QHBoxLayout *toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(0, 0, 0, 0);
+    toolbarLayout->setSpacing(5);
 
     // 管脚选择器标签
     QLabel *pinSelectorLabel = new QLabel(tr("选择管脚:"), toolbarWidget);
@@ -64,6 +66,12 @@ void MainWindow::setupWaveformView()
     m_showAllPinsCheckBox = new QCheckBox(tr("全部"), toolbarWidget);
     connect(m_showAllPinsCheckBox, &QCheckBox::stateChanged, this, &MainWindow::onShowAllPinsChanged);
     toolbarLayout->addWidget(m_showAllPinsCheckBox);
+
+    // 添加"自动更新"复选框
+    QCheckBox *autoUpdateCheckBox = new QCheckBox(tr("自动更新"), toolbarWidget);
+    autoUpdateCheckBox->setChecked(m_autoUpdateWaveform); // 初始状态与成员变量一致
+    connect(autoUpdateCheckBox, &QCheckBox::toggled, this, &MainWindow::setAutoUpdateWaveform);
+    toolbarLayout->addWidget(autoUpdateCheckBox);
 
     // 添加刷新按钮
     QPushButton *refreshButton = new QPushButton(tr("刷新波形"), toolbarWidget);
@@ -982,4 +990,16 @@ void MainWindow::updateWaveformView()
 
     // 重绘
     m_waveformPlot->replot();
+}
+
+void MainWindow::setAutoUpdateWaveform(bool enable)
+{
+    qDebug() << "MainWindow::setAutoUpdateWaveform - 设置自动更新波形图:" << (enable ? "启用" : "禁用");
+    m_autoUpdateWaveform = enable;
+    
+    // 如果启用了自动更新，并且波形图当前可见，则立即更新一次
+    if (enable && m_isWaveformVisible && m_waveformPlot)
+    {
+        updateWaveformView();
+    }
 }

@@ -256,6 +256,10 @@ private slots:
     void onProjectStructureItemDoubleClicked(QTreeWidgetItem *item, int column);
     void updateWindowTitle(const QString &dbPath = QString());
 
+public slots:
+    // 波形图相关槽
+    void setAutoUpdateWaveform(bool enable); // 新增：设置是否自动更新波形图
+
 private:
     void setupUI();
     void setupMenu();
@@ -290,6 +294,9 @@ private:
 
     // 辅助函数：修复管脚列类型值，确保设置为PIN_STATE_ID类型
     bool fixPinColumnTypes();
+    
+    // 控制波形图是否自动更新的标志
+    bool m_autoUpdateWaveform = false;
 
     // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();
