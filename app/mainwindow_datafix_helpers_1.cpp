@@ -2,6 +2,22 @@
 QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 {
     const QString funcName = "MainWindow::getCurrentColumnConfiguration";
+
+    // 添加静态缓存
+    static QMap<int, QList<Vector::ColumnInfo>> columnConfigCache;
+    static QMap<int, QDateTime> cacheTimestamps;
+
+    // 检查缓存是否存在且新鲜(10秒内)
+    if (columnConfigCache.contains(tableId))
+    {
+        QDateTime now = QDateTime::currentDateTime();
+        if (cacheTimestamps.contains(tableId) && cacheTimestamps[tableId].msecsTo(now) < 10000)
+        {
+            // 缓存新鲜，直接返回缓存结果
+            return columnConfigCache[tableId];
+        }
+    }
+
     QList<Vector::ColumnInfo> columns;
 
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -26,7 +42,8 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 
     // 获取列数量
     int columnCount = 0;
-    while (colQuery.next()) {
+    while (colQuery.next())
+    {
         columnCount++;
         Vector::ColumnInfo col;
         // 按索引取值以匹配 SELECT *
@@ -49,15 +66,44 @@ QList<Vector::ColumnInfo> MainWindow::getCurrentColumnConfiguration(int tableId)
 
         columns.append(col);
     }
-    
+
     // 记录结果
-    if (columnCount > 0) {
+    if (columnCount > 0)
+    {
         qDebug() << funcName << " - 为表ID:" << tableId << "获取了" << columnCount << "列配置。";
-    } else {
+    }
+    else
+    {
         qDebug() << funcName << " - 为表ID:" << tableId << "获取列配置。未找到配置。";
     }
 
+    // 更新缓存
+    columnConfigCache[tableId] = columns;
+    cacheTimestamps[tableId] = QDateTime::currentDateTime();
+
     return columns;
+}
+
+// 需要添加一个清除缓存的方法
+void MainWindow::clearColumnConfigCache(int tableId)
+{
+    static QMap<int, QList<Vector::ColumnInfo>> columnConfigCache;
+    static QMap<int, QDateTime> cacheTimestamps;
+
+    if (tableId <= 0)
+    {
+        // 清除所有缓存
+        columnConfigCache.clear();
+        cacheTimestamps.clear();
+        qDebug() << "MainWindow::clearColumnConfigCache - 已清空所有列配置缓存";
+    }
+    else if (columnConfigCache.contains(tableId))
+    {
+        // 清除特定表的缓存
+        columnConfigCache.remove(tableId);
+        cacheTimestamps.remove(tableId);
+        qDebug() << "MainWindow::clearColumnConfigCache - 已清除表ID:" << tableId << "的列配置缓存";
+    }
 }
 
 // 辅助函数：比较两个列配置列表，判断是否发生了可能影响二进制布局的实质性变化
@@ -424,7 +470,7 @@ bool MainWindow::fixColumnTypeStorageFormat()
                 newTypeStr = columnNameTypeMap[columnName];
             }
             // 检查是否是管脚列名（已知管脚列表、Pin前缀或单字母）
-            else if (pinNames.contains(columnName) || 
+            else if (pinNames.contains(columnName) ||
                      columnName.startsWith("Pin") ||
                      (columnName.length() == 1 && columnName[0].isLetter()))
             {
@@ -475,7 +521,7 @@ bool MainWindow::fixColumnTypeStorageFormat()
 
 /**
  * @brief 修复管脚列类型值
- * 
+ *
  * 这个函数检查数据库中的管脚列，确保它们的类型值正确设置为PIN_STATE_ID (5)
  * 根据项目规则：除了固定的六列（Label、Instruction、TimeSet、Capture、EXT、Comment）外，
  * 所有其他列都是管脚列。
@@ -528,11 +574,11 @@ bool MainWindow::fixPinColumnTypes()
 
             // 检查是否是管脚列 - 除了标准列名外，所有列都是管脚列
             bool isPinColumn = !standardColumns.contains(columnName);
-            
+
             if (isPinColumn)
             {
                 qDebug() << funcName << " - 识别到管脚列:" << columnName;
-                
+
                 // 如果当前类型不是PIN_STATE_ID (5)，则更新
                 if (currentTypeStr != "5")
                 {

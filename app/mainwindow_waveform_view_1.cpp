@@ -377,16 +377,74 @@ void MainWindow::updateWaveformView()
     }
 
     int currentTableId = m_vectorTableSelector->currentData().toInt();
-    bool ok = false;
+
+    // =====================================================================
+    // [优化] 直接从VectorTableModel获取数据，而不是重新从二进制文件读取
+    // =====================================================================
     QList<Vector::RowData> allRows;
-    if (m_useNewDataHandler)
+    bool ok = false;
+
+    // 判断是否使用新视图
+    if (isUsingNewView && m_vectorTableModel)
     {
-        allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+        // 检查当前模型是否已加载了对应表的数据
+        if (m_vectorTableModel->getTableId() == currentTableId && m_vectorTableModel->rowCount() > 0)
+        {
+            // 直接从模型获取数据
+            int rowCount = m_vectorTableModel->getTotalRows();
+            allRows.reserve(rowCount);
+
+            // 由于Vector::RowData是QList<QVariant>，需要正确初始化
+            for (int row = 0; row < rowCount; ++row)
+            {
+                Vector::RowData rowData;
+                // 不能使用resize，需要手动添加元素到列表
+                for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
+                {
+                    // 使用index方法获取QModelIndex
+                    QModelIndex index = m_vectorTableModel->index(row, col);
+                    if (index.isValid())
+                    {
+                        rowData.append(m_vectorTableModel->data(index, Qt::DisplayRole));
+                    }
+                    else
+                    {
+                        // 如果索引无效，添加默认值
+                        rowData.append(QVariant());
+                    }
+                }
+
+                allRows.append(rowData);
+            }
+            ok = true;
+        }
+        else
+        {
+            // 如果模型未加载正确数据，临时从数据处理器获取
+            qDebug() << "波形图使用数据处理器获取数据，因为模型未加载或已加载别的表";
+            if (m_useNewDataHandler)
+            {
+                allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+            }
+            else
+            {
+                allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+            }
+        }
     }
     else
     {
-        allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        // 旧视图模式下从数据处理器获取数据
+        if (m_useNewDataHandler)
+        {
+            allRows = m_robustDataHandler->getAllVectorRows(currentTableId, ok);
+        }
+        else
+        {
+            allRows = VectorDataHandler::instance().getAllVectorRows(currentTableId, ok);
+        }
     }
+
     if (!ok)
     {
         qWarning() << "updateWaveformView - Failed to get all vector rows.";

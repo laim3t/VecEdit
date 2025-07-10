@@ -355,6 +355,38 @@ bool MainWindow::fixExistingTableWithoutColumns(int tableId)
 void MainWindow::checkAndFixAllVectorTables()
 {
     const QString funcName = "MainWindow::checkAndFixAllVectorTables";
+
+    // 添加条件判断逻辑：检查是否需要执行修复
+    // 使用静态变量跟踪每个会话是否已执行过修复
+    static bool hasRunInThisSession = false;
+    static QMap<QString, bool> dbPathsChecked;
+
+    // 获取当前数据库路径作为唯一标识符
+    QString currentDbPath = m_currentDbPath;
+    if (currentDbPath.isEmpty())
+    {
+        // 使用DatabaseManager中的m_dbFilePath成员变量
+        auto dbManager = DatabaseManager::instance();
+        if (dbManager && dbManager->isDatabaseConnected())
+        {
+            // 在DatabaseManager类中m_dbFilePath是私有的，但我们可以从主窗口成员获取
+            currentDbPath = m_currentDbPath; // 使用MainWindow中的成员变量
+        }
+    }
+
+    // 如果没有有效的数据库路径，使用唯一ID标识此会话
+    if (currentDbPath.isEmpty())
+    {
+        currentDbPath = "current_session";
+    }
+
+    // 如果此会话已对此数据库执行过检查，则跳过
+    if (hasRunInThisSession && dbPathsChecked.contains(currentDbPath))
+    {
+        qDebug() << funcName << " - 此数据库在本次会话中已执行过检查，跳过: " << currentDbPath;
+        return;
+    }
+
     qDebug() << funcName << " - 开始检查和修复所有向量表的列配置";
 
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -435,6 +467,13 @@ void MainWindow::checkAndFixAllVectorTables()
     }
 
     qDebug() << funcName << " - 检查完成，共 " << totalCount << " 个表，修复了 " << fixedCount << " 个表";
+
+    // 记录此数据库在本会话中已执行过检查
+    hasRunInThisSession = true;
+    dbPathsChecked[currentDbPath] = true;
+
+    // 修复后清除列配置缓存，确保后续获取的是正确配置
+    clearColumnConfigCache();
 }
 
 // 辅助方法：从数据库加载向量表元数据

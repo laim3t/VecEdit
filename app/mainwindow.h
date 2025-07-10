@@ -64,6 +64,9 @@ public:
     // 辅助函数：添加向量行
     void addVectorRow(QTableWidget *table, const QStringList &pinOptions, int rowIdx);
 
+    // 添加清除列配置缓存的方法声明
+    void clearColumnConfigCache(int tableId = 0);
+
 protected:
     // 处理窗口大小变化事件
     void resizeEvent(QResizeEvent *event) override;
