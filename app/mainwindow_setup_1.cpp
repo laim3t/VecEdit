@@ -14,7 +14,8 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isUpdatingUI(false), m_currentHexValueColumn(-1), m_hasUnsavedChanges(false),
-      m_useNewDataHandler(false), m_robustDataHandler(&RobustVectorDataHandler::instance())
+      m_useNewDataHandler(false), m_robustDataHandler(&RobustVectorDataHandler::instance()),
+      m_uiResponseTimer(nullptr), m_tableLoadStartTime(0)
 {
     setupUI();
     setupSidebarNavigator();          // 必须在 setupMenu() 之前调用，因为它初始化了 m_sidebarDock
@@ -62,6 +63,21 @@ MainWindow::MainWindow(QWidget *parent)
             {
         // 当窗口大小变化时，延迟调整管脚列宽度，避免频繁调整
         QTimer::singleShot(200, this, &MainWindow::adjustPinColumnWidths); });
+
+    // 创建UI响应监控定时器
+    m_uiResponseTimer = new QTimer(this);
+    m_uiResponseTimer->setSingleShot(true);
+    connect(m_uiResponseTimer, &QTimer::timeout, this, [this]()
+            {
+        // 定时器超时时，表示UI已恢复响应
+        if (m_tableLoadStartTime > 0) {
+            qint64 elapsedTime = QDateTime::currentMSecsSinceEpoch() - m_tableLoadStartTime;
+            qDebug() << "【性能监控】向量表完全加载完成，UI已恢复响应，总耗时:" << elapsedTime << "毫秒";
+            m_tableLoadStartTime = 0;
+        } });
+
+    // 安装事件过滤器，用于监控UI响应
+    qApp->installEventFilter(this);
 }
 
 MainWindow::~MainWindow()

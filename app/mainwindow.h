@@ -58,7 +58,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     // 辅助函数：添加向量行
@@ -68,6 +68,7 @@ public:
     void clearColumnConfigCache(int tableId = 0);
 
 protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
     // 处理窗口大小变化事件
     void resizeEvent(QResizeEvent *event) override;
 
@@ -500,6 +501,11 @@ private:
     void adjustPinColumnWidths();
 
     // 内部辅助函数
+
+    // UI响应状态监控
+    QTimer *m_uiResponseTimer;
+    qint64 m_tableLoadStartTime;
+    void logUIResponse(const QString &operation);
 };
 
 #endif // MAINWINDOW_H

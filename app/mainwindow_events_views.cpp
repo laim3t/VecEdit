@@ -5,6 +5,9 @@ void MainWindow::onVectorTableSelectionChanged(int index)
     if (index < 0)
         return;
 
+    // 记录向量表加载开始时间，用于监控UI响应状态
+    logUIResponse("向量表切换操作");
+
     int tableId = m_vectorTableSelector->itemData(index).toInt();
     qDebug() << funcName << " - 当前表ID:" << tableId;
 
@@ -20,6 +23,8 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         m_vectorTableModel->rowCount() > 0)
     {
         qDebug() << funcName << " - 模型已在显示表" << tableId << "的数据，跳过不必要的重复加载。";
+        // 由于跳过加载，手动重置UI响应监控
+        m_tableLoadStartTime = 0;
         return;
     }
 
@@ -45,6 +50,14 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         qDebug() << funcName << " - 使用Model/View架构加载数据";
         if (m_vectorTableModel)
         {
+            // 一次性连接数据加载完成信号
+            QObject::connect(m_vectorTableModel, &VectorTableModel::dataLoadCompleted, this, [this](int loadedTableId)
+                             {
+                                 qDebug() << "【性能监控】模型数据加载完成，表ID:" << loadedTableId;
+                                 // 数据加载完成后的UI渲染可能仍需要时间，UI响应监控会继续工作直到检测到用户交互
+                             },
+                             Qt::UniqueConnection);
+
             if (m_useNewDataHandler)
             {
                 m_vectorTableModel->loadAllData(tableId);
@@ -518,4 +531,37 @@ void MainWindow::on_action_triggered(bool checked)
 {
     // 这个槽函数当前没有具体操作，可以根据需要进行扩展
     qDebug() << "Action triggered, checked:" << checked;
+}
+
+// 实现事件过滤器，用于监控UI响应状态
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    // 只在表格加载期间监控事件
+    if (m_tableLoadStartTime > 0)
+    {
+        // 这些事件表明UI已经恢复响应
+        if (event->type() == QEvent::Paint ||
+            event->type() == QEvent::MouseMove ||
+            event->type() == QEvent::MouseButtonPress ||
+            event->type() == QEvent::KeyPress)
+        {
+
+            // 启动一个短定时器，确保UI完全响应
+            if (!m_uiResponseTimer->isActive())
+            {
+                m_uiResponseTimer->start(100); // 100ms后确认UI已响应
+            }
+        }
+    }
+
+    // 继续传递事件
+    return QMainWindow::eventFilter(watched, event);
+}
+
+// 记录UI响应状态的方法
+void MainWindow::logUIResponse(const QString &operation)
+{
+    // 记录操作开始时间
+    m_tableLoadStartTime = QDateTime::currentMSecsSinceEpoch();
+    qDebug() << "【性能监控】" << operation << "开始时间:" << QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
 }

@@ -80,8 +80,11 @@ public:
     void resetModel();
 
 signals:
-    // 数据修改信号，当模型数据被修改时发出
+    // 数据已修改的信号
     void dataModified(int row);
+
+    // 数据加载完成的信号
+    void dataLoadCompleted(int tableId);
 
 private:
     // 获取指令名称（根据ID）和ID（根据名称）

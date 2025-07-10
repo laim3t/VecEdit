@@ -663,6 +663,9 @@ void VectorTableModel::loadAllData(int tableId)
 
     qDebug() << "VectorTableModel::loadAllData - 加载完成，列数:" << m_columns.size()
              << "，加载行数:" << m_pageData.size() << "，总行数:" << m_totalRows;
+
+    // 通知数据加载完成
+    emit dataLoadCompleted(tableId);
 }
 
 // 添加refreshColumns的完整实现
