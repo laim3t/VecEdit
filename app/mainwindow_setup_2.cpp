@@ -52,6 +52,54 @@ void MainWindow::closeEvent(QCloseEvent *event)
     QMainWindow::closeEvent(event);
 }
 
+// 为所有管脚列设置统一宽度
+void MainWindow::adjustPinColumnWidths()
+{
+    if (!m_vectorTableView || !m_vectorTableModel)
+    {
+        return; // 确保视图和模型已初始化
+    }
+
+    const QString funcName = "MainWindow::adjustPinColumnWidths";
+    qDebug() << funcName << " - 开始调整列宽度";
+
+    // 1. 执行一次基于内容的列宽调整，设置初始宽度
+    m_vectorTableView->resizeColumnsToContents();
+
+    // 2. 找出所有管脚列，并确定它们的最大宽度
+    QList<int> pinColumns;
+    int columnCount = m_vectorTableModel->columnCount();
+    int maxPinWidth = 80; // 最小/默认宽度
+
+    for (int i = 0; i < columnCount; i++)
+    {
+        QVariant headerData = m_vectorTableModel->headerData(i, Qt::Horizontal, Qt::DisplayRole);
+        QString headerText = headerData.toString();
+
+        if (headerText.contains("x1"))
+        { // 假设管脚列包含 "x1"
+            pinColumns.append(i);
+            int currentWidth = m_vectorTableView->horizontalHeader()->sectionSize(i);
+            maxPinWidth = qMax(maxPinWidth, currentWidth);
+        }
+    }
+
+    qDebug() << funcName << " - 找到" << pinColumns.size() << "个管脚列，统一宽度设置为:" << maxPinWidth;
+
+    // 3. 为所有管脚列设置统一的固定宽度
+    if (!pinColumns.isEmpty())
+    {
+        for (int colIndex : pinColumns)
+        {
+            m_vectorTableView->horizontalHeader()->setSectionResizeMode(colIndex, QHeaderView::Fixed);
+            m_vectorTableView->horizontalHeader()->resizeSection(colIndex, maxPinWidth);
+        }
+    }
+
+    // 其他列将保持在`QHeaderView::Interactive`模式
+    qDebug() << funcName << " - 列宽度调整完成";
+}
+
 // 保存窗口状态
 void MainWindow::saveWindowState()
 {
@@ -538,68 +586,12 @@ void MainWindow::resetSidebarNavigator()
     }
 }
 
-// 添加一个resizeEvent重写，以便发出windowResized信号
+// 拦截窗口大小改变事件
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    // 调用父类方法
+    // 调用父类方法处理基本的大小改变行为
     QMainWindow::resizeEvent(event);
 
-    // 记录窗口大小变化
-    qDebug() << "MainWindow::resizeEvent - 窗口大小变化: "
-             << event->size().width() << "x" << event->size().height()
-             << " (旧尺寸: " << event->oldSize().width() << "x" << event->oldSize().height() << ")";
-
-    // 如果窗口大小发生实质性变化，才更新UI
-    if (event->size() != event->oldSize())
-    {
-        // 更新窗口大小信息
-        updateWindowSizeInfo();
-
-        // 根据窗口宽度动态调整工具栏按钮显示模式
-        if (m_vectorTableContainer && m_vectorTableContainer->isVisible())
-        {
-            // 获取工具栏 (可以通过对象名查找)
-            QToolBar *toolBar = m_vectorTableContainer->findChild<QToolBar *>("vectorTableToolBar");
-            if (toolBar)
-            {
-                // 如果窗口宽度小于阈值 (例如1000，可以根据实际按钮数量和宽度调整)
-                // 增加这个阈值，以便更早地切换到IconOnly模式
-                if (event->size().width() < 1200) // 调整后的阈值
-                {
-                    toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-                }
-                else
-                {
-                    // 恢复为图标+文本模式
-                    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-                    // 对于已明确设置为 ToolButtonIconOnly 的按钮，此设置不会覆盖它们
-                    // 因为它们的样式是直接在 QToolButton 对象上设置的。
-                    // QToolBar::setToolButtonStyle 只是一个默认值。
-                    // 如果想让所有按钮都恢复，需要遍历并重设。
-                    // 但当前逻辑是：全局切换，特定按钮保持IconOnly。
-                    // 因此，这里的代码可以保持原样，或者移除下面的特定按钮检查。
-                    // 为了确保永久IconOnly的按钮不受影响，并且其他按钮能正确切换，
-                    // 我们依赖于在 setupVectorTableUI 中对特定按钮的 QToolButton 实例设置的样式。
-                }
-            }
-        }
-
-        // 确保向量表容器适应新窗口尺寸
-        if (m_vectorTableWidget && m_vectorTableWidget->isVisible())
-        {
-            qDebug() << "MainWindow::resizeEvent - 调整向量表大小以适应窗口";
-
-            // 刷新表格布局
-            m_vectorTableWidget->updateGeometry();
-
-            // 如果表格有列，调整列宽
-            if (m_vectorTableWidget->columnCount() > 6)
-            {
-                TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
-            }
-        }
-
-        // 通知窗口尺寸变化
-        emit windowResized();
-    }
+    // 更新状态栏中的大小信息
+    updateWindowSizeInfo();
 }

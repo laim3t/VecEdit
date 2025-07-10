@@ -489,6 +489,14 @@ private:
 
     // 数据刷新提示框
     static QMessageBox *s_refreshingMessageBox;
+
+    // 打开二进制数据查看器
+    void openBinaryDataViewer();
+
+    // 调整管脚列宽度，确保所有管脚列有统一宽度
+    void adjustPinColumnWidths();
+
+    // 内部辅助函数
 };
 
 #endif // MAINWINDOW_H

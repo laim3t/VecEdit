@@ -56,6 +56,12 @@ MainWindow::MainWindow(QWidget *parent)
             qDebug() << "MainWindow - 窗口大小改变，调整管脚列宽度";
             TableStyleManager::setPinColumnWidths(m_vectorTableWidget);
         } });
+
+    // 连接窗口大小变化的事件，调整管脚列宽度
+    connect(this, &MainWindow::windowResized, this, [this]()
+            {
+        // 当窗口大小变化时，延迟调整管脚列宽度，避免频繁调整
+        QTimer::singleShot(200, this, &MainWindow::adjustPinColumnWidths); });
 }
 
 MainWindow::~MainWindow()
@@ -432,8 +438,14 @@ void MainWindow::setupVectorTableUI()
     m_vectorTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_vectorTableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     m_vectorTableView->setAlternatingRowColors(true);
-    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
+
+    // 移除最后一列自动拉伸的设置
+    m_vectorTableView->horizontalHeader()->setStretchLastSection(false);
+
+    // 设置交互式列宽调整模式，以获得最佳性能
     m_vectorTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+
+    // 设置垂直表头行高
     m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
 
     // 连接模型的数据修改信号，更新未保存状态
@@ -446,9 +458,10 @@ void MainWindow::setupVectorTableUI()
         
         qDebug() << "MainWindow - 模型数据修改，行:" << row << "，更新修改状态"; });
 
-    // 设置新视图表头和样式，与老视图保持一致
-    m_vectorTableView->horizontalHeader()->setStretchLastSection(true);
-    m_vectorTableView->verticalHeader()->setDefaultSectionSize(25);
+    // 在模型数据加载完成后，调整管脚列宽度一次
+    connect(m_vectorTableModel, &QAbstractTableModel::modelReset, this, &MainWindow::adjustPinColumnWidths);
+
+    // 确保垂直表头可见
     m_vectorTableView->verticalHeader()->setVisible(true);
 
     // 应用跟旧视图相同的样式设置
