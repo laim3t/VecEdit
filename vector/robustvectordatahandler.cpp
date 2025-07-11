@@ -484,6 +484,7 @@ int RobustVectorDataHandler::getSchemaVersion(int tableId)
 
 QList<QList<QVariant>> RobustVectorDataHandler::getAllVectorRows(int tableId, bool &ok)
 {
+    qDebug() << "[DEBUG_TRACE] ==> 8. RobustVectorDataHandler::getAllVectorRows - Entered function.";
     const QString funcName = "RobustVectorDataHandler::getAllVectorRows";
     QString errorMessage;
     ok = false;
@@ -509,6 +510,7 @@ QList<QList<QVariant>> RobustVectorDataHandler::getAllVectorRows(int tableId, bo
 
     // 3. 从二进制文件读取所有数据
     QList<QList<QVariant>> allRows;
+    qDebug() << "[DEBUG_TRACE] ==> 9. RobustVectorDataHandler::getAllVectorRows - Calling Persistence::BinaryFileHelper::readPageDataFromBinary()";
     if (!Persistence::BinaryFileHelper::readPageDataFromBinary(absoluteBinFilePath, columns, schemaVersion, 0, totalRowCount, allRows))
     {
         qWarning() << funcName << " - Failed to read all rows from binary file for table" << tableId;

@@ -531,10 +531,12 @@ namespace Persistence
         int numRows,
         QList<QList<QVariant>> &pageRows)
     {
+        qDebug() << "[DEBUG_TRACE] ==> 10. Persistence::BinaryFileHelper::readPageDataFromBinary - Entered function.";
         const QString funcName = "BinaryFileHelper::readPageDataFromBinary";
         pageRows.clear();
 
         QFile file(absoluteBinFilePath);
+        qDebug() << "[DEBUG_TRACE] ==> 11. Persistence::BinaryFileHelper::readPageDataFromBinary - Opening file" << absoluteBinFilePath << "in ReadOnly mode.";
         if (!file.open(QIODevice::ReadOnly))
         {
             qWarning() << funcName << " - 无法打开文件:" << absoluteBinFilePath << "，错误:" << file.errorString();

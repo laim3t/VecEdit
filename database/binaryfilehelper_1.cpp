@@ -602,6 +602,13 @@ bool BinaryFileHelper::readAllRowsFromBinary(const QString &binFilePath, const Q
 bool BinaryFileHelper::writeAllRowsToBinary(const QString &binFilePath, const QList<Vector::ColumnInfo> &columns,
                                             int schemaVersion, const QList<Vector::RowData> &rows)
 {
+    qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    qDebug() << "!!!!!!!!!! [GHOST_FUNCTION_FOUND] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    qDebug() << "!!!! Persistence::BinaryFileHelper::writeAllRowsToBinary CALLED !!!!!";
+    qDebug() << "!!!! This function overwrites the entire binary file.        !!!!!";
+    qDebug() << "!!!! If you see this after deleting rows, THIS IS THE BUG.     !!!!!";
+    qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+
     const QString funcName = "BinaryFileHelper::writeAllRowsToBinary";
     // 减少日志输出
     qDebug() << funcName << "- 开始写入文件:" << binFilePath << ", 行数:" << rows.size() << ", 使用固定长度: true";

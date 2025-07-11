@@ -217,6 +217,7 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
 bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorMessage)
 {
     const QString funcName = "VectorTableModel::deleteRowsInRange";
+    qDebug() << "[DEBUG_TRACE] ==> 3. VectorTableModel::deleteRowsInRange - Entered function. Deleting rows" << fromRow << "to" << toRow;
     qDebug() << funcName << "- 开始删除从第" << fromRow << "行到第" << toRow << "行";
 
     if (fromRow <= 0 || toRow <= 0 || fromRow > toRow || m_tableId <= 0)
@@ -227,6 +228,7 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
 
     // 调用VectorDataHandler删除行范围
     bool deleteSuccess;
+    qDebug() << "[DEBUG_TRACE] ==> 4. VectorTableModel::deleteRowsInRange - Calling data handler to perform soft delete.";
     if (m_useNewDataHandler)
     {
         deleteSuccess = m_robustDataHandler->deleteVectorRowsInRange(m_tableId, fromRow, toRow, errorMessage);
@@ -242,6 +244,7 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
     }
 
     // 重新加载数据
+    qDebug() << "[DEBUG_TRACE] ==> 5. VectorTableModel::deleteRowsInRange - Soft delete successful. Now calling loadAllData().";
     if (m_useNewDataHandler)
     {
         // 如果使用新的数据处理器，加载全部数据（不分页）

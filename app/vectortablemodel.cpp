@@ -608,6 +608,7 @@ void VectorTableModel::resetModel()
 // 添加loadAllData的完整实现
 void VectorTableModel::loadAllData(int tableId)
 {
+    qDebug() << "[DEBUG_TRACE] ==> 6. VectorTableModel::loadAllData - Entered function.";
     qDebug() << "VectorTableModel::loadAllData - 一次性加载表ID:" << tableId << "的所有数据";
 
     // 保存新的表ID
@@ -644,6 +645,7 @@ void VectorTableModel::loadAllData(int tableId)
     if (m_useNewDataHandler)
     {
         bool ok = false;
+        qDebug() << "[DEBUG_TRACE] ==> 7. VectorTableModel::loadAllData - Calling m_robustDataHandler->getAllVectorRows()";
         m_pageData = m_robustDataHandler->getAllVectorRows(tableId, ok);
         if (!ok)
         {

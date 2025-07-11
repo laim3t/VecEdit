@@ -720,6 +720,7 @@ void MainWindow::deleteSelectedVectorRows()
 // 删除指定范围内的向量行
 void MainWindow::deleteVectorRowsInRange()
 {
+    qDebug() << "[DEBUG_TRACE] ==> 1. MainWindow::deleteVectorRowsInRange - Entered function.";
     qDebug() << "MainWindow::deleteVectorRowsInRange - 开始处理删除指定范围内的向量行";
 
     // 检查是否有打开的数据库
@@ -855,6 +856,7 @@ void MainWindow::deleteVectorRowsInRange()
             // 使用Model/View架构删除行范围
             if (m_vectorTableModel)
             {
+                qDebug() << "[DEBUG_TRACE] ==> 2. MainWindow::deleteVectorRowsInRange - Calling m_vectorTableModel->deleteRowsInRange()";
                 success = m_vectorTableModel->deleteRowsInRange(fromRow, toRow, errorMessage);
             }
             else
