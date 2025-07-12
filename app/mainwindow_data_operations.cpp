@@ -554,6 +554,17 @@ void MainWindow::addRowToCurrentVectorTableModel()
         qDebug() << funcName << " - 成功添加共 " << rowsInserted << " 行，用时: " << totalTime << " 秒";
 #endif
 
+        // 保存对模型的所有更改
+        QString saveError;
+        if (!m_vectorTableModel->saveData(saveError))
+        {
+            QMessageBox::warning(this, "保存失败", "添加行后保存数据失败: " + saveError);
+        }
+        else
+        {
+            qDebug() << funcName << " - 添加的行数据已成功保存。";
+        }
+
         if (progress.wasCanceled())
         {
             QMessageBox::information(this, tr("操作取消"),

@@ -180,6 +180,25 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
         absoluteRowIndexes.append(absoluteRowIndex);
     }
 
+    // 在后台删除数据前先排序索引（从大到小），这样可以从后向前删除，避免索引变化问题
+    std::sort(absoluteRowIndexes.begin(), absoluteRowIndexes.end(), std::greater<int>());
+
+    // 创建一个映射，用于将绝对行索引转换为模型内部索引
+    QMap<int, int> absoluteToModelIndex;
+    for (int i = 0; i < m_pageData.size(); ++i)
+    {
+        // 在"新轨道"下，模型索引就是绝对索引
+        if (m_useNewDataHandler)
+        {
+            absoluteToModelIndex[i] = i;
+        }
+        else
+        {
+            // 旧轨道下考虑分页
+            absoluteToModelIndex[i + (m_currentPage * m_pageSize)] = i;
+        }
+    }
+
     // 调用VectorDataHandler删除行
     bool deleteSuccess;
     if (m_useNewDataHandler)
@@ -196,19 +215,30 @@ bool VectorTableModel::deleteSelectedRows(const QList<int> &rowIndexes, QString 
         return false;
     }
 
-    // 重新加载数据
-    if (m_useNewDataHandler)
+    // 从模型中移除行（从后向前，避免索引变化）
+    for (int absoluteRow : absoluteRowIndexes)
     {
-        // 如果使用新的数据处理器，加载全部数据（不分页）
-        qDebug() << funcName << "- 使用新数据处理器，加载全部数据";
-        loadAllData(m_tableId);
+        if (absoluteToModelIndex.contains(absoluteRow))
+        {
+            int modelRow = absoluteToModelIndex[absoluteRow];
+
+            // 如果是有效的模型行，从模型中移除
+            if (modelRow >= 0 && modelRow < m_pageData.size())
+            {
+                // 通知视图开始移除行
+                beginRemoveRows(QModelIndex(), modelRow, modelRow);
+
+                // 从模型数据中移除行
+                m_pageData.removeAt(modelRow);
+
+                // 通知视图结束移除行
+                endRemoveRows();
+            }
+        }
     }
-    else
-    {
-        // 如果使用旧的数据处理器，仍然使用分页加载
-        qDebug() << funcName << "- 使用旧数据处理器，加载当前页数据";
-        loadPage(m_tableId, m_currentPage);
-    }
+
+    // 更新总行数
+    m_totalRows -= absoluteRowIndexes.size();
 
     qDebug() << funcName << "- 已成功删除选中的行";
     return true;
@@ -225,6 +255,9 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
         errorMessage = "无效的行范围或表ID";
         return false;
     }
+
+    // 计算要删除的行数
+    int rowCount = toRow - fromRow + 1;
 
     // 调用VectorDataHandler删除行范围
     bool deleteSuccess;
@@ -243,18 +276,40 @@ bool VectorTableModel::deleteRowsInRange(int fromRow, int toRow, QString &errorM
         return false;
     }
 
-    // 重新加载数据
-    qDebug() << "[DEBUG_TRACE] ==> 5. VectorTableModel::deleteRowsInRange - Soft delete successful. Now calling loadAllData().";
+    qDebug() << "[DEBUG_TRACE] ==> 5. VectorTableModel::deleteRowsInRange - Soft delete successful. Now updating model.";
+
+    // 在"新轨道"下，根据删除范围更新模型数据
     if (m_useNewDataHandler)
     {
-        // 如果使用新的数据处理器，加载全部数据（不分页）
-        qDebug() << funcName << "- 使用新数据处理器，加载全部数据";
-        loadAllData(m_tableId);
+        // 找出fromRow和toRow对应的模型索引
+        int fromModelIdx = fromRow - 1; // 假设行是从1开始的，模型索引从0开始
+        int toModelIdx = toRow - 1;
+
+        // 确保索引在有效范围内
+        if (fromModelIdx >= 0 && toModelIdx < m_pageData.size())
+        {
+            // 通知视图开始移除行
+            beginRemoveRows(QModelIndex(), fromModelIdx, toModelIdx);
+
+            // 从模型数据中移除行范围
+            for (int i = 0; i < rowCount; ++i)
+            {
+                if (fromModelIdx < m_pageData.size())
+                {
+                    m_pageData.removeAt(fromModelIdx); // 始终删除第一个，后面的自动前移
+                }
+            }
+
+            // 通知视图结束移除行
+            endRemoveRows();
+
+            // 更新总行数
+            m_totalRows -= rowCount;
+        }
     }
     else
     {
-        // 如果使用旧的数据处理器，仍然使用分页加载
-        qDebug() << funcName << "- 使用旧数据处理器，加载当前页数据";
+        // 在旧轨道下，使用分页加载
         loadPage(m_tableId, m_currentPage);
     }
 

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <QDataStream>
 #include <QSqlDatabase>
+#include <QDateTime>
 
 RobustVectorDataHandler &RobustVectorDataHandler::instance()
 {
@@ -222,19 +223,10 @@ bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessa
     return false;
 }
 
-bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndexes, QString &errorMessage)
+bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndices, QString &errorMessage)
 {
     const QString funcName = "RobustVectorDataHandler::deleteVectorRows";
-    qDebug() << funcName << " - 开始删除指定行，表ID:" << tableId << "行数量:" << rowIndexes.size();
-
-    // UI传入的行号是从1开始的，我们需要将它们转换为从0开始的索引
-    QList<int> adjustedIndexes;
-    for (int rowIndex : rowIndexes)
-    {
-        adjustedIndexes.append(rowIndex - 1); // 转换为0-based索引
-    }
-
-    qDebug() << funcName << " - 原始UI行号:" << rowIndexes << "转换后的0-based索引:" << adjustedIndexes;
+    qDebug() << funcName << " - 开始删除指定行，表ID:" << tableId << "行数量:" << rowIndices.size();
 
     // 获取数据库连接
     QSqlDatabase db = DatabaseManager::instance()->database();
@@ -271,7 +263,7 @@ bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &ro
                             "WHERE master_record_id = ? AND logical_row_order = ?");
 
         int updatedRows = 0;
-        for (int rowIndex : adjustedIndexes)
+        for (int rowIndex : rowIndices)
         {
             // 确保行索引有效
             if (rowIndex < 0 || rowIndex >= currentRowCount)
@@ -312,6 +304,19 @@ bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &ro
 
         // 4. 提交事务
         db.commit();
+
+        // 5. 删除行后，更新二进制文件头以确保行数同步
+        QString headerError;
+        if (updateBinaryFileHeader(tableId, headerError))
+        {
+            qDebug() << funcName << " - 删除行后更新二进制文件头，确保行数同步";
+        }
+        else
+        {
+            qWarning() << funcName << " - 更新二进制文件头失败：" << headerError;
+            // 不返回false，因为删除操作已经成功，这只是一个同步操作
+        }
+
         qDebug() << funcName << " - 成功删除 " << updatedRows << " 行";
         return true;
     }
@@ -324,23 +329,17 @@ bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &ro
     }
 }
 
-bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, int toRow, QString &errorMessage)
+bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int startRow, int endRow, QString &errorMessage)
 {
     const QString funcName = "RobustVectorDataHandler::deleteVectorRowsInRange";
-    qDebug() << funcName << " - 开始删除行范围，表ID:" << tableId << "起始行:" << fromRow << "结束行:" << toRow;
-
-    // UI传入的行号是从1开始的，转换为从0开始的索引
-    fromRow = fromRow - 1;
-    toRow = toRow - 1;
-
-    qDebug() << funcName << " - 转换为0-based索引后，起始行:" << fromRow << "结束行:" << toRow;
+    qDebug() << funcName << " - 开始删除行范围，表ID:" << tableId << "起始行:" << startRow << "结束行:" << endRow;
 
     // 确保起始行不大于结束行
-    if (fromRow > toRow)
+    if (startRow > endRow)
     {
-        int temp = fromRow;
-        fromRow = toRow;
-        toRow = temp;
+        int temp = startRow;
+        startRow = endRow;
+        endRow = temp;
     }
 
     // 获取数据库连接
@@ -373,11 +372,11 @@ bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, 
         int currentRowCount = queryMaster.value(0).toInt();
 
         // 调整范围，确保不超出有效行范围
-        fromRow = qMax(0, fromRow);
-        toRow = qMin(currentRowCount - 1, toRow);
+        startRow = qMax(0, startRow);
+        endRow = qMin(currentRowCount - 1, endRow);
 
         // 计算要删除的行数
-        int rowsToDelete = toRow - fromRow + 1;
+        int rowsToDelete = endRow - startRow + 1;
         if (rowsToDelete <= 0)
         {
             errorMessage = "无效的行范围";
@@ -391,8 +390,8 @@ bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, 
         updateQuery.prepare("UPDATE VectorTableRowIndex SET is_active = 0 "
                             "WHERE master_record_id = ? AND logical_row_order BETWEEN ? AND ?");
         updateQuery.bindValue(0, tableId);
-        updateQuery.bindValue(1, fromRow);
-        updateQuery.bindValue(2, toRow);
+        updateQuery.bindValue(1, startRow);
+        updateQuery.bindValue(2, endRow);
 
         if (!updateQuery.exec())
         {
@@ -425,8 +424,29 @@ bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int fromRow, 
             return false;
         }
 
-        // 4. 提交事务
+        // 4. 重新排列剩余行的索引，确保连续无空洞
+        if (!reindexLogicalOrder(tableId, errorMessage))
+        {
+            qWarning() << funcName << " - 重新索引失败:" << errorMessage;
+            db.rollback();
+            return false;
+        }
+
+        // 5. 提交事务
         db.commit();
+
+        // 6. 删除行后，更新二进制文件头以确保行数同步
+        QString headerError;
+        if (updateBinaryFileHeader(tableId, headerError))
+        {
+            qDebug() << funcName << " - 删除行后更新二进制文件头，确保行数同步";
+        }
+        else
+        {
+            qWarning() << funcName << " - 更新二进制文件头失败：" << headerError;
+            // 不返回false，因为删除操作已经成功，这只是一个同步操作
+        }
+
         qDebug() << funcName << " - 成功删除 " << affectedRows << " 行";
         return true;
     }
@@ -778,6 +798,20 @@ bool RobustVectorDataHandler::insertVectorRows(int tableId, int logicalStartInde
             db.rollback();
             success = false;
         }
+        else
+        {
+            // 在成功向数据库插入行之后，立即同步更新二进制文件的文件头
+            // 以确保二进制文件头与数据库中的行数保持一致
+            QString headerError;
+            if (updateBinaryFileHeader(tableId, headerError))
+            {
+                qDebug() << funcName << "- 插入行后更新二进制文件头，确保行数同步";
+            }
+            else
+            {
+                qWarning() << funcName << "- 更新二进制文件头失败：" << headerError;
+            }
+        }
 #ifdef QT_DEBUG
         qDebug() << funcName << "- 成功批量插入" << rows.count() << "行数据";
 #endif
@@ -907,6 +941,18 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
         return false;
     }
 
+    // 更新行后，确保二进制文件头与数据库同步
+    QString headerError;
+    if (updateBinaryFileHeader(tableId, headerError))
+    {
+        qDebug() << funcName << " - 更新行后同步二进制文件头";
+    }
+    else
+    {
+        qWarning() << funcName << " - 更新二进制文件头失败：" << headerError;
+        // 不返回false，因为更新行操作已经成功，这只是一个同步操作
+    }
+
     qDebug() << funcName << " - 成功更新表ID:" << tableId << "的行:" << rowIndex;
     return true;
 }
@@ -939,6 +985,214 @@ void RobustVectorDataHandler::clearCache()
     qWarning() << "RobustVectorDataHandler::clearCache is not implemented yet.";
 }
 
+// 重新排列行索引，确保连续无空洞
+bool RobustVectorDataHandler::reindexLogicalOrder(int tableId, QString &errorMessage)
+{
+    const QString funcName = "RobustVectorDataHandler::reindexLogicalOrder";
+    QSqlDatabase db = DatabaseManager::instance()->database();
+
+    // 1. 获取所有有效的行，按当前的逻辑顺序排序
+    QSqlQuery selectQuery(db);
+    selectQuery.prepare("SELECT id FROM VectorTableRowIndex WHERE master_record_id = ? AND is_active = 1 ORDER BY logical_row_order ASC");
+    selectQuery.addBindValue(tableId);
+
+    if (!selectQuery.exec())
+    {
+        errorMessage = "Failed to select active rows for re-indexing: " + selectQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    QList<int> activeRowIds;
+    while (selectQuery.next())
+    {
+        activeRowIds.append(selectQuery.value(0).toInt());
+    }
+
+    // 2. 批量更新这些行的 logical_row_order 为从0开始的连续序列
+    QSqlQuery updateQuery(db);
+    updateQuery.prepare("UPDATE VectorTableRowIndex SET logical_row_order = ? WHERE id = ?");
+
+    QVariantList newOrders;
+    QVariantList idsToUpdate;
+
+    for (int i = 0; i < activeRowIds.size(); ++i)
+    {
+        newOrders.append(i);
+        idsToUpdate.append(activeRowIds.at(i));
+    }
+
+    if (!newOrders.isEmpty())
+    {
+        updateQuery.addBindValue(newOrders);
+        updateQuery.addBindValue(idsToUpdate);
+
+        if (!updateQuery.execBatch())
+        {
+            errorMessage = "Failed to batch update logical_row_order: " + updateQuery.lastError().text();
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
+        }
+    }
+
+    qDebug() << funcName << " - 成功为表ID" << tableId << "重新索引" << activeRowIds.size() << "行";
+    return true;
+}
+
 #include "robustvectordatahandler_1.cpp"
 #include "robustvectordatahandler_2.cpp"
 #include "robustvectordatahandler_3.cpp"
+
+// 更新二进制文件头中的行数和列数
+bool RobustVectorDataHandler::updateBinaryFileHeader(int tableId, QString &errorMessage)
+{
+    const QString funcName = "RobustVectorDataHandler::updateBinaryFileHeader";
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未连接";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 1. 获取表的元数据信息
+    int actualColumnCount = 0;
+    int currentRowCount = 0;
+    int dbSchemaVersion = -1;
+    QString binaryFileNameBase;
+
+    // 获取主记录信息（模式版本、二进制文件名和行数）
+    QSqlQuery masterQuery(db);
+    masterQuery.prepare("SELECT data_schema_version, binary_data_filename, row_count FROM VectorTableMasterRecord WHERE id = ?");
+    masterQuery.addBindValue(tableId);
+
+    if (!masterQuery.exec())
+    {
+        errorMessage = "无法执行查询VectorTableMasterRecord: " + masterQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (masterQuery.next())
+    {
+        dbSchemaVersion = masterQuery.value("data_schema_version").toInt();
+        binaryFileNameBase = masterQuery.value("binary_data_filename").toString();
+        currentRowCount = masterQuery.value("row_count").toInt();
+        qDebug() << funcName << "- 从数据库获取表ID" << tableId << "的当前行数为" << currentRowCount;
+    }
+    else
+    {
+        errorMessage = "找不到表ID为" + QString::number(tableId) + "的主记录";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (binaryFileNameBase.isEmpty())
+    {
+        errorMessage = "表ID为" + QString::number(tableId) + "的主记录中二进制文件名为空";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 2. 获取数据库中配置的实际列数
+    QSqlQuery columnQuery(db);
+    QString columnSql = "SELECT COUNT(*) FROM VectorTableColumnConfiguration WHERE master_record_id = ?";
+
+    if (!columnQuery.prepare(columnSql))
+    {
+        errorMessage = "准备查询实际列数失败: " + columnQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+    columnQuery.addBindValue(tableId);
+
+    if (columnQuery.exec() && columnQuery.next())
+    {
+        actualColumnCount = columnQuery.value(0).toInt();
+    }
+    else
+    {
+        errorMessage = "执行查询实际列数失败: " + columnQuery.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    qDebug() << funcName << "- 从数据库获取表ID" << tableId << "的实际列数为" << actualColumnCount;
+
+    // 3. 构造二进制文件的完整路径
+    QString projectDbPath = db.databaseName();
+    QString projBinDataDir = Utils::PathUtils::getProjectBinaryDataDirectory(projectDbPath);
+    QString binFilePath = projBinDataDir + QDir::separator() + binaryFileNameBase;
+
+    QFile file(binFilePath);
+    if (!file.exists())
+    {
+        errorMessage = "二进制文件不存在，无法更新文件头: " + binFilePath;
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    if (!file.open(QIODevice::ReadWrite))
+    {
+        errorMessage = "无法以读写模式打开二进制文件: " + binFilePath + " " + file.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 4. 读取现有文件头或创建新的文件头
+    BinaryFileHeader header;
+    bool existingHeaderRead = Persistence::BinaryFileHelper::readBinaryHeader(&file, header);
+
+    if (existingHeaderRead)
+    {
+        // 检查列数、行数和模式版本是否都匹配
+        if (header.column_count_in_file == actualColumnCount &&
+            header.row_count_in_file == currentRowCount &&
+            header.data_schema_version == dbSchemaVersion)
+        {
+            qDebug() << funcName << "- 文件头的列数 (" << header.column_count_in_file
+                     << "), 行数 (" << header.row_count_in_file
+                     << ") 和模式版本 (" << header.data_schema_version
+                     << ") 已经与数据库匹配。表ID " << tableId << " 无需更新";
+            file.close();
+            return true;
+        }
+        // 同时更新列数和行数
+        header.column_count_in_file = actualColumnCount;
+        header.row_count_in_file = currentRowCount;
+        header.data_schema_version = dbSchemaVersion;
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+    }
+    else
+    {
+        qWarning() << funcName << "- 无法从 " << binFilePath << " 读取现有文件头。如果这是新创建的表，这是正常的。重新初始化文件头以进行更新。";
+        header.magic_number = Persistence::VEC_BINDATA_MAGIC;
+        header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
+        header.data_schema_version = dbSchemaVersion;
+        header.row_count_in_file = currentRowCount;
+        header.column_count_in_file = actualColumnCount;
+        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
+        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
+        header.compression_type = 0;
+    }
+
+    // 5. 写回更新后的文件头
+    file.seek(0);
+    if (Persistence::BinaryFileHelper::writeBinaryHeader(&file, header))
+    {
+        qInfo() << funcName << "- 成功更新表 " << tableId << " 的二进制文件头"
+                << ". 路径:" << binFilePath
+                << ". 新列数:" << actualColumnCount
+                << ", 行数:" << currentRowCount
+                << ", 模式版本:" << dbSchemaVersion;
+        file.close();
+        return true;
+    }
+    else
+    {
+        errorMessage = "无法写入更新后的二进制文件头，表ID: " + QString::number(tableId) + ", 路径: " + binFilePath;
+        qWarning() << funcName << " - " << errorMessage;
+        file.close();
+        return false;
+    }
+}

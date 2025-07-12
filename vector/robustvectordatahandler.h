@@ -200,6 +200,12 @@ private:
                                 int startRow,
                                 int numRows,
                                 QList<QList<QVariant>> &pageRows);
+
+    // 重新排列行索引，确保连续无空洞
+    bool reindexLogicalOrder(int tableId, QString &errorMessage);
+
+    // 更新二进制文件头中的行数和列数
+    bool updateBinaryFileHeader(int tableId, QString &errorMessage);
 };
 
 #endif // ROBUSTVECTORDATAHANDLER_H

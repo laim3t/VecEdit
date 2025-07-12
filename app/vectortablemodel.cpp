@@ -779,6 +779,17 @@ bool VectorTableModel::setRowData(int row, const QMap<int, QVariant> &pinValues,
         QModelIndex topLeft = index(row, 0);
         QModelIndex bottomRight = index(row, columnCount() - 1);
         emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::EditRole});
+
+        // 将此行标记为已修改，以便后续保存
+        int globalRowIndex = m_currentPage * m_pageSize + row;
+        if (m_useNewDataHandler)
+        {
+            m_robustDataHandler->markRowAsModified(m_tableId, globalRowIndex);
+        }
+        else
+        {
+            VectorDataHandler::instance().markRowAsModified(m_tableId, globalRowIndex);
+        }
     }
 
     return changed;

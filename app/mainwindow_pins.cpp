@@ -398,6 +398,7 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
     QList<Vector::ColumnInfo> columns;
     int dbSchemaVersion = -1;
     QString binaryFileNameBase; // Base name like "table_1_data.vbindata"
+    int currentRowCount = 0;    // 添加行数计数变量
 
     DatabaseManager *dbManager = DatabaseManager::instance(); // Corrected: Pointer type
     if (!dbManager->isDatabaseConnected())
@@ -407,10 +408,10 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
     }
     QSqlDatabase db = dbManager->database();
 
-    // 1. Get master record info (schema version, binary file name)
+    // 1. Get master record info (schema version, binary file name, and row_count)
     QSqlQuery masterQuery(db);
-    // Corrected: VectorTableMasterRecord table name, and use 'id' for tableId
-    masterQuery.prepare("SELECT data_schema_version, binary_data_filename FROM VectorTableMasterRecord WHERE id = :tableId");
+    // Corrected: VectorTableMasterRecord table name, and use 'id' for tableId, and add row_count to query
+    masterQuery.prepare("SELECT data_schema_version, binary_data_filename, row_count FROM VectorTableMasterRecord WHERE id = :tableId");
     masterQuery.bindValue(":tableId", tableId);
 
     if (!masterQuery.exec())
@@ -423,6 +424,8 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
     {
         dbSchemaVersion = masterQuery.value("data_schema_version").toInt();        // Corrected column name
         binaryFileNameBase = masterQuery.value("binary_data_filename").toString(); // Corrected column name
+        currentRowCount = masterQuery.value("row_count").toInt();                  // 获取最新的行数
+        qDebug() << funcName << "- Current row count from database for tableId" << tableId << "is" << currentRowCount;
     }
     else
     {
@@ -500,18 +503,22 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
 
     if (existingHeaderRead)
     {
-        // Corrected member access to use column_count_in_file
-        if (header.column_count_in_file == actualColumnCount && header.data_schema_version == dbSchemaVersion)
+        // 检查列数、行数和模式版本是否都匹配
+        if (header.column_count_in_file == actualColumnCount &&
+            header.row_count_in_file == currentRowCount &&
+            header.data_schema_version == dbSchemaVersion)
         {
             qDebug() << funcName << "- Header column count (" << header.column_count_in_file
+                     << "), row count (" << header.row_count_in_file
                      << ") and schema version (" << header.data_schema_version
                      << ") already match DB. No update needed for table" << tableId;
             file.close();
             return;
         }
-        // Preserve creation time and row count from existing header
-        header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
-        header.data_schema_version = dbSchemaVersion;    // Update schema version from DB
+        // 同时更新列数和行数
+        header.column_count_in_file = actualColumnCount; // 更新列数
+        header.row_count_in_file = currentRowCount;      // 更新行数
+        header.data_schema_version = dbSchemaVersion;    // 更新模式版本
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
     }
     else
@@ -520,8 +527,8 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
         header.magic_number = Persistence::VEC_BINDATA_MAGIC;
         header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
         header.data_schema_version = dbSchemaVersion;
-        header.row_count_in_file = 0;
-        header.column_count_in_file = actualColumnCount; // Corrected to column_count_in_file
+        header.row_count_in_file = currentRowCount;      // 使用从数据库获取的正确行数
+        header.column_count_in_file = actualColumnCount; // 更新列数
         header.timestamp_created = QDateTime::currentSecsSinceEpoch();
         header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
         header.compression_type = 0;
@@ -534,6 +541,7 @@ void MainWindow::updateBinaryHeaderColumnCount(int tableId)
         qInfo() << funcName << "- Successfully updated binary file header for table" << tableId
                 << ". Path:" << binFilePath
                 << ". New ColumnCount:" << actualColumnCount
+                << ", RowCount:" << currentRowCount // 增加行数日志输出
                 << ", SchemaVersion:" << dbSchemaVersion;
     }
     else
