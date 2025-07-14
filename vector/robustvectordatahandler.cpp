@@ -302,15 +302,35 @@ bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessa
         }
         qDebug() << funcName << " - 已删除主记录";
 
-        // 5. 删除vector_tables表中的表记录
-        QSqlQuery deleteVectorTableQuery(db);
-        deleteVectorTableQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
-        deleteVectorTableQuery.addBindValue(tableId);
-        if (!deleteVectorTableQuery.exec())
+        // 5. 获取表名并更新vector_tables表以允许重新使用表名
+        // 注意：我们不直接删除vector_tables记录，而是重命名它，使其带有标记以允许重用表名
+        QSqlQuery getTableNameQuery(db);
+        getTableNameQuery.prepare("SELECT table_name FROM vector_tables WHERE id = ?");
+        getTableNameQuery.addBindValue(tableId);
+        QString oldTableName;
+        if (getTableNameQuery.exec() && getTableNameQuery.next())
         {
-            throw QString("删除vector_tables表记录失败: " + deleteVectorTableQuery.lastError().text());
+            oldTableName = getTableNameQuery.value(0).toString();
+            // 在表名后添加时间戳和"_deleted"标记，使其唯一，同时释放原表名
+            QString newTableName = QString("%1_deleted_%2").arg(oldTableName).arg(QDateTime::currentMSecsSinceEpoch());
+
+            QSqlQuery updateTableNameQuery(db);
+            updateTableNameQuery.prepare("UPDATE vector_tables SET table_name = ? WHERE id = ?");
+            updateTableNameQuery.addBindValue(newTableName);
+            updateTableNameQuery.addBindValue(tableId);
+            if (!updateTableNameQuery.exec())
+            {
+                qWarning() << funcName << " - 无法更新vector_tables表名，但这不会阻止删除操作继续:" << updateTableNameQuery.lastError().text();
+            }
+            else
+            {
+                qDebug() << funcName << " - 已重命名vector_tables表记录，原表名'" << oldTableName << "'现在可以重用";
+            }
         }
-        qDebug() << funcName << " - 已删除vector_tables表记录";
+        else
+        {
+            qWarning() << funcName << " - 无法获取表名以进行标记，但这不会阻止删除操作继续:" << getTableNameQuery.lastError().text();
+        }
 
         // 提交事务
         db.commit();
