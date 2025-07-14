@@ -81,6 +81,18 @@ public:
     bool updateVectorRow(int tableId, int rowIndex, const Vector::RowData &rowData, QString &errorMessage);
 
     /**
+     * @brief 批量更新多行数据，优化性能
+     *
+     * 替代逐行调用updateVectorRow的低效方式，使用批处理减少文件操作和数据库操作
+     *
+     * @param tableId 表ID
+     * @param rows 行索引到行数据的映射，键是行索引，值是行数据
+     * @param errorMessage 输出错误信息
+     * @return bool 是否成功更新所有行
+     */
+    bool batchUpdateVectorRows(int tableId, const QMap<int, Vector::RowData> &rows, QString &errorMessage);
+
+    /**
      * @brief 批量更新向量表中指定列的多行数据
      * @param tableId 表ID
      * @param columnIndex 要更新的列索引

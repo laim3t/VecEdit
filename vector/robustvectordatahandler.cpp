@@ -1016,6 +1016,256 @@ bool RobustVectorDataHandler::updateVectorRow(int tableId, int rowIndex, const V
     return true;
 }
 
+bool RobustVectorDataHandler::batchUpdateVectorRows(int tableId, const QMap<int, Vector::RowData> &rows, QString &errorMessage)
+{
+    const QString funcName = "RobustVectorDataHandler::batchUpdateVectorRows";
+    qDebug() << funcName << " - 开始批量更新表ID:" << tableId << "的" << rows.size() << "行数据";
+
+    if (rows.isEmpty())
+    {
+        qDebug() << funcName << " - 没有行需要更新，直接返回成功";
+        return true;
+    }
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未连接";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 获取二进制文件路径
+    QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
+    if (binFilePath.isEmpty())
+    {
+        return false;
+    }
+
+    // 获取列信息
+    QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
+
+    // 获取schema版本
+    int schemaVersion = getSchemaVersion(tableId);
+    if (schemaVersion <= 0)
+    {
+        errorMessage = "无效的数据模式版本";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 设置数据库性能优化参数
+    QSqlQuery pragmaQuery(db);
+    pragmaQuery.exec("PRAGMA temp_store = MEMORY");      // 使用内存临时存储
+    pragmaQuery.exec("PRAGMA journal_mode = MEMORY");    // 内存日志模式
+    pragmaQuery.exec("PRAGMA synchronous = OFF");        // 关闭同步
+    pragmaQuery.exec("PRAGMA cache_size = 500000");      // 增加缓存大小
+    pragmaQuery.exec("PRAGMA foreign_keys = OFF");       // 禁用外键约束
+    pragmaQuery.exec("PRAGMA locking_mode = EXCLUSIVE"); // 独占锁定
+
+    // 开始批量更新行的事务
+    if (!db.transaction())
+    {
+        errorMessage = "无法开始数据库事务: " + db.lastError().text();
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 收集所有行索引信息
+    QMap<int, QPair<qint64, qint64>> rowIndices; // 行索引 -> <offset, size>
+    QSqlQuery indexQuery(db);
+
+    // 由于IN查询可能导致SQL语句过长，改用一个个查询
+    indexQuery.prepare("SELECT offset, size FROM VectorTableRowIndex WHERE master_record_id = ? AND logical_row_order = ? AND is_active = 1");
+
+    // 依次查询每个行的索引信息
+    bool querySuccess = true;
+    for (auto it = rows.constBegin(); it != rows.constEnd(); ++it)
+    {
+        int rowIndex = it.key();
+
+        indexQuery.addBindValue(tableId);
+        indexQuery.addBindValue(rowIndex);
+
+        if (!indexQuery.exec() || !indexQuery.next())
+        {
+            errorMessage = QString("无法获取行 %1 的索引信息: %2").arg(rowIndex).arg(indexQuery.lastError().text());
+            qWarning() << funcName << " - " << errorMessage;
+            querySuccess = false;
+            break;
+        }
+
+        qint64 offset = indexQuery.value(0).toLongLong();
+        qint64 size = indexQuery.value(1).toLongLong();
+        rowIndices[rowIndex] = qMakePair(offset, size);
+
+        indexQuery.finish(); // 准备下一次执行
+    }
+
+    if (!querySuccess)
+    {
+        db.rollback();
+        return false;
+    }
+
+    // 打开二进制文件进行写入
+    QFile binFile(binFilePath);
+    if (!binFile.open(QIODevice::ReadWrite))
+    {
+        errorMessage = "无法打开二进制文件进行写入: " + binFile.errorString();
+        qWarning() << funcName << " - " << errorMessage;
+        db.rollback();
+        return false;
+    }
+
+    // 准备批量更新SQL语句
+    QSqlQuery batchUpdateQuery(db);
+    batchUpdateQuery.prepare("UPDATE VectorTableRowIndex SET offset = ?, size = ? WHERE master_record_id = ? AND logical_row_order = ? AND is_active = 1");
+
+    QVariantList offsetValues;
+    QVariantList sizeValues;
+    QVariantList tableIds;
+    QVariantList rowIndexValues;
+
+    // 记录行索引和数据需要更新到数据库
+    QMap<int, QPair<qint64, qint64>> newIndices;
+
+    // 获取文件当前大小，用于追加写入
+    qint64 fileSize = binFile.size();
+
+    // 处理每一行
+    bool success = true;
+    for (auto it = rows.constBegin(); it != rows.constEnd(); ++it)
+    {
+        int rowIndex = it.key();
+        const Vector::RowData &rowData = it.value();
+
+        // 序列化行数据
+        QByteArray serializedRow;
+        if (!Persistence::BinaryFileHelper::serializeRowSimple(rowData, serializedRow))
+        {
+            errorMessage = QString("序列化行 %1 数据失败").arg(rowIndex);
+            qWarning() << funcName << " - " << errorMessage;
+            success = false;
+            break;
+        }
+
+        qint64 newSize = serializedRow.size();
+        qint64 newOffset;
+
+        // 如果此行存在索引信息
+        if (rowIndices.contains(rowIndex))
+        {
+            qint64 oldOffset = rowIndices[rowIndex].first;
+            qint64 oldSize = rowIndices[rowIndex].second;
+
+            // 如果新数据大小不大于旧数据大小，可以原地更新以节省空间
+            if (newSize <= oldSize)
+            {
+                newOffset = oldOffset;
+                if (!binFile.seek(oldOffset))
+                {
+                    errorMessage = QString("无法定位到行 %1 的写入位置").arg(rowIndex);
+                    qWarning() << funcName << " - " << errorMessage;
+                    success = false;
+                    break;
+                }
+            }
+            else // 如果新数据更大，则在文件末尾追加
+            {
+                newOffset = fileSize;
+                if (!binFile.seek(fileSize))
+                {
+                    errorMessage = QString("无法定位到文件末尾以追加行 %1 数据").arg(rowIndex);
+                    qWarning() << funcName << " - " << errorMessage;
+                    success = false;
+                    break;
+                }
+                fileSize += newSize; // 更新文件大小
+            }
+        }
+        else
+        {
+            errorMessage = QString("未找到行 %1 的索引信息").arg(rowIndex);
+            qWarning() << funcName << " - " << errorMessage;
+            success = false;
+            break;
+        }
+
+        // 写入数据
+        qint64 bytesWritten = binFile.write(serializedRow);
+        if (bytesWritten != newSize)
+        {
+            errorMessage = QString("写入行 %1 数据失败，预期 %2 字节，实际 %3 字节").arg(rowIndex).arg(newSize).arg(bytesWritten);
+            qWarning() << funcName << " - " << errorMessage;
+            success = false;
+            break;
+        }
+
+        // 记录新的索引信息
+        newIndices[rowIndex] = qMakePair(newOffset, newSize);
+
+        // 添加到批量更新列表
+        offsetValues << newOffset;
+        sizeValues << newSize;
+        tableIds << tableId;
+        rowIndexValues << rowIndex;
+    }
+
+    // 关闭文件
+    binFile.close();
+
+    // 如果所有行处理成功，更新数据库索引
+    if (success)
+    {
+        batchUpdateQuery.addBindValue(offsetValues);
+        batchUpdateQuery.addBindValue(sizeValues);
+        batchUpdateQuery.addBindValue(tableIds);
+        batchUpdateQuery.addBindValue(rowIndexValues);
+
+        if (!batchUpdateQuery.execBatch())
+        {
+            errorMessage = "批量更新行索引失败: " + batchUpdateQuery.lastError().text();
+            qWarning() << funcName << " - " << errorMessage;
+            success = false;
+        }
+    }
+
+    // 根据操作结果提交或回滚事务
+    if (success)
+    {
+        if (!db.commit())
+        {
+            errorMessage = "提交数据库事务失败: " + db.lastError().text();
+            qWarning() << funcName << " - " << errorMessage;
+            db.rollback();
+            return false;
+        }
+
+        // 只在所有行更新完成后执行一次文件头更新
+        QString headerError;
+        if (updateBinaryFileHeader(tableId, headerError))
+        {
+            qDebug() << funcName << " - 批量更新后同步二进制文件头成功";
+        }
+        else
+        {
+            qWarning() << funcName << " - 更新二进制文件头失败：" << headerError;
+            // 不返回false，因为更新行操作已经成功，这只是一个同步操作
+        }
+
+        qDebug() << funcName << " - 成功批量更新表ID:" << tableId << "的" << rows.size() << "行数据";
+    }
+    else
+    {
+        db.rollback();
+        qWarning() << funcName << " - 批量更新失败，已回滚事务";
+    }
+
+    return success;
+}
+
 bool RobustVectorDataHandler::gotoLine(int tableId, int lineNumber)
 {
     qWarning() << "RobustVectorDataHandler::gotoLine is not implemented yet.";

@@ -800,24 +800,22 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
         return false;
     }
 
-    // 开始事务
-    if (!db.transaction())
-    {
-        errorMessage = "无法开始数据库事务: " + db.lastError().text();
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
-    bool success = true;
-    int modifiedCount = 0;
+    // 开始计时
+    QElapsedTimer timer;
+    timer.start();
 
     // 获取已修改的行
     const QSet<int> modifiedRows = m_modifiedRows.value(tableId);
+    qDebug() << funcName << " - 检测到" << modifiedRows.size() << "行数据被修改";
 
     // 计算当前页的全局起始行索引
     int startRow = currentPage * pageSize;
 
-    // 遍历当前页的数据
+    // 构建批量更新数据结构
+    QMap<int, Vector::RowData> rowsToUpdate;
+
+    // 遍历当前页的数据，收集所有需要更新的行
+    int modifiedCount = 0;
     for (int i = 0; i < pageData.size(); ++i)
     {
         int globalRowIndex = startRow + i;
@@ -828,41 +826,34 @@ bool RobustVectorDataHandler::saveDataFromModel(int tableId, const QList<Vector:
             continue; // 跳过未修改的行
         }
 
-        // 获取行数据
-        const Vector::RowData &rowData = pageData.at(i);
-
-        // 更新行数据
-        QString rowError;
-        if (!updateVectorRow(tableId, globalRowIndex, rowData, rowError))
-        {
-            errorMessage = QString("更新行 %1 失败: %2").arg(globalRowIndex + 1).arg(rowError);
-            qWarning() << funcName << " - " << errorMessage;
-            success = false;
-            break;
-        }
+        // 获取行数据并加入批量更新集合
+        rowsToUpdate[globalRowIndex] = pageData.at(i);
         modifiedCount++;
     }
 
-    // 提交或回滚事务
+    // 如果没有实际需要更新的行，直接返回成功
+    if (rowsToUpdate.isEmpty())
+    {
+        qDebug() << funcName << " - 没有当前页面上的行需要更新，返回成功";
+        return true;
+    }
+
+    // 调用批量更新方法，一次性处理所有修改的行
+    bool success = batchUpdateVectorRows(tableId, rowsToUpdate, errorMessage);
+
     if (success)
     {
-        if (!db.commit())
-        {
-            errorMessage = "提交事务失败: " + db.lastError().text();
-            qWarning() << funcName << " - " << errorMessage;
-            db.rollback();
-            return false;
-        }
-
         // 清除已修改行的标记
         clearModifiedRows(tableId);
-        errorMessage = QString("成功保存 %1 行已修改的数据。").arg(modifiedCount);
+
+        // 记录完成时间
+        qint64 elapsedMs = timer.elapsed();
+        errorMessage = QString("成功批量保存 %1 行已修改的数据，用时 %2 毫秒。").arg(modifiedCount).arg(elapsedMs);
         qDebug() << funcName << " - " << errorMessage;
     }
     else
     {
-        db.rollback();
-        qWarning() << funcName << " - 保存失败，已回滚事务";
+        qWarning() << funcName << " - 批量保存失败: " << errorMessage;
     }
 
     return success;
