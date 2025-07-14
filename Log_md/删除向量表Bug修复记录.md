@@ -39,7 +39,7 @@
 
 经过深入分析系统设计，我采用了更加合适的解决方案：
 
-1. 不直接删除 `vector_tables` 表中的记录，而是将表名重命名为一个带有时间戳和"_deleted"标记的唯一名称。
+1. 不直接删除 `vector_tables` 表中的记录，而是将表名重命名为一个带有时间戳和"_deleted_"标记的唯一名称。
 
 2. 具体实现：
 
@@ -86,3 +86,56 @@
 2. 实现一个表回收站功能，允许用户恢复误删的表
 3. 完善系统文档，明确记录各表之间的依赖关系，避免类似问题再次发生
 4. 增加单元测试，覆盖删除和重建向量表的场景
+
+# 后续问题修复：已删除向量表在界面中的显示问题
+
+## 问题描述
+
+实施软删除解决方案后，发现一个新问题：在关闭项目并重新打开后，带有"_deleted_"标记的已删除向量表仍然显示在下拉列表和标签页中，如图1红框箭头所示。
+
+## 问题分析
+
+原因是在加载向量表列表时，SQL查询没有排除带有"_deleted_"标记的表名。相关代码在以下位置：
+
+1. `MainWindow::loadVectorTable` 方法中：
+
+   ```cpp
+   QSqlQuery tableQuery(db);
+   if (tableQuery.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
+   ```
+
+2. `PinGroupDialog::loadAllVectorTables` 方法中：
+
+   ```cpp
+   QSqlQuery query(db);
+   if (query.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
+   ```
+
+## 解决方案
+
+在相关的SQL查询中添加过滤条件，排除表名中包含"_deleted_"字符串的记录：
+
+1. `MainWindow::loadVectorTable` 方法修改为：
+
+   ```cpp
+   QSqlQuery tableQuery(db);
+   if (tableQuery.exec("SELECT id, table_name FROM vector_tables WHERE table_name NOT LIKE '%_deleted_%' ORDER BY table_name"))
+   ```
+
+2. `PinGroupDialog::loadAllVectorTables` 方法修改为：
+
+   ```cpp
+   QSqlQuery query(db);
+   if (query.exec("SELECT id, table_name FROM vector_tables WHERE table_name NOT LIKE '%_deleted_%' ORDER BY table_name"))
+   ```
+
+## 影响范围
+
+该修复确保已删除的向量表（软删除标记为"_deleted_"）不会显示在用户界面上，提高了用户体验，避免了混淆。
+
+## 验证方法
+
+1. 创建一个向量表
+2. 删除该向量表（此时会被标记为"_deleted_"）
+3. 关闭项目并重新打开
+4. 验证已删除的表不再显示在下拉列表和标签页中

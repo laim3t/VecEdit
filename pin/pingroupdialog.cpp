@@ -146,7 +146,7 @@ void PinGroupDialog::loadAllVectorTables()
 
     // 查询所有向量表
     QSqlQuery query(db);
-    if (query.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
+    if (query.exec("SELECT id, table_name FROM vector_tables WHERE table_name NOT LIKE '%_deleted_%' ORDER BY table_name"))
     {
         while (query.next())
         {

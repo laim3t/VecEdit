@@ -477,7 +477,7 @@ void MainWindow::loadVectorTable()
 
     // 查询所有向量表
     QSqlQuery tableQuery(db);
-    if (tableQuery.exec("SELECT id, table_name FROM vector_tables ORDER BY table_name"))
+    if (tableQuery.exec("SELECT id, table_name FROM vector_tables WHERE table_name NOT LIKE '%_deleted_%' ORDER BY table_name"))
     {
         qDebug() << funcName << " - 向量表查询执行成功";
         int count = 0;
