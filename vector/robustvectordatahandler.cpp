@@ -557,7 +557,26 @@ QList<Vector::ColumnInfo> RobustVectorDataHandler::getAllColumnInfo(int tableId)
 
 int RobustVectorDataHandler::getSchemaVersion(int tableId)
 {
-    qWarning() << "RobustVectorDataHandler::getSchemaVersion is not implemented yet.";
+    const QString funcName = "RobustVectorDataHandler::getSchemaVersion";
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        qWarning() << funcName << " - 数据库未连接";
+        return 0;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT data_schema_version FROM VectorTableMasterRecord WHERE id = ?");
+    query.addBindValue(tableId);
+
+    if (query.exec() && query.next())
+    {
+        int version = query.value(0).toInt();
+        qDebug() << funcName << " - 获取到表" << tableId << "的数据模式版本:" << version;
+        return version;
+    }
+
+    qWarning() << funcName << " - 无法获取表" << tableId << "的数据模式版本";
     return 0;
 }
 
