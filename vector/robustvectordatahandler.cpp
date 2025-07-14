@@ -219,8 +219,122 @@ void RobustVectorDataHandler::addVectorRows(QTableWidget *table, const QStringLi
 
 bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessage)
 {
-    qWarning() << "RobustVectorDataHandler::deleteVectorTable is not implemented yet.";
-    return false;
+    const QString funcName = "RobustVectorDataHandler::deleteVectorTable";
+    qDebug() << funcName << " - 开始删除向量表，表ID:" << tableId;
+
+    // 获取数据库连接
+    QSqlDatabase db = DatabaseManager::instance()->database();
+    if (!db.isOpen())
+    {
+        errorMessage = "数据库未打开";
+        qWarning() << funcName << " - " << errorMessage;
+        return false;
+    }
+
+    // 1. 获取表的二进制文件路径
+    QString binFilePath;
+    {
+        QSqlQuery query(db);
+        query.prepare("SELECT binary_data_filename, table_name FROM VectorTableMasterRecord WHERE id = ?");
+        query.addBindValue(tableId);
+        if (!query.exec() || !query.next())
+        {
+            errorMessage = "无法获取表 " + QString::number(tableId) + " 的记录: " + query.lastError().text();
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
+        }
+
+        QString binFileName = query.value(0).toString();
+        QString tableName = query.value(1).toString();
+
+        if (binFileName.isEmpty())
+        {
+            errorMessage = "表 " + QString::number(tableId) + " 没有关联的二进制文件";
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
+        }
+
+        qDebug() << funcName << " - 向量表名称:" << tableName << "，二进制文件名:" << binFileName;
+
+        // 解析完整的二进制文件路径
+        QString resolveError;
+        binFilePath = resolveBinaryFilePath(tableId, resolveError);
+        if (binFilePath.isEmpty())
+        {
+            errorMessage = "无法解析二进制文件路径: " + resolveError;
+            qWarning() << funcName << " - " << errorMessage;
+            return false;
+        }
+    }
+
+    // 开启事务，确保数据一致性
+    db.transaction();
+
+    try
+    {
+        // 2. 删除VectorTableRowIndex表中的行索引记录
+        QSqlQuery deleteRowsQuery(db);
+        deleteRowsQuery.prepare("DELETE FROM VectorTableRowIndex WHERE master_record_id = ?");
+        deleteRowsQuery.addBindValue(tableId);
+        if (!deleteRowsQuery.exec())
+        {
+            throw QString("删除行索引记录失败: " + deleteRowsQuery.lastError().text());
+        }
+        qDebug() << funcName << " - 已删除行索引记录";
+
+        // 3. 删除VectorTableColumnConfiguration表中的列配置
+        QSqlQuery deleteColumnsQuery(db);
+        deleteColumnsQuery.prepare("DELETE FROM VectorTableColumnConfiguration WHERE master_record_id = ?");
+        deleteColumnsQuery.addBindValue(tableId);
+        if (!deleteColumnsQuery.exec())
+        {
+            throw QString("删除列配置记录失败: " + deleteColumnsQuery.lastError().text());
+        }
+        qDebug() << funcName << " - 已删除列配置记录";
+
+        // 4. 删除VectorTableMasterRecord表中的表记录
+        QSqlQuery deleteMasterQuery(db);
+        deleteMasterQuery.prepare("DELETE FROM VectorTableMasterRecord WHERE id = ?");
+        deleteMasterQuery.addBindValue(tableId);
+        if (!deleteMasterQuery.exec())
+        {
+            throw QString("删除主记录失败: " + deleteMasterQuery.lastError().text());
+        }
+        qDebug() << funcName << " - 已删除主记录";
+
+        // 提交事务
+        db.commit();
+        qDebug() << funcName << " - 数据库记录删除成功，事务已提交";
+
+        // 5. 从文件系统中删除二进制文件
+        QFile binFile(binFilePath);
+        if (binFile.exists())
+        {
+            if (binFile.remove())
+            {
+                qDebug() << funcName << " - 已删除二进制文件:" << binFilePath;
+            }
+            else
+            {
+                // 仅记录警告，不影响删除操作的结果
+                qWarning() << funcName << " - 无法删除二进制文件:" << binFilePath << "，错误:" << binFile.errorString();
+            }
+        }
+        else
+        {
+            qWarning() << funcName << " - 二进制文件不存在:" << binFilePath;
+        }
+
+        return true;
+    }
+    catch (const QString &error)
+    {
+        // 回滚事务
+        db.rollback();
+        errorMessage = error;
+        qWarning() << funcName << " - 删除失败，事务已回滚: " << errorMessage;
+        return false;
+    }
 }
 
 bool RobustVectorDataHandler::deleteVectorRows(int tableId, const QList<int> &rowIndices, QString &errorMessage)
