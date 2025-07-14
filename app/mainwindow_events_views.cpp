@@ -45,7 +45,7 @@ void MainWindow::onVectorTableSelectionChanged(int index)
 
     // 根据当前使用的视图类型选择不同的加载方法
     bool isUsingNewView = (m_vectorStackedWidget->currentWidget() == m_vectorTableView);
-    
+
     if (isUsingNewView)
     {
         qDebug() << funcName << " - 使用Model/View架构加载数据";
@@ -263,8 +263,8 @@ void MainWindow::onTableRowModified(int row)
     m_hasUnsavedChanges = true;
     updateWindowTitle(m_currentDbPath);
 
-    // 如果波形图可见，则更新它
-    if (m_isWaveformVisible)
+    // 根据自动更新标志决定是否更新波形图
+    if (m_isWaveformVisible && m_autoUpdateWaveform)
     {
         updateWaveformView();
         // 确保修改后高亮仍然在正确的位置
@@ -272,6 +272,10 @@ void MainWindow::onTableRowModified(int row)
         {
             highlightWaveformPoint(m_selectedWaveformPoint);
         }
+    }
+    else if (m_isWaveformVisible && !m_autoUpdateWaveform)
+    {
+        qDebug() << "MainWindow::onTableRowModified - 自动更新波形图已禁用，跳过波形图更新";
     }
 }
 
