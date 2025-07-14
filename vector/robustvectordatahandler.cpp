@@ -302,6 +302,16 @@ bool RobustVectorDataHandler::deleteVectorTable(int tableId, QString &errorMessa
         }
         qDebug() << funcName << " - 已删除主记录";
 
+        // 5. 删除vector_tables表中的表记录
+        QSqlQuery deleteVectorTableQuery(db);
+        deleteVectorTableQuery.prepare("DELETE FROM vector_tables WHERE id = ?");
+        deleteVectorTableQuery.addBindValue(tableId);
+        if (!deleteVectorTableQuery.exec())
+        {
+            throw QString("删除vector_tables表记录失败: " + deleteVectorTableQuery.lastError().text());
+        }
+        qDebug() << funcName << " - 已删除vector_tables表记录";
+
         // 提交事务
         db.commit();
         qDebug() << funcName << " - 数据库记录删除成功，事务已提交";
