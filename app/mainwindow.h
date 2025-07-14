@@ -66,6 +66,10 @@ public:
 
     // 添加清除列配置缓存的方法声明
     void clearColumnConfigCache(int tableId = 0);
+    
+    // 数据处理器切换控制 - 移动到public
+    bool m_useNewDataHandler = true;
+    RobustVectorDataHandler *m_robustDataHandler = nullptr;
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -296,7 +300,7 @@ private:
     bool fixPinColumnTypes();
     
     // 控制波形图是否自动更新的标志
-    bool m_autoUpdateWaveform = false;
+    bool m_autoUpdateWaveform = true;
 
     // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();
@@ -485,10 +489,6 @@ private:
 
     // 波形图在线编辑
     QLineEdit *m_waveformValueEditor = nullptr;
-
-    // 数据处理器切换控制
-    bool m_useNewDataHandler = true;
-    RobustVectorDataHandler *m_robustDataHandler = nullptr;
 
     bool updateSelectedPinsAsColumns(int tableId); // 声明新函数
 
