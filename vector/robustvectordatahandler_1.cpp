@@ -461,8 +461,16 @@ void RobustVectorDataHandler::markRowAsModified(int tableId, int rowIndex)
     // 将行索引添加到修改集合中
     m_modifiedRows[tableId].insert(rowIndex);
 
-    qDebug() << "RobustVectorDataHandler::markRowAsModified - 标记表" << tableId
-             << "的行" << rowIndex << "为已修改";
+    // 日志限制 - 每20000行只输出一次
+    static int logCounter = 0;
+    const int LOG_THRESHOLD = 20000;
+
+    if (++logCounter % LOG_THRESHOLD == 0)
+    {
+        qDebug() << "RobustVectorDataHandler::markRowAsModified - 已累计标记" << LOG_THRESHOLD
+                 << "行为已修改，当前表" << tableId << "的行" << rowIndex << "，该表共标记"
+                 << m_modifiedRows[tableId].size() << "行";
+    }
 }
 
 void RobustVectorDataHandler::clearModifiedRows(int tableId)
