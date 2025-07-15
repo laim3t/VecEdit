@@ -19,17 +19,20 @@ VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tab
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
 {
     qDebug() << "VectorPinSettingsDialog::VectorPinSettingsDialog - 初始化管脚设置对话框，表ID:" << tableId << "，表名:" << tableName;
-    
+
     // 检查是否使用新轨道数据处理器
-    MainWindow *mainWindow = qobject_cast<MainWindow*>(parent);
-    if (mainWindow) {
+    MainWindow *mainWindow = qobject_cast<MainWindow *>(parent);
+    if (mainWindow)
+    {
         m_useNewDataHandler = mainWindow->m_useNewDataHandler;
         m_robustDataHandler = mainWindow->m_robustDataHandler;
-    } else {
+    }
+    else
+    {
         m_useNewDataHandler = false;
         m_robustDataHandler = nullptr;
     }
-    
+
     setupUI();
     loadPinsData();
 }
@@ -120,19 +123,24 @@ void VectorPinSettingsDialog::loadPinsData()
     // 获取可见列的管脚名称集合
     QSet<QString> visibleColumns;
 
-    if (m_useNewDataHandler && m_robustDataHandler) {
+    if (m_useNewDataHandler && m_robustDataHandler)
+    {
         // 使用新轨道数据处理器获取列信息
         qDebug() << "VectorPinSettingsDialog::loadPinsData - 使用新轨道(RobustVectorDataHandler)获取管脚列信息";
         QList<Vector::ColumnInfo> columns = m_robustDataHandler->getAllColumnInfo(m_tableId);
-        
+
         // 获取所有可见的管脚列
-        for (const auto &col : columns) {
-            if (col.is_visible && col.type == Vector::ColumnDataType::PIN_STATE_ID) {
+        for (const auto &col : columns)
+        {
+            if (col.is_visible && col.type == Vector::ColumnDataType::PIN_STATE_ID)
+            {
                 visibleColumns.insert(col.name);
                 qDebug() << "  新轨道可见管脚列:" << col.name;
             }
         }
-    } else {
+    }
+    else
+    {
         // 使用旧轨道查询数据库
         qDebug() << "VectorPinSettingsDialog::loadPinsData - 使用旧轨道从VectorTableColumnConfiguration表加载可见管脚列";
         QSqlQuery visibleColumnsQuery(db);
@@ -338,12 +346,15 @@ void VectorPinSettingsDialog::onCheckBoxStateChanged(int state)
             qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 用户取消选择管脚:" << pinName << "，立即隐藏对应列";
 
             bool hideSuccess = false;
-            
-            if (m_useNewDataHandler && m_robustDataHandler) {
+
+            if (m_useNewDataHandler && m_robustDataHandler)
+            {
                 // 使用新轨道数据处理器隐藏列
                 hideSuccess = m_robustDataHandler->hideVectorTableColumn(m_tableId, pinName, errorMsg);
                 qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 使用新轨道处理器隐藏管脚列:" << pinName;
-            } else {
+            }
+            else
+            {
                 // 使用旧轨道处理器隐藏列
                 hideSuccess = VectorDataHandler::instance().hideVectorTableColumn(m_tableId, pinName, errorMsg);
                 qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 使用旧轨道处理器隐藏管脚列:" << pinName;
@@ -382,17 +393,20 @@ void VectorPinSettingsDialog::onCheckBoxStateChanged(int state)
                         // 列存在但处于隐藏状态，立即恢复
                         QString errorMsg;
                         bool showSuccess = false;
-                        
-                        if (m_useNewDataHandler && m_robustDataHandler) {
+
+                        if (m_useNewDataHandler && m_robustDataHandler)
+                        {
                             // 使用新轨道数据处理器显示列
                             showSuccess = m_robustDataHandler->showVectorTableColumn(m_tableId, pinName, errorMsg);
                             qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 使用新轨道处理器显示管脚列:" << pinName;
-                        } else {
+                        }
+                        else
+                        {
                             // 使用旧轨道处理器显示列
                             showSuccess = VectorDataHandler::instance().showVectorTableColumn(m_tableId, pinName, errorMsg);
                             qDebug() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 使用旧轨道处理器显示管脚列:" << pinName;
                         }
-                        
+
                         if (!showSuccess)
                         {
                             qWarning() << "VectorPinSettingsDialog::onCheckBoxStateChanged - 恢复列可见性失败:" << errorMsg;
@@ -464,9 +478,14 @@ void VectorPinSettingsDialog::onAccepted()
 
                 if (!dataDeleteQuery.exec())
                 {
-                    throw std::runtime_error(QString("删除管脚 '%1' 数据失败: %2")
+                    QString errorDetails = QString("Query: %1\nBound Values: tableId=%2, pinId=%3")
+                                               .arg(dataDeleteQuery.lastQuery())
+                                               .arg(m_tableId)
+                                               .arg(pinId);
+                    throw std::runtime_error(QString("删除管脚 '%1' 数据失败: %2\nDetails:\n%3")
                                                  .arg(pinName)
                                                  .arg(dataDeleteQuery.lastError().text())
+                                                 .arg(errorDetails)
                                                  .toStdString());
                 }
 
@@ -480,9 +499,14 @@ void VectorPinSettingsDialog::onAccepted()
 
                 if (!pinDeleteQuery.exec())
                 {
-                    throw std::runtime_error(QString("删除管脚 '%1' 记录失败: %2")
+                    QString errorDetails = QString("Query: %1\nBound Values: tableId=%2, pinId=%3")
+                                               .arg(pinDeleteQuery.lastQuery())
+                                               .arg(m_tableId)
+                                               .arg(pinId);
+                    throw std::runtime_error(QString("删除管脚 '%1' 记录失败: %2\nDetails:\n%3")
                                                  .arg(pinName)
                                                  .arg(pinDeleteQuery.lastError().text())
+                                                 .arg(errorDetails)
                                                  .toStdString());
                 }
 
@@ -529,9 +553,14 @@ void VectorPinSettingsDialog::onAccepted()
 
                     if (!updatePinQuery.exec())
                     {
-                        throw std::runtime_error(QString("更新管脚 '%1' 类型失败: %2")
+                        QString errorDetails = QString("Query: %1\nBound Values: typeId=%2, id=%3")
+                                                   .arg(updatePinQuery.lastQuery())
+                                                   .arg(typeId)
+                                                   .arg(existingPinId);
+                        throw std::runtime_error(QString("更新管脚 '%1' 类型失败: %2\nDetails:\n%3")
                                                      .arg(pinName)
                                                      .arg(updatePinQuery.lastError().text())
+                                                     .arg(errorDetails)
                                                      .toStdString());
                     }
 
@@ -551,9 +580,15 @@ void VectorPinSettingsDialog::onAccepted()
 
                 if (!insertPinQuery.exec())
                 {
-                    throw std::runtime_error(QString("添加管脚 '%1' 失败: %2")
+                    QString errorDetails = QString("Query: %1\nBound Values: tableId=%2, pinId=%3, typeId=%4")
+                                               .arg(insertPinQuery.lastQuery())
+                                               .arg(m_tableId)
+                                               .arg(pinId)
+                                               .arg(typeId);
+                    throw std::runtime_error(QString("添加管脚 '%1' 失败: %2\nDetails:\n%3")
                                                  .arg(pinName)
                                                  .arg(insertPinQuery.lastError().text())
+                                                 .arg(errorDetails)
                                                  .toStdString());
                 }
 
@@ -595,9 +630,14 @@ void VectorPinSettingsDialog::onAccepted()
 
                     if (!updateColConfigQuery.exec())
                     {
-                        throw std::runtime_error(QString("更新管脚列 '%1' 可见性失败: %2")
+                        QString errorDetails = QString("Query: %1\nBound Values: props=%2, id=%3")
+                                                   .arg(updateColConfigQuery.lastQuery())
+                                                   .arg(propStr)
+                                                   .arg(colConfigId);
+                        throw std::runtime_error(QString("更新管脚列 '%1' 可见性失败: %2\nDetails:\n%3")
                                                      .arg(pinName)
                                                      .arg(updateColConfigQuery.lastError().text())
+                                                     .arg(errorDetails)
                                                      .toStdString());
                     }
 
@@ -611,7 +651,7 @@ void VectorPinSettingsDialog::onAccepted()
                 int maxDisplayOrder = 0;
                 QSqlQuery maxOrderQuery(db);
                 maxOrderQuery.prepare(
-                    "SELECT MAX(display_order) FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId");
+                    "SELECT MAX(column_order) FROM VectorTableColumnConfiguration WHERE master_record_id = :tableId");
                 maxOrderQuery.bindValue(":tableId", m_tableId);
 
                 if (maxOrderQuery.exec() && maxOrderQuery.next())
@@ -623,7 +663,7 @@ void VectorPinSettingsDialog::onAccepted()
                 QSqlQuery insertColConfigQuery(db);
                 insertColConfigQuery.prepare(
                     "INSERT INTO VectorTableColumnConfiguration "
-                    "(master_record_id, column_name, column_type, display_order, IsVisible, data_properties) "
+                    "(master_record_id, column_name, column_type, column_order, IsVisible, data_properties) "
                     "VALUES (:tableId, :columnName, 'PIN_STATE_ID', :order, 1, :props)");
                 insertColConfigQuery.bindValue(":tableId", m_tableId);
                 insertColConfigQuery.bindValue(":columnName", pinName);
@@ -632,21 +672,32 @@ void VectorPinSettingsDialog::onAccepted()
 
                 if (!insertColConfigQuery.exec())
                 {
-                    throw std::runtime_error(QString("添加管脚列 '%1' 配置失败: %2")
+                    QString errorDetails = QString("Query: %1\nBound Values: tableId=%2, columnName=%3, order=%4, props=%5")
+                                               .arg(insertColConfigQuery.lastQuery())
+                                               .arg(m_tableId)
+                                               .arg(pinName)
+                                               .arg(maxDisplayOrder + 1)
+                                               .arg(propStr);
+                    throw std::runtime_error(QString("添加管脚列 '%1' 配置失败: %2\nDetails:\n%3")
                                                  .arg(pinName)
                                                  .arg(insertColConfigQuery.lastError().text())
+                                                 .arg(errorDetails)
                                                  .toStdString());
                 }
 
                 qDebug() << "VectorPinSettingsDialog::onAccepted - 添加管脚列" << pinName << "配置";
             }
-            
+
             // 对于新轨道，确保管脚列在数据处理器中可见
-            if (m_useNewDataHandler && m_robustDataHandler) {
+            if (m_useNewDataHandler && m_robustDataHandler)
+            {
                 QString errorMsg;
-                if (!m_robustDataHandler->showVectorTableColumn(m_tableId, pinName, errorMsg)) {
+                if (!m_robustDataHandler->showVectorTableColumn(m_tableId, pinName, errorMsg))
+                {
                     qWarning() << "VectorPinSettingsDialog::onAccepted - 使用新轨道处理器显示管脚列失败:" << errorMsg;
-                } else {
+                }
+                else
+                {
                     qDebug() << "VectorPinSettingsDialog::onAccepted - 使用新轨道处理器成功显示管脚列:" << pinName;
                 }
             }
@@ -654,7 +705,7 @@ void VectorPinSettingsDialog::onAccepted()
 
         // 提交事务
         db.commit();
-        
+
         // 输出调试信息
         logColumnConfigInfo(m_tableId);
 
