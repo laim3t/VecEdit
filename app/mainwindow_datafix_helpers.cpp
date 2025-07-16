@@ -545,28 +545,13 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
         VectorDataHandler::instance().clearTableDataCache(tableId);
     }
 
-    // 1. Ensure the table is selected in the ComboBox and TabWidget
-    int comboBoxIndex = m_vectorTableSelector->findData(tableId);
-    if (comboBoxIndex != -1)
-    {
-        if (m_vectorTableSelector->currentIndex() != comboBoxIndex)
-        {
-            m_vectorTableSelector->setCurrentIndex(comboBoxIndex); // This should trigger onVectorTableSelectionChanged
-        }
-        else
-        {
-            // If it's already selected, force a refresh of its data
-            onVectorTableSelectionChanged(comboBoxIndex);
-        }
-    }
-    else
-    {
-        qWarning() << funcName << "- Table ID" << tableId << "not found in selector. Cannot refresh.";
-        // Fallback: reload all tables if the specific one isn't found (might be a new table not yet in UI)
-        loadVectorTable();
-    }
+    // 移除了旧的 onVectorTableSelectionChanged 调用。
+    // 之前的调用因为会跳过同一个表的重载，导致列可见性等UI状态无法刷新。
+    // 现在我们直接调用模型刷新和UI调整函数，强制更新视图。
+    m_vectorTableModel->refreshColumns(tableId);
+    adjustPinColumnWidths();
 
-    // 2. Refresh the sidebar (in case table names or other project components changed)
+    // Refresh other parts of the UI
     refreshSidebarNavigator();
 
     // 3. 确保波形图视图也被更新，特别是管脚选择器下拉框

@@ -159,12 +159,15 @@ void MainWindow::showVectorDataDialog(int tableId, const QString &tableName, int
 
                 // 强制调用loadVectorTableData而不是依赖信号槽，确保正确加载所有列
                 bool loadSuccess;
-                if (m_useNewDataHandler) {
+                if (m_useNewDataHandler)
+                {
                     loadSuccess = m_robustDataHandler->loadVectorTableData(tableId, m_vectorTableWidget);
-                } else {
+                }
+                else
+                {
                     loadSuccess = VectorDataHandler::instance().loadVectorTableData(tableId, m_vectorTableWidget);
                 }
-                
+
                 if (loadSuccess)
                 {
                     qDebug() << funcName << " - 成功重新加载表格数据，列数:" << m_vectorTableWidget->columnCount();

@@ -51,10 +51,10 @@ private:
     QMap<int, QComboBox *> m_typeComboBoxes; // 存储类型下拉框对象
 
     QSet<int> m_pinsWithData; // 存储已有数据的管脚ID
-    
+
     // 新轨道支持
-    bool m_useNewDataHandler = false; // 是否使用新轨道数据处理器
-    RobustVectorDataHandler* m_robustDataHandler = nullptr; // 新轨道数据处理器指针
+    bool m_useNewDataHandler = false;                       // 是否使用新轨道数据处理器
+    RobustVectorDataHandler *m_robustDataHandler = nullptr; // 新轨道数据处理器指针
 };
 
 #endif // VECTORPINSETTINGSDIALOG_H

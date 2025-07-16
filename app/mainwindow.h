@@ -66,7 +66,7 @@ public:
 
     // 添加清除列配置缓存的方法声明
     void clearColumnConfigCache(int tableId = 0);
-    
+
     // 数据处理器切换控制 - 移动到public
     bool m_useNewDataHandler = true;
     RobustVectorDataHandler *m_robustDataHandler = nullptr;
@@ -298,7 +298,7 @@ private:
 
     // 辅助函数：修复管脚列类型值，确保设置为PIN_STATE_ID类型
     bool fixPinColumnTypes();
-    
+
     // 控制波形图是否自动更新的标志
     bool m_autoUpdateWaveform = true;
 
@@ -491,6 +491,7 @@ private:
     QLineEdit *m_waveformValueEditor = nullptr;
 
     bool updateSelectedPinsAsColumns(int tableId); // 声明新函数
+    int getOrCreatePinId(const QString &pinName, QSqlDatabase &db);
 
     // 获取系统可用内存（字节）
     qint64 getAvailableSystemMemory();

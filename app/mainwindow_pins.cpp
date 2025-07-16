@@ -319,9 +319,10 @@ void MainWindow::setupVectorTablePins()
 
     if (dialog.exec() == QDialog::Accepted)
     {
-        qDebug() << "MainWindow::setupVectorTablePins - 用户确认了管脚设置，调用数据迁移器。";
-        // 3. 调用迁移器处理后续所有逻辑（比较、迁移、提示）
-        DataMigrator::migrateDataIfNeeded(tableId, oldColumns, this);
+        qDebug() << "MainWindow::setupVectorTablePins - 用户确认了管脚设置。";
+        // 移除了对数据迁移器的调用。
+        // 更改列的可见性(is_visible)是一个UI状态的切换，不应触发数据迁移。
+        // DataMigrator::migrateDataIfNeeded(tableId, oldColumns, this);
     }
     else
     {
