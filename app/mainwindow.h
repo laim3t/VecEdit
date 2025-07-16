@@ -300,7 +300,10 @@ private:
     bool fixPinColumnTypes();
 
     // 控制波形图是否自动更新的标志
-    bool m_autoUpdateWaveform = true;
+    bool m_autoUpdateWaveform = false;
+
+    // 添加一个成员变量来跟踪当前活动的QTableView
+    QTableView *m_activeVectorTableView;
 
     // 辅助函数：检查并修复所有向量表
     void checkAndFixAllVectorTables();

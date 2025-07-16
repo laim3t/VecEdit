@@ -690,9 +690,10 @@ void VectorTableModel::refreshColumns(int tableId)
         m_columns = VectorDataHandler::instance().getVisibleColumns(tableId);
     }
 
-    // 通知视图列数可能已更改
-    beginResetModel();
-    endResetModel();
+    // 使用 layoutChanged() 信号，避免代价高昂的 modelReset()
+    // 这只会更新列的结构，而不会强制视图重新加载所有行数据
+    emit layoutAboutToBeChanged();
+    emit layoutChanged();
 
     qDebug() << "VectorTableModel::refreshColumns - 成功刷新表ID:" << tableId
              << "的列信息，当前列数:" << m_columns.size();

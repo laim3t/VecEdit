@@ -554,10 +554,14 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     // Refresh other parts of the UI
     refreshSidebarNavigator();
 
-    // 3. 确保波形图视图也被更新，特别是管脚选择器下拉框
-    if (m_isWaveformVisible && m_waveformPlot && m_waveformPinSelector)
+    // 显式更新波形图视图，但仅在自动更新启用时
+    if (m_autoUpdateWaveform)
     {
-        qDebug() << funcName << "- 显式更新波形图视图";
+        qDebug() << funcName << " - 自动更新已启用，准备更新波形图视图";
         updateWaveformView();
+    }
+    else
+    {
+        qDebug() << funcName << " - 自动更新已禁用，跳过波形图更新";
     }
 }
