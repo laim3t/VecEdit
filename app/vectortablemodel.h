@@ -66,6 +66,9 @@ public:
     // 获取管脚列信息
     QMap<int, QString> getPinColumnInfo() const;
 
+    // 获取所有列信息
+    const QList<Vector::ColumnInfo>& getAllColumnInfo() const;
+
     // 兼容旧代码的方法
     void loadAllData(int tableId);                         // 完整实现在vectortablemodel.cpp中
     int currentPage() const { return getCurrentPage(); }   // 兼容旧代码

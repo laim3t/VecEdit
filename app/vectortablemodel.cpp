@@ -624,7 +624,7 @@ void VectorTableModel::loadAllData(int tableId)
     // 获取列信息
     if (m_useNewDataHandler)
     {
-        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+        m_columns = m_robustDataHandler->getAllColumnInfo(tableId);
     }
     else
     {
@@ -683,7 +683,7 @@ void VectorTableModel::refreshColumns(int tableId)
     // 获取最新的列信息
     if (m_useNewDataHandler)
     {
-        m_columns = m_robustDataHandler->getVisibleColumns(tableId);
+        m_columns = m_robustDataHandler->getAllColumnInfo(tableId);
     }
     else
     {
@@ -794,4 +794,9 @@ bool VectorTableModel::setRowData(int row, const QMap<int, QVariant> &pinValues,
     }
 
     return changed;
+}
+
+const QList<Vector::ColumnInfo>& VectorTableModel::getAllColumnInfo() const
+{
+    return m_columns;
 }

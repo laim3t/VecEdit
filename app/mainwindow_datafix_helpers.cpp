@@ -549,6 +549,21 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     // 之前的调用因为会跳过同一个表的重载，导致列可见性等UI状态无法刷新。
     // 现在我们直接调用模型刷新和UI调整函数，强制更新视图。
     m_vectorTableModel->refreshColumns(tableId);
+
+    // 根据模型的列信息，在视图层控制列的可见性
+    const auto& columns = m_vectorTableModel->getAllColumnInfo();
+    for (int i = 0; i < columns.size(); ++i)
+    {
+        if (columns[i].is_visible)
+        {
+            m_vectorTableView->showColumn(i);
+        }
+        else
+        {
+            m_vectorTableView->hideColumn(i);
+        }
+    }
+
     adjustPinColumnWidths();
 
     // Refresh other parts of the UI
