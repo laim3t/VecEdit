@@ -104,7 +104,7 @@ void PinSettingsDialog::loadPinsData()
 
     // 加载所有管脚及其注释
     QSqlQuery pinQuery(db);
-    if (pinQuery.exec("SELECT id, pin_name, pin_note FROM pin_list ORDER BY pin_name"))
+    if (pinQuery.exec("SELECT id, pin_name, pin_note FROM pin_list WHERE is_placeholder = 0 ORDER BY pin_name"))
     {
         while (pinQuery.next())
         {

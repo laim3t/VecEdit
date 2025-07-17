@@ -287,13 +287,12 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         return false;
     }
 
-    // 1. 获取该表已选择的管脚
+    // 1. 获取所有与此表关联的、非占位的管脚
     QSqlQuery pinQuery(db);
     pinQuery.prepare(
-        "SELECT p.pin_name "
-        "FROM vector_table_pins vtp "
+        "SELECT p.pin_name FROM vector_table_pins vtp "
         "JOIN pin_list p ON vtp.pin_id = p.id "
-        "WHERE vtp.table_id = ?");
+        "WHERE vtp.table_id = ? AND p.is_placeholder = 0");
     pinQuery.addBindValue(tableId);
 
     if (!pinQuery.exec())

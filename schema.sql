@@ -53,7 +53,8 @@ CREATE TABLE pin_list(
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     pin_name TEXT NOT NULL, 
     pin_note TEXT, 
-    pin_nav_note TEXT
+    pin_nav_note TEXT,
+    is_placeholder INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE vector_table_data(

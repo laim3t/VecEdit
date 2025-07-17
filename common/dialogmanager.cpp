@@ -115,7 +115,7 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
     }
 
     // 加载管脚列表
-    if (query.exec("SELECT id, pin_name FROM pin_list ORDER BY pin_name"))
+    if (query.exec("SELECT id, pin_name FROM pin_list WHERE is_placeholder = 0 ORDER BY pin_name"))
     {
         while (query.next())
         {
@@ -254,10 +254,11 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
                 {
                     // 创建新的默认管脚
                     QSqlQuery insertQuery(db);
-                    insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+                    insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note, is_placeholder) VALUES (?, ?, ?, ?)");
                     insertQuery.addBindValue(pinName);
                     insertQuery.addBindValue("自动创建的默认管脚"); // pin_note
                     insertQuery.addBindValue("");                   // pin_nav_note
+                    insertQuery.addBindValue(1);                    // is_placeholder = 1
 
                     if (insertQuery.exec())
                     {

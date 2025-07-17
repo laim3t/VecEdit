@@ -31,7 +31,7 @@ bool TimeSetDataAccess::loadPins(QMap<int, QString> &pinList)
 {
     QSqlQuery query(m_db);
 
-    if (query.exec("SELECT id, pin_name FROM pin_list"))
+    if (query.exec("SELECT id, pin_name FROM pin_list WHERE is_placeholder = 0"))
     {
         pinList.clear();
         while (query.next())

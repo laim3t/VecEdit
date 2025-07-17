@@ -47,7 +47,7 @@ void MainWindow::refreshSidebarNavigator()
     {
         QSqlQuery pinQuery(db);
         // 修改查询语句，获取所有管脚，不限于被使用的管脚
-        pinQuery.exec("SELECT id, pin_name FROM pin_list ORDER BY pin_name");
+        pinQuery.exec("SELECT id, pin_name FROM pin_list WHERE is_placeholder = 0 ORDER BY pin_name");
         while (pinQuery.next())
         {
             int pinId = pinQuery.value(0).toInt();
