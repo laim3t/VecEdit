@@ -215,12 +215,84 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
             }
         }
 
+        // Step 1.5: 检查选中的管脚数量，如果少于3个，自动添加默认管脚（ph1、ph2等）
+        if (selectedPins.size() < 3)
+        {
+            qDebug() << "DialogManager::showPinSelectionDialog - 选中的管脚数量少于3个，需要自动补充默认管脚";
+
+            // 确定默认类型ID和通道数
+            int defaultTypeId = 3; // 默认使用类型ID 3，通常是"InOut"类型
+            if (!typeOptions.isEmpty())
+            {
+                defaultTypeId = typeOptions.firstKey(); // 或者使用第一个可用的类型
+            }
+            int defaultChannelCount = 1;
+
+            // 需要补充的默认管脚名称
+            QStringList defaultPinNames;
+            int neededPins = 3 - selectedPins.size();
+            for (int i = 0; i < neededPins; i++)
+            {
+                defaultPinNames.append(QString("ph%1").arg(i + 1));
+            }
+
+            // 检查这些默认管脚是否已存在，不存在则创建
+            for (const QString &pinName : defaultPinNames)
+            {
+                // 检查是否已存在此管脚
+                QSqlQuery checkQuery(db);
+                checkQuery.prepare("SELECT id FROM pin_list WHERE pin_name = ?");
+                checkQuery.addBindValue(pinName);
+
+                int pinId = -1;
+                if (checkQuery.exec() && checkQuery.next())
+                {
+                    pinId = checkQuery.value(0).toInt();
+                    qDebug() << "DialogManager::showPinSelectionDialog - 找到现有的默认管脚:" << pinName << "ID:" << pinId;
+                }
+                else
+                {
+                    // 创建新的默认管脚
+                    QSqlQuery insertQuery(db);
+                    insertQuery.prepare("INSERT INTO pin_list (pin_name, pin_note, pin_nav_note) VALUES (?, ?, ?)");
+                    insertQuery.addBindValue(pinName);
+                    insertQuery.addBindValue("自动创建的默认管脚"); // pin_note
+                    insertQuery.addBindValue("");                   // pin_nav_note
+
+                    if (insertQuery.exec())
+                    {
+                        pinId = insertQuery.lastInsertId().toInt();
+                        qDebug() << "DialogManager::showPinSelectionDialog - 创建新的默认管脚:" << pinName << "ID:" << pinId;
+                    }
+                    else
+                    {
+                        qWarning() << "DialogManager::showPinSelectionDialog - 创建默认管脚失败:" << pinName << insertQuery.lastError().text();
+                        continue; // 如果创建失败，跳过此管脚
+                    }
+                }
+
+                // 将默认管脚添加到选中列表
+                if (pinId > 0)
+                {
+                    PinDataFromDialog data;
+                    data.pinId = pinId;
+                    data.pinName = pinName;
+                    data.typeId = defaultTypeId;
+                    data.channelCount = defaultChannelCount;
+                    data.isChecked = true;
+                    selectedPins.append(data);
+                    qDebug() << "DialogManager::showPinSelectionDialog - 添加默认管脚到选中列表:" << pinName << "ID:" << pinId;
+                }
+            }
+        }
+
         // Step 2: Clear old pin associations for this table
         QSqlQuery queryHelper(db);
         qDebug() << "DialogManager::showPinSelectionDialog - Deleting old pin associations (vector_table_pins) for tableId:" << tableId;
         queryHelper.prepare("DELETE FROM vector_table_pins WHERE table_id = ?");
         queryHelper.addBindValue(tableId);
-        if (!queryHelper.exec()) {
+        if (!queryHelper.exec())
+        {
             qCritical() << "DialogManager::showPinSelectionDialog - FAILED to delete from vector_table_pins:" << queryHelper.lastError().text();
             db.rollback();
             return false;
@@ -228,24 +300,28 @@ bool DialogManager::showPinSelectionDialog(int tableId, const QString &tableName
 
         // Step 3: Insert new pin associations based on dialog selection
         queryHelper.prepare("INSERT INTO vector_table_pins (table_id, pin_id, pin_type, pin_channel_count) VALUES (?, ?, ?, ?)");
-        for (const auto& pin : selectedPins)
+        for (const auto &pin : selectedPins)
         {
             queryHelper.bindValue(0, tableId);
             queryHelper.bindValue(1, pin.pinId);
             queryHelper.bindValue(2, pin.typeId);
             queryHelper.bindValue(3, pin.channelCount);
-            if (!queryHelper.exec()) {
+            if (!queryHelper.exec())
+            {
                 qCritical() << "DialogManager::showPinSelectionDialog - FAILED to insert into vector_table_pins:" << queryHelper.lastError().text();
                 success = false;
                 break;
             }
         }
-        
-        if (success) {
+
+        if (success)
+        {
             db.commit();
             qDebug() << "DialogManager::showPinSelectionDialog - Successfully updated pin associations for table" << tableId;
             return true; // Success
-        } else {
+        }
+        else
+        {
             db.rollback();
             qWarning() << "DialogManager::showPinSelectionDialog - Pin association update failed, transaction rolled back.";
             return false;
