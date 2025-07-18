@@ -598,8 +598,8 @@ bool RobustVectorDataHandler::loadVectorTableMeta(int tableId, QString &binFileN
     columns.clear();
     QSqlQuery colQuery(db);
     colQuery.prepare(
-        "SELECT id, column_name, column_order, column_type, is_visible " // Removed data_properties, default_value is not needed for loading
-        "FROM VectorTableColumnConfiguration WHERE master_record_id = ? ORDER BY column_order");
+        "SELECT id, column_name, column_order, column_type, is_visible "
+        "FROM VectorTableColumnConfiguration WHERE master_record_id = ? AND is_visible = 1 ORDER BY column_order");
     colQuery.addBindValue(tableId);
     if (!colQuery.exec())
     {
