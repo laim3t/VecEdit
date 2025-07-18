@@ -33,8 +33,24 @@ AddRowDialog::AddRowDialog(int tableId, const QMap<int, QString> &pinInfo, QWidg
       m_pinInfo(pinInfo)
 {
     setupUi();
-    setupTable();
+
+    // =================================================================
+    //  强制过滤占位符管脚 (Final Fix)
+    //  无论传入的pinInfo是什么，都在此处强制移除ph*开头的管脚
+    // =================================================================
+    QMutableMapIterator<int, QString> i(m_pinInfo);
+    while (i.hasNext())
+    {
+        i.next();
+        if (i.value().startsWith("ph", Qt::CaseInsensitive))
+        {
+            i.remove();
+        }
+    }
+
+    // 初始化对话框的其他部分
     setupConnections();
+    setupTable();
     loadTimeSets();
 
     // 确保默认选择第一个TimeSet
@@ -199,7 +215,7 @@ void AddRowDialog::setupTable()
         // 从VectorTableColumnConfiguration表获取所有列信息
         query.prepare("SELECT column_name, column_order FROM VectorTableColumnConfiguration "
                       "WHERE master_record_id = (SELECT id FROM VectorTableMasterRecord WHERE original_vector_table_id = ?) "
-                      "AND column_type = 'Pin' "
+                      "AND column_type = 'Pin' AND column_name NOT LIKE 'ph%' "
                       "ORDER BY column_order");
         query.addBindValue(m_tableId);
 

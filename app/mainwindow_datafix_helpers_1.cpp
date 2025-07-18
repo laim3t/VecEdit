@@ -287,12 +287,12 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         return false;
     }
 
-    // 1. 获取所有与此表关联的、非占位的管脚
+    // 1. 获取所有与此表关联的管脚（包括普通管脚和占位符管脚）
     QSqlQuery pinQuery(db);
     pinQuery.prepare(
-        "SELECT p.pin_name FROM vector_table_pins vtp "
+        "SELECT p.pin_name, p.is_placeholder FROM vector_table_pins vtp "
         "JOIN pin_list p ON vtp.pin_id = p.id "
-        "WHERE vtp.table_id = ? AND p.is_placeholder = 0");
+        "WHERE vtp.table_id = ?");
     pinQuery.addBindValue(tableId);
 
     if (!pinQuery.exec())
@@ -301,18 +301,20 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         return false;
     }
 
-    QStringList pinNames;
+    QList<QPair<QString, bool>> pinInfoList; // 存储管脚名称和是否为占位符
     while (pinQuery.next())
     {
-        pinNames << pinQuery.value(0).toString();
+        QString pinName = pinQuery.value(0).toString();
+        bool isPlaceholder = pinQuery.value(1).toBool();
+        pinInfoList.append(qMakePair(pinName, isPlaceholder));
     }
 
-    if (pinNames.isEmpty())
+    if (pinInfoList.isEmpty())
     {
         qInfo() << funcName << " - No pins selected for tableId:" << tableId << ". Nothing to do.";
         return true; // 没有选择管脚不是一个错误
     }
-    qDebug() << funcName << " - Found selected pins:" << pinNames;
+    qDebug() << funcName << " - Found pins (including placeholders) for tableId:" << tableId;
 
     // 2. 获取当前最大的 column_order
     QSqlQuery orderQuery(db);
@@ -330,16 +332,21 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
     QSqlQuery insertQuery(db);
     insertQuery.prepare(
         "INSERT INTO VectorTableColumnConfiguration (master_record_id, column_name, column_type, column_order, default_value, is_visible) "
-        "VALUES (?, ?, ?, ?, ?, 1)");
+        "VALUES (?, ?, ?, ?, ?, ?)");
 
-    for (const QString &pinName : pinNames)
+    int addedCount = 0;
+    for (const auto &pinInfo : pinInfoList)
     {
+        const QString &pinName = pinInfo.first;
+        bool isPlaceholder = pinInfo.second;
+
         maxOrder++;
         insertQuery.bindValue(0, tableId);
         insertQuery.bindValue(1, pinName);
         insertQuery.bindValue(2, "Pin"); // 管脚列的类型固定为 'Pin'
         insertQuery.bindValue(3, maxOrder);
-        insertQuery.bindValue(4, "0"); // 默认值设为 '0'
+        insertQuery.bindValue(4, "0");                   // 默认值设为 '0'
+        insertQuery.bindValue(5, isPlaceholder ? 0 : 1); // 占位符管脚设为不可见，普通管脚设为可见
 
         if (!insertQuery.exec())
         {
@@ -347,6 +354,7 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
             db.rollback(); // 插入失败，回滚事务
             return false;
         }
+        addedCount++;
     }
 
     if (!db.commit())
@@ -356,7 +364,7 @@ bool MainWindow::updateSelectedPinsAsColumns(int tableId)
         return false;
     }
 
-    qInfo() << funcName << " - Successfully added" << pinNames.count() << "pin columns to configuration for tableId:" << tableId;
+    qInfo() << funcName << " - Successfully added" << addedCount << "pin columns to configuration for tableId:" << tableId;
 
     // 4. 如果使用的是新的数据模型，更新模型的列信息
     if (m_vectorTableModel && m_vectorTableModel->getCurrentTableId() == tableId)

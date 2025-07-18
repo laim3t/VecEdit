@@ -70,7 +70,7 @@ bool DialogManager::showVectorDataDialog(int tableId, const QString &tableName, 
                   "FROM vector_table_pins p "
                   "JOIN pin_list pl ON p.pin_id = pl.id "
                   "JOIN type_options t ON p.pin_type = t.id "
-                  "WHERE p.table_id = ?");
+                  "WHERE p.table_id = ? AND pl.pin_name NOT LIKE 'ph%'");
     query.addBindValue(tableId);
 
     if (query.exec())
