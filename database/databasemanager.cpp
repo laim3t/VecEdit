@@ -576,3 +576,135 @@ QString DatabaseManager::readSqlScriptFromFile(const QString &filePath)
 }
 
 #include "databasemanager_1.cpp"
+
+// ============== 管脚选择对话框新功能实现 ==============
+
+bool DatabaseManager::setPinColumnVisibility(qint64 tableId, int pinId, bool isVisible)
+{
+    // 首先，我们需要根据 pinId 获取 pinName，因为列配置表是使用名称来识别的
+    QSqlQuery nameQuery;
+    nameQuery.prepare("SELECT pin_name FROM pin_list WHERE id = ?");
+    nameQuery.bindValue(0, pinId);
+    if (!nameQuery.exec() || !nameQuery.next()) {
+        qWarning() << "setPinColumnVisibility: Failed to find pin name for pinId" << pinId << nameQuery.lastError();
+        return false;
+    }
+    QString pinName = nameQuery.value(0).toString();
+
+    // 然后，更新列配置表
+    QSqlQuery updateQuery;
+    updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET is_visible = ? "
+                        "WHERE master_record_id = ? AND column_name = ?");
+    updateQuery.bindValue(0, isVisible ? 1 : 0);
+    updateQuery.bindValue(1, tableId);
+    updateQuery.bindValue(2, pinName);
+
+    if (!updateQuery.exec()) {
+        qWarning() << "setPinColumnVisibility: Failed to update visibility for pin" << pinName << updateQuery.lastError();
+        return false;
+    }
+
+    return true;
+}
+
+QList<int> DatabaseManager::getAvailablePlaceholderPinIds(qint64 tableId)
+{
+    QList<int> placeholderIds;
+    QSqlQuery query;
+    // 查询与该向量表关联的、且被标记为占位符的管脚ID
+    query.prepare("SELECT p.id FROM pin_list p "
+                  "JOIN vector_table_pins vtp ON p.id = vtp.pin_id "
+                  "WHERE vtp.table_id = ? AND p.is_placeholder = 1");
+    query.bindValue(0, tableId);
+
+    if (!query.exec()) {
+        qWarning() << "getAvailablePlaceholderPinIds: Failed to query placeholder pins" << query.lastError();
+        return placeholderIds; // 返回空列表
+    }
+
+    while (query.next()) {
+        placeholderIds.append(query.value(0).toInt());
+    }
+
+    return placeholderIds;
+}
+
+bool DatabaseManager::replacePinInSlot(qint64 tableId, int oldPinId, int newPinId)
+{
+    QString oldPinName, newPinName;
+
+    // 使用独立的查询对象确保隔离，并使用 bindValue
+    {
+        QSqlQuery nameQuery;
+        nameQuery.prepare("SELECT pin_name FROM pin_list WHERE id = ?");
+        nameQuery.bindValue(0, oldPinId);
+        if (!nameQuery.exec() || !nameQuery.next()) {
+            qWarning() << "replacePinInSlot: Failed to find old pin name for pinId" << oldPinId << nameQuery.lastError();
+            return false;
+        }
+        oldPinName = nameQuery.value(0).toString();
+    }
+
+    {
+        QSqlQuery nameQuery;
+        nameQuery.prepare("SELECT pin_name FROM pin_list WHERE id = ?");
+        nameQuery.bindValue(0, newPinId);
+        if (!nameQuery.exec() || !nameQuery.next()) {
+            qWarning() << "replacePinInSlot: Failed to find new pin name for pinId" << newPinId << nameQuery.lastError();
+            return false;
+        }
+        newPinName = nameQuery.value(0).toString();
+    }
+
+
+    // 2. 更新 VectorTableColumnConfiguration 表
+    QSqlQuery updateConfigQuery;
+    updateConfigQuery.prepare("UPDATE VectorTableColumnConfiguration SET column_name = ?, is_visible = 1 "
+                              "WHERE master_record_id = ? AND column_name = ?");
+    updateConfigQuery.bindValue(0, newPinName);
+    updateConfigQuery.bindValue(1, tableId);
+    updateConfigQuery.bindValue(2, oldPinName);
+
+    if (!updateConfigQuery.exec()) {
+        qWarning() << "replacePinInSlot: Failed to update ColumnConfiguration" << updateConfigQuery.lastError();
+        return false;
+    }
+
+    // 3. 更新 vector_table_pins 表
+    QSqlQuery updatePinsQuery;
+    updatePinsQuery.prepare("UPDATE vector_table_pins SET pin_id = ? "
+                            "WHERE table_id = ? AND pin_id = ?");
+    updatePinsQuery.bindValue(0, newPinId);
+    updatePinsQuery.bindValue(1, tableId);
+    updatePinsQuery.bindValue(2, oldPinId);
+
+    if (!updatePinsQuery.exec()) {
+        qWarning() << "replacePinInSlot: Failed to update vector_table_pins" << updatePinsQuery.lastError();
+        return false;
+    }
+    
+    if (updatePinsQuery.numRowsAffected() == 0) {
+        qWarning() << "replacePinInSlot: Update on vector_table_pins affected 0 rows. Inconsistency may exist.";
+    }
+
+    return true;
+}
+
+QList<int> DatabaseManager::getAllAssociatedPinIds(qint64 tableId)
+{
+    QList<int> pinIds;
+    QSqlQuery query;
+    query.prepare("SELECT pin_id FROM vector_table_pins WHERE table_id = ?");
+    query.bindValue(0, tableId);
+
+    if (!query.exec()) {
+        qWarning() << "getAllAssociatedPinIds: Failed to query associated pin IDs for tableId" << tableId << query.lastError();
+        return pinIds;
+    }
+
+    while (query.next()) {
+        pinIds.append(query.value(0).toInt());
+    }
+
+    return pinIds;
+}

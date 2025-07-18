@@ -59,6 +59,15 @@ public:
     // 当前数据库的版本 (从 db_version 表读取)
     int m_currentDbFileVersion;
 
+    bool updateVectorTablePinType(qint64 tableId, int pinId, int pinType);
+    bool updateVectorTablePinChannelCount(qint64 tableId, int pinId, int channelCount);
+
+    // 管脚选择对话框所需的新函数
+    bool setPinColumnVisibility(qint64 tableId, int pinId, bool isVisible);
+    QList<int> getAvailablePlaceholderPinIds(qint64 tableId);
+    bool replacePinInSlot(qint64 tableId, int oldPinId, int newPinId);
+    QList<int> getAllAssociatedPinIds(qint64 tableId);
+
 private:
     // 升级数据库 Schema 到特定版本的辅助函数
     bool performSchemaUpgradeToV2();

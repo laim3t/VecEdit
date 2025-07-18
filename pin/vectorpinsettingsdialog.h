@@ -55,6 +55,7 @@ private:
     // 新轨道支持
     bool m_useNewDataHandler = false;                       // 是否使用新轨道数据处理器
     RobustVectorDataHandler *m_robustDataHandler = nullptr; // 新轨道数据处理器指针
+    QSet<int> m_initialSelectedPinIds; // 用于存储初始勾选的管脚ID
 };
 
 #endif // VECTORPINSETTINGSDIALOG_H

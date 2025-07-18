@@ -14,6 +14,9 @@
 #include "../vector/vectordatahandler.h"
 #include "../vector/robustvectordatahandler.h"
 #include "../app/mainwindow.h"
+#include <QCheckBox>
+#include <QGridLayout>
+#include <QMessageBox>
 
 VectorPinSettingsDialog::VectorPinSettingsDialog(int tableId, const QString &tableName, QWidget *parent)
     : QDialog(parent), m_tableId(tableId), m_tableName(tableName)
@@ -236,9 +239,12 @@ void VectorPinSettingsDialog::loadPinsData()
         QCheckBox *checkBox = new QCheckBox(pinName, this);
         m_checkBoxes[pinId] = checkBox;
 
-        if (m_selectedPins.contains(pinId))
-        {
-            checkBox->setChecked(true);
+        // 根据管脚是否已关联且可见来设置复选框的状态
+        bool isChecked = m_selectedPins.contains(pinId);
+        checkBox->setChecked(isChecked);
+
+        if (isChecked) {
+            m_initialSelectedPinIds.insert(pinId);
         }
 
         // 连接信号槽，对所有管脚添加状态改变检测
@@ -305,66 +311,99 @@ void VectorPinSettingsDialog::onCheckBoxStateChanged(int state)
 
 void VectorPinSettingsDialog::onAccepted()
 {
-    qDebug() << "VectorPinSettingsDialog::onAccepted - 用户点击确定，开始更新管脚可见性";
-    QSqlDatabase db = DatabaseManager::instance()->database();
-    if (!db.isOpen())
-    {
-        qWarning() << "VectorPinSettingsDialog::onAccepted - 数据库未连接";
-        QMessageBox::critical(this, "错误", "数据库未连接，无法保存更改。");
+    // 1. 获取最终选择
+    QSet<int> finalSelectedPinIds;
+    for (auto it = m_checkBoxes.constBegin(); it != m_checkBoxes.constEnd(); ++it) {
+        if (it.value()->isChecked()) {
+            finalSelectedPinIds.insert(it.key());
+        }
+    }
+
+    // 2. 检查总数限制
+    const int maxPins = 3;
+    if (finalSelectedPinIds.size() > maxPins) {
+        QMessageBox::warning(this, "数量超限", QString("最多只能选择 %1 个管脚。").arg(maxPins));
         return;
     }
 
-    db.transaction();
+    // 3. 计算状态差异
+    const QSet<int> newlyCheckedPinIds = finalSelectedPinIds - m_initialSelectedPinIds;
+    const QSet<int> newlyUncheckedPinIds = m_initialSelectedPinIds - finalSelectedPinIds;
+
+    if (newlyCheckedPinIds.isEmpty() && newlyUncheckedPinIds.isEmpty()) {
+        QDialog::accept();
+        return;
+    }
+
+    // 4. 启动事务并执行新逻辑
+    auto dbManager = DatabaseManager::instance();
+    QSqlDatabase db = dbManager->database();
+    if (!db.transaction()) {
+        QMessageBox::critical(this, "数据库错误", "无法启动数据库事务，操作已取消。");
+        return;
+    }
 
     bool success = true;
-    QSqlQuery updateQuery(db);
-    updateQuery.prepare("UPDATE VectorTableColumnConfiguration SET is_visible = ? WHERE master_record_id = ? AND column_name = ?");
 
-    for (auto it = m_checkBoxes.begin(); it != m_checkBoxes.end(); ++it)
-    {
-        int pinId = it.key();
-        QCheckBox *checkBox = it.value();
-
-        // 从 m_allPins 中获取管脚名称
-        QString pinName = m_allPins.value(pinId);
-        if (pinName.isEmpty())
-        {
-            qWarning() << "VectorPinSettingsDialog::onAccepted - 无法找到Pin ID:" << pinId << "对应的名称，跳过。";
-            continue;
-        }
-
-        bool isVisible = checkBox->isChecked();
-
-        updateQuery.bindValue(0, isVisible ? 1 : 0);
-        updateQuery.bindValue(1, m_tableId);
-        updateQuery.bindValue(2, pinName);
-
-        if (!updateQuery.exec())
-        {
-            qWarning() << "VectorPinSettingsDialog::onAccepted - 更新管脚可见性失败:" << pinName << "错误:" << updateQuery.lastError().text();
-            success = false;
-            break;
+    // 5. 处理被取消勾选的管脚 (全部设为不可见)
+    if (success) {
+        for (int pinId : newlyUncheckedPinIds) {
+            if (!dbManager->setPinColumnVisibility(m_tableId, pinId, false)) {
+                success = false;
+                qWarning() << "onAccepted: Failed to set pin" << pinId << "to invisible.";
+                break;
+            }
         }
     }
 
-    if (success)
-    {
-        if (!db.commit())
-        {
-            qWarning() << "VectorPinSettingsDialog::onAccepted - 提交事务失败:" << db.lastError().text();
+    // 6. 处理新勾选的管脚
+    if (success) {
+        // 6a. 获取当前向量表拥有的所有管脚 (无论是否可见)
+        const QList<int> allOwnedPinIds = dbManager->getAllAssociatedPinIds(m_tableId);
+
+        // 6b. 获取所有可用的空闲插槽 (占位符 + 刚刚被取消勾选的管脚)
+        QList<int> availableSlots;
+        availableSlots.append(dbManager->getAvailablePlaceholderPinIds(m_tableId));
+        availableSlots.append(newlyUncheckedPinIds.values());
+
+        for (int pinId : newlyCheckedPinIds) {
+            // 6c. 判断是“回归者”还是“新来者”
+            if (allOwnedPinIds.contains(pinId)) {
+                // 是回归者：直接设为可见
+                if (!dbManager->setPinColumnVisibility(m_tableId, pinId, true)) {
+                    success = false;
+                    qWarning() << "onAccepted: Failed to set returning pin" << pinId << "to visible.";
+                    break;
+                }
+            } else {
+                // 是新来者：寻找并替换插槽
+                if (availableSlots.isEmpty()) {
+                    success = false;
+                    qWarning() << "onAccepted: No available slot for new pin" << pinId;
+                    break;
+                }
+                int slotToReplace = availableSlots.takeFirst();
+                if (!dbManager->replacePinInSlot(m_tableId, slotToReplace, pinId)) {
+                    success = false;
+                    qWarning() << "onAccepted: Failed to replace slot" << slotToReplace << "with new pin" << pinId;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    // 7. 根据结果提交或回滚事务
+    if (success) {
+        if (!db.commit()) {
+            QMessageBox::critical(this, "数据库错误", "提交数据库事务时发生错误，所有更改已被撤销。");
             db.rollback();
-            QMessageBox::critical(this, "数据库错误", "无法提交更改到数据库。");
+        } else {
+            QDialog::accept();
         }
-        else
-        {
-            qInfo() << "VectorPinSettingsDialog::onAccepted - 成功更新管脚可见性。";
-            accept();
-        }
-    }
-    else
-    {
+    } else {
         db.rollback();
-        QMessageBox::critical(this, "数据库错误", "更新一个或多个管脚的可见性时出错，所有更改已回滚。");
+        QMessageBox::critical(this, "操作失败", "更新管脚配置时发生错误，所有更改已被撤销。");
     }
 }
 
