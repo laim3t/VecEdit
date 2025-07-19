@@ -426,8 +426,8 @@ void MainWindow::fillVectorWithPattern(const QMap<int, QString> &rowValueMap, QP
             statusBar()->showMessage("填充操作完成", 3000);
             qDebug() << "向量填充 - 操作成功完成";
             
-            // 刷新表格数据
-            refreshVectorTableData();
+            // 延迟刷新，避免立即刷新导致的冲突
+            // refreshVectorTableData(); // 删除立即刷新，统一在onFillVectorComplete中处理
             
             // 显示正在刷新的提示框
             QTimer::singleShot(200, this, &MainWindow::onFillVectorComplete);
