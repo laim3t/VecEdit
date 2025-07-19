@@ -28,11 +28,8 @@ void MainWindow::onVectorTableSelectionChanged(int index)
         return;
     }
 
-    // 清空波形图管脚选择器，以便在加载表格后重新填充
-    if (m_waveformPinSelector)
-    {
-        m_waveformPinSelector->clear();
-    }
+    // 更新波形图管脚选择器以反映新表格的管脚配置
+    updateWaveformPinSelector();
 
     // 更新代理的缓存
     if (m_itemDelegate)

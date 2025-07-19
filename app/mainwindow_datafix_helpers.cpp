@@ -577,6 +577,80 @@ void MainWindow::reloadAndRefreshVectorTable(int tableId)
     }
     else
     {
-        qDebug() << funcName << " - 自动更新已禁用，跳过波形图更新";
+        qDebug() << funcName << " - 自动更新已禁用，但仍需更新波形图管脚选择器";
+        // 即使自动更新被禁用，也需要更新管脚选择器以反映管脚配置的变化
+        updateWaveformPinSelector();
     }
+}
+/**
+ * @brief 更新波形图管脚选择器下拉框
+ * 
+ * 这个函数专门用于更新波形图中的管脚选择器，确保它反映当前向量表的管脚配置
+ */
+void MainWindow::updateWaveformPinSelector()
+{
+    const QString funcName = "MainWindow::updateWaveformPinSelector";
+    
+    if (!m_waveformPinSelector) {
+        qDebug() << funcName << " - 波形图管脚选择器不存在，跳过更新";
+        return;
+    }
+    
+    // 保存当前选中的管脚名称
+    QString currentSelection = m_waveformPinSelector->currentText();
+    
+    // 清空现有选项
+    m_waveformPinSelector->clear();
+    
+    // 判断当前使用的视图类型
+    bool isUsingNewView = (m_vectorStackedWidget && m_vectorStackedWidget->currentIndex() == 1);
+    
+    if (isUsingNewView && m_vectorTableModel) {
+        // 从模型获取管脚列信息
+        for (int col = 0; col < m_vectorTableModel->columnCount(); ++col) {
+            QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
+            if (headerData.isValid()) {
+                QString headerText = headerData.toString();
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
+                    QString displayName = headerText.split('\n').first();
+                    if (displayName == "ph1") {
+                        continue; // 跳过占位符管脚
+                    }
+                    m_waveformPinSelector->addItem(displayName, headerText);
+                }
+            }
+        }
+    } else if (m_vectorTableWidget) {
+        // 从旧视图获取管脚列信息
+        for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col) {
+            QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
+            if (headerItem) {
+                QString headerText = headerItem->text();
+                int currentTableId = m_vectorTableSelector->currentData().toInt();
+                QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
+                if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID) {
+                    QString displayName = headerText.split('\n').first();
+                    if (displayName == "ph1") {
+                        continue; // 跳过占位符管脚
+                    }
+                    m_waveformPinSelector->addItem(displayName, headerText);
+                }
+            }
+        }
+    }
+    
+    // 尝试恢复之前的选择
+    if (!currentSelection.isEmpty()) {
+        int index = m_waveformPinSelector->findText(currentSelection);
+        if (index >= 0) {
+            m_waveformPinSelector->setCurrentIndex(index);
+            qDebug() << funcName << " - 恢复了之前的管脚选择:" << currentSelection;
+        } else {
+            qDebug() << funcName << " - 之前选择的管脚" << currentSelection << "不再存在，使用默认选择";
+        }
+    }
+    
+    qDebug() << funcName << " - 更新完成，共添加了" << m_waveformPinSelector->count() << "个管脚选项";
 }

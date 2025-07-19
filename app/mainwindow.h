@@ -495,6 +495,7 @@ private:
 
     bool updateSelectedPinsAsColumns(int tableId); // 声明新函数
     int getOrCreatePinId(const QString &pinName, QSqlDatabase &db);
+    void updateWaveformPinSelector(); // 更新波形图管脚选择器
 
     // 获取系统可用内存（字节）
     qint64 getAvailableSystemMemory();
