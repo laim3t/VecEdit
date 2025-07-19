@@ -267,6 +267,10 @@ void MainWindow::updateWaveformView()
                     if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                     {
                         QString displayName = headerText.split('\n').first();
+                        if (displayName == "ph1")
+                        {
+                            continue; // 跳过占位符管脚
+                        }
                         m_waveformPinSelector->addItem(displayName, headerText);
                         // 同时收集所有管脚信息
                         pinColumns.append(qMakePair(displayName, col));
@@ -288,6 +292,10 @@ void MainWindow::updateWaveformView()
                     if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                     {
                         QString displayName = headerText.split('\n').first();
+                        if (displayName == "ph1")
+                        {
+                            continue; // 跳过占位符管脚
+                        }
                         m_waveformPinSelector->addItem(displayName, headerText);
                         // 同时收集所有管脚信息
                         pinColumns.append(qMakePair(displayName, col));
@@ -313,6 +321,10 @@ void MainWindow::updateWaveformView()
                     if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                     {
                         QString displayName = headerText.split('\n').first();
+                        if (displayName == "ph1")
+                        {
+                            continue; // 跳过占位符管脚
+                        }
                         pinColumns.append(qMakePair(displayName, col));
                     }
                 }
@@ -332,6 +344,10 @@ void MainWindow::updateWaveformView()
                     if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                     {
                         QString displayName = headerText.split('\n').first();
+                        if (displayName == "ph1")
+                        {
+                            continue; // 跳过占位符管脚
+                        }
                         pinColumns.append(qMakePair(displayName, col));
                     }
                 }
@@ -996,7 +1012,7 @@ void MainWindow::setAutoUpdateWaveform(bool enable)
 {
     qDebug() << "MainWindow::setAutoUpdateWaveform - 设置自动更新波形图:" << (enable ? "启用" : "禁用");
     m_autoUpdateWaveform = enable;
-    
+
     // 如果启用了自动更新，并且波形图当前可见，则立即更新一次
     if (enable && m_isWaveformVisible && m_waveformPlot)
     {
