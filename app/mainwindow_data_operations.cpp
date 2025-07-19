@@ -821,23 +821,19 @@ void MainWindow::deleteVectorRowsInRange()
         return;
     }
 
-    // 创建要删除的绝对行索引列表 (0-based)
-    QList<int> rowsToDelete;
-    rowsToDelete.reserve(count);
-    for (int i = startRow; i <= endRow; ++i)
-    {
-        rowsToDelete.append(i - 1); // 转换为0-based
-    }
-
     QString errorMessage;
     bool success = false;
+
+    // 使用高效的范围删除操作（转换为0-based索引）
+    int startRowIndex = startRow - 1;  // 转换为0-based
+    int endRowIndex = endRow - 1;      // 转换为0-based
 
     // 根据当前视图类型执行删除操作
     if (m_vectorStackedWidget->currentWidget() == m_vectorTableView)
     {
         if (m_vectorTableModel)
         {
-            success = m_vectorTableModel->deleteSelectedRows(rowsToDelete, errorMessage);
+            success = m_vectorTableModel->deleteRowsInRange(startRowIndex, endRowIndex, errorMessage);
         }
         else
         {
@@ -849,11 +845,11 @@ void MainWindow::deleteVectorRowsInRange()
     {
         if (m_useNewDataHandler)
         {
-            success = m_robustDataHandler->deleteVectorRows(tableId, rowsToDelete, errorMessage);
+            success = m_robustDataHandler->deleteVectorRowsInRange(tableId, startRowIndex, endRowIndex, errorMessage);
         }
         else
         {
-            success = VectorDataHandler::instance().deleteVectorRows(tableId, rowsToDelete, errorMessage);
+            success = VectorDataHandler::instance().deleteVectorRowsInRange(tableId, startRowIndex, endRowIndex, errorMessage);
         }
     }
 

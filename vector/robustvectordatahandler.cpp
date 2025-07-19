@@ -503,154 +503,101 @@ bool RobustVectorDataHandler::deleteVectorRowsInRange(int tableId, int startRow,
         return false;
     }
 
-    // 1. 在删除行之前，先获取所有行数据，以便后续重组
-    bool ok = false;
-    QList<QList<QVariant>> allRowsBeforeDelete = getAllVectorRows(tableId, ok);
-    if (!ok)
-    {
-        errorMessage = "无法获取删除前的所有行数据";
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
-    // 检查行范围是否有效
-    if (startRow < 0 || endRow >= allRowsBeforeDelete.size())
-    {
-        errorMessage = "无效的行范围";
-        qWarning() << funcName << " - " << errorMessage << "，起始行:" << startRow << "，结束行:" << endRow << "，总行数:" << allRowsBeforeDelete.size();
-        return false;
-    }
-
-    // 计算要删除的行数
-    int rowsToDelete = endRow - startRow + 1;
-    if (rowsToDelete <= 0)
-    {
-        errorMessage = "无效的行范围";
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
-    // 2. 创建新的行数据列表，排除被删除的行
-    QList<QList<QVariant>> rowsToKeep;
-
-    // 遍历删除前的所有行
-    for (int i = 0; i < allRowsBeforeDelete.size(); i++)
-    {
-        // 跳过被删除的行范围
-        if (i >= startRow && i <= endRow)
-        {
-            continue;
-        }
-
-        // 保留其他行
-        rowsToKeep.append(allRowsBeforeDelete[i]);
-    }
-
-    // 获取表的列信息
-    QList<Vector::ColumnInfo> columns = getAllColumnInfo(tableId);
-    if (columns.isEmpty())
-    {
-        errorMessage = "无法获取表列信息";
-        qWarning() << funcName << " - " << errorMessage;
-        return false;
-    }
-
     // 开启事务，确保数据一致性
     db.transaction();
 
     try
     {
-        // 3. 清除所有行索引记录
-        QSqlQuery clearQuery(db);
-        clearQuery.prepare("DELETE FROM VectorTableRowIndex WHERE master_record_id = ?");
-        clearQuery.addBindValue(tableId);
-        if (!clearQuery.exec())
+        // 1. 查询当前表的主记录
+        QSqlQuery queryMaster(db);
+        queryMaster.prepare("SELECT row_count FROM VectorTableMasterRecord WHERE id = ?");
+        queryMaster.addBindValue(tableId);
+
+        if (!queryMaster.exec() || !queryMaster.next())
         {
-            errorMessage = "清除行索引记录失败: " + clearQuery.lastError().text();
+            errorMessage = "无法获取表 " + QString::number(tableId) + " 的主记录";
             qWarning() << funcName << " - " << errorMessage;
             db.rollback();
             return false;
         }
 
-        // 4. 更新主记录表中的行数（设置为保留的行数）
-        QSqlQuery updateMaster(db);
-        updateMaster.prepare("UPDATE VectorTableMasterRecord SET row_count = ? WHERE id = ?");
-        updateMaster.addBindValue(rowsToKeep.size());
-        updateMaster.addBindValue(tableId);
+        int currentRowCount = queryMaster.value(0).toInt();
 
-        if (!updateMaster.exec())
+        // 2. 检查行范围是否有效
+        if (startRow < 0 || endRow >= currentRowCount || startRow > endRow)
         {
-            errorMessage = "无法更新表 " + QString::number(tableId) + " 的行数: " + updateMaster.lastError().text();
+            errorMessage = QString("无效的行范围: 起始行=%1, 结束行=%2, 总行数=%3").arg(startRow).arg(endRow).arg(currentRowCount);
             qWarning() << funcName << " - " << errorMessage;
             db.rollback();
             return false;
         }
 
-        // 5. 提交事务
-        db.commit();
+        // 3. 计算要删除的行数
+        int rowsToDelete = endRow - startRow + 1;
+        qDebug() << funcName << " - 将删除" << rowsToDelete << "行 (从第" << startRow << "行到第" << endRow << "行)";
 
-        // 6. 获取二进制文件路径
-        QString binFilePath = resolveBinaryFilePath(tableId, errorMessage);
-        if (binFilePath.isEmpty())
+        // 4. 使用高效的批量标记删除 - 一次SQL操作标记整个范围
+        QSqlQuery markDeleteQuery(db);
+        markDeleteQuery.prepare(
+            "UPDATE VectorTableRowIndex SET is_active = 0 "
+            "WHERE master_record_id = ? AND logical_row_order >= ? AND logical_row_order <= ?"
+        );
+        markDeleteQuery.addBindValue(tableId);
+        markDeleteQuery.addBindValue(startRow);
+        markDeleteQuery.addBindValue(endRow);
+
+        if (!markDeleteQuery.exec())
         {
-            errorMessage = "无法获取二进制文件路径";
+            errorMessage = "批量标记删除失败: " + markDeleteQuery.lastError().text();
             qWarning() << funcName << " - " << errorMessage;
+            db.rollback();
             return false;
         }
 
-        // 7. 备份原始文件
-        QString backupPath = binFilePath + ".bak";
-        QFile::remove(backupPath); // 删除可能存在的旧备份
-        QFile::copy(binFilePath, backupPath);
+        int actualDeletedRows = markDeleteQuery.numRowsAffected();
+        qDebug() << funcName << " - 实际标记删除了" << actualDeletedRows << "行";
 
-        // 8. 重新创建二进制文件
-        QFile binFile(binFilePath);
-        if (!binFile.open(QIODevice::ReadWrite | QIODevice::Truncate))
+        // 5. 更新主记录表中的行数（减去实际删除的行数）
+        if (actualDeletedRows > 0)
         {
-            errorMessage = "无法打开二进制文件进行重写: " + binFile.errorString();
-            qWarning() << funcName << " - " << errorMessage;
-            return false;
+            QSqlQuery updateMaster(db);
+            updateMaster.prepare("UPDATE VectorTableMasterRecord SET row_count = row_count - ? WHERE id = ?");
+            updateMaster.addBindValue(actualDeletedRows);
+            updateMaster.addBindValue(tableId);
+
+            if (!updateMaster.exec())
+            {
+                errorMessage = "无法更新表 " + QString::number(tableId) + " 的行数: " + updateMaster.lastError().text();
+                qWarning() << funcName << " - " << errorMessage;
+                db.rollback();
+                return false;
+            }
         }
 
-        // 9. 创建新的文件头
-        BinaryFileHeader header;
-        header.magic_number = Persistence::VEC_BINDATA_MAGIC;
-        header.file_format_version = Persistence::CURRENT_FILE_FORMAT_VERSION;
-        header.data_schema_version = getSchemaVersion(tableId);
-        header.row_count_in_file = rowsToKeep.size(); // 使用实际的保留行数
-        header.column_count_in_file = columns.size();
-        header.timestamp_created = QDateTime::currentSecsSinceEpoch();
-        header.timestamp_updated = QDateTime::currentSecsSinceEpoch();
-        header.compression_type = 0;
-
-        // 10. 写入新文件头
-        if (!Persistence::BinaryFileHelper::writeBinaryHeader(&binFile, header))
-        {
-            errorMessage = "写入新文件头失败";
-            qWarning() << funcName << " - " << errorMessage;
-            binFile.close();
-            return false;
-        }
-        binFile.close();
-
-        // 11. 将保留的行插入到数据库和二进制文件中
-        QString insertError;
-        if (!insertVectorRows(tableId, 0, rowsToKeep, insertError))
-        {
-            errorMessage = "重新插入行数据失败: " + insertError;
-            qWarning() << funcName << " - " << errorMessage;
-            return false;
-        }
-
-        // 12. 重新索引逻辑顺序
+        // 6. 重新排列剩余行的索引，确保连续无空洞
         if (!reindexLogicalOrder(tableId, errorMessage))
         {
             qWarning() << funcName << " - 重新索引失败:" << errorMessage;
+            db.rollback();
             return false;
         }
 
-        qDebug() << funcName << " - 成功重新组织数据，确保二进制文件与数据库索引一致";
-        qDebug() << funcName << " - 成功删除 " << rowsToDelete << " 行";
+        // 7. 提交事务
+        db.commit();
+
+        // 8. 删除行后，更新二进制文件头以确保行数同步
+        QString headerError;
+        if (updateBinaryFileHeader(tableId, headerError))
+        {
+            qDebug() << funcName << " - 删除行后更新二进制文件头，确保行数同步";
+        }
+        else
+        {
+            qWarning() << funcName << " - 更新二进制文件头失败：" << headerError;
+            // 不返回false，因为删除操作已经成功，这只是一个同步操作
+        }
+
+        qDebug() << funcName << " - 成功删除范围内的" << actualDeletedRows << "行";
         return true;
     }
     catch (const std::exception &e)
