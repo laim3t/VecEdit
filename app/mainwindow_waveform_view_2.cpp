@@ -249,12 +249,13 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
     const double PIN_GAP = 10.0;
     int pinIndexByY = static_cast<int>(floor(value / (PIN_HEIGHT + PIN_GAP)));
 
-    // 获取所有PIN_STATE_ID类型的列
+    // [FIX] 获取当前波形图中实际显示的管脚列信息，而不是所有管脚
     QList<QPair<QString, int>> pinColumns;
+    QList<QPair<QString, int>> allPinColumns; // 先获取所有管脚
 
     if (isUsingNewView && m_vectorTableModel)
     {
-        // 从模型获取管脚列信息
+        // 从模型获取所有管脚列信息
         for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
         {
             QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
@@ -266,14 +267,17 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
                     QString displayName = headerText.split('\n').first();
-                    pinColumns.append(qMakePair(displayName, col));
+                    if (displayName != "ph1") // 跳过占位符管脚
+                    {
+                        allPinColumns.append(qMakePair(displayName, col));
+                    }
                 }
             }
         }
     }
     else if (m_vectorTableWidget)
     {
-        // 从旧视图获取管脚列信息
+        // 从旧视图获取所有管脚列信息
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
             QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
@@ -285,8 +289,31 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
                     QString displayName = headerText.split('\n').first();
-                    pinColumns.append(qMakePair(displayName, col));
+                    if (displayName != "ph1") // 跳过占位符管脚
+                    {
+                        allPinColumns.append(qMakePair(displayName, col));
+                    }
                 }
+            }
+        }
+    }
+
+    // 根据当前波形图显示模式确定实际显示的管脚顺序
+    if (m_showAllPins)
+    {
+        // 显示所有管脚模式：使用所有管脚
+        pinColumns = allPinColumns;
+    }
+    else if (m_waveformPinSelector->count() > 0)
+    {
+        // 单管脚模式：只包含当前选中的管脚
+        QString selectedPinName = m_waveformPinSelector->currentText();
+        for (const auto &pin : allPinColumns)
+        {
+            if (pin.first == selectedPinName)
+            {
+                pinColumns.append(pin);
+                break;
             }
         }
     }
@@ -333,7 +360,8 @@ void MainWindow::onWaveformDoubleClicked(QMouseEvent *event)
         // 如果Y坐标在有效范围内，则使用点击的管脚
         pinName = pinColumns[pinIndexByY].first;
         pinColumnIndex = pinColumns[pinIndexByY].second;
-        m_waveformPinSelector->setCurrentText(pinName);
+        // [FIX] 移除自动切换下拉框选择的代码，避免在双击编辑时改变波形图显示状态
+        // m_waveformPinSelector->setCurrentText(pinName);
     }
     else
     {
@@ -502,12 +530,13 @@ void MainWindow::onWaveformValueEdited()
     // 4. 更新波形图 (onTableCellChanged 也会更新，但为确保立即反馈，可以手动调用)
     updateWaveformView();
 
-    // 重新计算 pinIndex 以保持高亮
+    // [FIX] 重新计算 pinIndex 以保持高亮，使用与波形图显示一致的管脚顺序
     QList<QPair<QString, int>> pinColumns;
+    QList<QPair<QString, int>> allPinColumns; // 先获取所有管脚
 
     if (isUsingNewView && m_vectorTableModel)
     {
-        // 从模型获取管脚列信息
+        // 从模型获取所有管脚列信息
         for (int col = 0; col < m_vectorTableModel->columnCount(); ++col)
         {
             QVariant headerData = m_vectorTableModel->headerData(col, Qt::Horizontal, Qt::DisplayRole);
@@ -519,25 +548,53 @@ void MainWindow::onWaveformValueEdited()
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
                     QString displayName = headerText.split('\n').first();
-                    pinColumns.append(qMakePair(displayName, col));
+                    if (displayName != "ph1") // 跳过占位符管脚
+                    {
+                        allPinColumns.append(qMakePair(displayName, col));
+                    }
                 }
             }
         }
     }
     else if (m_vectorTableWidget)
     {
-        // 从旧视图获取管脚列信息
+        // 从旧视图获取所有管脚列信息
         for (int col = 0; col < m_vectorTableWidget->columnCount(); ++col)
         {
             QTableWidgetItem *headerItem = m_vectorTableWidget->horizontalHeaderItem(col);
             if (headerItem)
             {
+                QString headerText = headerItem->text();
                 int currentTableId = m_vectorTableSelector->currentData().toInt();
                 QList<Vector::ColumnInfo> columns = getCurrentColumnConfiguration(currentTableId);
                 if (col < columns.size() && columns[col].type == Vector::ColumnDataType::PIN_STATE_ID)
                 {
-                    pinColumns.append(qMakePair(headerItem->text().split('\n').first(), col));
+                    QString displayName = headerText.split('\n').first();
+                    if (displayName != "ph1") // 跳过占位符管脚
+                    {
+                        allPinColumns.append(qMakePair(displayName, col));
+                    }
                 }
+            }
+        }
+    }
+
+    // 根据当前波形图显示模式确定实际显示的管脚顺序
+    if (m_showAllPins)
+    {
+        // 显示所有管脚模式：使用所有管脚
+        pinColumns = allPinColumns;
+    }
+    else if (m_waveformPinSelector->count() > 0)
+    {
+        // 单管脚模式：只包含当前选中的管脚
+        QString selectedPinName = m_waveformPinSelector->currentText();
+        for (const auto &pin : allPinColumns)
+        {
+            if (pin.first == selectedPinName)
+            {
+                pinColumns.append(pin);
+                break;
             }
         }
     }
