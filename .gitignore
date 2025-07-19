@@ -3,3 +3,6 @@
 
 # Log files
 /logs/
+
+# VS Code launch configuration
+/.vscode/launch.json
